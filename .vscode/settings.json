@@ -1,0 +1,15 @@
+{
+  "github.copilot.enable": {
+    "*": true,
+    "markdown": true,
+    "typescript": true,
+    "javascript": true,
+    "python": true
+  },  "files.associations": {
+    "copilot-instructions*.md": "markdown",
+    ".github/copilot-instructions.md": "markdown",
+    "browser-extension/copilot-instructions.md": "markdown",
+    "ai-processing/copilot-instructions.md": "markdown",
+    "vscode-extension/copilot-instructions.md": "markdown"
+  }
+}
