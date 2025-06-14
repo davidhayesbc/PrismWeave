@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>DocTracker Settings</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+
+    .header {
+      background: #2196F3;
+      color: white;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 30px;
+      text-align: center;
+    }
+
+    .header h1 {
+      margin: 0;
+      font-size: 24px;
+      font-weight: 500;
+    }
+
+    .section {
+      background: white;
+      border-radius: 8px;
+      padding: 25px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .section h2 {
+      margin: 0 0 20px 0;
+      font-size: 18px;
+      color: #333;
+      border-bottom: 2px solid #f0f0f0;
+      padding-bottom: 10px;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 500;
+      color: #555;
+    }
+
+    input[type="text"], input[type="url"], textarea, select {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
+      box-sizing: border-box;
+    }
+
+    textarea {
+      height: 100px;
+      resize: vertical;
+    }
+
+    .checkbox-group {
+      display: flex;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+
+    .checkbox-group input[type="checkbox"] {
+      margin-right: 10px;
+      width: auto;
+    }
+
+    .button-group {
+      display: flex;
+      gap: 10px;
+      margin-top: 30px;
+    }
+
+    .btn {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .btn-primary {
+      background: #4CAF50;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #45a049;
+    }
+
+    .btn-secondary {
+      background: #6c757d;
+      color: white;
+    }
+
+    .btn-secondary:hover {
+      background: #5a6268;
+    }
+
+    .status {
+      padding: 12px;
+      border-radius: 4px;
+      margin-bottom: 20px;
+      display: none;
+    }
+
+    .status.success {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+
+    .status.error {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+
+    .help-text {
+      font-size: 12px;
+      color: #666;
+      margin-top: 5px;
+      line-height: 1.4;
+    }
+
+    .test-connection {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .test-result {
+      padding: 5px 10px;
+      border-radius: 3px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .test-result.success {
+      background: #d4edda;
+      color: #155724;
+    }
+
+    .test-result.error {
+      background: #f8d7da;
+      color: #721c24;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>DocTracker Settings</h1>
+    <p>Configure your document capture and repository settings</p>
+  </div>
+
+  <div id="status" class="status"></div>
+
+  <div class="section">
+    <h2>Repository Configuration</h2>
+    
+    <div class="form-group">
+      <label for="repository-path">Repository Path</label>
+      <input type="text" id="repository-path" placeholder="C:\path\to\your\doctracker-repo">
+      <div class="help-text">Local path where captured documents will be saved</div>
+    </div>
+
+    <div class="form-group">
+      <label for="github-token">GitHub Personal Access Token</label>
+      <input type="text" id="github-token" placeholder="ghp_...">
+      <div class="help-text">Required for Git operations. Create one at GitHub Settings > Developer settings > Personal access tokens</div>
+      <div class="test-connection">
+        <button type="button" class="btn btn-secondary" id="test-github">Test Connection</button>
+        <div id="github-test-result" class="test-result" style="display: none;"></div>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label for="github-repo">GitHub Repository</label>
+      <input type="text" id="github-repo" placeholder="username/repository-name">
+      <div class="help-text">Format: username/repository-name</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Capture Settings</h2>
+    
+    <div class="form-group">
+      <label for="default-folder">Default Folder</label>
+      <select id="default-folder">
+        <option value="unsorted">Unsorted</option>
+        <option value="tech">Tech</option>
+        <option value="business">Business</option>
+        <option value="research">Research</option>
+        <option value="custom">Custom...</option>
+      </select>
+      <div class="help-text">Where new captures are saved by default</div>
+    </div>
+
+    <div class="form-group">
+      <label for="custom-folder" style="display: none;">Custom Folder Name</label>
+      <input type="text" id="custom-folder" style="display: none;" placeholder="my-custom-folder">
+    </div>
+
+    <div class="form-group">
+      <label for="naming-pattern">File Naming Pattern</label>
+      <select id="naming-pattern">
+        <option value="YYYY-MM-DD-domain-title">Date-Domain-Title</option>
+        <option value="YYYY-MM-DD-title">Date-Title</option>
+        <option value="domain-YYYY-MM-DD-title">Domain-Date-Title</option>
+        <option value="title-YYYY-MM-DD">Title-Date</option>
+      </select>
+      <div class="help-text">How captured files are named</div>
+    </div>
+
+    <div class="checkbox-group">
+      <input type="checkbox" id="auto-commit">
+      <label for="auto-commit">Automatically commit captured documents</label>
+    </div>
+
+    <div class="checkbox-group">
+      <input type="checkbox" id="auto-push">
+      <label for="auto-push">Automatically push commits to GitHub</label>
+    </div>
+
+    <div class="checkbox-group">
+      <input type="checkbox" id="capture-images">
+      <label for="capture-images">Download and save images locally</label>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Content Processing</h2>
+    
+    <div class="checkbox-group">
+      <input type="checkbox" id="remove-ads">
+      <label for="remove-ads">Remove advertisements and promotional content</label>
+    </div>
+
+    <div class="checkbox-group">
+      <input type="checkbox" id="remove-navigation">
+      <label for="remove-navigation">Remove navigation and menu elements</label>
+    </div>
+
+    <div class="checkbox-group">
+      <input type="checkbox" id="preserve-links">
+      <label for="preserve-links">Preserve all links in markdown</label>
+    </div>
+
+    <div class="form-group">
+      <label for="custom-selectors">Custom CSS Selectors to Remove</label>
+      <textarea id="custom-selectors" placeholder=".sidebar, .comments, .related-articles"></textarea>
+      <div class="help-text">Comma-separated CSS selectors for elements to remove during capture</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Advanced Options</h2>
+    
+    <div class="form-group">
+      <label for="commit-message-template">Commit Message Template</label>
+      <input type="text" id="commit-message-template" value="Add: {domain} - {title}">
+      <div class="help-text">Variables: {domain}, {title}, {date}, {filename}</div>
+    </div>
+
+    <div class="checkbox-group">
+      <input type="checkbox" id="enable-keyboard-shortcuts">
+      <label for="enable-keyboard-shortcuts">Enable keyboard shortcuts (Ctrl+Shift+S to capture)</label>
+    </div>
+
+    <div class="checkbox-group">
+      <input type="checkbox" id="show-notifications">
+      <label for="show-notifications">Show browser notifications for captures</label>
+    </div>
+  </div>
+
+  <div class="button-group">
+    <button type="button" class="btn btn-primary" id="save-settings">Save Settings</button>
+    <button type="button" class="btn btn-secondary" id="reset-settings">Reset to Defaults</button>
+    <button type="button" class="btn btn-secondary" id="export-settings">Export Settings</button>
+    <button type="button" class="btn btn-secondary" id="import-settings">Import Settings</button>
+  </div>
+
+  <input type="file" id="import-file" style="display: none;" accept=".json">
+
+  <script src="options.js"></script>
+</body>
+</html>
