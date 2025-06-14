@@ -1,4 +1,4 @@
-// Build script for DocTracker browser extension
+// Build script for PrismWeave browser extension
 const fs = require('fs');
 const path = require('path');
 

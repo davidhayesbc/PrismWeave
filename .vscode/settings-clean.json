@@ -51,7 +51,7 @@
     "**/venv": true,
     "**/__pycache__": true,
     "**/embeddings.db": true,
-    "**/.doctracker/cache": true
+    "**/.prismweave/cache": true
   },
   
   "files.watcherExclude": {
@@ -59,7 +59,7 @@
     "**/dist/**": true,
     "**/build/**": true,
     "**/venv/**": true,
-    "**/.doctracker/cache/**": true
+    "**/.prismweave/cache/**": true
   },
   
   "files.autoSave": "afterDelay",

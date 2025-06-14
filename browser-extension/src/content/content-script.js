@@ -1,7 +1,7 @@
-// DocTracker Content Script
+// PrismWeave Content Script
 // Runs on web pages to assist with content extraction and user interactions
 
-class DocTrackerContent {
+class PrismWeaveContent {
   constructor() {
     this.isCapturing = false;
     this.contentExtractor = null;
@@ -320,7 +320,7 @@ class DocTrackerContent {
 
   createCaptureIndicator() {
     const indicator = document.createElement('div');
-    indicator.id = 'doctracker-indicator';
+    indicator.id = 'prismweave-indicator';
     indicator.style.cssText = `
       position: fixed;
       top: 20px;
@@ -337,25 +337,23 @@ class DocTrackerContent {
     `;
     document.body.appendChild(indicator);
   }
-
   showCaptureIndicator() {
-    const indicator = document.getElementById('doctracker-indicator');
+    const indicator = document.getElementById('prismweave-indicator');
     if (indicator) {
       indicator.textContent = 'Capturing page...';
       indicator.style.display = 'block';
       indicator.style.background = '#2196F3';
     }
   }
-
   hideCaptureIndicator() {
-    const indicator = document.getElementById('doctracker-indicator');
+    const indicator = document.getElementById('prismweave-indicator');
     if (indicator) {
       indicator.style.display = 'none';
     }
   }
 
   showCaptureSuccess(filename) {
-    const indicator = document.getElementById('doctracker-indicator');
+    const indicator = document.getElementById('prismweave-indicator');
     if (indicator) {
       indicator.textContent = `✓ Captured: ${filename}`;
       indicator.style.background = '#4CAF50';
@@ -366,9 +364,8 @@ class DocTrackerContent {
       }, 3000);
     }
   }
-
   showCaptureError(error) {
-    const indicator = document.getElementById('doctracker-indicator');
+    const indicator = document.getElementById('prismweave-indicator');
     if (indicator) {
       indicator.textContent = `✗ Error: ${error}`;
       indicator.style.background = '#f44336';
@@ -402,8 +399,8 @@ class DocTrackerContent {
 // Initialize content script
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => {
-    new DocTrackerContent();
+    new PrismWeaveContent();
   });
 } else {
-  new DocTrackerContent();
+  new PrismWeaveContent();
 }

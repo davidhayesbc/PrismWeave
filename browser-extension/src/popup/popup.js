@@ -1,7 +1,7 @@
-// DocTracker Popup Script
+// PrismWeave Popup Script
 // Handles the extension popup interface and user interactions
 
-class DocTrackerPopup {
+class PrismWeavePopup {
   constructor() {
     this.currentTab = null;
     this.settings = null;
@@ -280,5 +280,5 @@ class DocTrackerPopup {
 
 // Initialize popup when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
-  new DocTrackerPopup();
+  new PrismWeavePopup();
 });

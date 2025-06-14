@@ -1,4 +1,4 @@
-# DocTracker Project .gitignore
+# PrismWeave Project .gitignore
 
 # Node.js dependencies
 node_modules/
@@ -148,4 +148,4 @@ generated/
 processed/
 
 # Document repository (this will be a separate git repo)
-doctracker-repo/
+prismweave-repo/

@@ -1,4 +1,4 @@
-# DocTracker Browser Extension
+# PrismWeave Browser Extension
 
 Browser extension for capturing web pages as clean markdown and syncing to your Git repository.
 
@@ -55,7 +55,7 @@ Browser extension for capturing web pages as clean markdown and syncing to your 
 The extension needs a local Git repository to save captured documents:
 
 ```
-your-doctracker-repo/
+your-prismweave-repo/
 ├── documents/           # Captured markdown files
 │   ├── tech/
 │   ├── business/

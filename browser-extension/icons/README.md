@@ -1,4 +1,4 @@
-# DocTracker Extension Icons
+# PrismWeave Extension Icons
 
 This directory contains the following icon files:
 
@@ -9,9 +9,9 @@ This directory contains the following icon files:
 
 ## Design Guidelines
 
-The DocTracker icon represents:
+The PrismWeave icon represents:
 - Document capture/collection with a clean document icon
-- Modern flat design with DocTracker brand colors
+- Modern flat design with PrismWeave brand colors
 - Blue (#2196F3) for the document border and primary elements
 - Green (#4CAF50) for the capture/download indicator
 - Simple geometric shapes that scale well across all sizes

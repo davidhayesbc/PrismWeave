@@ -27,11 +27,10 @@ export default [
         importScripts: 'readonly',
         self: 'readonly',
         
-        // Our extension classes
-        DocTrackerBackground: 'readonly',
-        DocTrackerContent: 'readonly',
-        DocTrackerPopup: 'readonly',
-        DocTrackerOptions: 'readonly',
+        // Our extension classes        PrismWeaveBackground: 'readonly',
+        PrismWeaveContent: 'readonly',
+        PrismWeavePopup: 'readonly',
+        PrismWeaveOptions: 'readonly',
         MarkdownConverter: 'readonly',
         GitOperations: 'readonly',
         FileManager: 'readonly',
@@ -42,7 +41,7 @@ export default [
     rules: {
       // Disable rules that don't work well with browser extensions
       'no-unused-vars': ['error', { 
-        'varsIgnorePattern': '^(DocTracker|MarkdownConverter|GitOperations|FileManager|ContentExtractor)',
+        'varsIgnorePattern': '^(PrismWeave|MarkdownConverter|GitOperations|FileManager|ContentExtractor)',
         'argsIgnorePattern': '^_'
       }],
       'no-console': 'warn',

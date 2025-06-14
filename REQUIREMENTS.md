@@ -1,4 +1,4 @@
-# DocTracker - Requirements & Design Document
+# PrismWeave - Requirements & Design Document
 
 ## Project Overview
 A comprehensive document management and content creation system that:

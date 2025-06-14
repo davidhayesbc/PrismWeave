@@ -1,4 +1,4 @@
-// DocTracker Background Service Worker
+// PrismWeave Background Service Worker
 // Handles extension lifecycle, Git operations, and file management
 
 // Import utilities and dependencies
@@ -7,7 +7,7 @@ importScripts('src/utils/markdown-converter.js');
 importScripts('src/utils/git-operations.js');
 importScripts('src/utils/file-manager.js');
 
-class DocTrackerBackground {
+class PrismWeaveBackground {
   constructor() {
     this.markdownConverter = new MarkdownConverter();
     this.gitOperations = new GitOperations();
@@ -34,7 +34,7 @@ class DocTrackerBackground {
   }
 
   async handleInstallation(details) {
-    console.log('DocTracker installed:', details.reason);
+    console.log('PrismWeave installed:', details.reason);
     
     // Initialize default settings
     const defaultSettings = {
@@ -46,7 +46,7 @@ class DocTrackerBackground {
       fileNamingPattern: 'YYYY-MM-DD-domain-title'
     };
 
-    await chrome.storage.sync.set({ docTrackerSettings: defaultSettings });
+    await chrome.storage.sync.set({ prismWeaveSettings: defaultSettings });
   }
 
   async handleMessage(message, sender, sendResponse) {
@@ -267,7 +267,7 @@ class DocTrackerBackground {
     
     await chrome.downloads.download({
       url: url,
-      filename: `doctracker/${folder}/${processedContent.filename}`,
+      filename: `prismweave/${folder}/${processedContent.filename}`,
       saveAs: false
     });
 
@@ -308,9 +308,8 @@ class DocTrackerBackground {
       }
     });
   }
-  async getSettings() {
-    const result = await chrome.storage.sync.get(['docTrackerSettings']);
-    return result.docTrackerSettings || this.getDefaultSettings();
+  async getSettings() {    const result = await chrome.storage.sync.get(['prismWeaveSettings']);
+    return result.prismWeaveSettings || this.getDefaultSettings();
   }
 
   getDefaultSettings() {
@@ -325,9 +324,9 @@ class DocTrackerBackground {
   }
 
   async updateSettings(newSettings) {
-    await chrome.storage.sync.set({ docTrackerSettings: newSettings });
+    await chrome.storage.sync.set({ prismWeaveSettings: newSettings });
   }
 }
 
 // Initialize the background service
-new DocTrackerBackground();
+new PrismWeaveBackground();

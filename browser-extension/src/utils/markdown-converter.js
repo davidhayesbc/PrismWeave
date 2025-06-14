@@ -1,4 +1,4 @@
-// DocTracker Markdown Converter
+// PrismWeave Markdown Converter
 // Enhanced HTML to Markdown conversion using Turndown.js
 
 class MarkdownConverter {

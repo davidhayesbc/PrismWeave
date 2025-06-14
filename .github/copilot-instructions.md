@@ -1,9 +1,9 @@
-# Copilot Instructions for DocTracker Project
+# Copilot Instructions for PrismWeave Project
 
 <!-- Use this file to provide workspace-specific custom instructions to Copilot. For more details, visit https://code.visualstudio.com/docs/copilot/copilot-customization#_use-a-githubcopilotinstructionsmd-file -->
 
 ## Project Overview
-DocTracker is a comprehensive document management and content creation system that captures web pages as markdown, syncs via Git, and uses local AI for processing and content generation.
+PrismWeave is a comprehensive document management and content creation system that captures web pages as markdown, syncs via Git, and uses local AI for processing and content generation.
 
 ## Core Architecture
 - **Browser Extension**: Chrome/Edge Manifest V3 for web page capture
@@ -65,10 +65,10 @@ DocTracker is a comprehensive document management and content creation system th
 
 ## File Structure Conventions
 ```
-doctracker-repo/
+prismweave-repo/
 ├── documents/              # Captured markdown files
 ├── images/                 # Captured images
-├── .doctracker/           # System metadata and vector DB
+├── .prismweave/           # System metadata and vector DB
 ├── generated/             # AI-created content
 └── .github/               # GitHub configuration
 ```

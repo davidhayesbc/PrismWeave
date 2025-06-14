@@ -1,8 +1,8 @@
-# DocTracker Browser Extension - Implementation Complete! 🎉
+# PrismWeave Browser Extension - Implementation Complete! 🎉
 
 ## What We've Built
 
-A fully functional Chrome/Edge browser extension for capturing web pages as markdown and syncing to GitHub repositories. This completes **Phase 1** of the DocTracker implementation plan.
+A fully functional Chrome/Edge browser extension for capturing web pages as markdown and syncing to GitHub repositories. This completes **Phase 1** of the PrismWeave implementation plan.
 
 ## ✅ Completed Features
 
@@ -154,7 +154,7 @@ npm run clean
 
 ## 🎉 Ready for Phase 2!
 
-The browser extension is **complete and functional**. This provides the foundation for the entire DocTracker ecosystem. Users can now:
+The browser extension is **complete and functional**. This provides the foundation for the entire PrismWeave ecosystem. Users can now:
 
 1. **Capture web pages** with one click
 2. **Sync to GitHub** automatically  

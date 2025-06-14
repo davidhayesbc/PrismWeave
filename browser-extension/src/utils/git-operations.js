@@ -1,4 +1,4 @@
-// DocTracker Git Operations
+// PrismWeave Git Operations
 // Handles Git repository management and synchronization
 
 class GitOperations {
@@ -189,7 +189,7 @@ class GitOperations {
     
     await chrome.downloads.download({
       url: url,
-      filename: `doctracker/${processedContent.filename}`,
+      filename: `prismweave/${processedContent.filename}`,
       saveAs: false
     });
 
@@ -269,7 +269,7 @@ class GitOperations {
         },
         body: JSON.stringify({
           name: repositoryName,
-          description: 'DocTracker document repository',
+          description: 'PrismWeave document repository',
           private: isPrivate,
           auto_init: true
         })
@@ -310,7 +310,7 @@ class GitOperations {
         content: '# Images\n\nImages extracted from captured pages.\n'
       },
       {
-        path: '.doctracker/config.json',
+        path: '.prismweave/config.json',
         content: JSON.stringify({
           version: '1.0.0',
           created: new Date().toISOString(),

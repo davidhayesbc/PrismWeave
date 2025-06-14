@@ -1,6 +1,6 @@
-// DocTracker Options/Settings Page Script
+// PrismWeave Options/Settings Page Script
 
-class DocTrackerOptions {
+class PrismWeaveOptions {
   constructor() {
     this.settings = {};
     this.initializeOptions();
@@ -225,7 +225,7 @@ class DocTrackerOptions {
     
     const link = document.createElement('a');
     link.href = url;
-    link.download = 'doctracker-settings.json';
+    link.download = 'prismweave-settings.json';
     link.click();
     
     URL.revokeObjectURL(url);
@@ -363,5 +363,5 @@ class DocTrackerOptions {
 
 // Initialize options page when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
-  new DocTrackerOptions();
+  new PrismWeaveOptions();
 });

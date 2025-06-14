@@ -1,7 +1,7 @@
-# DocTracker - Implementation Plan
+# PrismWeave - Implementation Plan
 
 ## Project Overview
-Implementation roadmap for DocTracker: A comprehensive document management and content creation system with browser capture, Git sync, AI processing, and VS Code integration.
+Implementation roadmap for PrismWeave: A comprehensive document management and content creation system with browser capture, Git sync, AI processing, and VS Code integration.
 
 ## Development Strategy
 **Phased approach for incremental value delivery**
@@ -215,7 +215,7 @@ Implementation roadmap for DocTracker: A comprehensive document management and c
 
 ### Repository Structure
 ```
-doctracker-repo/
+prismweave-repo/
 ├── documents/              # Captured markdown files
 │   ├── tech/
 │   ├── business/
@@ -223,7 +223,7 @@ doctracker-repo/
 │   └── unsorted/
 ├── images/                 # Captured images
 │   └── [YYYY-MM-DD]/      # Organized by date
-├── .doctracker/           # System metadata
+├── .prismweave/           # System metadata
 │   ├── embeddings.db      # Vector database
 │   ├── config.json        # User settings
 │   ├── processing.log     # AI processing history

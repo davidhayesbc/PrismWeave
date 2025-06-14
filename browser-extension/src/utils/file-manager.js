@@ -1,4 +1,4 @@
-// DocTracker File Management
+// PrismWeave File Management
 // Utilities for file naming, organization, and metadata handling
 
 class FileManager {

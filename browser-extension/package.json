@@ -1,5 +1,5 @@
 {
-  "name": "doctracker-browser-extension",
+  "name": "prismweave-browser-extension",
   "version": "1.0.0",
   "description": "Browser extension for capturing web pages as markdown and syncing to Git repository",
   "main": "src/background/service-worker.js",  "scripts": {
@@ -21,7 +21,7 @@
     "chrome-extension",
     "edge-extension"
   ],
-  "author": "DocTracker Team",
+  "author": "PrismWeave Team",
   "license": "MIT",
   "devDependencies": {
     "@eslint/js": "^9.0.0",
@@ -36,7 +36,7 @@
   },
   "browser_specific_settings": {
     "gecko": {
-      "id": "doctracker@example.com"
+      "id": "prismweave@example.com"
     }
   },
   "extensionManifest": {

@@ -1,10 +1,10 @@
-// Package script for DocTracker browser extension
+// Package script for PrismWeave browser extension
 const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
 
 const distDir = path.join(__dirname, '..', 'dist');
-const packagePath = path.join(__dirname, '..', 'doctracker-extension.zip');
+const packagePath = path.join(__dirname, '..', 'prismweave-extension.zip');
 
 // Check if dist directory exists
 if (!fs.existsSync(distDir)) {

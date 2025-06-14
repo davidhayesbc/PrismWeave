@@ -1,4 +1,4 @@
-# DocTracker Copilot Configuration
+# PrismWeave Copilot Configuration
 
 ## Setup Complete ✅
 
@@ -19,7 +19,7 @@
 
 ### File Structure
 ```
-DocTracker/
+PrismWeave/
 ├── .github/
 │   ├── copilot-instructions.md                    # Main instructions
 │   ├── copilot-instructions-browser-extension.md  # Browser-specific
@@ -35,4 +35,4 @@ DocTracker/
     └── copilot-instructions.md
 ```
 
-**Ready for development!** Copilot will now use these instructions when you work on different parts of the DocTracker project.
+**Ready for development!** Copilot will now use these instructions when you work on different parts of the PrismWeave project.

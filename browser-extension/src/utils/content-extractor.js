@@ -1,4 +1,4 @@
-// DocTracker Content Extractor
+// PrismWeave Content Extractor
 // Enhanced content extraction and cleaning utilities
 
 class ContentExtractor {
