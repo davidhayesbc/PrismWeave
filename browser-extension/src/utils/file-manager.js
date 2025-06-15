@@ -1,6 +1,19 @@
 // PrismWeave File Management
 // Utilities for file naming, organization, and metadata handling
 
+// Import shared utilities if available
+let SharedUtils;
+try {
+  if (typeof require !== 'undefined') {
+    SharedUtils = require('./shared-utils.js');
+  } else if (typeof window !== 'undefined' && window.SharedUtils) {
+    SharedUtils = window.SharedUtils;
+  }
+} catch (e) {
+  // Fallback if shared utils not available
+  SharedUtils = null;
+}
+
 class FileManager {
   constructor() {
     this.folderMapping = {
@@ -39,8 +52,11 @@ class FileManager {
     
     return filename;
   }
-
   sanitizeDomain(domain) {
+    return SharedUtils?.sanitizeDomain(domain) || this._fallbackSanitizeDomain(domain);
+  }
+
+  _fallbackSanitizeDomain(domain) {
     if (!domain) return 'unknown';
     
     return domain
@@ -51,6 +67,10 @@ class FileManager {
   }
 
   sanitizeTitle(title) {
+    return SharedUtils?.sanitizeForFilename(title) || this._fallbackSanitizeTitle(title);
+  }
+
+  _fallbackSanitizeTitle(title) {
     if (!title) return 'untitled';
     
     return title
@@ -149,8 +169,11 @@ class FileManager {
     yaml += '---';
     return yaml;
   }
-
   escapeYaml(str) {
+    return SharedUtils?.escapeYaml(str) || this._fallbackEscapeYaml(str);
+  }
+
+  _fallbackEscapeYaml(str) {
     if (typeof str !== 'string') return str;
     return str.replace(/"/g, '\\"').replace(/\n/g, '\\n');
   }
@@ -226,8 +249,11 @@ class FileManager {
     }
     return summary.trim() + '...';
   }
-
   validateFilename(filename) {
+    return SharedUtils?.validateFilename(filename) || this._fallbackValidateFilename(filename);
+  }
+
+  _fallbackValidateFilename(filename) {
     const errors = [];
     
     if (!filename) {
@@ -258,15 +284,24 @@ class FileManager {
   }
 
   getFileExtension(filename) {
+    return SharedUtils?.getFileExtension(filename) || this._fallbackGetFileExtension(filename);
+  }
+
+  _fallbackGetFileExtension(filename) {
     const match = filename.match(/\.([a-zA-Z0-9]+)$/);
     return match ? match[1].toLowerCase() : '';
   }
 
   isMarkdownFile(filename) {
-    return this.getFileExtension(filename) === 'md';
+    return SharedUtils?.isMarkdownFile(filename) || this.getFileExtension(filename) === 'md';
   }
 
   generateUniqueFilename(baseFilename, existingFiles = []) {
+    return SharedUtils?.generateUniqueFilename(baseFilename, existingFiles) || 
+           this._fallbackGenerateUniqueFilename(baseFilename, existingFiles);
+  }
+
+  _fallbackGenerateUniqueFilename(baseFilename, existingFiles = []) {
     if (!existingFiles.includes(baseFilename)) {
       return baseFilename;
     }
@@ -286,11 +321,12 @@ class FileManager {
   }
 
   getDateFromFilename(filename) {
+    return SharedUtils?.getDateFromFilename(filename) || this._fallbackGetDateFromFilename(filename);
+  }
+
+  _fallbackGetDateFromFilename(filename) {
     const dateMatch = filename.match(/(\d{4}-\d{2}-\d{2})/);
-    if (dateMatch) {
-      return new Date(dateMatch[1]);
-    }
-    return null;
+    return dateMatch ? new Date(dateMatch[1]) : null;
   }
 
   getTopLevelFolders() {

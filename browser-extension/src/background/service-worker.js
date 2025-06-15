@@ -3,6 +3,7 @@
 
 // Import utilities and dependencies
 importScripts('lib/turndown.js');
+importScripts('src/utils/shared-utils.js');
 importScripts('src/utils/markdown-converter.js');
 importScripts('src/utils/git-operations.js');
 importScripts('src/utils/file-manager.js');
@@ -32,20 +33,11 @@ class PrismWeaveBackground {
       this.captureCurrentPage(tab);
     });
   }
-
   async handleInstallation(details) {
     console.log('PrismWeave installed:', details.reason);
     
-    // Initialize default settings
-    const defaultSettings = {
-      autoCommit: false,
-      autoPush: false,
-      repositoryPath: '',
-      githubToken: '',
-      defaultFolder: 'unsorted',
-      fileNamingPattern: 'YYYY-MM-DD-domain-title'
-    };
-
+    // Initialize default settings - delegate to FileManager for consistency
+    const defaultSettings = this.getDefaultSettings();
     await chrome.storage.sync.set({ prismWeaveSettings: defaultSettings });
   }
 
@@ -167,80 +159,6 @@ class PrismWeaveBackground {
     };
   }
 
-  async htmlToMarkdown(html) {
-    // Basic HTML to Markdown conversion
-    // TODO: Integrate proper library like Turndown.js
-    let markdown = html;
-    
-    // Headers
-    markdown = markdown.replace(/<h1[^>]*>(.*?)<\/h1>/gi, '# $1\n\n');
-    markdown = markdown.replace(/<h2[^>]*>(.*?)<\/h2>/gi, '## $1\n\n');
-    markdown = markdown.replace(/<h3[^>]*>(.*?)<\/h3>/gi, '### $1\n\n');
-    markdown = markdown.replace(/<h4[^>]*>(.*?)<\/h4>/gi, '#### $1\n\n');
-    markdown = markdown.replace(/<h5[^>]*>(.*?)<\/h5>/gi, '##### $1\n\n');
-    markdown = markdown.replace(/<h6[^>]*>(.*?)<\/h6>/gi, '###### $1\n\n');
-    
-    // Paragraphs
-    markdown = markdown.replace(/<p[^>]*>(.*?)<\/p>/gi, '$1\n\n');
-    
-    // Links
-    markdown = markdown.replace(/<a[^>]*href="([^"]*)"[^>]*>(.*?)<\/a>/gi, '[$2]($1)');
-    
-    // Bold and italic
-    markdown = markdown.replace(/<strong[^>]*>(.*?)<\/strong>/gi, '**$1**');
-    markdown = markdown.replace(/<b[^>]*>(.*?)<\/b>/gi, '**$1**');
-    markdown = markdown.replace(/<em[^>]*>(.*?)<\/em>/gi, '*$1*');
-    markdown = markdown.replace(/<i[^>]*>(.*?)<\/i>/gi, '*$1*');
-    
-    // Lists
-    markdown = markdown.replace(/<ul[^>]*>(.*?)<\/ul>/gis, (match, content) => {
-      const items = content.match(/<li[^>]*>(.*?)<\/li>/gi) || [];
-      return items.map(item => `- ${item.replace(/<li[^>]*>(.*?)<\/li>/gi, '$1')}`).join('\n') + '\n\n';
-    });
-    
-    markdown = markdown.replace(/<ol[^>]*>(.*?)<\/ol>/gis, (match, content) => {
-      const items = content.match(/<li[^>]*>(.*?)<\/li>/gi) || [];
-      return items.map((item, index) => `${index + 1}. ${item.replace(/<li[^>]*>(.*?)<\/li>/gi, '$1')}`).join('\n') + '\n\n';
-    });
-    
-    // Images
-    markdown = markdown.replace(/<img[^>]*src="([^"]*)"[^>]*alt="([^"]*)"[^>]*>/gi, '![$2]($1)');
-    markdown = markdown.replace(/<img[^>]*src="([^"]*)"[^>]*>/gi, '![]($1)');
-    
-    // Clean up HTML tags and extra whitespace
-    markdown = markdown.replace(/<[^>]+>/g, '');
-    markdown = markdown.replace(/\n\s*\n\s*\n/g, '\n\n');
-    markdown = markdown.trim();
-    
-    return markdown;
-  }
-
-  generateFilename(metadata) {
-    const date = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-    const domain = metadata.domain.replace(/^www\./, ''); // Remove www.
-    const title = metadata.title
-      .toLowerCase()
-      .replace(/[^a-z0-9\s-]/g, '') // Remove special chars
-      .replace(/\s+/g, '-') // Replace spaces with hyphens
-      .substring(0, 50); // Limit length
-
-    return `${date}-${domain}-${title}.md`;
-  }
-
-  createFrontmatter(metadata, pageData) {
-    const frontmatter = {
-      title: metadata.title,
-      source_url: metadata.url,
-      domain: metadata.domain,
-      captured_date: metadata.timestamp,
-      tags: [],
-      summary: ""
-    };
-
-    return `---\n${Object.entries(frontmatter)
-      .map(([key, value]) => `${key}: "${value}"`)
-      .join('\n')}\n---`;
-  }
   async saveToRepository(processedContent) {
     try {
       const settings = await this.getSettings();

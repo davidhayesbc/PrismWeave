@@ -16,26 +16,19 @@ The PrismWeave icon represents:
 - Green (#4CAF50) for the capture/download indicator
 - Simple geometric shapes that scale well across all sizes
 
-## Generated Icons
+## Current Icons
 
-The current icons are generated programmatically using the `scripts/generate-icons.js` script. They feature:
+The current icons feature:
 - A document with a folded corner (representing web pages)
 - Horizontal lines indicating content
 - A green circular arrow icon in the bottom-right (representing capture/download)
 - Clean, scalable design that works at all sizes
 
-## Regenerating Icons
-
-To regenerate the icons (if you want to modify the design):
-
-```bash
-npm run generate-icons
-```
-
-Or run directly:
-```bash
-node scripts/generate-icons.js
-```
+The icons are provided in PNG format at the following sizes:
+- `icon16.png` - 16x16 pixels (toolbar icon)
+- `icon32.png` - 32x32 pixels (Windows taskbar, Mac dock)
+- `icon48.png` - 48x48 pixels (extension management page)
+- `icon128.png` - 128x128 pixels (Chrome Web Store, installation)
 
 ## Icon Concepts
 

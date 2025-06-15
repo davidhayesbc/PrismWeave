@@ -3,9 +3,8 @@
   "version": "1.0.0",
   "description": "Browser extension for capturing web pages as markdown and syncing to Git repository",
   "main": "src/background/service-worker.js",  "scripts": {
-    "build": "npm run generate-icons && npm run copy-files",
+    "build": "npm run copy-files",
     "copy-files": "node scripts/build.js",
-    "generate-icons": "node scripts/generate-icons.js",
     "minify": "terser dist/src/**/*.js --compress --mangle -o dist/bundle.min.js",
     "dev": "npm run copy-files",
     "test": "jest",

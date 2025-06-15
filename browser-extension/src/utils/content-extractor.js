@@ -1,6 +1,19 @@
 // PrismWeave Content Extractor
 // Enhanced content extraction and cleaning utilities
 
+// Import shared utilities if available
+let SharedUtils;
+try {
+  if (typeof require !== 'undefined') {
+    SharedUtils = require('./shared-utils.js');
+  } else if (typeof window !== 'undefined' && window.SharedUtils) {
+    SharedUtils = window.SharedUtils;
+  }
+} catch (e) {
+  // Fallback if shared utils not available
+  SharedUtils = null;
+}
+
 class ContentExtractor {
   constructor() {
     this.readabilitySelectors = [
@@ -219,8 +232,7 @@ class ContentExtractor {
       const src = img.src;
       const alt = img.alt || '';
       const title = img.title || '';
-      
-      if (src && !src.startsWith('data:') && this.isValidImageUrl(src)) {
+        if (src && !src.startsWith('data:') && this.isValidImageUrl(src)) {
         images.push({
           src: this.resolveUrl(src),
           alt,
@@ -253,7 +265,6 @@ class ContentExtractor {
     
     return links;
   }
-
   assessContentQuality(contentElement) {
     const text = contentElement.innerText;
     const wordCount = this.countWords(text);
@@ -262,25 +273,14 @@ class ContentExtractor {
     const images = contentElement.querySelectorAll('img').length;
     const links = contentElement.querySelectorAll('a').length;
     
-    // Calculate quality score (0-100)
-    let score = 0;
+    // Use SharedUtils for score calculation if available
+    let score = SharedUtils?.calculateReadabilityScore(text, paragraphs, headings) || 0;
     
-    // Word count scoring
-    if (wordCount >= 300) score += 30;
-    else if (wordCount >= 100) score += 20;
-    else if (wordCount >= 50) score += 10;
-    
-    // Structure scoring
-    if (paragraphs >= 3) score += 20;
-    if (headings >= 2) score += 15;
+    // Add additional scoring for media and links
     if (images >= 1) score += 10;
     if (links >= 2) score += 10;
     
-    // Readability scoring
     const avgWordsPerParagraph = paragraphs > 0 ? wordCount / paragraphs : 0;
-    if (avgWordsPerParagraph >= 20 && avgWordsPerParagraph <= 100) {
-      score += 15;
-    }
     
     return {
       score: Math.min(score, 100),
@@ -294,6 +294,10 @@ class ContentExtractor {
   }
 
   countWords(text) {
+    return SharedUtils?.countWords(text) || this._fallbackCountWords(text);
+  }
+
+  _fallbackCountWords(text) {
     return text.trim().split(/\s+/).filter(word => word.length > 0).length;
   }
 
@@ -301,29 +305,6 @@ class ContentExtractor {
     const wordCount = this.countWords(text);
     const wordsPerMinute = 200; // Average reading speed
     return Math.ceil(wordCount / wordsPerMinute);
-  }
-
-  isValidImageUrl(url) {
-    const imageExtensions = /\.(jpg|jpeg|png|gif|svg|webp|bmp)(\?.*)?$/i;
-    return imageExtensions.test(url) || url.includes('image') || url.includes('img');
-  }
-
-  isValidUrl(url) {
-    try {
-      new URL(url);
-      return true;
-    } catch {
-      return false;
-    }
-  }
-
-  resolveUrl(url) {
-    // Convert relative URLs to absolute
-    try {
-      return new URL(url, window.location.href).href;
-    } catch {
-      return url;
-    }
   }
 
   // Method for highlighting content on the page
@@ -368,6 +349,40 @@ class ContentExtractor {
         if (overlay.parentNode) overlay.remove();
         if (highlight.parentNode) highlight.remove();
       }, 3000);
+    }
+  }
+
+  isValidImageUrl(url) {
+    return SharedUtils?.isValidImageUrl(url) || this._fallbackIsValidImageUrl(url);
+  }
+
+  _fallbackIsValidImageUrl(url) {
+    const imageExtensions = /\.(jpg|jpeg|png|gif|svg|webp|bmp)(\?.*)?$/i;
+    return imageExtensions.test(url) || url.includes('image') || url.includes('img');
+  }
+
+  isValidUrl(url) {
+    return SharedUtils?.isValidUrl(url) || this._fallbackIsValidUrl(url);
+  }
+
+  _fallbackIsValidUrl(url) {
+    try {
+      new URL(url);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  resolveUrl(url) {
+    return SharedUtils?.resolveUrl(url) || this._fallbackResolveUrl(url);
+  }
+
+  _fallbackResolveUrl(url) {
+    try {
+      return new URL(url, window.location.href).href;
+    } catch {
+      return url;
     }
   }
 }
