@@ -43,7 +43,7 @@ class PrismWeaveOptions {
       customSelectors: '',
       commitMessageTemplate: 'Add: {domain} - {title}',
       enableKeyboardShortcuts: true,
-      showNotifications: true
+      showNotifications: true,
     };
   }
 
@@ -56,7 +56,8 @@ class PrismWeaveOptions {
     // Capture settings
     document.getElementById('default-folder').value = this.settings.defaultFolder || 'unsorted';
     document.getElementById('custom-folder').value = this.settings.customFolder || '';
-    document.getElementById('naming-pattern').value = this.settings.namingPattern || 'YYYY-MM-DD-domain-title';
+    document.getElementById('naming-pattern').value =
+      this.settings.namingPattern || 'YYYY-MM-DD-domain-title';
 
     // Checkboxes
     document.getElementById('auto-commit').checked = this.settings.autoCommit || false;
@@ -70,9 +71,12 @@ class PrismWeaveOptions {
     document.getElementById('custom-selectors').value = this.settings.customSelectors || '';
 
     // Advanced options
-    document.getElementById('commit-message-template').value = this.settings.commitMessageTemplate || 'Add: {domain} - {title}';
-    document.getElementById('enable-keyboard-shortcuts').checked = this.settings.enableKeyboardShortcuts !== false;
-    document.getElementById('show-notifications').checked = this.settings.showNotifications !== false;
+    document.getElementById('commit-message-template').value =
+      this.settings.commitMessageTemplate || 'Add: {domain} - {title}';
+    document.getElementById('enable-keyboard-shortcuts').checked =
+      this.settings.enableKeyboardShortcuts !== false;
+    document.getElementById('show-notifications').checked =
+      this.settings.showNotifications !== false;
 
     // Handle custom folder visibility
     this.toggleCustomFolder();
@@ -98,7 +102,7 @@ class PrismWeaveOptions {
       document.getElementById('import-file').click();
     });
 
-    document.getElementById('import-file').addEventListener('change', (e) => {
+    document.getElementById('import-file').addEventListener('change', e => {
       this.importSettings(e.target.files[0]);
     });
 
@@ -122,7 +126,13 @@ class PrismWeaveOptions {
     });
 
     // Auto-save on certain changes
-    const autoSaveFields = ['auto-commit', 'auto-push', 'capture-images', 'remove-ads', 'remove-navigation'];
+    const autoSaveFields = [
+      'auto-commit',
+      'auto-push',
+      'capture-images',
+      'remove-ads',
+      'remove-navigation',
+    ];
     autoSaveFields.forEach(fieldId => {
       document.getElementById(fieldId).addEventListener('change', () => {
         this.autoSave();
@@ -163,7 +173,7 @@ class PrismWeaveOptions {
         customSelectors: document.getElementById('custom-selectors').value.trim(),
         commitMessageTemplate: document.getElementById('commit-message-template').value.trim(),
         enableKeyboardShortcuts: document.getElementById('enable-keyboard-shortcuts').checked,
-        showNotifications: document.getElementById('show-notifications').checked
+        showNotifications: document.getElementById('show-notifications').checked,
       };
 
       // Validate required fields
@@ -174,7 +184,7 @@ class PrismWeaveOptions {
       // Save to storage
       const response = await chrome.runtime.sendMessage({
         action: 'UPDATE_SETTINGS',
-        settings: formData
+        settings: formData,
       });
 
       if (response.success) {
@@ -222,12 +232,12 @@ class PrismWeaveOptions {
     const dataStr = JSON.stringify(this.settings, null, 2);
     const dataBlob = new Blob([dataStr], { type: 'application/json' });
     const url = URL.createObjectURL(dataBlob);
-    
+
     const link = document.createElement('a');
     link.href = url;
     link.download = 'prismweave-settings.json';
     link.click();
-    
+
     URL.revokeObjectURL(url);
     this.showStatus('Settings exported successfully', 'success');
   }
@@ -238,11 +248,11 @@ class PrismWeaveOptions {
     try {
       const text = await file.text();
       const importedSettings = JSON.parse(text);
-      
+
       // Validate imported settings structure
       const defaultSettings = this.getDefaultSettings();
       const validatedSettings = { ...defaultSettings };
-      
+
       Object.keys(defaultSettings).forEach(key => {
         if (importedSettings.hasOwnProperty(key)) {
           validatedSettings[key] = importedSettings[key];
@@ -272,19 +282,19 @@ class PrismWeaveOptions {
 
     try {
       // Use background script's Git operations for testing
-      const response = await chrome.runtime.sendMessage({ 
-        action: 'TEST_CONNECTION'
+      const response = await chrome.runtime.sendMessage({
+        action: 'TEST_CONNECTION',
       });
 
       if (response.success && response.data.success) {
         let message = `✓ Connected as ${response.data.username}`;
-        
+
         if (repo) {
           // Test repository access
           const repoResponse = await chrome.runtime.sendMessage({
-            action: 'VALIDATE_REPOSITORY'
+            action: 'VALIDATE_REPOSITORY',
           });
-          
+
           if (repoResponse.success && repoResponse.data.success) {
             message += `. Repository '${repoResponse.data.name}' accessible.`;
             if (!repoResponse.data.hasWrite) {
@@ -294,7 +304,7 @@ class PrismWeaveOptions {
             message += `. ⚠ Repository not accessible: ${repoResponse.data?.error || 'Unknown error'}`;
           }
         }
-        
+
         this.showTestResult(message, 'success');
       } else {
         throw new Error(response.data?.error || 'Connection test failed');

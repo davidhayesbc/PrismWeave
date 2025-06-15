@@ -17,14 +17,22 @@ try {
 class FileManager {
   constructor() {
     this.folderMapping = {
-      'tech': ['technology', 'programming', 'software', 'development', 'coding', 'github', 'stackoverflow'],
-      'business': ['business', 'finance', 'marketing', 'startup', 'entrepreneur', 'economy'],
-      'research': ['research', 'academic', 'paper', 'study', 'science', 'journal'],
-      'news': ['news', 'breaking', 'current', 'politics', 'world'],
-      'tutorial': ['tutorial', 'howto', 'guide', 'learn', 'course', 'training'],
-      'reference': ['documentation', 'docs', 'reference', 'api', 'manual'],
-      'blog': ['blog', 'personal', 'opinion', 'thoughts', 'medium'],
-      'social': ['twitter', 'facebook', 'linkedin', 'social', 'reddit']
+      tech: [
+        'technology',
+        'programming',
+        'software',
+        'development',
+        'coding',
+        'github',
+        'stackoverflow',
+      ],
+      business: ['business', 'finance', 'marketing', 'startup', 'entrepreneur', 'economy'],
+      research: ['research', 'academic', 'paper', 'study', 'science', 'journal'],
+      news: ['news', 'breaking', 'current', 'politics', 'world'],
+      tutorial: ['tutorial', 'howto', 'guide', 'learn', 'course', 'training'],
+      reference: ['documentation', 'docs', 'reference', 'api', 'manual'],
+      blog: ['blog', 'personal', 'opinion', 'thoughts', 'medium'],
+      social: ['twitter', 'facebook', 'linkedin', 'social', 'reddit'],
     };
   }
 
@@ -33,23 +41,23 @@ class FileManager {
     const date = new Date(metadata.timestamp || Date.now());
     const domain = this.sanitizeDomain(metadata.domain);
     const title = this.sanitizeTitle(metadata.title);
-    
+
     let filename = pattern;
-    
+
     // Replace date patterns
     filename = filename.replace('YYYY', date.getFullYear().toString());
     filename = filename.replace('MM', (date.getMonth() + 1).toString().padStart(2, '0'));
     filename = filename.replace('DD', date.getDate().toString().padStart(2, '0'));
-    
+
     // Replace domain and title
     filename = filename.replace('domain', domain);
     filename = filename.replace('title', title);
-    
+
     // Ensure .md extension
     if (!filename.endsWith('.md')) {
       filename += '.md';
     }
-    
+
     return filename;
   }
   sanitizeDomain(domain) {
@@ -58,7 +66,7 @@ class FileManager {
 
   _fallbackSanitizeDomain(domain) {
     if (!domain) return 'unknown';
-    
+
     return domain
       .toLowerCase()
       .replace(/^www\./, '') // Remove www.
@@ -72,7 +80,7 @@ class FileManager {
 
   _fallbackSanitizeTitle(title) {
     if (!title) return 'untitled';
-    
+
     return title
       .toLowerCase()
       .replace(/[^a-z0-9\s-]/g, '') // Remove special characters
@@ -89,33 +97,37 @@ class FileManager {
       const pathname = urlObj.pathname.toLowerCase();
       const title = (metadata.title || '').toLowerCase();
       const description = (metadata.description || '').toLowerCase();
-      
+
       // Check domain-specific mappings first
       for (const [folder, keywords] of Object.entries(this.folderMapping)) {
-        if (keywords.some(keyword => 
-          domain.includes(keyword) || 
-          pathname.includes(keyword) || 
-          title.includes(keyword) ||
-          description.includes(keyword)
-        )) {
+        if (
+          keywords.some(
+            keyword =>
+              domain.includes(keyword) ||
+              pathname.includes(keyword) ||
+              title.includes(keyword) ||
+              description.includes(keyword)
+          )
+        ) {
           return folder;
         }
       }
-      
+
       // Check specific domain patterns
       if (domain.includes('github.com')) return 'tech';
       if (domain.includes('stackoverflow.com')) return 'tech';
       if (domain.includes('medium.com')) return 'blog';
-      if (domain.includes('news') || domain.includes('cnn') || domain.includes('bbc')) return 'news';
+      if (domain.includes('news') || domain.includes('cnn') || domain.includes('bbc'))
+        return 'news';
       if (domain.includes('wikipedia.org')) return 'reference';
       if (domain.includes('youtube.com') && pathname.includes('watch')) return 'tutorial';
-      
+
       // Check URL path patterns
       if (pathname.includes('/blog/')) return 'blog';
       if (pathname.includes('/news/')) return 'news';
       if (pathname.includes('/tutorial/') || pathname.includes('/guide/')) return 'tutorial';
       if (pathname.includes('/docs/') || pathname.includes('/documentation/')) return 'reference';
-      
+
       return 'unsorted';
     } catch (error) {
       return 'unsorted';
@@ -132,7 +144,7 @@ class FileManager {
       summary: this.generateSummary(pageData),
       reading_time: pageData.readingTime || 0,
       word_count: pageData.wordCount || 0,
-      quality_score: pageData.quality?.score || 0
+      quality_score: pageData.quality?.score || 0,
     };
 
     // Add optional metadata if available
@@ -146,10 +158,10 @@ class FileManager {
 
   formatFrontmatter(data) {
     let yaml = '---\n';
-    
+
     for (const [key, value] of Object.entries(data)) {
       if (value === null || value === undefined) continue;
-      
+
       if (Array.isArray(value)) {
         if (value.length > 0) {
           yaml += `${key}:\n`;
@@ -165,7 +177,7 @@ class FileManager {
         yaml += `${key}: ${value}\n`;
       }
     }
-    
+
     yaml += '---';
     return yaml;
   }
@@ -180,7 +192,7 @@ class FileManager {
 
   generateTags(metadata, pageData = {}) {
     const tags = new Set();
-    
+
     // Extract from URL domain
     const domain = metadata.domain;
     if (domain) {
@@ -191,7 +203,7 @@ class FileManager {
         }
       });
     }
-    
+
     // Extract from metadata keywords
     if (metadata.keywords) {
       metadata.keywords.split(',').forEach(keyword => {
@@ -199,37 +211,51 @@ class FileManager {
         if (clean.length > 2) tags.add(clean);
       });
     }
-    
+
     // Extract from title and description
     const text = `${metadata.title || ''} ${metadata.description || ''}`.toLowerCase();
     const commonTags = [
-      'javascript', 'python', 'react', 'node', 'api', 'tutorial', 'guide',
-      'technology', 'programming', 'development', 'business', 'marketing',
-      'startup', 'ai', 'machine learning', 'data science', 'web development'
+      'javascript',
+      'python',
+      'react',
+      'node',
+      'api',
+      'tutorial',
+      'guide',
+      'technology',
+      'programming',
+      'development',
+      'business',
+      'marketing',
+      'startup',
+      'ai',
+      'machine learning',
+      'data science',
+      'web development',
     ];
-    
+
     commonTags.forEach(tag => {
       if (text.includes(tag.toLowerCase())) {
         tags.add(tag);
       }
     });
-    
+
     // Limit to most relevant tags
     return Array.from(tags).slice(0, 10);
   }
 
   generateSummary(pageData = {}) {
     if (!pageData.textContent) return '';
-    
+
     const text = pageData.textContent.trim();
     if (text.length <= 200) return text;
-    
+
     // Find the first meaningful paragraph
     const paragraphs = text.split('\n\n').filter(p => p.trim().length > 50);
     if (paragraphs.length > 0) {
       const firstParagraph = paragraphs[0].trim();
       if (firstParagraph.length <= 200) return firstParagraph;
-      
+
       // Truncate at sentence boundary
       const sentences = firstParagraph.split(/[.!?]+/);
       let summary = '';
@@ -239,7 +265,7 @@ class FileManager {
       }
       return summary.trim();
     }
-    
+
     // Fallback: truncate at word boundary
     const words = text.split(' ');
     let summary = '';
@@ -255,31 +281,31 @@ class FileManager {
 
   _fallbackValidateFilename(filename) {
     const errors = [];
-    
+
     if (!filename) {
       errors.push('Filename cannot be empty');
       return { valid: false, errors };
     }
-    
+
     if (filename.length > 100) {
       errors.push('Filename too long (max 100 characters)');
     }
-    
+
     if (!/\.md$/.test(filename)) {
       errors.push('Filename must end with .md');
     }
-    
+
     if (/[<>:"/\\|?*]/.test(filename)) {
       errors.push('Filename contains invalid characters');
     }
-    
+
     if (/^\s|\s$/.test(filename)) {
       errors.push('Filename cannot start or end with whitespace');
     }
-    
+
     return {
       valid: errors.length === 0,
-      errors
+      errors,
     };
   }
 
@@ -297,31 +323,35 @@ class FileManager {
   }
 
   generateUniqueFilename(baseFilename, existingFiles = []) {
-    return SharedUtils?.generateUniqueFilename(baseFilename, existingFiles) || 
-           this._fallbackGenerateUniqueFilename(baseFilename, existingFiles);
+    return (
+      SharedUtils?.generateUniqueFilename(baseFilename, existingFiles) ||
+      this._fallbackGenerateUniqueFilename(baseFilename, existingFiles)
+    );
   }
 
   _fallbackGenerateUniqueFilename(baseFilename, existingFiles = []) {
     if (!existingFiles.includes(baseFilename)) {
       return baseFilename;
     }
-    
+
     const extension = this.getFileExtension(baseFilename);
     const nameWithoutExt = baseFilename.substring(0, baseFilename.length - extension.length - 1);
-    
+
     let counter = 1;
     let newFilename;
-    
+
     do {
       newFilename = `${nameWithoutExt}-${counter}.${extension}`;
       counter++;
     } while (existingFiles.includes(newFilename));
-    
+
     return newFilename;
   }
 
   getDateFromFilename(filename) {
-    return SharedUtils?.getDateFromFilename(filename) || this._fallbackGetDateFromFilename(filename);
+    return (
+      SharedUtils?.getDateFromFilename(filename) || this._fallbackGetDateFromFilename(filename)
+    );
   }
 
   _fallbackGetDateFromFilename(filename) {
@@ -336,21 +366,21 @@ class FileManager {
   suggestFolder(content, metadata = {}) {
     // Use the URL-based determination as primary method
     const urlBasedFolder = this.determineFolderFromUrl(metadata.url || '', metadata);
-    
+
     if (urlBasedFolder !== 'unsorted') {
       return urlBasedFolder;
     }
-    
+
     // Fallback: analyze content
     const text = (content || '').toLowerCase();
     const title = (metadata.title || '').toLowerCase();
-    
+
     for (const [folder, keywords] of Object.entries(this.folderMapping)) {
       if (keywords.some(keyword => text.includes(keyword) || title.includes(keyword))) {
         return folder;
       }
     }
-    
+
     return 'unsorted';
   }
 }

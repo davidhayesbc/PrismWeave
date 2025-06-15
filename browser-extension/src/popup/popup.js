@@ -12,17 +12,16 @@ class PrismWeavePopup {
     try {
       // Get current tab information
       await this.getCurrentTab();
-      
+
       // Load settings
       await this.loadSettings();
-      
+
       // Update UI
       this.updatePageInfo();
       this.setupEventListeners();
-      
+
       // Check if page is capturable
       this.checkPageCapturability();
-      
     } catch (error) {
       console.error('Failed to initialize popup:', error);
       this.showStatus('Failed to initialize', 'error');
@@ -50,7 +49,7 @@ class PrismWeavePopup {
       repositoryPath: '',
       githubToken: '',
       defaultFolder: 'unsorted',
-      fileNamingPattern: 'YYYY-MM-DD-domain-title'
+      fileNamingPattern: 'YYYY-MM-DD-domain-title',
     };
   }
 
@@ -88,13 +87,13 @@ class PrismWeavePopup {
       this.openRepository();
     });
 
-    document.getElementById('options-link').addEventListener('click', (e) => {
+    document.getElementById('options-link').addEventListener('click', e => {
       e.preventDefault();
       this.openOptions();
     });
 
     // Keyboard shortcuts
-    document.addEventListener('keydown', (e) => {
+    document.addEventListener('keydown', e => {
       if (e.key === 'Enter' && !e.shiftKey) {
         this.captureCurrentPage();
       } else if (e.key === 'Escape') {
@@ -107,12 +106,14 @@ class PrismWeavePopup {
     if (!this.currentTab) return;
 
     const url = this.currentTab.url;
-    
+
     // Check if URL is capturable
-    if (url.startsWith('chrome://') || 
-        url.startsWith('chrome-extension://') ||
-        url.startsWith('edge://') ||
-        url.startsWith('about:')) {
+    if (
+      url.startsWith('chrome://') ||
+      url.startsWith('chrome-extension://') ||
+      url.startsWith('edge://') ||
+      url.startsWith('about:')
+    ) {
       this.showStatus('Cannot capture browser internal pages', 'warning');
       this.disableCaptureButton();
       return;
@@ -136,12 +137,12 @@ class PrismWeavePopup {
       this.disableCaptureButton();
 
       const response = await chrome.runtime.sendMessage({
-        action: 'CAPTURE_PAGE'
+        action: 'CAPTURE_PAGE',
       });
 
       if (response.success) {
         this.showStatus(`✓ Captured: ${response.data.filename}`, 'success');
-        
+
         // Auto-close popup after successful capture
         setTimeout(() => {
           window.close();
@@ -162,11 +163,11 @@ class PrismWeavePopup {
     try {
       // Send message to content script to highlight main content
       await chrome.tabs.sendMessage(this.currentTab.id, {
-        action: 'HIGHLIGHT_CONTENT'
+        action: 'HIGHLIGHT_CONTENT',
       });
 
       this.showStatus('Main content highlighted', 'success');
-      
+
       setTimeout(() => {
         this.hideStatus();
       }, 2000);
@@ -179,7 +180,7 @@ class PrismWeavePopup {
   async highlightContent() {
     try {
       await chrome.tabs.sendMessage(this.currentTab.id, {
-        action: 'HIGHLIGHT_CONTENT'
+        action: 'HIGHLIGHT_CONTENT',
       });
 
       // Close popup to show highlighted content
@@ -200,7 +201,7 @@ class PrismWeavePopup {
     if (this.settings.repositoryPath) {
       // Try to open repository in file explorer
       chrome.tabs.create({
-        url: `file://${this.settings.repositoryPath}`
+        url: `file://${this.settings.repositoryPath}`,
       });
     } else {
       this.showStatus('Repository path not configured', 'warning');
@@ -215,7 +216,7 @@ class PrismWeavePopup {
   showLoading(show) {
     const loadingElement = document.getElementById('loading');
     const mainContent = document.getElementById('main-content');
-    
+
     if (show) {
       loadingElement.style.display = 'flex';
       mainContent.style.display = 'none';
@@ -228,7 +229,7 @@ class PrismWeavePopup {
   showStatus(message, type = 'success') {
     const statusElement = document.getElementById('status');
     const statusText = document.getElementById('status-text');
-    
+
     statusText.textContent = message;
     statusElement.className = `status ${type}`;
     statusElement.style.display = 'block';
@@ -254,26 +255,26 @@ class PrismWeavePopup {
   // Utility method to estimate capture time
   estimateCaptureTime() {
     if (!this.currentTab) return 5;
-    
+
     // Rough estimation based on URL and page type
     const url = this.currentTab.url;
     const title = this.currentTab.title || '';
-    
+
     // News sites might have more complex content
     if (url.includes('news') || url.includes('article')) {
       return 8;
     }
-    
+
     // Documentation sites are usually clean
     if (url.includes('docs') || url.includes('documentation')) {
       return 3;
     }
-    
+
     // Social media sites might have dynamic content
     if (url.includes('twitter') || url.includes('facebook') || url.includes('linkedin')) {
       return 10;
     }
-    
+
     return 5; // Default estimate
   }
 }

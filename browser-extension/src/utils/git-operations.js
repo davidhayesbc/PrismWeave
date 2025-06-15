@@ -9,11 +9,11 @@ class GitOperations {
 
   async initialize(settings) {
     this.settings = settings;
-    
+
     if (!this.settings.githubToken) {
       throw new Error('GitHub token not configured');
     }
-    
+
     if (!this.settings.repositoryPath) {
       throw new Error('Repository path not configured');
     }
@@ -28,7 +28,6 @@ class GitOperations {
       // For browser extension, we'll use GitHub API directly
       // since we can't run git commands in the browser
       await this.saveToGitHub(processedContent);
-      
     } catch (error) {
       console.error('Failed to save to repository:', error);
       // Fallback to local download
@@ -40,18 +39,18 @@ class GitOperations {
   async saveToGitHub(processedContent) {
     const { filename, content } = processedContent;
     const [owner, repo] = this.parseRepositoryPath();
-    
+
     // Determine the target path
     const targetPath = `documents/${this.settings.defaultFolder}/${filename}`;
-    
+
     // Check if file already exists
     const existingFile = await this.getFileFromGitHub(owner, repo, targetPath);
-    
+
     // Prepare the commit
     const commitData = {
       message: `Add: ${processedContent.metadata.domain} - ${processedContent.metadata.title}`,
       content: btoa(unescape(encodeURIComponent(content))), // Base64 encode
-      branch: 'main'
+      branch: 'main',
     };
 
     if (existingFile) {
@@ -59,18 +58,15 @@ class GitOperations {
     }
 
     // Create or update the file
-    const response = await fetch(
-      `${this.apiBase}/repos/${owner}/${repo}/contents/${targetPath}`,
-      {
-        method: 'PUT',
-        headers: {
-          'Authorization': `token ${this.settings.githubToken}`,
-          'Content-Type': 'application/json',
-          'Accept': 'application/vnd.github.v3+json'
-        },
-        body: JSON.stringify(commitData)
-      }
-    );
+    const response = await fetch(`${this.apiBase}/repos/${owner}/${repo}/contents/${targetPath}`, {
+      method: 'PUT',
+      headers: {
+        Authorization: `token ${this.settings.githubToken}`,
+        'Content-Type': 'application/json',
+        Accept: 'application/vnd.github.v3+json',
+      },
+      body: JSON.stringify(commitData),
+    });
 
     if (!response.ok) {
       const error = await response.json();
@@ -78,7 +74,7 @@ class GitOperations {
     }
 
     const result = await response.json();
-    
+
     // Save images if any
     if (processedContent.images && processedContent.images.length > 0) {
       await this.saveImages(processedContent.images, owner, repo);
@@ -89,7 +85,7 @@ class GitOperations {
 
   async saveImages(images, owner, repo) {
     const savedImages = [];
-    
+
     for (const image of images) {
       try {
         if (!image.src || image.src.startsWith('data:')) {
@@ -114,7 +110,7 @@ class GitOperations {
         const commitData = {
           message: `Add image: ${filename}`,
           content: base64Content,
-          branch: 'main'
+          branch: 'main',
         };
 
         const response = await fetch(
@@ -122,11 +118,11 @@ class GitOperations {
           {
             method: 'PUT',
             headers: {
-              'Authorization': `token ${this.settings.githubToken}`,
+              Authorization: `token ${this.settings.githubToken}`,
               'Content-Type': 'application/json',
-              'Accept': 'application/vnd.github.v3+json'
+              Accept: 'application/vnd.github.v3+json',
             },
-            body: JSON.stringify(commitData)
+            body: JSON.stringify(commitData),
           }
         );
 
@@ -134,10 +130,9 @@ class GitOperations {
           savedImages.push({
             original: image.src,
             saved: imagePath,
-            filename: filename
+            filename: filename,
           });
         }
-
       } catch (error) {
         console.error('Failed to save image:', image.src, error);
       }
@@ -148,20 +143,17 @@ class GitOperations {
 
   async getFileFromGitHub(owner, repo, path) {
     try {
-      const response = await fetch(
-        `${this.apiBase}/repos/${owner}/${repo}/contents/${path}`,
-        {
-          headers: {
-            'Authorization': `token ${this.settings.githubToken}`,
-            'Accept': 'application/vnd.github.v3+json'
-          }
-        }
-      );
+      const response = await fetch(`${this.apiBase}/repos/${owner}/${repo}/contents/${path}`, {
+        headers: {
+          Authorization: `token ${this.settings.githubToken}`,
+          Accept: 'application/vnd.github.v3+json',
+        },
+      });
 
       if (response.ok) {
         return await response.json();
       }
-      
+
       return null;
     } catch (error) {
       return null;
@@ -186,11 +178,11 @@ class GitOperations {
     // Fallback: download file locally
     const blob = new Blob([processedContent.content], { type: 'text/markdown' });
     const url = URL.createObjectURL(blob);
-    
+
     await chrome.downloads.download({
       url: url,
       filename: `prismweave/${processedContent.filename}`,
-      saveAs: false
+      saveAs: false,
     });
 
     URL.revokeObjectURL(url);
@@ -204,9 +196,9 @@ class GitOperations {
 
       const response = await fetch(`${this.apiBase}/user`, {
         headers: {
-          'Authorization': `token ${this.settings.githubToken}`,
-          'Accept': 'application/vnd.github.v3+json'
-        }
+          Authorization: `token ${this.settings.githubToken}`,
+          Accept: 'application/vnd.github.v3+json',
+        },
       });
 
       if (!response.ok) {
@@ -217,12 +209,12 @@ class GitOperations {
       return {
         success: true,
         username: user.login,
-        name: user.name
+        name: user.name,
       };
     } catch (error) {
       return {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -230,12 +222,12 @@ class GitOperations {
   async validateRepository() {
     try {
       const [owner, repo] = this.parseRepositoryPath();
-      
+
       const response = await fetch(`${this.apiBase}/repos/${owner}/${repo}`, {
         headers: {
-          'Authorization': `token ${this.settings.githubToken}`,
-          'Accept': 'application/vnd.github.v3+json'
-        }
+          Authorization: `token ${this.settings.githubToken}`,
+          Accept: 'application/vnd.github.v3+json',
+        },
       });
 
       if (!response.ok) {
@@ -248,12 +240,12 @@ class GitOperations {
         name: repoData.name,
         fullName: repoData.full_name,
         private: repoData.private,
-        hasWrite: repoData.permissions?.push || false
+        hasWrite: repoData.permissions?.push || false,
       };
     } catch (error) {
       return {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -263,16 +255,16 @@ class GitOperations {
       const response = await fetch(`${this.apiBase}/user/repos`, {
         method: 'POST',
         headers: {
-          'Authorization': `token ${this.settings.githubToken}`,
+          Authorization: `token ${this.settings.githubToken}`,
           'Content-Type': 'application/json',
-          'Accept': 'application/vnd.github.v3+json'
+          Accept: 'application/vnd.github.v3+json',
         },
         body: JSON.stringify({
           name: repositoryName,
           description: 'PrismWeave document repository',
           private: isPrivate,
-          auto_init: true
-        })
+          auto_init: true,
+        }),
       });
 
       if (!response.ok) {
@@ -281,19 +273,19 @@ class GitOperations {
       }
 
       const repo = await response.json();
-      
+
       // Initialize repository structure
       await this.initializeRepositoryStructure(repo.owner.login, repo.name);
-      
+
       return {
         success: true,
         repository: repo.full_name,
-        url: repo.html_url
+        url: repo.html_url,
       };
     } catch (error) {
       return {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -303,24 +295,28 @@ class GitOperations {
     const files = [
       {
         path: 'documents/README.md',
-        content: '# Documents\n\nCaptured web pages and articles.\n'
+        content: '# Documents\n\nCaptured web pages and articles.\n',
       },
       {
         path: 'images/README.md',
-        content: '# Images\n\nImages extracted from captured pages.\n'
+        content: '# Images\n\nImages extracted from captured pages.\n',
       },
       {
         path: '.prismweave/config.json',
-        content: JSON.stringify({
-          version: '1.0.0',
-          created: new Date().toISOString(),
-          structure: {
-            documents: 'documents/',
-            images: 'images/',
-            generated: 'generated/'
-          }
-        }, null, 2)
-      }
+        content: JSON.stringify(
+          {
+            version: '1.0.0',
+            created: new Date().toISOString(),
+            structure: {
+              documents: 'documents/',
+              images: 'images/',
+              generated: 'generated/',
+            },
+          },
+          null,
+          2
+        ),
+      },
     ];
 
     for (const file of files) {
@@ -328,15 +324,15 @@ class GitOperations {
         await fetch(`${this.apiBase}/repos/${owner}/${repo}/contents/${file.path}`, {
           method: 'PUT',
           headers: {
-            'Authorization': `token ${this.settings.githubToken}`,
+            Authorization: `token ${this.settings.githubToken}`,
             'Content-Type': 'application/json',
-            'Accept': 'application/vnd.github.v3+json'
+            Accept: 'application/vnd.github.v3+json',
           },
           body: JSON.stringify({
             message: `Initialize: ${file.path}`,
             content: btoa(unescape(encodeURIComponent(file.content))),
-            branch: 'main'
-          })
+            branch: 'main',
+          }),
         });
       } catch (error) {
         console.error(`Failed to create ${file.path}:`, error);

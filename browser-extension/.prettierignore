@@ -1,0 +1,71 @@
+# Dependencies
+node_modules/
+lib/
+vendor/
+
+# Build outputs
+dist/
+build/
+*.min.js
+*.min.css
+
+# Generated files
+coverage/
+.nyc_output/
+*.log
+
+# Extension packaging
+*.zip
+*.crx
+*.pem
+
+# IDE and system files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+
+# Test artifacts
+test-results/
+screenshots/
+
+# Temporary files
+*.tmp
+*.temp
+
+# Lock files (formatting these can cause issues)
+package-lock.json
+yarn.lock
+
+# Binary files
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.svg
+*.ico
+*.woff
+*.woff2
+*.ttf
+*.eot
+
+# Documentation build outputs
+docs/build/
+docs/dist/
+
+# Cache directories
+.cache/
+.parcel-cache/
+
+# Environment files
+.env
+.env.local
+.env.production
+
+# Specific project files that shouldn't be formatted
+CHANGELOG.md
+LICENSE
+README.md

@@ -14,21 +14,21 @@ class SettingsManager {
         type: 'string',
         default: '',
         required: false,
-        description: 'Local or remote repository path'
+        description: 'Local or remote repository path',
       },
       githubToken: {
         type: 'string',
         default: '',
         required: false,
         sensitive: true,
-        description: 'GitHub personal access token'
+        description: 'GitHub personal access token',
       },
       githubRepo: {
         type: 'string',
         default: '',
         required: false,
         pattern: /^[a-zA-Z0-9._-]+\/[a-zA-Z0-9._-]+$/,
-        description: 'GitHub repository in format owner/repo'
+        description: 'GitHub repository in format owner/repo',
       },
 
       // File Organization
@@ -36,14 +36,25 @@ class SettingsManager {
         type: 'string',
         default: 'unsorted',
         required: true,
-        options: ['tech', 'business', 'research', 'news', 'tutorial', 'reference', 'blog', 'social', 'unsorted', 'custom'],
-        description: 'Default folder for captured documents'
+        options: [
+          'tech',
+          'business',
+          'research',
+          'news',
+          'tutorial',
+          'reference',
+          'blog',
+          'social',
+          'unsorted',
+          'custom',
+        ],
+        description: 'Default folder for captured documents',
       },
       customFolder: {
         type: 'string',
         default: '',
         required: false,
-        description: 'Custom folder name when defaultFolder is "custom"'
+        description: 'Custom folder name when defaultFolder is "custom"',
       },
       fileNamingPattern: {
         type: 'string',
@@ -54,56 +65,56 @@ class SettingsManager {
           'YYYY-MM-DD-title',
           'domain-YYYY-MM-DD-title',
           'title-YYYY-MM-DD',
-          'custom'
+          'custom',
         ],
-        description: 'Template for generated filenames'
+        description: 'Template for generated filenames',
       },
       customNamingPattern: {
         type: 'string',
         default: '',
         required: false,
-        description: 'Custom naming pattern when fileNamingPattern is "custom"'
+        description: 'Custom naming pattern when fileNamingPattern is "custom"',
       },
 
       // Automation Settings
       autoCommit: {
         type: 'boolean',
         default: false,
-        description: 'Automatically commit captured files to Git'
+        description: 'Automatically commit captured files to Git',
       },
       autoPush: {
         type: 'boolean',
         default: false,
         description: 'Automatically push commits to remote repository',
-        requires: ['githubToken', 'githubRepo']
+        requires: ['githubToken', 'githubRepo'],
       },
 
       // Content Processing
       captureImages: {
         type: 'boolean',
         default: true,
-        description: 'Download and save images from captured pages'
+        description: 'Download and save images from captured pages',
       },
       removeAds: {
         type: 'boolean',
         default: true,
-        description: 'Remove advertisements and promotional content'
+        description: 'Remove advertisements and promotional content',
       },
       removeNavigation: {
         type: 'boolean',
         default: true,
-        description: 'Remove navigation and menu elements'
+        description: 'Remove navigation and menu elements',
       },
       preserveLinks: {
         type: 'boolean',
         default: true,
-        description: 'Preserve all links in markdown output'
+        description: 'Preserve all links in markdown output',
       },
       customSelectors: {
         type: 'string',
         default: '',
         required: false,
-        description: 'Comma-separated CSS selectors for elements to remove'
+        description: 'Comma-separated CSS selectors for elements to remove',
       },
 
       // Git Configuration
@@ -111,24 +122,24 @@ class SettingsManager {
         type: 'string',
         default: 'Add: {domain} - {title}',
         required: true,
-        description: 'Template for Git commit messages'
+        description: 'Template for Git commit messages',
       },
 
       // User Experience
       enableKeyboardShortcuts: {
         type: 'boolean',
         default: true,
-        description: 'Enable keyboard shortcuts for quick capture'
+        description: 'Enable keyboard shortcuts for quick capture',
       },
       showNotifications: {
         type: 'boolean',
         default: true,
-        description: 'Show browser notifications for capture events'
+        description: 'Show browser notifications for capture events',
       },
       autoClosePopup: {
         type: 'boolean',
         default: true,
-        description: 'Automatically close popup after successful capture'
+        description: 'Automatically close popup after successful capture',
       },
 
       // Advanced Options
@@ -137,15 +148,15 @@ class SettingsManager {
         default: 5242880, // 5MB
         min: 1048576, // 1MB
         max: 52428800, // 50MB
-        description: 'Maximum image file size to download (bytes)'
+        description: 'Maximum image file size to download (bytes)',
       },
       captureTimeout: {
         type: 'number',
         default: 30000, // 30 seconds
         min: 5000,
         max: 120000,
-        description: 'Timeout for capture operations (milliseconds)'
-      }
+        description: 'Timeout for capture operations (milliseconds)',
+      },
     };
   }
 
@@ -161,11 +172,11 @@ class SettingsManager {
     try {
       const result = await chrome.storage.sync.get([this.STORAGE_KEY]);
       const savedSettings = result[this.STORAGE_KEY] || {};
-      
+
       // Merge with defaults and validate
       const settings = this.mergeWithDefaults(savedSettings);
       const validated = this.validateSettings(settings);
-      
+
       return validated;
     } catch (error) {
       console.error('Failed to load settings:', error);
@@ -177,11 +188,11 @@ class SettingsManager {
     try {
       // Validate before saving
       const validated = this.validateSettings(settings);
-      
+
       await chrome.storage.sync.set({
-        [this.STORAGE_KEY]: validated
+        [this.STORAGE_KEY]: validated,
       });
-      
+
       return { success: true, settings: validated };
     } catch (error) {
       console.error('Failed to save settings:', error);
@@ -192,14 +203,14 @@ class SettingsManager {
   mergeWithDefaults(userSettings) {
     const defaults = this.getDefaultSettings();
     const merged = { ...defaults };
-    
+
     // Only merge keys that exist in schema
     Object.keys(this.schema).forEach(key => {
       if (userSettings.hasOwnProperty(key)) {
         merged[key] = userSettings[key];
       }
     });
-    
+
     return merged;
   }
 
@@ -289,11 +300,11 @@ class SettingsManager {
         delete exportData[key];
       }
     });
-    
+
     return {
       version: '1.0',
       exported: new Date().toISOString(),
-      settings: exportData
+      settings: exportData,
     };
   }
 

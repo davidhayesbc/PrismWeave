@@ -20,7 +20,7 @@ class PrismWeaveBackground {
 
   initializeExtension() {
     // Listen for extension installation/startup
-    chrome.runtime.onInstalled.addListener((details) => {
+    chrome.runtime.onInstalled.addListener(details => {
       this.handleInstallation(details);
     });
 
@@ -31,12 +31,13 @@ class PrismWeaveBackground {
     });
 
     // Listen for action button clicks
-    chrome.action.onClicked.addListener((tab) => {
+    chrome.action.onClicked.addListener(tab => {
       this.captureCurrentPage(tab);
     });
-  }  async handleInstallation(details) {
+  }
+  async handleInstallation(details) {
     console.log('PrismWeave installed:', details.reason);
-    
+
     // Initialize default settings using SettingsManager
     await this.settingsManager.resetSettings();
   }
@@ -47,7 +48,9 @@ class PrismWeaveBackground {
         case 'CAPTURE_PAGE':
           const result = await this.captureCurrentPage(sender.tab);
           sendResponse({ success: true, data: result });
-          break;        case 'GET_SETTINGS':
+          break;
+
+        case 'GET_SETTINGS':
           const settings = await this.settingsManager.loadSettings();
           sendResponse({ success: true, data: settings });
           break;
@@ -60,7 +63,9 @@ class PrismWeaveBackground {
         case 'PROCESS_CONTENT':
           const processed = await this.processPageContent(message.content, message.metadata);
           sendResponse({ success: true, data: processed });
-          break;        case 'TEST_CONNECTION':
+          break;
+
+        case 'TEST_CONNECTION':
           const connectionResult = await this.testGitConnection();
           sendResponse({ success: true, data: connectionResult });
           break;
@@ -82,7 +87,8 @@ class PrismWeaveBackground {
       console.error('Background script error:', error);
       sendResponse({ success: false, error: error.message });
     }
-  }  async captureCurrentPage(tab) {
+  }
+  async captureCurrentPage(tab) {
     try {
       // Get current settings
       const settings = await this.settingsManager.loadSettings();
@@ -91,7 +97,7 @@ class PrismWeaveBackground {
       // Inject content script to extract page content
       const results = await chrome.scripting.executeScript({
         target: { tabId: tab.id },
-        files: ['src/utils/content-extractor.js']
+        files: ['src/utils/content-extractor.js'],
       });
 
       // Extract page content using enhanced extractor
@@ -100,7 +106,7 @@ class PrismWeaveBackground {
         function: () => {
           const extractor = new ContentExtractor();
           return extractor.extractPageContent(document);
-        }
+        },
       });
 
       if (!contentResults || !contentResults[0]) {
@@ -108,13 +114,13 @@ class PrismWeaveBackground {
       }
 
       const pageData = contentResults[0].result;
-      
+
       // Process the content and save to repository
       const processedContent = await this.processPageContent(pageData, {
         url: tab.url,
         title: tab.title,
         timestamp: new Date().toISOString(),
-        domain: new URL(tab.url).hostname
+        domain: new URL(tab.url).hostname,
       });
 
       // Save to repository
@@ -130,35 +136,35 @@ class PrismWeaveBackground {
     // Determine target folder
     const settings = await this.settingsManager.loadSettings();
     const targetFolder = this.fileManager.suggestFolder(pageData.textContent, metadata);
-    
+
     // Convert HTML to clean markdown using enhanced converter
     const markdown = this.markdownConverter.convert(pageData.content);
-    
+
     // Generate filename using file manager
     const filename = this.fileManager.generateFilename(metadata, settings);
-    
+
     // Create YAML frontmatter with enhanced metadata
     const frontmatter = this.fileManager.createFrontmatter(metadata, pageData);
-    
+
     // Combine into final document
     const document = `${frontmatter}\n\n${markdown}`;
-    
+
     return {
       filename,
       content: document,
       metadata: {
         ...metadata,
         folder: targetFolder,
-        quality: pageData.quality
+        quality: pageData.quality,
       },
       images: pageData.images,
-      links: pageData.links
+      links: pageData.links,
     };
   }
   async saveToRepository(processedContent) {
     try {
       const settings = await this.settingsManager.loadSettings();
-      
+
       if (settings.githubToken && settings.repositoryPath) {
         // Save to GitHub repository
         await this.gitOperations.saveToRepository(processedContent);
@@ -176,13 +182,13 @@ class PrismWeaveBackground {
   async downloadFile(processedContent) {
     const blob = new Blob([processedContent.content], { type: 'text/markdown' });
     const url = URL.createObjectURL(blob);
-    
+
     const folder = processedContent.metadata.folder || 'unsorted';
-    
+
     await chrome.downloads.download({
       url: url,
       filename: `prismweave/${folder}/${processedContent.filename}`,
-      saveAs: false
+      saveAs: false,
     });
 
     URL.revokeObjectURL(url);
@@ -210,13 +216,14 @@ class PrismWeaveBackground {
   async highlightPageContent(tab) {
     await chrome.scripting.executeScript({
       target: { tabId: tab.id },
-      files: ['src/utils/content-extractor.js']
-    });    await chrome.scripting.executeScript({
+      files: ['src/utils/content-extractor.js'],
+    });
+    await chrome.scripting.executeScript({
       target: { tabId: tab.id },
       function: () => {
         const extractor = new ContentExtractor();
         extractor.highlightMainContent();
-      }
+      },
     });
   }
 }

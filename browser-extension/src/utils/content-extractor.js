@@ -31,7 +31,7 @@ class ContentExtractor {
       '.main-content',
       '.article-text',
       '.story-body',
-      '.article-wrapper'
+      '.article-wrapper',
     ];
 
     this.unwantedSelectors = [
@@ -72,7 +72,7 @@ class ContentExtractor {
       '[class*="share"]',
       '[role="banner"]',
       '[role="navigation"]',
-      '[role="complementary"]'
+      '[role="complementary"]',
     ];
   }
 
@@ -80,22 +80,22 @@ class ContentExtractor {
     try {
       // Create a clean copy of the document
       const cleanDocument = this.createCleanDocument(document);
-      
+
       // Find the main content
       const mainContent = this.findMainContent(cleanDocument);
-      
+
       // Extract metadata
       const metadata = this.extractMetadata(document);
-      
+
       // Extract images
       const images = this.extractImages(mainContent);
-      
+
       // Extract links
       const links = this.extractLinks(mainContent);
-      
+
       // Calculate content quality metrics
       const quality = this.assessContentQuality(mainContent);
-      
+
       return {
         title: document.title,
         content: mainContent.innerHTML,
@@ -105,7 +105,7 @@ class ContentExtractor {
         links,
         quality,
         wordCount: this.countWords(mainContent.innerText),
-        readingTime: this.estimateReadingTime(mainContent.innerText)
+        readingTime: this.estimateReadingTime(mainContent.innerText),
       };
     } catch (error) {
       console.error('Content extraction failed:', error);
@@ -116,17 +116,17 @@ class ContentExtractor {
   createCleanDocument(document) {
     // Clone the document body to avoid modifying the original
     const cleanBody = document.body.cloneNode(true);
-    
+
     // Remove unwanted elements
     this.unwantedSelectors.forEach(selector => {
       cleanBody.querySelectorAll(selector).forEach(el => el.remove());
     });
-    
+
     // Clean up attributes
     cleanBody.querySelectorAll('*').forEach(el => {
       // Remove style attributes that might interfere
       el.removeAttribute('style');
-      
+
       // Remove event handlers
       Array.from(el.attributes).forEach(attr => {
         if (attr.name.startsWith('on')) {
@@ -134,7 +134,7 @@ class ContentExtractor {
         }
       });
     });
-    
+
     return cleanBody;
   }
 
@@ -146,123 +146,123 @@ class ContentExtractor {
         return element;
       }
     }
-    
+
     // Fallback: find the element with the most text content
     let bestElement = cleanDocument;
     let maxTextLength = 0;
-    
+
     const candidates = cleanDocument.querySelectorAll('div, section, article');
-    
+
     candidates.forEach(element => {
       const textLength = element.innerText.length;
       const childElements = element.children.length;
-      
+
       // Score based on text length and structure
-      const score = textLength + (childElements * 10);
-      
+      const score = textLength + childElements * 10;
+
       if (score > maxTextLength && this.hasSignificantContent(element)) {
         maxTextLength = score;
         bestElement = element;
       }
     });
-    
+
     return bestElement;
   }
 
   hasSignificantContent(element) {
     const text = element.innerText.trim();
     const wordCount = text.split(/\s+/).length;
-    
+
     // Must have at least 50 words and some structural elements
     return wordCount >= 50 && element.children.length > 0;
   }
 
   extractMetadata(document) {
     const metadata = {};
-    
+
     // Open Graph metadata
     const ogTags = document.querySelectorAll('meta[property^="og:"]');
     ogTags.forEach(tag => {
       const property = tag.getAttribute('property').replace('og:', '');
       metadata[property] = tag.getAttribute('content');
     });
-    
+
     // Twitter Card metadata
     const twitterTags = document.querySelectorAll('meta[name^="twitter:"]');
     twitterTags.forEach(tag => {
       const name = tag.getAttribute('name').replace('twitter:', '');
       metadata[`twitter_${name}`] = tag.getAttribute('content');
     });
-    
+
     // Standard meta tags
     const metaTags = {
-      'description': 'meta[name="description"]',
-      'keywords': 'meta[name="keywords"]',
-      'author': 'meta[name="author"]',
-      'published_time': 'meta[property="article:published_time"]',
-      'modified_time': 'meta[property="article:modified_time"]',
-      'section': 'meta[property="article:section"]',
-      'tags': 'meta[property="article:tag"]'
+      description: 'meta[name="description"]',
+      keywords: 'meta[name="keywords"]',
+      author: 'meta[name="author"]',
+      published_time: 'meta[property="article:published_time"]',
+      modified_time: 'meta[property="article:modified_time"]',
+      section: 'meta[property="article:section"]',
+      tags: 'meta[property="article:tag"]',
     };
-    
+
     Object.entries(metaTags).forEach(([key, selector]) => {
       const element = document.querySelector(selector);
       if (element) {
         metadata[key] = element.getAttribute('content');
       }
     });
-    
+
     // Extract canonical URL
     const canonical = document.querySelector('link[rel="canonical"]');
     if (canonical) {
       metadata.canonical_url = canonical.getAttribute('href');
     }
-    
+
     // Extract language
     metadata.language = document.documentElement.lang || 'en';
-    
+
     return metadata;
   }
 
   extractImages(contentElement) {
     const images = [];
     const imageElements = contentElement.querySelectorAll('img');
-    
+
     imageElements.forEach(img => {
       const src = img.src;
       const alt = img.alt || '';
       const title = img.title || '';
-        if (src && !src.startsWith('data:') && this.isValidImageUrl(src)) {
+      if (src && !src.startsWith('data:') && this.isValidImageUrl(src)) {
         images.push({
           src: this.resolveUrl(src),
           alt,
           title,
           width: img.naturalWidth || img.width,
-          height: img.naturalHeight || img.height
+          height: img.naturalHeight || img.height,
         });
       }
     });
-    
+
     return images;
   }
 
   extractLinks(contentElement) {
     const links = [];
     const linkElements = contentElement.querySelectorAll('a[href]');
-    
+
     linkElements.forEach(link => {
       const href = link.href;
       const text = link.textContent.trim();
-      
+
       if (href && text && this.isValidUrl(href)) {
         links.push({
           href: this.resolveUrl(href),
           text,
-          title: link.title || ''
+          title: link.title || '',
         });
       }
     });
-    
+
     return links;
   }
   assessContentQuality(contentElement) {
@@ -272,16 +272,16 @@ class ContentExtractor {
     const headings = contentElement.querySelectorAll('h1, h2, h3, h4, h5, h6').length;
     const images = contentElement.querySelectorAll('img').length;
     const links = contentElement.querySelectorAll('a').length;
-    
+
     // Use SharedUtils for score calculation if available
     let score = SharedUtils?.calculateReadabilityScore(text, paragraphs, headings) || 0;
-    
+
     // Add additional scoring for media and links
     if (images >= 1) score += 10;
     if (links >= 2) score += 10;
-    
+
     const avgWordsPerParagraph = paragraphs > 0 ? wordCount / paragraphs : 0;
-    
+
     return {
       score: Math.min(score, 100),
       wordCount,
@@ -289,7 +289,7 @@ class ContentExtractor {
       headings,
       images,
       links,
-      avgWordsPerParagraph: Math.round(avgWordsPerParagraph)
+      avgWordsPerParagraph: Math.round(avgWordsPerParagraph),
     };
   }
 
@@ -298,7 +298,10 @@ class ContentExtractor {
   }
 
   _fallbackCountWords(text) {
-    return text.trim().split(/\s+/).filter(word => word.length > 0).length;
+    return text
+      .trim()
+      .split(/\s+/)
+      .filter(word => word.length > 0).length;
   }
 
   estimateReadingTime(text) {
@@ -310,7 +313,7 @@ class ContentExtractor {
   // Method for highlighting content on the page
   highlightMainContent() {
     const mainContent = this.findMainContent(document.body);
-    
+
     if (mainContent) {
       // Add highlight overlay
       const overlay = document.createElement('div');
@@ -324,7 +327,7 @@ class ContentExtractor {
         z-index: 999998;
         pointer-events: none;
       `;
-      
+
       // Highlight the main content
       const rect = mainContent.getBoundingClientRect();
       const highlight = document.createElement('div');
@@ -340,10 +343,10 @@ class ContentExtractor {
         pointer-events: none;
         box-sizing: border-box;
       `;
-      
+
       document.body.appendChild(overlay);
       document.body.appendChild(highlight);
-      
+
       // Remove highlight after 3 seconds
       setTimeout(() => {
         if (overlay.parentNode) overlay.remove();

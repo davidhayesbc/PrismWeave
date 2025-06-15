@@ -4,20 +4,20 @@
 class UIUtils {
   static STATUS_TYPES = {
     SUCCESS: 'success',
-    ERROR: 'error', 
+    ERROR: 'error',
     WARNING: 'warning',
-    INFO: 'info'
+    INFO: 'info',
   };
 
   // Status/notification management
   static showStatus(message, type = UIUtils.STATUS_TYPES.SUCCESS, duration = 5000) {
     const statusElement = document.getElementById('status') || UIUtils.createStatusElement();
     const statusText = statusElement.querySelector('.status-text') || statusElement;
-    
+
     statusText.textContent = message;
     statusElement.className = `status ${type}`;
     statusElement.style.display = 'block';
-    
+
     if (duration > 0) {
       setTimeout(() => {
         UIUtils.hideStatus();
@@ -37,7 +37,7 @@ class UIUtils {
     statusElement.id = 'status';
     statusElement.className = 'status';
     statusElement.innerHTML = '<span class="status-text"></span>';
-    
+
     // Add basic styling if no CSS is present
     Object.assign(statusElement.style, {
       position: 'fixed',
@@ -49,9 +49,9 @@ class UIUtils {
       fontFamily: 'system-ui, sans-serif',
       fontSize: '14px',
       zIndex: '10000',
-      display: 'none'
+      display: 'none',
     });
-    
+
     document.body.appendChild(statusElement);
     return statusElement;
   }
@@ -60,7 +60,7 @@ class UIUtils {
   static showLoading(show = true, targetId = 'main-content') {
     const loadingElement = document.getElementById('loading') || UIUtils.createLoadingElement();
     const mainContent = document.getElementById(targetId);
-    
+
     if (show) {
       loadingElement.style.display = 'flex';
       if (mainContent) mainContent.style.display = 'none';
@@ -77,7 +77,7 @@ class UIUtils {
       <div class="loading-spinner"></div>
       <span class="loading-text">Processing...</span>
     `;
-    
+
     // Add basic styling
     Object.assign(loadingElement.style, {
       position: 'fixed',
@@ -90,9 +90,9 @@ class UIUtils {
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor: 'rgba(255, 255, 255, 0.9)',
-      zIndex: '9999'
+      zIndex: '9999',
     });
-    
+
     document.body.appendChild(loadingElement);
     return loadingElement;
   }
@@ -102,9 +102,9 @@ class UIUtils {
     Object.entries(settings).forEach(([key, value]) => {
       const fieldId = fieldMapping[key] || UIUtils.kebabCase(key);
       const element = document.getElementById(fieldId);
-      
+
       if (!element) return;
-      
+
       switch (element.type) {
         case 'checkbox':
           element.checked = Boolean(value);
@@ -127,15 +127,15 @@ class UIUtils {
   static collectFormData(fieldMapping = {}, containerSelector = 'body') {
     const container = document.querySelector(containerSelector);
     const formData = {};
-    
+
     // Collect all form inputs
     const inputs = container.querySelectorAll('input, select, textarea');
-    
+
     inputs.forEach(input => {
       if (!input.id) return;
-      
+
       const key = UIUtils.findKeyByValue(fieldMapping, input.id) || UIUtils.camelCase(input.id);
-      
+
       switch (input.type) {
         case 'checkbox':
           formData[key] = input.checked;
@@ -152,7 +152,7 @@ class UIUtils {
           formData[key] = input.value?.trim() || '';
       }
     });
-    
+
     return formData;
   }
 
@@ -160,40 +160,40 @@ class UIUtils {
   static validateField(fieldId, value, validationRules = {}) {
     const element = document.getElementById(fieldId);
     const errors = [];
-    
+
     // Required validation
     if (validationRules.required && (!value || value === '')) {
       errors.push('This field is required');
     }
-    
+
     // Pattern validation
     if (validationRules.pattern && value && !validationRules.pattern.test(value)) {
       errors.push('Invalid format');
     }
-    
+
     // Length validation
     if (validationRules.minLength && value.length < validationRules.minLength) {
       errors.push(`Minimum length is ${validationRules.minLength}`);
     }
-    
+
     if (validationRules.maxLength && value.length > validationRules.maxLength) {
       errors.push(`Maximum length is ${validationRules.maxLength}`);
     }
-    
+
     // Range validation for numbers
     if (validationRules.min !== undefined && Number(value) < validationRules.min) {
       errors.push(`Minimum value is ${validationRules.min}`);
     }
-    
+
     if (validationRules.max !== undefined && Number(value) > validationRules.max) {
       errors.push(`Maximum value is ${validationRules.max}`);
     }
-    
+
     // Update field styling
     if (element) {
       UIUtils.setFieldValidation(element, errors.length === 0, errors[0]);
     }
-    
+
     return errors;
   }
 
@@ -205,13 +205,13 @@ class UIUtils {
       element.style.borderColor = '#f44336';
       element.title = message;
     }
-    
+
     // Remove existing validation message
     const existingMessage = element.parentNode.querySelector('.validation-message');
     if (existingMessage) {
       existingMessage.remove();
     }
-    
+
     // Add validation message if invalid
     if (!isValid && message) {
       const messageElement = document.createElement('div');
@@ -220,7 +220,7 @@ class UIUtils {
       messageElement.style.color = '#f44336';
       messageElement.style.fontSize = '12px';
       messageElement.style.marginTop = '4px';
-      
+
       element.parentNode.appendChild(messageElement);
     }
   }
@@ -229,12 +229,12 @@ class UIUtils {
   static setButtonState(buttonId, disabled = false, text = null) {
     const button = document.getElementById(buttonId);
     if (!button) return;
-    
+
     button.disabled = disabled;
     if (text) {
       button.textContent = text;
     }
-    
+
     if (disabled) {
       button.style.opacity = '0.6';
       button.style.cursor = 'not-allowed';
@@ -247,10 +247,9 @@ class UIUtils {
   // Event listener helpers
   static addEventListeners(listeners) {
     listeners.forEach(({ selector, event, handler, options = {} }) => {
-      const elements = typeof selector === 'string' 
-        ? document.querySelectorAll(selector)
-        : [selector];
-        
+      const elements =
+        typeof selector === 'string' ? document.querySelectorAll(selector) : [selector];
+
       elements.forEach(element => {
         if (element) {
           element.addEventListener(event, handler, options);
@@ -269,7 +268,7 @@ class UIUtils {
 
   // Modal/dialog helpers
   static showConfirmDialog(message, title = 'Confirm') {
-    return new Promise((resolve) => {
+    return new Promise(resolve => {
       const confirmed = confirm(`${title}\n\n${message}`);
       resolve(confirmed);
     });
@@ -288,16 +287,16 @@ class UIUtils {
         </div>
       </div>
     `;
-    
+
     // Close handlers
     modal.querySelector('.modal-backdrop').addEventListener('click', () => {
       UIUtils.closeModal(modal);
     });
-    
+
     modal.querySelector('.modal-close').addEventListener('click', () => {
       UIUtils.closeModal(modal);
     });
-    
+
     document.body.appendChild(modal);
     return modal;
   }
@@ -325,12 +324,12 @@ class UIUtils {
   static downloadFile(content, filename, mimeType = 'text/plain') {
     const blob = new Blob([content], { type: mimeType });
     const url = URL.createObjectURL(blob);
-    
+
     const link = document.createElement('a');
     link.href = url;
     link.download = filename;
     link.click();
-    
+
     URL.revokeObjectURL(url);
   }
 
@@ -348,7 +347,7 @@ class UIUtils {
   // CSS helper to add status styling if not present
   static addStatusStyling() {
     if (document.getElementById('prismweave-ui-styles')) return;
-    
+
     const style = document.createElement('style');
     style.id = 'prismweave-ui-styles';
     style.textContent = `
@@ -394,7 +393,7 @@ class UIUtils {
         100% { transform: rotate(360deg); }
       }
     `;
-    
+
     document.head.appendChild(style);
   }
 }

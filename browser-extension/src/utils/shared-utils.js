@@ -31,7 +31,7 @@ class SharedUtils {
   // Text processing utilities
   static sanitizeForFilename(text, maxLength = 50) {
     if (!text) return 'untitled';
-    
+
     return text
       .toLowerCase()
       .replace(/[^a-z0-9\s-]/g, '') // Remove special characters
@@ -43,7 +43,7 @@ class SharedUtils {
 
   static sanitizeDomain(domain) {
     if (!domain) return 'unknown';
-    
+
     return domain
       .toLowerCase()
       .replace(/^www\./, '') // Remove www.
@@ -59,25 +59,29 @@ class SharedUtils {
 
   static formatYamlValue(value) {
     if (value === null || value === undefined) return null;
-    
+
     if (Array.isArray(value)) {
       if (value.length === 0) return '[]';
       return value;
     }
-    
+
     if (typeof value === 'string') {
       return `"${this.escapeYaml(value)}"`;
     }
-    
+
     return value;
   }
 
   // Date utilities
   static formatDateForFilename(date = new Date()) {
     const d = new Date(date);
-    return d.getFullYear() + '-' + 
-           (d.getMonth() + 1).toString().padStart(2, '0') + '-' +
-           d.getDate().toString().padStart(2, '0');
+    return (
+      d.getFullYear() +
+      '-' +
+      (d.getMonth() + 1).toString().padStart(2, '0') +
+      '-' +
+      d.getDate().toString().padStart(2, '0')
+    );
   }
 
   static getDateFromFilename(filename) {
@@ -99,48 +103,48 @@ class SharedUtils {
     if (!existingFiles.includes(baseFilename)) {
       return baseFilename;
     }
-    
+
     const extension = this.getFileExtension(baseFilename);
     const nameWithoutExt = baseFilename.substring(0, baseFilename.length - extension.length - 1);
-    
+
     let counter = 1;
     let newFilename;
-    
+
     do {
       newFilename = `${nameWithoutExt}-${counter}.${extension}`;
       counter++;
     } while (existingFiles.includes(newFilename));
-    
+
     return newFilename;
   }
 
   static validateFilename(filename) {
     const errors = [];
-    
+
     if (!filename) {
       errors.push('Filename cannot be empty');
       return { valid: false, errors };
     }
-    
+
     if (filename.length > 100) {
       errors.push('Filename too long (max 100 characters)');
     }
-    
+
     if (!/\.md$/.test(filename)) {
       errors.push('Filename must end with .md');
     }
-    
+
     if (/[<>:"/\\|?*]/.test(filename)) {
       errors.push('Filename contains invalid characters');
     }
-    
+
     if (/^\s|\s$/.test(filename)) {
       errors.push('Filename cannot start or end with whitespace');
     }
-    
+
     return {
       valid: errors.length === 0,
-      errors
+      errors,
     };
   }
 
@@ -148,28 +152,31 @@ class SharedUtils {
   static calculateReadabilityScore(text, paragraphs, headings) {
     const wordCount = this.countWords(text);
     const avgWordsPerParagraph = paragraphs > 0 ? wordCount / paragraphs : 0;
-    
+
     let score = 0;
-    
+
     // Word count scoring
     if (wordCount >= 300) score += 30;
     else if (wordCount >= 100) score += 20;
     else if (wordCount >= 50) score += 10;
-    
+
     // Structure scoring
     if (paragraphs >= 3) score += 20;
     if (headings >= 2) score += 15;
-    
+
     // Readability scoring
     if (avgWordsPerParagraph >= 20 && avgWordsPerParagraph <= 100) {
       score += 15;
     }
-    
+
     return Math.min(score, 100);
   }
 
   static countWords(text) {
-    return text.trim().split(/\s+/).filter(word => word.length > 0).length;
+    return text
+      .trim()
+      .split(/\s+/)
+      .filter(word => word.length > 0).length;
   }
 
   // Browser context detection

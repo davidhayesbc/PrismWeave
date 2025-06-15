@@ -11,7 +11,7 @@ export default [
         // Browser extension globals
         chrome: 'readonly',
         browser: 'readonly',
-        
+
         // Browser globals
         window: 'readonly',
         document: 'readonly',
@@ -22,11 +22,11 @@ export default [
         clearTimeout: 'readonly',
         setInterval: 'readonly',
         clearInterval: 'readonly',
-        
+
         // Service Worker globals
         importScripts: 'readonly',
         self: 'readonly',
-        
+
         // Our extension classes        PrismWeaveBackground: 'readonly',
         PrismWeaveContent: 'readonly',
         PrismWeavePopup: 'readonly',
@@ -35,27 +35,31 @@ export default [
         GitOperations: 'readonly',
         FileManager: 'readonly',
         ContentExtractor: 'readonly',
-        TurndownService: 'readonly'
-      }
+        TurndownService: 'readonly',
+      },
     },
     rules: {
       // Disable rules that don't work well with browser extensions
-      'no-unused-vars': ['error', { 
-        'varsIgnorePattern': '^(PrismWeave|MarkdownConverter|GitOperations|FileManager|ContentExtractor)',
-        'argsIgnorePattern': '^_'
-      }],
+      'no-unused-vars': [
+        'error',
+        {
+          varsIgnorePattern:
+            '^(PrismWeave|MarkdownConverter|GitOperations|FileManager|ContentExtractor)',
+          argsIgnorePattern: '^_',
+        },
+      ],
       'no-console': 'warn',
       'no-debugger': 'error',
       'prefer-const': 'error',
       'no-var': 'error',
-      'eqeqeq': 'error',
-      'curly': 'error',
-      'semi': ['error', 'always'],
-      'quotes': ['error', 'single', { 'allowTemplateLiterals': true }],
-      'indent': ['error', 2],
+      eqeqeq: 'error',
+      curly: 'error',
+      semi: ['error', 'always'],
+      quotes: ['error', 'single', { allowTemplateLiterals: true }],
+      indent: ['error', 2],
       'no-trailing-spaces': 'error',
-      'no-multiple-empty-lines': ['error', { 'max': 2 }]
-    }
+      'no-multiple-empty-lines': ['error', { max: 2 }],
+    },
   },
   {
     // Specific rules for service worker files
@@ -64,9 +68,9 @@ export default [
       globals: {
         chrome: 'readonly',
         importScripts: 'readonly',
-        self: 'readonly'
-      }
-    }
+        self: 'readonly',
+      },
+    },
   },
   {
     // Specific rules for content scripts
@@ -75,17 +79,12 @@ export default [
       globals: {
         chrome: 'readonly',
         window: 'readonly',
-        document: 'readonly'
-      }
-    }
+        document: 'readonly',
+      },
+    },
   },
   {
     // Ignore build output and dependencies
-    ignores: [
-      'dist/**',
-      'node_modules/**',
-      '*.min.js',
-      'lib/**'
-    ]
-  }
+    ignores: ['dist/**', 'node_modules/**', '*.min.js', 'lib/**'],
+  },
 ];

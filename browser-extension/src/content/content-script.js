@@ -16,7 +16,7 @@ class PrismWeaveContent {
     });
 
     // Add keyboard shortcut listener
-    document.addEventListener('keydown', (event) => {
+    document.addEventListener('keydown', event => {
       // Ctrl+Shift+S to capture page
       if (event.ctrlKey && event.shiftKey && event.key === 'S') {
         event.preventDefault();
@@ -32,7 +32,7 @@ class PrismWeaveContent {
 
     // Add visual feedback for capturing
     this.createCaptureIndicator();
-    
+
     // Load content extractor when needed
     this.loadContentExtractor();
   }
@@ -88,7 +88,7 @@ class PrismWeaveContent {
     try {
       // Send capture request to background script
       const response = await chrome.runtime.sendMessage({
-        action: 'CAPTURE_PAGE'
+        action: 'CAPTURE_PAGE',
       });
 
       if (response.success) {
@@ -107,7 +107,7 @@ class PrismWeaveContent {
     if (this.contentExtractor) {
       return this.contentExtractor.extractPageContent(document);
     }
-    
+
     // Fallback extraction if ContentExtractor not available
     return this.basicExtractPageContent();
   }
@@ -129,7 +129,7 @@ class PrismWeaveContent {
       metadata: this.extractMetadata(),
       quality: { score: 50 }, // Default quality score
       wordCount: mainContent.innerText.split(/\s+/).length,
-      readingTime: Math.ceil(mainContent.innerText.split(/\s+/).length / 200)
+      readingTime: Math.ceil(mainContent.innerText.split(/\s+/).length / 200),
     };
 
     return content;
@@ -138,26 +138,55 @@ class PrismWeaveContent {
   removeUnwantedElements() {
     const selectorsToRemove = [
       // Navigation and UI elements
-      'nav', 'header', 'footer', 'aside',
-      '[role="banner"]', '[role="navigation"]', '[role="complementary"]',
-      
+      'nav',
+      'header',
+      'footer',
+      'aside',
+      '[role="banner"]',
+      '[role="navigation"]',
+      '[role="complementary"]',
+
       // Ads and promotional content
-      '.ad', '.ads', '.advertisement', '.promo', '.promotion',
-      '[class*="ad-"]', '[id*="ad-"]', '[class*="ads-"]', '[id*="ads-"]',
-      
+      '.ad',
+      '.ads',
+      '.advertisement',
+      '.promo',
+      '.promotion',
+      '[class*="ad-"]',
+      '[id*="ad-"]',
+      '[class*="ads-"]',
+      '[id*="ads-"]',
+
       // Social media and sharing
-      '.social', '.share', '.sharing', '.social-media',
-      '.twitter', '.facebook', '.linkedin', '.pinterest',
-      
+      '.social',
+      '.share',
+      '.sharing',
+      '.social-media',
+      '.twitter',
+      '.facebook',
+      '.linkedin',
+      '.pinterest',
+
       // Comments and related content
-      '.comments', '.comment', '.related', '.sidebar',
-      '.widget', '.widgets', '.recommended',
-      
+      '.comments',
+      '.comment',
+      '.related',
+      '.sidebar',
+      '.widget',
+      '.widgets',
+      '.recommended',
+
       // Cookie notices and popups
-      '.cookie', '.gdpr', '.modal', '.popup', '.overlay',
-      
+      '.cookie',
+      '.gdpr',
+      '.modal',
+      '.popup',
+      '.overlay',
+
       // Scripts and styles
-      'script', 'style', 'noscript'
+      'script',
+      'style',
+      'noscript',
     ];
 
     selectorsToRemove.forEach(selector => {
@@ -181,7 +210,7 @@ class PrismWeaveContent {
       '.post-body',
       '.entry-body',
       '#content',
-      '#main'
+      '#main',
     ];
 
     for (const selector of contentSelectors) {
@@ -222,7 +251,7 @@ class PrismWeaveContent {
       '.entry-title',
       '.article-title',
       '[property="og:title"]',
-      'title'
+      'title',
     ];
 
     for (const selector of titleSources) {
@@ -254,7 +283,7 @@ class PrismWeaveContent {
         alt: img.alt || '',
         title: img.title || '',
         width: img.width,
-        height: img.height
+        height: img.height,
       });
     });
 
@@ -278,7 +307,7 @@ class PrismWeaveContent {
       links.push({
         href: href,
         text: text,
-        title: link.title || ''
+        title: link.title || '',
       });
     });
 
@@ -305,7 +334,7 @@ class PrismWeaveContent {
       description: 'meta[name="description"]',
       keywords: 'meta[name="keywords"]',
       author: 'meta[name="author"]',
-      published: 'meta[name="article:published_time"], meta[property="article:published_time"]'
+      published: 'meta[name="article:published_time"], meta[property="article:published_time"]',
     };
 
     Object.entries(metaSelectors).forEach(([key, selector]) => {
@@ -358,7 +387,7 @@ class PrismWeaveContent {
       indicator.textContent = `✓ Captured: ${filename}`;
       indicator.style.background = '#4CAF50';
       indicator.style.display = 'block';
-      
+
       setTimeout(() => {
         indicator.style.display = 'none';
       }, 3000);
@@ -370,7 +399,7 @@ class PrismWeaveContent {
       indicator.textContent = `✗ Error: ${error}`;
       indicator.style.background = '#f44336';
       indicator.style.display = 'block';
-      
+
       setTimeout(() => {
         indicator.style.display = 'none';
       }, 5000);
@@ -381,13 +410,13 @@ class PrismWeaveContent {
       this.contentExtractor.highlightMainContent();
       return;
     }
-    
+
     // Fallback highlighting
     const mainContent = this.findMainContent();
     if (mainContent) {
       mainContent.style.outline = '3px solid #4CAF50';
       mainContent.style.outlineOffset = '2px';
-      
+
       setTimeout(() => {
         mainContent.style.outline = '';
         mainContent.style.outlineOffset = '';
