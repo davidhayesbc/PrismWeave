@@ -1,0 +1,351 @@
+// PrismWeave Settings Manager
+// Centralized settings management with consistent schema and validation
+
+class SettingsManager {
+  constructor() {
+    this.STORAGE_KEY = 'prismWeaveSettings';
+    this.schema = this.getSettingsSchema();
+  }
+
+  getSettingsSchema() {
+    return {
+      // Repository Configuration
+      repositoryPath: {
+        type: 'string',
+        default: '',
+        required: false,
+        description: 'Local or remote repository path'
+      },
+      githubToken: {
+        type: 'string',
+        default: '',
+        required: false,
+        sensitive: true,
+        description: 'GitHub personal access token'
+      },
+      githubRepo: {
+        type: 'string',
+        default: '',
+        required: false,
+        pattern: /^[a-zA-Z0-9._-]+\/[a-zA-Z0-9._-]+$/,
+        description: 'GitHub repository in format owner/repo'
+      },
+
+      // File Organization
+      defaultFolder: {
+        type: 'string',
+        default: 'unsorted',
+        required: true,
+        options: ['tech', 'business', 'research', 'news', 'tutorial', 'reference', 'blog', 'social', 'unsorted', 'custom'],
+        description: 'Default folder for captured documents'
+      },
+      customFolder: {
+        type: 'string',
+        default: '',
+        required: false,
+        description: 'Custom folder name when defaultFolder is "custom"'
+      },
+      fileNamingPattern: {
+        type: 'string',
+        default: 'YYYY-MM-DD-domain-title',
+        required: true,
+        options: [
+          'YYYY-MM-DD-domain-title',
+          'YYYY-MM-DD-title',
+          'domain-YYYY-MM-DD-title',
+          'title-YYYY-MM-DD',
+          'custom'
+        ],
+        description: 'Template for generated filenames'
+      },
+      customNamingPattern: {
+        type: 'string',
+        default: '',
+        required: false,
+        description: 'Custom naming pattern when fileNamingPattern is "custom"'
+      },
+
+      // Automation Settings
+      autoCommit: {
+        type: 'boolean',
+        default: false,
+        description: 'Automatically commit captured files to Git'
+      },
+      autoPush: {
+        type: 'boolean',
+        default: false,
+        description: 'Automatically push commits to remote repository',
+        requires: ['githubToken', 'githubRepo']
+      },
+
+      // Content Processing
+      captureImages: {
+        type: 'boolean',
+        default: true,
+        description: 'Download and save images from captured pages'
+      },
+      removeAds: {
+        type: 'boolean',
+        default: true,
+        description: 'Remove advertisements and promotional content'
+      },
+      removeNavigation: {
+        type: 'boolean',
+        default: true,
+        description: 'Remove navigation and menu elements'
+      },
+      preserveLinks: {
+        type: 'boolean',
+        default: true,
+        description: 'Preserve all links in markdown output'
+      },
+      customSelectors: {
+        type: 'string',
+        default: '',
+        required: false,
+        description: 'Comma-separated CSS selectors for elements to remove'
+      },
+
+      // Git Configuration
+      commitMessageTemplate: {
+        type: 'string',
+        default: 'Add: {domain} - {title}',
+        required: true,
+        description: 'Template for Git commit messages'
+      },
+
+      // User Experience
+      enableKeyboardShortcuts: {
+        type: 'boolean',
+        default: true,
+        description: 'Enable keyboard shortcuts for quick capture'
+      },
+      showNotifications: {
+        type: 'boolean',
+        default: true,
+        description: 'Show browser notifications for capture events'
+      },
+      autoClosePopup: {
+        type: 'boolean',
+        default: true,
+        description: 'Automatically close popup after successful capture'
+      },
+
+      // Advanced Options
+      maxImageSize: {
+        type: 'number',
+        default: 5242880, // 5MB
+        min: 1048576, // 1MB
+        max: 52428800, // 50MB
+        description: 'Maximum image file size to download (bytes)'
+      },
+      captureTimeout: {
+        type: 'number',
+        default: 30000, // 30 seconds
+        min: 5000,
+        max: 120000,
+        description: 'Timeout for capture operations (milliseconds)'
+      }
+    };
+  }
+
+  getDefaultSettings() {
+    const defaults = {};
+    Object.entries(this.schema).forEach(([key, config]) => {
+      defaults[key] = config.default;
+    });
+    return defaults;
+  }
+
+  async loadSettings() {
+    try {
+      const result = await chrome.storage.sync.get([this.STORAGE_KEY]);
+      const savedSettings = result[this.STORAGE_KEY] || {};
+      
+      // Merge with defaults and validate
+      const settings = this.mergeWithDefaults(savedSettings);
+      const validated = this.validateSettings(settings);
+      
+      return validated;
+    } catch (error) {
+      console.error('Failed to load settings:', error);
+      return this.getDefaultSettings();
+    }
+  }
+
+  async saveSettings(settings) {
+    try {
+      // Validate before saving
+      const validated = this.validateSettings(settings);
+      
+      await chrome.storage.sync.set({
+        [this.STORAGE_KEY]: validated
+      });
+      
+      return { success: true, settings: validated };
+    } catch (error) {
+      console.error('Failed to save settings:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  mergeWithDefaults(userSettings) {
+    const defaults = this.getDefaultSettings();
+    const merged = { ...defaults };
+    
+    // Only merge keys that exist in schema
+    Object.keys(this.schema).forEach(key => {
+      if (userSettings.hasOwnProperty(key)) {
+        merged[key] = userSettings[key];
+      }
+    });
+    
+    return merged;
+  }
+
+  validateSettings(settings) {
+    const validated = { ...settings };
+    const errors = [];
+
+    Object.entries(this.schema).forEach(([key, config]) => {
+      const value = validated[key];
+
+      // Type validation
+      if (config.type === 'boolean' && typeof value !== 'boolean') {
+        validated[key] = config.default;
+        errors.push(`Invalid type for ${key}, using default`);
+      } else if (config.type === 'string' && typeof value !== 'string') {
+        validated[key] = config.default;
+        errors.push(`Invalid type for ${key}, using default`);
+      } else if (config.type === 'number' && typeof value !== 'number') {
+        validated[key] = config.default;
+        errors.push(`Invalid type for ${key}, using default`);
+      }
+
+      // Required field validation
+      if (config.required && (!value || value === '')) {
+        errors.push(`Required field ${key} is missing`);
+      }
+
+      // Pattern validation
+      if (config.pattern && value && !config.pattern.test(value)) {
+        errors.push(`Field ${key} does not match required pattern`);
+      }
+
+      // Options validation
+      if (config.options && value && !config.options.includes(value)) {
+        validated[key] = config.default;
+        errors.push(`Invalid option for ${key}, using default`);
+      }
+
+      // Range validation for numbers
+      if (config.type === 'number' && typeof value === 'number') {
+        if (config.min !== undefined && value < config.min) {
+          validated[key] = config.min;
+          errors.push(`Value for ${key} below minimum, adjusted`);
+        }
+        if (config.max !== undefined && value > config.max) {
+          validated[key] = config.max;
+          errors.push(`Value for ${key} above maximum, adjusted`);
+        }
+      }
+    });
+
+    // Cross-field validation
+    if (validated.autoPush) {
+      if (!validated.githubToken) {
+        errors.push('GitHub token required for auto-push');
+      }
+      if (!validated.githubRepo) {
+        errors.push('GitHub repository required for auto-push');
+      }
+    }
+
+    if (validated.defaultFolder === 'custom' && !validated.customFolder) {
+      errors.push('Custom folder name required when using custom folder');
+    }
+
+    if (validated.fileNamingPattern === 'custom' && !validated.customNamingPattern) {
+      errors.push('Custom naming pattern required when using custom pattern');
+    }
+
+    if (errors.length > 0) {
+      console.warn('Settings validation errors:', errors);
+    }
+
+    return validated;
+  }
+
+  async resetSettings() {
+    const defaults = this.getDefaultSettings();
+    return await this.saveSettings(defaults);
+  }
+
+  exportSettings(settings) {
+    // Remove sensitive data for export
+    const exportData = { ...settings };
+    Object.entries(this.schema).forEach(([key, config]) => {
+      if (config.sensitive) {
+        delete exportData[key];
+      }
+    });
+    
+    return {
+      version: '1.0',
+      exported: new Date().toISOString(),
+      settings: exportData
+    };
+  }
+
+  validateImportData(importData) {
+    if (!importData || typeof importData !== 'object') {
+      throw new Error('Invalid import data format');
+    }
+
+    if (!importData.settings) {
+      throw new Error('No settings found in import data');
+    }
+
+    // Validate imported settings
+    return this.validateSettings(importData.settings);
+  }
+
+  getFieldInfo(fieldName) {
+    return this.schema[fieldName] || null;
+  }
+
+  getAllFieldInfo() {
+    return this.schema;
+  }
+
+  // Utility methods for UI
+  getSelectOptions(fieldName) {
+    const field = this.schema[fieldName];
+    return field?.options || [];
+  }
+
+  isFieldRequired(fieldName) {
+    const field = this.schema[fieldName];
+    return field?.required || false;
+  }
+
+  getFieldDescription(fieldName) {
+    const field = this.schema[fieldName];
+    return field?.description || '';
+  }
+
+  // Migration support for future schema changes
+  migrateSettings(settings, fromVersion = '1.0', toVersion = '1.0') {
+    // Future: Handle settings migration between versions
+    return settings;
+  }
+}
+
+// Export for different contexts
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = SettingsManager;
+}
+
+if (typeof window !== 'undefined') {
+  window.SettingsManager = SettingsManager;
+}

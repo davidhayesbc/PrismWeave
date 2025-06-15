@@ -4,12 +4,14 @@
 // Import utilities and dependencies
 importScripts('lib/turndown.js');
 importScripts('src/utils/shared-utils.js');
+importScripts('src/utils/settings-manager.js');
 importScripts('src/utils/markdown-converter.js');
 importScripts('src/utils/git-operations.js');
 importScripts('src/utils/file-manager.js');
 
 class PrismWeaveBackground {
   constructor() {
+    this.settingsManager = new SettingsManager();
     this.markdownConverter = new MarkdownConverter();
     this.gitOperations = new GitOperations();
     this.fileManager = new FileManager();
@@ -32,13 +34,11 @@ class PrismWeaveBackground {
     chrome.action.onClicked.addListener((tab) => {
       this.captureCurrentPage(tab);
     });
-  }
-  async handleInstallation(details) {
+  }  async handleInstallation(details) {
     console.log('PrismWeave installed:', details.reason);
     
-    // Initialize default settings - delegate to FileManager for consistency
-    const defaultSettings = this.getDefaultSettings();
-    await chrome.storage.sync.set({ prismWeaveSettings: defaultSettings });
+    // Initialize default settings using SettingsManager
+    await this.settingsManager.resetSettings();
   }
 
   async handleMessage(message, sender, sendResponse) {
@@ -47,16 +47,14 @@ class PrismWeaveBackground {
         case 'CAPTURE_PAGE':
           const result = await this.captureCurrentPage(sender.tab);
           sendResponse({ success: true, data: result });
-          break;
-
-        case 'GET_SETTINGS':
-          const settings = await this.getSettings();
+          break;        case 'GET_SETTINGS':
+          const settings = await this.settingsManager.loadSettings();
           sendResponse({ success: true, data: settings });
           break;
 
         case 'UPDATE_SETTINGS':
-          await this.updateSettings(message.settings);
-          sendResponse({ success: true });
+          const saveResult = await this.settingsManager.saveSettings(message.settings);
+          sendResponse(saveResult);
           break;
 
         case 'PROCESS_CONTENT':
@@ -84,11 +82,10 @@ class PrismWeaveBackground {
       console.error('Background script error:', error);
       sendResponse({ success: false, error: error.message });
     }
-  }
-  async captureCurrentPage(tab) {
+  }  async captureCurrentPage(tab) {
     try {
       // Get current settings
-      const settings = await this.getSettings();
+      const settings = await this.settingsManager.loadSettings();
       await this.gitOperations.initialize(settings);
 
       // Inject content script to extract page content
@@ -127,11 +124,11 @@ class PrismWeaveBackground {
     } catch (error) {
       console.error('Capture failed:', error);
       throw error;
-    }  }
-
+    }
+  }
   async processPageContent(pageData, metadata) {
     // Determine target folder
-    const settings = await this.getSettings();
+    const settings = await this.settingsManager.loadSettings();
     const targetFolder = this.fileManager.suggestFolder(pageData.textContent, metadata);
     
     // Convert HTML to clean markdown using enhanced converter
@@ -158,10 +155,9 @@ class PrismWeaveBackground {
       links: pageData.links
     };
   }
-
   async saveToRepository(processedContent) {
     try {
-      const settings = await this.getSettings();
+      const settings = await this.settingsManager.loadSettings();
       
       if (settings.githubToken && settings.repositoryPath) {
         // Save to GitHub repository
@@ -191,10 +187,9 @@ class PrismWeaveBackground {
 
     URL.revokeObjectURL(url);
   }
-
   async testGitConnection() {
     try {
-      const settings = await this.getSettings();
+      const settings = await this.settingsManager.loadSettings();
       await this.gitOperations.initialize(settings);
       return await this.gitOperations.testConnection();
     } catch (error) {
@@ -204,7 +199,7 @@ class PrismWeaveBackground {
 
   async validateRepository() {
     try {
-      const settings = await this.getSettings();
+      const settings = await this.settingsManager.loadSettings();
       await this.gitOperations.initialize(settings);
       return await this.gitOperations.validateRepository();
     } catch (error) {
@@ -216,33 +211,13 @@ class PrismWeaveBackground {
     await chrome.scripting.executeScript({
       target: { tabId: tab.id },
       files: ['src/utils/content-extractor.js']
-    });
-
-    await chrome.scripting.executeScript({
+    });    await chrome.scripting.executeScript({
       target: { tabId: tab.id },
       function: () => {
         const extractor = new ContentExtractor();
         extractor.highlightMainContent();
       }
     });
-  }
-  async getSettings() {    const result = await chrome.storage.sync.get(['prismWeaveSettings']);
-    return result.prismWeaveSettings || this.getDefaultSettings();
-  }
-
-  getDefaultSettings() {
-    return {
-      autoCommit: false,
-      autoPush: false,
-      repositoryPath: '',
-      githubToken: '',
-      defaultFolder: 'unsorted',
-      fileNamingPattern: 'YYYY-MM-DD-domain-title'
-    };
-  }
-
-  async updateSettings(newSettings) {
-    await chrome.storage.sync.set({ prismWeaveSettings: newSettings });
   }
 }
 
