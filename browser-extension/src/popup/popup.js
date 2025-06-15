@@ -69,24 +69,17 @@ class PrismWeavePopup {
       this.captureCurrentPage();
     });
 
-    // Quick action buttons
-    document.getElementById('preview-btn').addEventListener('click', () => {
-      this.previewCapture();
-    });
-
+    // Highlight button
     document.getElementById('highlight-btn').addEventListener('click', () => {
       this.highlightContent();
     });
 
-    // Secondary buttons
+    // Settings button
     document.getElementById('settings-btn').addEventListener('click', () => {
       this.openSettings();
     });
 
-    document.getElementById('repository-btn').addEventListener('click', () => {
-      this.openRepository();
-    });
-
+    // Options link
     document.getElementById('options-link').addEventListener('click', e => {
       e.preventDefault();
       this.openOptions();
@@ -159,32 +152,17 @@ class PrismWeavePopup {
     }
   }
 
-  async previewCapture() {
-    try {
-      // Send message to content script to highlight main content
-      await chrome.tabs.sendMessage(this.currentTab.id, {
-        action: 'HIGHLIGHT_CONTENT',
-      });
-
-      this.showStatus('Main content highlighted', 'success');
-
-      setTimeout(() => {
-        this.hideStatus();
-      }, 2000);
-    } catch (error) {
-      console.error('Preview failed:', error);
-      this.showStatus('Preview failed', 'error');
-    }
-  }
-
   async highlightContent() {
     try {
       await chrome.tabs.sendMessage(this.currentTab.id, {
         action: 'HIGHLIGHT_CONTENT',
       });
 
-      // Close popup to show highlighted content
-      window.close();
+      this.showStatus('Content highlighted on page', 'success');
+
+      setTimeout(() => {
+        this.hideStatus();
+      }, 2000);
     } catch (error) {
       console.error('Highlight failed:', error);
       this.showStatus('Highlight failed', 'error');
@@ -195,17 +173,6 @@ class PrismWeavePopup {
     // Open options page
     chrome.runtime.openOptionsPage();
     window.close();
-  }
-
-  openRepository() {
-    if (this.settings.repositoryPath) {
-      // Try to open repository in file explorer
-      chrome.tabs.create({
-        url: `file://${this.settings.repositoryPath}`,
-      });
-    } else {
-      this.showStatus('Repository path not configured', 'warning');
-    }
   }
 
   openOptions() {
