@@ -1,30 +1,49 @@
 // PrismWeave Popup Script
 // Handles the extension popup interface and user interactions
 
+// Import logger
+const logger = window.PrismWeaveLogger ? 
+  window.PrismWeaveLogger.createLogger('Popup') : 
+  { debug: console.log, info: console.log, warn: console.warn, error: console.error, group: console.group, groupEnd: console.groupEnd };
+
 class PrismWeavePopup {
   constructor() {
+    logger.info('PrismWeavePopup constructor called');
     this.currentTab = null;
     this.settings = null;
     this.initializePopup();
   }
 
   async initializePopup() {
+    logger.group('Initializing popup');
     try {
       // Get current tab information
+      logger.debug('Getting current tab');
       await this.getCurrentTab();
+      logger.debug('Current tab obtained:', this.currentTab);
 
       // Load settings
+      logger.debug('Loading settings');
       await this.loadSettings();
+      logger.debug('Settings loaded:', this.settings);
 
       // Update UI
+      logger.debug('Updating page info');
       this.updatePageInfo();
+      
+      logger.debug('Setting up event listeners');
       this.setupEventListeners();
 
       // Check if page is capturable
+      logger.debug('Checking page capturability');
       this.checkPageCapturability();
+      
+      logger.info('Initialization complete');
     } catch (error) {
-      console.error('Failed to initialize popup:', error);
+      logger.error('Failed to initialize popup:', error);
       this.showStatus('Failed to initialize', 'error');
+    } finally {
+      logger.groupEnd();
     }
   }
 
@@ -64,35 +83,72 @@ class PrismWeavePopup {
   }
 
   setupEventListeners() {
+    logger.group('Setting up event listeners');
+    
     // Main capture button
-    document.getElementById('capture-btn').addEventListener('click', () => {
-      this.captureCurrentPage();
-    });
+    const captureBtn = document.getElementById('capture-btn');
+    if (captureBtn) {
+      logger.debug('Setting up capture button listener');
+      captureBtn.addEventListener('click', () => {
+        logger.info('Capture button clicked');
+        this.captureCurrentPage();
+      });
+    } else {
+      logger.error('Capture button not found in DOM');
+    }
 
     // Highlight button
-    document.getElementById('highlight-btn').addEventListener('click', () => {
-      this.highlightContent();
-    });
+    const highlightBtn = document.getElementById('highlight-btn');
+    if (highlightBtn) {
+      logger.debug('Setting up highlight button listener');
+      highlightBtn.addEventListener('click', () => {
+        logger.info('Highlight button clicked');
+        this.highlightContent();
+      });
+    } else {
+      logger.error('Highlight button not found in DOM');
+    }
 
     // Settings button
-    document.getElementById('settings-btn').addEventListener('click', () => {
-      this.openSettings();
-    });
+    const settingsBtn = document.getElementById('settings-btn');
+    if (settingsBtn) {
+      logger.debug('Setting up settings button listener');
+      settingsBtn.addEventListener('click', () => {
+        logger.info('Settings button clicked');
+        this.openSettings();
+      });
+    } else {
+      logger.error('Settings button not found in DOM');
+    }
 
     // Options link
-    document.getElementById('options-link').addEventListener('click', e => {
-      e.preventDefault();
-      this.openOptions();
-    });
+    const optionsLink = document.getElementById('options-link');
+    if (optionsLink) {
+      logger.debug('Setting up options link listener');
+      optionsLink.addEventListener('click', e => {
+        e.preventDefault();
+        logger.info('Options link clicked');
+        this.openOptions();
+      });
+    } else {
+      logger.error('Options link not found in DOM');
+    }
 
     // Keyboard shortcuts
+    logger.debug('Setting up keyboard shortcuts');
     document.addEventListener('keydown', e => {
+      logger.trace('Key pressed:', e.key);
       if (e.key === 'Enter' && !e.shiftKey) {
+        logger.info('Enter key pressed - capturing page');
         this.captureCurrentPage();
       } else if (e.key === 'Escape') {
+        logger.info('Escape key pressed - closing popup');
         window.close();
       }
     });
+    
+    logger.info('Event listeners setup completed');
+    logger.groupEnd();
   }
 
   checkPageCapturability() {
@@ -125,30 +181,38 @@ class PrismWeavePopup {
   }
 
   async captureCurrentPage() {
+    logger.group('Capturing current page');
     try {
+      logger.info('Starting page capture process');
       this.showLoading(true);
       this.disableCaptureButton();
 
+      logger.debug('Sending CAPTURE_PAGE message to background script');
       const response = await chrome.runtime.sendMessage({
         action: 'CAPTURE_PAGE',
       });
+      
+      logger.debug('Received response from background script:', response);
 
       if (response.success) {
+        logger.info('Page capture successful:', response.data.filename);
         this.showStatus(`✓ Captured: ${response.data.filename}`, 'success');
 
         // Auto-close popup after successful capture
         setTimeout(() => {
+          logger.debug('Auto-closing popup after successful capture');
           window.close();
         }, 2000);
       } else {
         throw new Error(response.error);
       }
     } catch (error) {
-      console.error('Capture failed:', error);
+      logger.error('Capture failed:', error);
       this.showStatus(`✗ Capture failed: ${error.message}`, 'error');
     } finally {
       this.showLoading(false);
       this.enableCaptureButton();
+      logger.groupEnd();
     }
   }
 

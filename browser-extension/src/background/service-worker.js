@@ -3,29 +3,45 @@
 
 // Import utilities and dependencies
 importScripts('lib/turndown.js');
+importScripts('src/utils/logger.js');
+importScripts('src/utils/log-config.js');
 importScripts('src/utils/shared-utils.js');
 importScripts('src/utils/settings-manager.js');
 importScripts('src/utils/markdown-converter.js');
 importScripts('src/utils/git-operations.js');
 importScripts('src/utils/file-manager.js');
 
+// Initialize logger for background
+const logger = self.PrismWeaveLogger ? 
+  self.PrismWeaveLogger.createLogger('Background') : 
+  { debug: console.log, info: console.log, warn: console.warn, error: console.error, group: console.group, groupEnd: console.groupEnd };
+
 class PrismWeaveBackground {
   constructor() {
+    logger.info('PrismWeaveBackground constructor called');
+    logger.debug('Initializing core components');
+    
     this.settingsManager = new SettingsManager();
     this.markdownConverter = new MarkdownConverter();
     this.gitOperations = new GitOperations();
     this.fileManager = new FileManager();
+    
+    logger.debug('Core components initialized, starting extension initialization');
     this.initializeExtension();
   }
 
   initializeExtension() {
+    logger.group('Initializing extension');
+    
     // Listen for extension installation/startup
     chrome.runtime.onInstalled.addListener(details => {
+      logger.info('Extension installed/updated:', details.reason);
       this.handleInstallation(details);
     });
 
     // Listen for messages from content scripts and popup
     chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+      logger.debug('Message received from:', sender.tab ? 'content script' : 'popup');
       this.handleMessage(message, sender, sendResponse);
       return true; // Keep message channel open for async responses
     });
@@ -43,34 +59,49 @@ class PrismWeaveBackground {
   }
 
   async handleMessage(message, sender, sendResponse) {
+    logger.group(`Handling message: ${message.action}`);
+    logger.debug('Message details:', message);
+    logger.debug('Sender details:', sender);
+    
     try {
       switch (message.action) {
         case 'CAPTURE_PAGE':
+          logger.info('Processing CAPTURE_PAGE request');
           const result = await this.captureCurrentPage(sender.tab);
+          logger.debug('Capture result:', result);
           sendResponse({ success: true, data: result });
           break;
 
         case 'GET_SETTINGS':
+          logger.info('Processing GET_SETTINGS request');
           const settings = await this.settingsManager.loadSettings();
+          logger.debug('Settings loaded:', settings);
           sendResponse({ success: true, data: settings });
           break;
 
         case 'UPDATE_SETTINGS':
+          logger.info('Processing UPDATE_SETTINGS request');
           const saveResult = await this.settingsManager.saveSettings(message.settings);
+          logger.debug('Settings save result:', saveResult);
           sendResponse(saveResult);
           break;
 
         case 'PROCESS_CONTENT':
+          logger.info('Processing PROCESS_CONTENT request');
           const processed = await this.processPageContent(message.content, message.metadata);
+          logger.debug('Content processing result:', processed);
           sendResponse({ success: true, data: processed });
           break;
 
         case 'TEST_CONNECTION':
+          logger.info('Processing TEST_CONNECTION request');
           const connectionResult = await this.testGitConnection();
+          logger.debug('Connection test result:', connectionResult);
           sendResponse({ success: true, data: connectionResult });
           break;
 
         case 'VALIDATE_REPOSITORY':
+          logger.info('Processing VALIDATE_REPOSITORY request');
           const repoResult = await this.validateRepository();
           sendResponse({ success: true, data: repoResult });
           break;
@@ -229,4 +260,12 @@ class PrismWeaveBackground {
 }
 
 // Initialize the background service
+logger.info('🚀 PrismWeave Background Service Worker starting up');
+logger.debug('Chrome APIs available:', {
+  runtime: !!chrome.runtime,
+  tabs: !!chrome.tabs,
+  storage: !!chrome.storage,
+  action: !!chrome.action
+});
+
 new PrismWeaveBackground();
