@@ -207,6 +207,5 @@ if (typeof module !== 'undefined' && module.exports) {
   module.exports = SharedUtils;
 }
 
-if (typeof window !== 'undefined') {
-  window.SharedUtils = SharedUtils;
-}
+// Export to global scope (works in both window and service worker contexts)
+(typeof window !== 'undefined' ? window : self).SharedUtils = SharedUtils;

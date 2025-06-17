@@ -1,17 +1,10 @@
 // PrismWeave File Management
 // Utilities for file naming, organization, and metadata handling
 
-// Import shared utilities if available
-let SharedUtils;
-try {
-  if (typeof require !== 'undefined') {
-    SharedUtils = require('./shared-utils.js');
-  } else if (typeof window !== 'undefined' && window.SharedUtils) {
-    SharedUtils = window.SharedUtils;
-  }
-} catch (e) {
-  // Fallback if shared utils not available
-  SharedUtils = null;
+// SharedUtils will be available globally after importScripts loads shared-utils.js
+function getSharedUtils() {
+  const globalScope = typeof window !== 'undefined' ? window : self;
+  return globalScope.SharedUtils || null;
 }
 
 class FileManager {
@@ -61,6 +54,7 @@ class FileManager {
     return filename;
   }
   sanitizeDomain(domain) {
+    const SharedUtils = getSharedUtils();
     return SharedUtils?.sanitizeDomain(domain) || this._fallbackSanitizeDomain(domain);
   }
 
@@ -75,6 +69,7 @@ class FileManager {
   }
 
   sanitizeTitle(title) {
+    const SharedUtils = getSharedUtils();
     return SharedUtils?.sanitizeForFilename(title) || this._fallbackSanitizeTitle(title);
   }
 
@@ -182,6 +177,7 @@ class FileManager {
     return yaml;
   }
   escapeYaml(str) {
+    const SharedUtils = getSharedUtils();
     return SharedUtils?.escapeYaml(str) || this._fallbackEscapeYaml(str);
   }
 
@@ -276,6 +272,7 @@ class FileManager {
     return summary.trim() + '...';
   }
   validateFilename(filename) {
+    const SharedUtils = getSharedUtils();
     return SharedUtils?.validateFilename(filename) || this._fallbackValidateFilename(filename);
   }
 
@@ -310,6 +307,7 @@ class FileManager {
   }
 
   getFileExtension(filename) {
+    const SharedUtils = getSharedUtils();
     return SharedUtils?.getFileExtension(filename) || this._fallbackGetFileExtension(filename);
   }
 
@@ -319,10 +317,12 @@ class FileManager {
   }
 
   isMarkdownFile(filename) {
+    const SharedUtils = getSharedUtils();
     return SharedUtils?.isMarkdownFile(filename) || this.getFileExtension(filename) === 'md';
   }
 
   generateUniqueFilename(baseFilename, existingFiles = []) {
+    const SharedUtils = getSharedUtils();
     return (
       SharedUtils?.generateUniqueFilename(baseFilename, existingFiles) ||
       this._fallbackGenerateUniqueFilename(baseFilename, existingFiles)
@@ -349,6 +349,7 @@ class FileManager {
   }
 
   getDateFromFilename(filename) {
+    const SharedUtils = getSharedUtils();
     return (
       SharedUtils?.getDateFromFilename(filename) || this._fallbackGetDateFromFilename(filename)
     );
