@@ -2,14 +2,13 @@
 // Handles extension lifecycle, Git operations, and file management
 
 // Import utilities and dependencies
-importScripts('lib/turndown.js');
-importScripts('src/utils/logger.js');
-importScripts('src/utils/log-config.js');
-importScripts('src/utils/shared-utils.js');
-importScripts('src/utils/settings-manager.js');
-importScripts('src/utils/markdown-converter.js');
-importScripts('src/utils/git-operations.js');
-importScripts('src/utils/file-manager.js');
+importScripts('../utils/logger.js');
+importScripts('../utils/log-config.js');
+importScripts('../utils/shared-utils.js');
+importScripts('../utils/settings-manager.js');
+importScripts('../utils/markdown-converter.js');
+importScripts('../utils/git-operations.js');
+importScripts('../utils/file-manager.js');
 
 // Initialize logger for background
 const logger = self.PrismWeaveLogger ? 

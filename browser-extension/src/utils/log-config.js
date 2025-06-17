@@ -1,7 +1,10 @@
 // PrismWeave Logging Configuration
 // Edit these values to control logging behavior across the extension
 
-window.PRISMWEAVE_LOG_CONFIG = {
+// Use globalThis to work in both window and service worker contexts
+const globalScope = typeof window !== 'undefined' ? window : self;
+
+globalScope.PRISMWEAVE_LOG_CONFIG = {
   // Global logging toggle - set to false to disable all logging
   enabled: true,
   
@@ -27,22 +30,22 @@ window.PRISMWEAVE_LOG_CONFIG = {
 };
 
 // Apply global configuration
-if (window.PrismWeaveLogger) {
-  window.PrismWeaveLogger.Logger.setGlobalEnabled(window.PRISMWEAVE_LOG_CONFIG.enabled);
-  window.PrismWeaveLogger.Logger.setGlobalLevel(window.PRISMWEAVE_LOG_CONFIG.level);
+if (globalScope.PrismWeaveLogger) {
+  globalScope.PrismWeaveLogger.Logger.setGlobalEnabled(globalScope.PRISMWEAVE_LOG_CONFIG.enabled);
+  globalScope.PrismWeaveLogger.Logger.setGlobalLevel(globalScope.PRISMWEAVE_LOG_CONFIG.level);
 }
 
 console.log('%c🔧 PrismWeave Logging Configuration Loaded', 'color: #4CAF50; font-weight: bold;');
-console.log('Logging enabled:', window.PRISMWEAVE_LOG_CONFIG.enabled);
-console.log('Global log level:', window.PRISMWEAVE_LOG_CONFIG.level);
+console.log('Logging enabled:', globalScope.PRISMWEAVE_LOG_CONFIG.enabled);
+console.log('Global log level:', globalScope.PRISMWEAVE_LOG_CONFIG.level);
 
 // Quick commands for console debugging:
 // 
 // To disable all logging:
-// window.PRISMWEAVE_LOG_CONFIG.enabled = false;
+// globalScope.PRISMWEAVE_LOG_CONFIG.enabled = false;
 //
 // To enable verbose logging:
-// window.PRISMWEAVE_LOG_CONFIG.level = 4;
+// globalScope.PRISMWEAVE_LOG_CONFIG.level = 4;
 //
 // To disable popup logging only:
-// window.PRISMWEAVE_LOG_CONFIG.components.Popup.enabled = false;
+// globalScope.PRISMWEAVE_LOG_CONFIG.components.Popup.enabled = false;

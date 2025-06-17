@@ -116,19 +116,20 @@ class Logger {
     this.enabled = true;
     console.log(`%c[${this.component}] Logging enabled`, this.styles.info);
   }
-
   disable() {
     console.log(`%c[${this.component}] Logging disabled`, this.styles.warn);
     this.enabled = false;
   }
 
-  // Global configuration
+  // Global configuration methods
   static setGlobalLevel(level) {
-    window.PRISMWEAVE_LOG_LEVEL = level;
+    const globalScope = typeof window !== 'undefined' ? window : self;
+    globalScope.PRISMWEAVE_LOG_LEVEL = level;
   }
 
   static setGlobalEnabled(enabled) {
-    window.PRISMWEAVE_LOG_ENABLED = enabled;
+    const globalScope = typeof window !== 'undefined' ? window : self;
+    globalScope.PRISMWEAVE_LOG_ENABLED = enabled;
   }
 }
 
@@ -137,13 +138,12 @@ function createLogger(component) {
   const logger = new Logger(component);
   
   // Check for global overrides
-  if (typeof window !== 'undefined') {
-    if (window.PRISMWEAVE_LOG_ENABLED !== undefined) {
-      logger.enabled = window.PRISMWEAVE_LOG_ENABLED;
-    }
-    if (window.PRISMWEAVE_LOG_LEVEL !== undefined) {
-      logger.level = window.PRISMWEAVE_LOG_LEVEL;
-    }
+  const globalScope = typeof window !== 'undefined' ? window : self;
+  if (globalScope.PRISMWEAVE_LOG_ENABLED !== undefined) {
+    logger.enabled = globalScope.PRISMWEAVE_LOG_ENABLED;
+  }
+  if (globalScope.PRISMWEAVE_LOG_LEVEL !== undefined) {
+    logger.level = globalScope.PRISMWEAVE_LOG_LEVEL;
   }
   
   return logger;
@@ -152,6 +152,8 @@ function createLogger(component) {
 // Export for use in other modules
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = { Logger, createLogger };
-} else if (typeof window !== 'undefined') {
-  window.PrismWeaveLogger = { Logger, createLogger };
+} else {
+  // Use globalThis to work in both window and service worker contexts
+  const globalScope = typeof window !== 'undefined' ? window : self;
+  globalScope.PrismWeaveLogger = { Logger, createLogger };
 }
