@@ -28,7 +28,6 @@ class PrismWeaveOptions {
 
   getDefaultSettings() {
     return {
-      repositoryPath: '',
       githubToken: '',
       githubRepo: '',
       defaultFolder: 'unsorted',
@@ -49,7 +48,6 @@ class PrismWeaveOptions {
 
   populateForm() {
     // Repository settings
-    document.getElementById('repository-path').value = this.settings.repositoryPath || '';
     document.getElementById('github-token').value = this.settings.githubToken || '';
     document.getElementById('github-repo').value = this.settings.githubRepo || '';
 
@@ -158,7 +156,6 @@ class PrismWeaveOptions {
     try {
       // Collect form data
       const formData = {
-        repositoryPath: document.getElementById('repository-path').value.trim(),
         githubToken: document.getElementById('github-token').value.trim(),
         githubRepo: document.getElementById('github-repo').value.trim(),
         defaultFolder: document.getElementById('default-folder').value,
@@ -281,9 +278,11 @@ class PrismWeaveOptions {
     testButton.textContent = 'Testing...';
 
     try {
-      // Use background script's Git operations for testing
+      // Pass repo and token to background script for connection test
       const response = await chrome.runtime.sendMessage({
         action: 'TEST_CONNECTION',
+        githubRepo: repo,
+        githubToken: token,
       });
 
       if (response.success && response.data.success) {
@@ -293,6 +292,8 @@ class PrismWeaveOptions {
           // Test repository access
           const repoResponse = await chrome.runtime.sendMessage({
             action: 'VALIDATE_REPOSITORY',
+            githubRepo: repo,
+            githubToken: token,
           });
 
           if (repoResponse.success && repoResponse.data.success) {

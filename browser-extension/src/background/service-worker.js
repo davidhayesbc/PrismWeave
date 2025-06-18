@@ -61,57 +61,74 @@ class PrismWeaveBackground {
     logger.group(`Handling message: ${message.action}`);
     logger.debug('Message details:', message);
     logger.debug('Sender details:', sender);
-    
+
     try {
       switch (message.action) {
-        case 'CAPTURE_PAGE':
+        case 'CAPTURE_PAGE': {
           logger.info('Processing CAPTURE_PAGE request');
           const result = await this.captureCurrentPage(sender.tab);
           logger.debug('Capture result:', result);
           sendResponse({ success: true, data: result });
           break;
-
-        case 'GET_SETTINGS':
+        }
+        case 'GET_SETTINGS': {
           logger.info('Processing GET_SETTINGS request');
           const settings = await this.settingsManager.loadSettings();
           logger.debug('Settings loaded:', settings);
           sendResponse({ success: true, data: settings });
           break;
-
-        case 'UPDATE_SETTINGS':
+        }
+        case 'UPDATE_SETTINGS': {
           logger.info('Processing UPDATE_SETTINGS request');
           const saveResult = await this.settingsManager.saveSettings(message.settings);
           logger.debug('Settings save result:', saveResult);
           sendResponse(saveResult);
           break;
-
-        case 'PROCESS_CONTENT':
+        }
+        case 'PROCESS_CONTENT': {
           logger.info('Processing PROCESS_CONTENT request');
           const processed = await this.processPageContent(message.content, message.metadata);
           logger.debug('Content processing result:', processed);
           sendResponse({ success: true, data: processed });
           break;
-
-        case 'TEST_CONNECTION':
+        }
+        case 'TEST_CONNECTION': {
           logger.info('Processing TEST_CONNECTION request');
-          const connectionResult = await this.testGitConnection();
+          // Prefer token/repo from message, fallback to settings
+          let settings = await this.settingsManager.loadSettings();
+          if (message.githubToken) settings.githubToken = message.githubToken;
+          if (message.githubRepo) {
+            settings.githubRepo = message.githubRepo;
+            settings.repositoryPath = message.githubRepo;
+          }
+          await this.gitOperations.initialize(settings);
+          const connectionResult = await this.gitOperations.testConnection();
           logger.debug('Connection test result:', connectionResult);
           sendResponse({ success: true, data: connectionResult });
           break;
-
-        case 'VALIDATE_REPOSITORY':
+        }
+        case 'VALIDATE_REPOSITORY': {
           logger.info('Processing VALIDATE_REPOSITORY request');
-          const repoResult = await this.validateRepository();
+          // Prefer token/repo from message, fallback to settings
+          let settings = await this.settingsManager.loadSettings();
+          if (message.githubToken) settings.githubToken = message.githubToken;
+          if (message.githubRepo) {
+            settings.githubRepo = message.githubRepo;
+            settings.repositoryPath = message.githubRepo;
+          }
+          await this.gitOperations.initialize(settings);
+          const repoResult = await this.gitOperations.validateRepository();
           sendResponse({ success: true, data: repoResult });
           break;
-
-        case 'HIGHLIGHT_CONTENT':
+        }
+        case 'HIGHLIGHT_CONTENT': {
           await this.highlightPageContent(sender.tab);
           sendResponse({ success: true });
           break;
-
-        default:
+        }
+        default: {
           sendResponse({ success: false, error: 'Unknown action' });
+        }
       }
     } catch (error) {
       console.error('Background script error:', error);
