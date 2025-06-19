@@ -30,9 +30,11 @@ class PrismWeaveOptions {
     return {
       githubToken: '',
       githubRepo: '',
+      repositoryPath: '',
       defaultFolder: 'unsorted',
       customFolder: '',
-      namingPattern: 'YYYY-MM-DD-domain-title',
+      fileNamingPattern: 'YYYY-MM-DD-domain-title',
+      customNamingPattern: '',
       autoCommit: false,
       autoPush: false,
       captureImages: true,
@@ -49,13 +51,13 @@ class PrismWeaveOptions {
   populateForm() {
     // Repository settings
     document.getElementById('github-token').value = this.settings.githubToken || '';
-    document.getElementById('github-repo').value = this.settings.githubRepo || '';
+    document.getElementById('github-repo').value = this.settings.githubRepo || this.settings.repositoryPath || '';
 
     // Capture settings
     document.getElementById('default-folder').value = this.settings.defaultFolder || 'unsorted';
     document.getElementById('custom-folder').value = this.settings.customFolder || '';
     document.getElementById('naming-pattern').value =
-      this.settings.namingPattern || 'YYYY-MM-DD-domain-title';
+      this.settings.fileNamingPattern || 'YYYY-MM-DD-domain-title';
 
     // Checkboxes
     document.getElementById('auto-commit').checked = this.settings.autoCommit || false;
@@ -155,12 +157,15 @@ class PrismWeaveOptions {
   async saveSettings() {
     try {
       // Collect form data
+      const repoValue = document.getElementById('github-repo').value.trim();
       const formData = {
         githubToken: document.getElementById('github-token').value.trim(),
-        githubRepo: document.getElementById('github-repo').value.trim(),
+        githubRepo: repoValue,
+        repositoryPath: repoValue,
         defaultFolder: document.getElementById('default-folder').value,
         customFolder: document.getElementById('custom-folder').value.trim(),
-        namingPattern: document.getElementById('naming-pattern').value,
+        fileNamingPattern: document.getElementById('naming-pattern').value,
+        customNamingPattern: '', // Add UI if you want to support this
         autoCommit: document.getElementById('auto-commit').checked,
         autoPush: document.getElementById('auto-push').checked,
         captureImages: document.getElementById('capture-images').checked,
@@ -185,7 +190,9 @@ class PrismWeaveOptions {
       });
 
       if (response.success) {
-        this.settings = formData;
+        // Reload settings from storage to ensure schema/validation is applied
+        await this.loadSettings();
+        this.populateForm();
         this.showStatus('Settings saved successfully!', 'success');
       } else {
         throw new Error(response.error);
