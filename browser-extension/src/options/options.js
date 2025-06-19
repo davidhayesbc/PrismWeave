@@ -269,8 +269,13 @@ class PrismWeaveOptions {
     const repo = document.getElementById('github-repo').value.trim();
     const testButton = document.getElementById('test-github');
 
+
     if (!token) {
       this.showTestResult('GitHub token is required', 'error');
+      return;
+    }
+    if (!repo) {
+      this.showTestResult('GitHub repository (owner/repo) is required to test connection', 'error');
       return;
     }
 

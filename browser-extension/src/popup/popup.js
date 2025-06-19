@@ -190,6 +190,8 @@ class PrismWeavePopup {
       logger.debug('Sending CAPTURE_PAGE message to background script');
       const response = await chrome.runtime.sendMessage({
         action: 'CAPTURE_PAGE',
+        githubToken: this.settings.githubToken,
+        githubRepo: this.settings.githubRepo || this.settings.repositoryPath,
       });
       
       logger.debug('Received response from background script:', response);

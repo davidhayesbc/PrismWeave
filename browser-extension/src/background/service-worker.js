@@ -66,7 +66,14 @@ class PrismWeaveBackground {
       switch (message.action) {
         case 'CAPTURE_PAGE': {
           logger.info('Processing CAPTURE_PAGE request');
-          const result = await this.captureCurrentPage(sender.tab);
+          // Prefer token/repo from message, fallback to settings
+          let settings = await this.settingsManager.loadSettings();
+          if (message.githubToken) settings.githubToken = message.githubToken;
+          if (message.githubRepo) {
+            settings.githubRepo = message.githubRepo;
+            settings.repositoryPath = message.githubRepo;
+          }
+          const result = await this.captureCurrentPage(sender.tab, settings);
           logger.debug('Capture result:', result);
           sendResponse({ success: true, data: result });
           break;
@@ -135,10 +142,10 @@ class PrismWeaveBackground {
       sendResponse({ success: false, error: error.message });
     }
   }
-  async captureCurrentPage(tab) {
+  async captureCurrentPage(tab, settingsOverride = null) {
     try {
-      // Get current settings
-      const settings = await this.settingsManager.loadSettings();
+      // Get current settings, allow override
+      const settings = settingsOverride || await this.settingsManager.loadSettings();
       await this.gitOperations.initialize(settings);
 
       // Inject content script to extract page content
