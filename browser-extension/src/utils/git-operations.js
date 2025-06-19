@@ -69,8 +69,14 @@ class GitOperations {
     });
 
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(`GitHub API error: ${error.message}`);
+      let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.message || errorMessage;
+      } catch (parseError) {
+        // If we can't parse the error response, use the status text
+      }
+      throw new Error(`GitHub API error: ${errorMessage}`);
     }
 
     const result = await response.json();
@@ -162,9 +168,13 @@ class GitOperations {
 
   parseRepositoryPath() {
     // Parse repository path like "username/repo-name"
-    const parts = this.settings.repositoryPath.split('/');
-    if (parts.length !== 2) {
-      throw new Error('Invalid repository path format. Use: username/repository');
+    if (!this.settings.repositoryPath) {
+      throw new Error('Repository path is not configured. Please set up your GitHub repository in settings.');
+    }
+    
+    const parts = this.settings.repositoryPath.trim().split('/');
+    if (parts.length !== 2 || !parts[0] || !parts[1]) {
+      throw new Error(`Invalid repository path format: '${this.settings.repositoryPath}'. Use format: username/repository`);
     }
     return parts;
   }
@@ -205,7 +215,13 @@ class GitOperations {
       });
 
       if (!response.ok) {
-        throw new Error('Invalid GitHub token');
+        if (response.status === 401) {
+          throw new Error('Invalid GitHub token. Please check your token and try again.');
+        } else if (response.status === 403) {
+          throw new Error('GitHub token lacks required permissions.');
+        } else {
+          throw new Error(`GitHub API error: HTTP ${response.status} - ${response.statusText}`);
+        }
       }
 
       const user = await response.json();
@@ -234,7 +250,13 @@ class GitOperations {
       });
 
       if (!response.ok) {
-        throw new Error('Repository not found or no access');
+        if (response.status === 404) {
+          throw new Error(`Repository '${this.settings.repositoryPath}' not found. Please check the repository name and ensure it exists.`);
+        } else if (response.status === 403) {
+          throw new Error('Access denied. Please check your GitHub token permissions.');
+        } else {
+          throw new Error(`GitHub API error: HTTP ${response.status} - ${response.statusText}`);
+        }
       }
 
       const repoData = await response.json();
