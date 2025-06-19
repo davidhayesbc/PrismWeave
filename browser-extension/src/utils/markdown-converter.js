@@ -148,6 +148,12 @@ class MarkdownConverter {
   }
 
   cleanHtml(html) {
+    // Check if we're in a service worker context (no document available)
+    if (typeof document === 'undefined') {
+      // Fallback for service worker: use regex-based cleaning
+      return this.regexCleanHtml(html);
+    }
+
     // Create a temporary DOM element to clean the HTML
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = html;
@@ -199,6 +205,26 @@ class MarkdownConverter {
     });
 
     return tempDiv.innerHTML;
+  }
+
+  regexCleanHtml(html) {
+    // Regex-based HTML cleaning for service worker context
+    let cleaned = html;
+
+    // Remove unwanted elements and their content
+    const unwantedPatterns = [
+      /<(script|style|noscript)[^>]*>.*?<\/\1>/gis,
+      /<[^>]*\b(class|id)=["'][^"']*\b(ad|advertisement|ads|sponsored|sidebar|nav|navigation|menu|footer|header|comments|comment-section|related-articles|recommendations)\b[^"']*["'][^>]*>.*?<\/[^>]+>/gis,
+      /<[^>]*\bstyle=["'][^"']*["'][^>]*>/gi, // Remove style attributes
+      /<[^>]*\bclass=["'][^"']*["'][^>]*>/gi, // Remove class attributes
+      /<[^>]*\bid=["'][^"']*["'][^>]*>/gi,    // Remove id attributes
+    ];
+
+    unwantedPatterns.forEach(pattern => {
+      cleaned = cleaned.replace(pattern, '');
+    });
+
+    return cleaned;
   }
 
   postProcessMarkdown(markdown) {

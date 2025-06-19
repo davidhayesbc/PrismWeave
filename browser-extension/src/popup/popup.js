@@ -179,7 +179,6 @@ class PrismWeavePopup {
       this.showStatus('Repository not configured. Click Settings to set up.', 'warning');
     }
   }
-
   async captureCurrentPage() {
     logger.group('Capturing current page');
     try {
@@ -193,7 +192,7 @@ class PrismWeavePopup {
         githubToken: this.settings.githubToken,
         githubRepo: this.settings.githubRepo || this.settings.repositoryPath,
       });
-      
+
       logger.debug('Received response from background script:', response);
 
       if (response.success) {
@@ -207,31 +206,39 @@ class PrismWeavePopup {
         }, 2000);
       } else {
         throw new Error(response.error);
-      }
-    } catch (error) {
-      logger.error('Capture failed:', error);
-      this.showStatus(`✗ Capture failed: ${error.message}`, 'error');
+      }    } catch (error) {
+      const errorMsg = error?.message || error?.toString() || 'Unknown error occurred';
+      logger.error('Capture failed:', errorMsg, error);
+      this.showStatus(`✗ Capture failed: ${errorMsg}`, 'error');
     } finally {
       this.showLoading(false);
       this.enableCaptureButton();
       logger.groupEnd();
     }
   }
-
   async highlightContent() {
     try {
-      await chrome.tabs.sendMessage(this.currentTab.id, {
+      logger.info('Starting highlight content process');
+      
+      // Send message to background script instead of directly to tab
+      logger.debug('Sending HIGHLIGHT_CONTENT message to background script');
+      const response = await chrome.runtime.sendMessage({
         action: 'HIGHLIGHT_CONTENT',
       });
 
-      this.showStatus('Content highlighted on page', 'success');
+      logger.debug('Received response from background script:', response);
 
-      setTimeout(() => {
-        this.hideStatus();
-      }, 2000);
-    } catch (error) {
-      console.error('Highlight failed:', error);
-      this.showStatus('Highlight failed', 'error');
+      if (response.success) {
+        this.showStatus('Content highlighted on page', 'success');
+        setTimeout(() => {
+          this.hideStatus();
+        }, 2000);
+      } else {
+        throw new Error(response.error);
+      }    } catch (error) {
+      const errorMsg = error?.message || error?.toString() || 'Unknown error occurred';
+      logger.error('Highlight failed:', errorMsg, error);
+      this.showStatus(`✗ Highlight failed: ${errorMsg}`, 'error');
     }
   }
 

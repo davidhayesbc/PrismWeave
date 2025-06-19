@@ -175,17 +175,20 @@ class GitOperations {
   }
 
   async downloadFile(processedContent) {
-    // Fallback: download file locally
-    const blob = new Blob([processedContent.content], { type: 'text/markdown' });
-    const url = URL.createObjectURL(blob);
+    try {
+      // Fallback: download file locally using data URL (service worker compatible)
+      const content = processedContent.content;
+      const dataUrl = 'data:text/markdown;charset=utf-8,' + encodeURIComponent(content);
 
-    await chrome.downloads.download({
-      url: url,
-      filename: `prismweave/${processedContent.filename}`,
-      saveAs: false,
-    });
-
-    URL.revokeObjectURL(url);
+      await chrome.downloads.download({
+        url: dataUrl,
+        filename: `prismweave/${processedContent.filename}`,
+        saveAs: false,
+      });
+    } catch (error) {
+      console.error('Failed to download file:', error);
+      throw new Error(`Download failed: ${error.message}`);
+    }
   }
 
   async testConnection() {

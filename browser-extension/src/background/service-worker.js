@@ -94,7 +94,20 @@ class PrismWeaveBackground {
             settings.githubRepo = message.githubRepo;
             settings.repositoryPath = message.githubRepo;
           }
-          const result = await this.captureCurrentPage(sender.tab, settings);
+          
+          // Get the current active tab if sender.tab is undefined (e.g., from popup)
+          let targetTab = sender.tab;
+          if (!targetTab) {
+            logger.debug('No sender.tab found, querying for active tab');
+            const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+            targetTab = activeTab;
+          }
+          
+          if (!targetTab) {
+            throw new Error('No active tab found for capture');
+          }
+          
+          const result = await this.captureCurrentPage(targetTab, settings);
           logger.debug('Capture result:', result);
           sendResponse({ success: true, data: result });
           break;
@@ -150,7 +163,19 @@ class PrismWeaveBackground {
           break;
         }
         case 'HIGHLIGHT_CONTENT': {
-          await this.highlightPageContent(sender.tab);
+          // Get the current active tab if sender.tab is undefined (e.g., from popup)
+          let targetTab = sender.tab;
+          if (!targetTab) {
+            logger.debug('No sender.tab found, querying for active tab');
+            const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+            targetTab = activeTab;
+          }
+          
+          if (!targetTab) {
+            throw new Error('No active tab found for highlight');
+          }
+          
+          await this.highlightPageContent(targetTab);
           sendResponse({ success: true });
           break;
         }
@@ -165,6 +190,10 @@ class PrismWeaveBackground {
   }
   async captureCurrentPage(tab, settingsOverride = null) {
     try {
+      if (!tab || typeof tab.id === 'undefined') {
+        throw new Error('Invalid tab or tab ID for page capture');
+      }
+      
       // Get current settings, allow override
       const settings = settingsOverride || await this.settingsManager.loadSettings();
       await this.gitOperations.initialize(settings);
@@ -255,18 +284,22 @@ class PrismWeaveBackground {
     }
   }
   async downloadFile(processedContent) {
-    const blob = new Blob([processedContent.content], { type: 'text/markdown' });
-    const url = URL.createObjectURL(blob);
+    try {
+      // Convert content to data URL (compatible with service workers)
+      const content = processedContent.content;
+      const dataUrl = 'data:text/markdown;charset=utf-8,' + encodeURIComponent(content);
 
-    const folder = processedContent.metadata.folder || 'unsorted';
+      const folder = processedContent.metadata.folder || 'unsorted';
 
-    await chrome.downloads.download({
-      url: url,
-      filename: `prismweave/${folder}/${processedContent.filename}`,
-      saveAs: false,
-    });
-
-    URL.revokeObjectURL(url);
+      await chrome.downloads.download({
+        url: dataUrl,
+        filename: `prismweave/${folder}/${processedContent.filename}`,
+        saveAs: false,
+      });
+    } catch (error) {
+      console.error('Failed to download file:', error);
+      throw new Error(`Download failed: ${error.message}`);
+    }
   }
   async testGitConnection() {
     try {
@@ -289,6 +322,10 @@ class PrismWeaveBackground {
   }
 
   async highlightPageContent(tab) {
+    if (!tab || typeof tab.id === 'undefined') {
+      throw new Error('Invalid tab or tab ID for highlighting content');
+    }
+    
     await chrome.scripting.executeScript({
       target: { tabId: tab.id },
       files: ['src/utils/content-extractor.js'],
