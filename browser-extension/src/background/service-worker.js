@@ -24,19 +24,40 @@ class PrismWeaveBackground {
     this.markdownConverter = new MarkdownConverter();
     this.gitOperations = new GitOperations();
     this.fileManager = new FileManager();
+    this.isInitialized = false;
     
     logger.debug('Core components initialized, starting extension initialization');
     this.initializeExtension();
   }
 
-  initializeExtension() {
+  async initializeExtension() {
     logger.group('Initializing extension');
+    
+    // Load initial settings to ensure they exist
+    try {
+      const initialSettings = await this.settingsManager.loadSettings();
+      logger.info('Initial settings loaded on startup:', initialSettings);
+      this.isInitialized = true;
+    } catch (error) {
+      logger.error('Failed to load initial settings:', error);
+    }
     
     // Listen for extension installation/startup
     chrome.runtime.onInstalled.addListener(details => {
       logger.info('Extension installed/updated:', details.reason);
       this.handleInstallation(details);
     });
+
+    // Test settings persistence on startup
+    setTimeout(async () => {
+      try {
+        logger.info('Testing settings on startup...');
+        const testLoad = await this.settingsManager.loadSettings();
+        logger.info('Startup settings test - loaded:', testLoad);
+      } catch (error) {
+        logger.error('Startup settings test failed:', error);
+      }
+    }, 1000);
 
     // Listen for messages from content scripts and popup
     chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {

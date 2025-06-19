@@ -172,8 +172,16 @@ class SettingsManager {
     try {
       console.log('SettingsManager: loadSettings called');
       
-      const result = await chrome.storage.sync.get([this.STORAGE_KEY]);
-      console.log('SettingsManager: raw storage result:', result);
+      // Try sync first, fallback to local
+      let result;
+      try {
+        result = await chrome.storage.sync.get([this.STORAGE_KEY]);
+        console.log('SettingsManager: sync storage result:', result);
+      } catch (syncError) {
+        console.warn('SettingsManager: sync storage failed, trying local:', syncError);
+        result = await chrome.storage.local.get([this.STORAGE_KEY]);
+        console.log('SettingsManager: local storage result:', result);
+      }
       
       const savedSettings = result[this.STORAGE_KEY] || {};
       console.log('SettingsManager: savedSettings from storage:', savedSettings);
@@ -200,15 +208,22 @@ class SettingsManager {
       const validated = this.validateSettings(settings);
       console.log('SettingsManager: validated settings:', validated);
 
-      await chrome.storage.sync.set({
-        [this.STORAGE_KEY]: validated,
-      });
-
-      console.log('SettingsManager: settings saved to storage');
+      // Save to both sync and local for reliability during development
+      const data = { [this.STORAGE_KEY]: validated };
+      
+      try {
+        await chrome.storage.sync.set(data);
+        console.log('SettingsManager: settings saved to sync storage');
+      } catch (syncError) {
+        console.warn('SettingsManager: sync storage failed, using local:', syncError);
+      }
+      
+      await chrome.storage.local.set(data);
+      console.log('SettingsManager: settings saved to local storage');
       
       // Verify what was actually saved
-      const verification = await chrome.storage.sync.get([this.STORAGE_KEY]);
-      console.log('SettingsManager: verification read from storage:', verification);
+      const verification = await chrome.storage.local.get([this.STORAGE_KEY]);
+      console.log('SettingsManager: verification read from local storage:', verification);
 
       return { success: true, settings: validated };
     } catch (error) {

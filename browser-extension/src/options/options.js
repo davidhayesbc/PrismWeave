@@ -5,23 +5,29 @@ class PrismWeaveOptions {
     this.settings = {};
     this.initializeOptions();
   }
-
   async initializeOptions() {
+    console.log('PrismWeaveOptions: Initializing options page');
     await this.loadSettings();
+    console.log('PrismWeaveOptions: Settings loaded:', this.settings);
     this.populateForm();
+    console.log('PrismWeaveOptions: Form populated');
     this.setupEventListeners();
+    console.log('PrismWeaveOptions: Event listeners setup complete');
   }
-
   async loadSettings() {
     try {
+      console.log('PrismWeaveOptions: Requesting settings from background...');
       const response = await chrome.runtime.sendMessage({ action: 'GET_SETTINGS' });
+      console.log('PrismWeaveOptions: Received response:', response);
       if (response.success) {
         this.settings = response.data;
+        console.log('PrismWeaveOptions: Settings updated:', this.settings);
       } else {
+        console.warn('PrismWeaveOptions: Failed to load settings, using defaults');
         this.settings = this.getDefaultSettings();
       }
     } catch (error) {
-      console.error('Failed to load settings:', error);
+      console.error('PrismWeaveOptions: Failed to load settings:', error);
       this.settings = this.getDefaultSettings();
     }
   }
@@ -100,10 +106,13 @@ class PrismWeaveOptions {
 
     document.getElementById('import-settings').addEventListener('click', () => {
       document.getElementById('import-file').click();
+    });    document.getElementById('import-file').addEventListener('change', e => {
+      this.importSettings(e.target.files[0]);
     });
 
-    document.getElementById('import-file').addEventListener('change', e => {
-      this.importSettings(e.target.files[0]);
+    // Debug storage button
+    document.getElementById('debug-settings').addEventListener('click', () => {
+      this.debugStorage();
     });
 
     // Test GitHub connection
@@ -153,9 +162,10 @@ class PrismWeaveOptions {
       customFolderLabel.style.display = 'none';
     }
   }
-
   async saveSettings() {
     try {
+      console.log('PrismWeaveOptions: Starting save settings...');
+      
       // Collect form data
       const repoValue = document.getElementById('github-repo').value.trim();
       const formData = {
@@ -178,27 +188,44 @@ class PrismWeaveOptions {
         showNotifications: document.getElementById('show-notifications').checked,
       };
 
+      console.log('PrismWeaveOptions: Form data collected:', formData);
+
       // Validate required fields
       if (!this.validateSettings(formData)) {
+        console.log('PrismWeaveOptions: Validation failed');
         return;
       }
 
       // Save to storage
+      console.log('PrismWeaveOptions: Sending UPDATE_SETTINGS...');
       const response = await chrome.runtime.sendMessage({
         action: 'UPDATE_SETTINGS',
         settings: formData,
       });
 
+      console.log('PrismWeaveOptions: Save response:', response);
+
       if (response.success) {
         // Reload settings from storage to ensure schema/validation is applied
+        console.log('PrismWeaveOptions: Reloading settings after save...');
         await this.loadSettings();
         this.populateForm();
+        console.log('PrismWeaveOptions: Settings reloaded and form repopulated');
+        
+        // Verify the save worked by checking storage directly
+        try {
+          const verification = await chrome.storage.local.get(['prismWeaveSettings']);
+          console.log('PrismWeaveOptions: Direct storage verification:', verification);
+        } catch (verifyError) {
+          console.warn('PrismWeaveOptions: Could not verify storage:', verifyError);
+        }
+        
         this.showStatus('Settings saved successfully!', 'success');
       } else {
         throw new Error(response.error);
       }
     } catch (error) {
-      console.error('Failed to save settings:', error);
+      console.error('PrismWeaveOptions: Failed to save settings:', error);
       this.showStatus('Failed to save settings: ' + error.message, 'error');
     }
   }
@@ -381,6 +408,57 @@ class PrismWeaveOptions {
     setTimeout(() => {
       statusElement.style.display = 'none';
     }, 5000);
+  }
+
+  async debugStorage() {
+    console.log('=== PrismWeave Settings Debug ===');
+    
+    try {
+      // Test 1: Check current settings via message
+      console.log('1. Getting settings via message...');
+      const response = await chrome.runtime.sendMessage({ action: 'GET_SETTINGS' });
+      console.log('Settings response:', response);
+      
+      // Test 2: Check direct storage access
+      console.log('2. Checking direct storage access...');
+      const syncData = await chrome.storage.sync.get(null);
+      console.log('Sync storage:', syncData);
+      
+      const localData = await chrome.storage.local.get(null);
+      console.log('Local storage:', localData);
+      
+      // Test 3: Save a test setting
+      console.log('3. Testing save operation...');
+      const testSettings = {
+        ...this.settings,
+        showNotifications: !this.settings.showNotifications, // Toggle for test
+        customSelectors: 'test-debug-' + Date.now(),
+      };
+      
+      const saveResponse = await chrome.runtime.sendMessage({
+        action: 'UPDATE_SETTINGS',
+        settings: testSettings
+      });
+      console.log('Save response:', saveResponse);
+      
+      // Test 4: Verify by loading again
+      console.log('4. Verifying save...');
+      const verifyResponse = await chrome.runtime.sendMessage({ action: 'GET_SETTINGS' });
+      console.log('Verify response:', verifyResponse);
+      
+      // Test 5: Check if changes persist across reload
+      console.log('5. Current form state:');
+      console.log('GitHub token:', document.getElementById('github-token').value);
+      console.log('GitHub repo:', document.getElementById('github-repo').value);
+      console.log('Default folder:', document.getElementById('default-folder').value);
+      console.log('Show notifications:', document.getElementById('show-notifications').checked);
+      
+      this.showStatus('Debug info logged to console. Check developer tools.', 'success');
+      
+    } catch (error) {
+      console.error('Debug failed:', error);
+      this.showStatus('Debug failed: ' + error.message, 'error');
+    }
   }
 }
 
