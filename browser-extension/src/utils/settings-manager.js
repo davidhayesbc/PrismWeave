@@ -170,12 +170,20 @@ class SettingsManager {
 
   async loadSettings() {
     try {
+      console.log('SettingsManager: loadSettings called');
+      
       const result = await chrome.storage.sync.get([this.STORAGE_KEY]);
+      console.log('SettingsManager: raw storage result:', result);
+      
       const savedSettings = result[this.STORAGE_KEY] || {};
+      console.log('SettingsManager: savedSettings from storage:', savedSettings);
 
       // Merge with defaults and validate
       const settings = this.mergeWithDefaults(savedSettings);
+      console.log('SettingsManager: merged with defaults:', settings);
+      
       const validated = this.validateSettings(settings);
+      console.log('SettingsManager: final validated settings:', validated);
 
       return validated;
     } catch (error) {
@@ -186,12 +194,21 @@ class SettingsManager {
 
   async saveSettings(settings) {
     try {
+      console.log('SettingsManager: saveSettings called with:', settings);
+      
       // Validate before saving
       const validated = this.validateSettings(settings);
+      console.log('SettingsManager: validated settings:', validated);
 
       await chrome.storage.sync.set({
         [this.STORAGE_KEY]: validated,
       });
+
+      console.log('SettingsManager: settings saved to storage');
+      
+      // Verify what was actually saved
+      const verification = await chrome.storage.sync.get([this.STORAGE_KEY]);
+      console.log('SettingsManager: verification read from storage:', verification);
 
       return { success: true, settings: validated };
     } catch (error) {
