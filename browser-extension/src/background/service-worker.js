@@ -6,12 +6,9 @@ importScripts('../utils/logger.js');
 importScripts('../utils/log-config.js');
 importScripts('../utils/shared-utils.js');
 importScripts('../utils/settings-manager.js');
-// NOTE: TurndownService is NOT imported in service worker context to avoid 'window is not defined' error
-// MarkdownConverter will automatically use enhanced fallback conversion in service worker
-importScripts('../utils/markdown-converter.js');
+// Note: Markdown conversion now happens in content script where TurndownService is available
 importScripts('../utils/git-operations.js');
 importScripts('../utils/file-manager.js');
-importScripts('../utils/test-service-worker-compatibility.js');
 
 // Initialize logger for background
 const logger = self.PrismWeaveLogger ? 
@@ -24,7 +21,7 @@ class PrismWeaveBackground {
     logger.debug('Initializing core components');
     
     this.settingsManager = new SettingsManager();
-    this.markdownConverter = new MarkdownConverter();
+    // Note: MarkdownConverter removed from service worker - conversion happens in content script
     this.gitOperations = new GitOperations();
     this.fileManager = new FileManager();
     this.isInitialized = false;
@@ -306,20 +303,32 @@ class PrismWeaveBackground {
       const settings = settingsOverride || await this.settingsManager.loadSettings();
       await this.gitOperations.initialize(settings);
 
-      // Inject content script to extract page content
-      logger.debug('Injecting content extractor script');
-      const results = await chrome.scripting.executeScript({
+      // Inject content script to extract and convert page content
+      logger.debug('Injecting content extractor and markdown converter scripts');
+      await chrome.scripting.executeScript({
         target: { tabId: tab.id },
-        files: ['src/utils/content-extractor.js'],
+        files: ['src/libs/turndown.min.js', 'src/utils/markdown-converter.js', 'src/utils/content-extractor.js'],
       });
 
-      // Extract page content using enhanced extractor
-      logger.debug('Extracting page content');
+      // Extract page content and convert to markdown using enhanced extractor
+      logger.debug('Extracting and converting page content');
       const contentResults = await chrome.scripting.executeScript({
         target: { tabId: tab.id },
         function: () => {
           const extractor = new ContentExtractor();
-          return extractor.extractPageContent(document);
+          const converter = new MarkdownConverter();
+          
+          // Extract page content
+          const pageData = extractor.extractPageContent(document);
+          
+          // Convert HTML to markdown in the content script context where TurndownService is available
+          const markdown = converter.convert(pageData.content);
+          
+          // Return both extracted data and converted markdown
+          return {
+            ...pageData,
+            markdown: markdown
+          };
         },
       });
 
@@ -328,8 +337,9 @@ class PrismWeaveBackground {
       }
 
       const pageData = contentResults[0].result;
-      logger.debug('Page data extracted:', { 
+      logger.debug('Page data extracted and converted:', { 
         contentLength: pageData.content?.length,
+        markdownLength: pageData.markdown?.length,
         quality: pageData.quality,
         imagesCount: pageData.images?.length
       });
@@ -366,8 +376,8 @@ class PrismWeaveBackground {
     const settings = await this.settingsManager.loadSettings();
     const targetFolder = this.fileManager.suggestFolder(pageData.textContent, metadata);
 
-    // Convert HTML to clean markdown using enhanced converter
-    const markdown = this.markdownConverter.convert(pageData.content);
+    // Use the pre-converted markdown from the content script
+    const markdown = pageData.markdown;
 
     // Generate filename using file manager
     const filename = this.fileManager.generateFilename(metadata, settings);
