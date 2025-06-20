@@ -582,6 +582,17 @@ class GitOperations {
     
     console.log('Repository structure initialization completed');
   }
+
+  generateCommitMessage(processedContent) {
+    if (!processedContent || !processedContent.title) {
+      return 'Add new document';
+    }
+
+    const title = processedContent.title.substring(0, 50);
+    const domain = processedContent.domain || 'web';
+    
+    return `Add: ${title} (from ${domain})`;
+  }
 }
 
 // For use in service worker context

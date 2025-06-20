@@ -30,13 +30,12 @@ beforeAll(() => {
     URL: 'https://example.com/test'
   };
 
-  // Mock window.ContentExtractor
+  // Import the real ContentExtractor class
+  const ContentExtractorClass = require('../../src/utils/content-extractor.js');
+  
+  // Mock window.ContentExtractor with the actual class
   global.window = {
-    ContentExtractor: jest.fn().mockImplementation(() => ({
-      extractPageContent: jest.fn(() => testUtils.createMockContent()),
-      highlightContent: jest.fn(),
-      analyzePageStructure: jest.fn(() => ({ hasMainContent: true }))
-    }))
+    ContentExtractor: ContentExtractorClass
   };
 });
 

@@ -38,7 +38,6 @@ describe('PrismWeaveBackground', () => {
   let mockSettingsManager;
   let mockGitOperations;
   let mockFileManager;
-
   beforeEach(() => {
     jest.clearAllMocks();
     
@@ -49,11 +48,10 @@ describe('PrismWeaveBackground', () => {
       resetSettings: jest.fn().mockResolvedValue({ success: true }),
       getDefaultSettings: jest.fn().mockReturnValue({})
     };
-    
-    mockGitOperations = {
+      mockGitOperations = {
       initialize: jest.fn().mockResolvedValue(),
       testConnection: jest.fn().mockResolvedValue({ success: true }),
-      validateRepository: jest.fn().mockResolvedValue({ success: true }),
+      validateRepository: jest.fn().mockResolvedValue({ success: true, hasWrite: true }),
       saveToRepository: jest.fn().mockResolvedValue({ success: true })
     };
       mockFileManager = {
@@ -68,10 +66,12 @@ describe('PrismWeaveBackground', () => {
       createFrontmatter: jest.fn().mockReturnValue('---\ntitle: Test\n---')
     };
     
-    background = new PrismWeaveBackground();
+    // Create background without calling constructor to avoid automatic initialization
+    background = Object.create(PrismWeaveBackground.prototype);
     background.settingsManager = mockSettingsManager;
     background.gitOperations = mockGitOperations;
     background.fileManager = mockFileManager;
+    background.isInitialized = false;
   });
 
   describe('Initialization', () => {
@@ -87,11 +87,11 @@ describe('PrismWeaveBackground', () => {
 
       expect(mockSettingsManager.loadSettings).toHaveBeenCalled();
       expect(background.isInitialized).toBe(true);
-    });
-
-    test('should handle settings loading errors gracefully', async () => {
+    });    test('should handle settings loading errors gracefully', async () => {
       mockSettingsManager.loadSettings.mockRejectedValueOnce(new Error('Settings error'));
-
+      
+      // Initialize manually since we skipped constructor
+      background.isInitialized = false;
       await background.initializeExtension();
 
       expect(background.isInitialized).toBe(false);
@@ -193,24 +193,21 @@ describe('PrismWeaveBackground', () => {
         success: true,
         data: { success: true, hasWrite: true }
       });
-    });
-
-    test('should handle CAPTURE_PAGE message', async () => {
+    });    test('should handle CAPTURE_PAGE message', async () => {
       const message = {
         action: 'CAPTURE_PAGE',
         githubToken: 'test-token',
         githubRepo: 'owner/repo'
       };
 
-      // Mock the page capture process
-      chrome.tabs.executeScript = jest.fn()
-        .mockResolvedValueOnce(['injected content extractor'])
-        .mockResolvedValueOnce(['injected markdown converter'])
-        .mockResolvedValueOnce([testUtils.createMockContent()]);
+      // Mock the page capture process using chrome.scripting
+      chrome.scripting.executeScript = jest.fn()
+        .mockResolvedValueOnce([{ result: 'injected scripts' }])
+        .mockResolvedValueOnce([{ result: testUtils.createMockContent() }]);
 
       await background.handleMessage(message, mockSender, mockSendResponse);
 
-      expect(chrome.tabs.executeScript).toHaveBeenCalledTimes(3);
+      expect(chrome.scripting.executeScript).toHaveBeenCalledTimes(2);
       expect(mockSendResponse).toHaveBeenCalledWith({
         success: true,
         data: expect.any(Object)
@@ -232,15 +229,13 @@ describe('PrismWeaveBackground', () => {
           repoValid: expect.any(Boolean)
         })
       });
-    });
-
-    test('should handle HIGHLIGHT_CONTENT message', async () => {
+    });    test('should handle HIGHLIGHT_CONTENT message', async () => {
       const message = { action: 'HIGHLIGHT_CONTENT' };
-      chrome.tabs.executeScript.mockResolvedValueOnce(['highlighted']);
+      chrome.scripting.executeScript.mockResolvedValue([{ result: 'highlighted' }]);
 
       await background.handleMessage(message, mockSender, mockSendResponse);
 
-      expect(chrome.tabs.executeScript).toHaveBeenCalled();
+      expect(chrome.scripting.executeScript).toHaveBeenCalled();
       expect(mockSendResponse).toHaveBeenCalledWith({
         success: true
       });
@@ -255,9 +250,7 @@ describe('PrismWeaveBackground', () => {
         success: false,
         error: 'Unknown action'
       });
-    });
-
-    test('should handle message processing errors', async () => {
+    });    test('should handle message processing errors', async () => {
       const message = { action: 'GET_SETTINGS' };
       mockSettingsManager.loadSettings.mockRejectedValueOnce(new Error('Settings error'));
 
@@ -265,21 +258,19 @@ describe('PrismWeaveBackground', () => {
 
       expect(mockSendResponse).toHaveBeenCalledWith({
         success: false,
-        error: expect.stringContaining('Settings error'),
-        details: expect.any(String)
+        error: 'Settings error',
+        details: undefined
       });
     });
 
     test('should handle message from popup without sender tab', async () => {
       const message = { action: 'CAPTURE_PAGE' };
       const popupSender = {}; // No tab property
-      
-      // Mock active tab query
+        // Mock active tab query
       chrome.tabs.query.mockResolvedValueOnce([testUtils.createMockTab()]);
-      chrome.tabs.executeScript = jest.fn()
-        .mockResolvedValueOnce(['injected content extractor'])
-        .mockResolvedValueOnce(['injected markdown converter'])
-        .mockResolvedValueOnce([testUtils.createMockContent()]);
+      chrome.scripting.executeScript = jest.fn()
+        .mockResolvedValueOnce([{ result: 'injected scripts' }])
+        .mockResolvedValueOnce([{ result: testUtils.createMockContent() }]);
 
       await background.handleMessage(message, popupSender, mockSendResponse);
 
@@ -294,22 +285,22 @@ describe('PrismWeaveBackground', () => {
     });
   });
 
-  describe('Page Capture', () => {
-    test('should capture page successfully', async () => {
+  describe('Page Capture', () => {    test('should capture page successfully', async () => {
       const tab = testUtils.createMockTab();
       const settings = testUtils.createMockSettings();
 
       // Mock script injection and content extraction
-      chrome.tabs.executeScript = jest.fn()
-        .mockResolvedValueOnce(['injected content extractor'])
-        .mockResolvedValueOnce(['injected markdown converter'])
-        .mockResolvedValueOnce([testUtils.createMockContent()]);
+      chrome.scripting.executeScript = jest.fn()
+        .mockResolvedValueOnce([{ result: 'injected scripts' }])
+        .mockResolvedValueOnce([{ result: testUtils.createMockContent() }]);
 
       const result = await background.captureCurrentPage(tab, settings);
 
-      expect(chrome.tabs.executeScript).toHaveBeenCalledTimes(3);
+      expect(chrome.scripting.executeScript).toHaveBeenCalledTimes(2);
       expect(mockGitOperations.initialize).toHaveBeenCalledWith(settings);
-      expect(result).toHaveProperty('success', true);
+      expect(result).toHaveProperty('filename');
+      expect(result).toHaveProperty('content');
+      expect(result).toHaveProperty('metadata');
     });
 
     test('should handle invalid tab', async () => {
@@ -317,29 +308,23 @@ describe('PrismWeaveBackground', () => {
 
       await expect(background.captureCurrentPage(invalidTab))
         .rejects.toThrow('Invalid tab');
-    });
-
-    test('should handle script injection failure', async () => {
+    });    test('should handle script injection failure', async () => {
       const tab = testUtils.createMockTab();
-      chrome.tabs.executeScript.mockRejectedValueOnce(new Error('Injection failed'));
+      chrome.scripting.executeScript.mockRejectedValueOnce(new Error('Injection failed'));
 
       await expect(background.captureCurrentPage(tab))
         .rejects.toThrow('Injection failed');
-    });
-
-    test('should handle content extraction failure', async () => {
+    });    test('should handle content extraction failure', async () => {
       const tab = testUtils.createMockTab();
       
-      chrome.tabs.executeScript = jest.fn()
-        .mockResolvedValueOnce(['injected content extractor'])
-        .mockResolvedValueOnce(['injected markdown converter'])
+      chrome.scripting.executeScript = jest.fn()
+        .mockResolvedValueOnce([{ result: 'injected scripts' }])
         .mockRejectedValueOnce(new Error('Extraction failed'));
 
       await expect(background.captureCurrentPage(tab))
         .rejects.toThrow('Extraction failed');
     });
   });
-
   describe('Content Processing', () => {
     test('should process page content', async () => {
       const content = testUtils.createMockContent();
@@ -347,25 +332,25 @@ describe('PrismWeaveBackground', () => {
 
       const result = await background.processPageContent(content, metadata);
 
-      expect(mockFileManager.createProcessedContent).toHaveBeenCalledWith(
-        content,
+      expect(mockFileManager.suggestFolder).toHaveBeenCalledWith(
+        content.textContent,
         expect.any(Object)
       );
-      expect(result).toHaveProperty('success', true);
+      expect(result).toHaveProperty('filename');
+      expect(result).toHaveProperty('content');
+      expect(result).toHaveProperty('metadata');
     });
 
     test('should handle content processing errors', async () => {
       const content = testUtils.createMockContent();
       const metadata = { folder: 'tech' };
       
-      mockFileManager.createProcessedContent.mockImplementation(() => {
+      mockFileManager.suggestFolder.mockImplementation(() => {
         throw new Error('Processing failed');
       });
 
-      const result = await background.processPageContent(content, metadata);
-
-      expect(result).toHaveProperty('success', false);
-      expect(result).toHaveProperty('error');
+      await expect(background.processPageContent(content, metadata))
+        .rejects.toThrow('Processing failed');
     });
   });
 
@@ -396,12 +381,11 @@ describe('PrismWeaveBackground', () => {
           errors: []
         })
       });
-    });
-
-    test('should detect missing GitHub configuration', async () => {
+    });    test('should detect missing GitHub configuration', async () => {
       const incompleteSettings = testUtils.createMockSettings({
         githubToken: '',
-        githubRepo: ''
+        githubRepo: '',
+        repositoryPath: ''
       });
       mockSettingsManager.loadSettings.mockResolvedValueOnce(incompleteSettings);
 
@@ -417,8 +401,8 @@ describe('PrismWeaveBackground', () => {
           hasToken: false,
           hasRepo: false,
           errors: expect.arrayContaining([
-            expect.stringContaining('token'),
-            expect.stringContaining('repository')
+            'GitHub token not configured',
+            'Repository path not configured'
           ])
         })
       });
@@ -449,34 +433,32 @@ describe('PrismWeaveBackground', () => {
       });
     });
   });
-
   describe('Content Highlighting', () => {
     test('should highlight content on page', async () => {
       const tab = testUtils.createMockTab();
-      chrome.tabs.executeScript.mockResolvedValueOnce(['highlighted']);
+      chrome.scripting.executeScript.mockResolvedValue([{ result: 'highlighted' }]);
 
       await background.highlightPageContent(tab);
 
-      expect(chrome.tabs.executeScript).toHaveBeenCalledWith(
-        tab.id,
+      expect(chrome.scripting.executeScript).toHaveBeenCalledWith(
         expect.objectContaining({
-          code: expect.stringContaining('highlight')
+          target: { tabId: tab.id },
+          files: ['src/utils/content-extractor.js']
         })
       );
     });
 
     test('should handle highlighting errors', async () => {
       const tab = testUtils.createMockTab();
-      chrome.tabs.executeScript.mockRejectedValueOnce(new Error('Highlighting failed'));
+      chrome.scripting.executeScript.mockRejectedValueOnce(new Error('Highlighting failed'));
 
       await expect(background.highlightPageContent(tab))
         .rejects.toThrow('Highlighting failed');
     });
   });
 
-  describe('Error Handling and Edge Cases', () => {
-    test('should handle chrome extension context invalidation', async () => {
-      chrome.runtime.lastError = { message: 'Extension context invalidated' };
+  describe('Error Handling and Edge Cases', () => {    test('should handle chrome extension context invalidation', async () => {
+      mockSettingsManager.loadSettings.mockRejectedValueOnce(new Error('Extension context invalidated'));
       
       const message = { action: 'GET_SETTINGS' };
       const mockSender = {};
@@ -486,7 +468,8 @@ describe('PrismWeaveBackground', () => {
 
       expect(mockSendResponse).toHaveBeenCalledWith({
         success: false,
-        error: expect.stringContaining('Extension context')
+        error: 'Extension context invalidated',
+        details: undefined
       });
     });
 

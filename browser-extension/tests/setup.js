@@ -102,13 +102,18 @@ global.chrome = {
     },
     setBadgeText: jest.fn(),
     setBadgeBackgroundColor: jest.fn()
-  },
-  scripting: {
+  },  scripting: {
     executeScript: jest.fn((injection) => {
       return Promise.resolve([{ result: 'script executed' }]);
     }),
     insertCSS: jest.fn((injection) => {
       return Promise.resolve();
+    })
+  },
+  downloads: {
+    download: jest.fn((options, callback) => {
+      if (callback) callback(1);
+      return Promise.resolve(1);
     })
   },
   permissions: {
@@ -266,16 +271,20 @@ global.testUtils = {
     windowId: 1,
     ...overrides
   }),
-
   // Create mock page content
   createMockContent: (overrides = {}) => ({
     title: 'Test Article Title',
     content: 'This is test content for the article.',
+    markdown: '# Test Article Title\n\nThis is test content for the article.',
     url: 'https://example.com/test-page',
     domain: 'example.com',
     timestamp: new Date().toISOString(),
     wordCount: 10,
     readingTime: 1,
+    quality: 8,
+    images: [],
+    links: [],
+    textContent: 'This is test content for the article.',
     ...overrides
   }),
 

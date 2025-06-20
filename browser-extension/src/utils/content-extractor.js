@@ -571,6 +571,154 @@ class ContentExtractor {
       return url;
     }
   }
+
+  resolveImageUrl(src, baseUrl) {
+    try {
+      return new URL(src, baseUrl).href;
+    } catch {
+      return url;
+    }
+  }
+
+  // Additional methods expected by tests
+  cleanContent(element) {
+    if (!element) return null;
+    
+    // Clean content by removing unwanted elements and attributes
+    const clone = element.cloneNode(true);
+    
+    // Remove unwanted elements
+    this.unwantedSelectors.forEach(selector => {
+      clone.querySelectorAll(selector).forEach(el => {
+        if (!this.shouldPreserveElement(el)) {
+          el.remove();
+        }
+      });
+    });
+    
+    // Clean attributes
+    this.cleanAttributes(clone);
+    
+    return clone;
+  }
+
+  cleanAttributes(element) {
+    if (!element || !element.querySelectorAll) return;
+    
+    element.querySelectorAll('*').forEach(el => {
+      const keepAttributes = ['href', 'src', 'alt', 'title', 'class', 'id'];
+      
+      // Get list of attributes to remove
+      const attrsToRemove = [];
+      if (el.attributes) {
+        for (let i = 0; i < el.attributes.length; i++) {
+          const attr = el.attributes[i];
+          if (attr.name.startsWith('on') || // Remove event handlers
+              (attr.name.startsWith('data-') && !attr.name.startsWith('data-lang')) || // Keep only data-lang
+              (!keepAttributes.includes(attr.name) && !attr.name.startsWith('aria-'))) {
+            attrsToRemove.push(attr.name);
+          }
+        }
+      }
+      
+      // Remove the attributes
+      attrsToRemove.forEach(attrName => {
+        el.removeAttribute(attrName);
+      });
+    });
+  }
+
+  calculateReadingTime(text) {
+    if (!text || typeof text !== 'string') return 0;
+    
+    const words = this.countWords(text);
+    const wordsPerMinute = 200; // Average reading speed
+    return Math.ceil(words / wordsPerMinute);
+  }
+
+  analyzeContentQuality(element) {
+    if (!element || !element.textContent) {
+      return {
+        score: 0,
+        hasHeadings: false,
+        hasImages: false,
+        hasLinks: false,
+        wordCount: 0,
+        readingTime: 0
+      };
+    }
+
+    const textContent = element.textContent;
+    const wordCount = this.countWords(textContent);
+    const readingTime = this.calculateReadingTime(textContent);
+    
+    const hasHeadings = !!element.querySelector('h1, h2, h3, h4, h5, h6');
+    const hasImages = !!element.querySelector('img');
+    const hasLinks = !!element.querySelector('a[href]');
+    
+    // Calculate quality score based on various factors
+    let score = 0;
+    if (wordCount > 100) score += 20;
+    if (wordCount > 500) score += 20;
+    if (hasHeadings) score += 20;
+    if (hasImages) score += 15;
+    if (hasLinks) score += 15;
+    if (wordCount > 200 && hasHeadings) score += 10; // Bonus for substantial content with structure
+    
+    return {
+      score: Math.min(score, 100),
+      hasHeadings,
+      hasImages,
+      hasLinks,
+      wordCount,
+      readingTime
+    };
+  }
+
+  async extractPageContentWithTimeout(document, timeoutMs = 5000) {
+    return new Promise((resolve, reject) => {
+      const timeoutId = setTimeout(() => {
+        reject(new Error('Content extraction timeout'));
+      }, timeoutMs);
+
+      try {
+        const result = this.extractPageContent(document);
+        clearTimeout(timeoutId);
+        resolve(result);
+      } catch (error) {
+        clearTimeout(timeoutId);
+        reject(error);
+      }
+    });
+  }
+
+  validateExtractedContent(content) {
+    if (!content || typeof content !== 'object') {
+      return false;
+    }
+
+    // Check required fields
+    const requiredFields = ['title', 'content', 'url', 'timestamp'];
+    for (const field of requiredFields) {
+      if (!content[field]) {
+        return false;
+      }
+    }
+
+    // Validate content quality
+    if (typeof content.content !== 'string' || content.content.trim().length < 10) {
+      return false;
+    }
+
+    // Validate URL format
+    try {
+      new URL(content.url);
+    } catch {
+      return false;
+    }
+
+    return true;
+  }
 }
 
 // For use in content script context
