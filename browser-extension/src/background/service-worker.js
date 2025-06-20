@@ -551,13 +551,18 @@ class PrismWeaveBackground {
   }
 }
 
-// Initialize the background service
-logger.info('🚀 PrismWeave Background Service Worker starting up');
-logger.debug('Chrome APIs available:', {
-  runtime: !!chrome.runtime,
-  tabs: !!chrome.tabs,
-  storage: !!chrome.storage,
-  action: !!chrome.action
-});
+// Export for tests
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = PrismWeaveBackground;
+} else {
+  // Initialize the background service in browser context
+  logger.info('🚀 PrismWeave Background Service Worker starting up');
+  logger.debug('Chrome APIs available:', {
+    runtime: !!chrome.runtime,
+    tabs: !!chrome.tabs,
+    storage: !!chrome.storage,
+    action: !!chrome.action
+  });
 
-new PrismWeaveBackground();
+  new PrismWeaveBackground();
+}

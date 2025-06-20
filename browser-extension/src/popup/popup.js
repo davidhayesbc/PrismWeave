@@ -4,7 +4,15 @@
 // Import logger
 const logger = window.PrismWeaveLogger ? 
   window.PrismWeaveLogger.createLogger('Popup') : 
-  { debug: console.log, info: console.log, warn: console.warn, error: console.error, group: console.group, groupEnd: console.groupEnd };
+  { 
+    debug: console.log, 
+    info: console.log, 
+    warn: console.warn, 
+    error: console.error, 
+    trace: console.log,
+    group: console.group, 
+    groupEnd: console.groupEnd 
+  };
 
 class PrismWeavePopup {
   constructor() {
@@ -439,7 +447,12 @@ class PrismWeavePopup {
   }
 }
 
-// Initialize popup when DOM is ready
-document.addEventListener('DOMContentLoaded', () => {
-  new PrismWeavePopup();
-});
+// Export for tests
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = PrismWeavePopup;
+} else {
+  // Initialize popup when DOM is ready in browser context
+  document.addEventListener('DOMContentLoaded', () => {
+    new PrismWeavePopup();
+  });
+}

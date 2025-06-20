@@ -79,7 +79,7 @@ class SettingsManager {
       // Automation Settings
       autoCommit: {
         type: 'boolean',
-        default: false,
+        default: true,
         description: 'Automatically commit captured files to Git',
       },
       autoPush: {
@@ -118,11 +118,17 @@ class SettingsManager {
       },
 
       // Git Configuration
+      commitMessage: {
+        type: 'string',
+        default: 'Add captured content: {title}',
+        required: true,
+        description: 'Simple commit message template',
+      },
       commitMessageTemplate: {
         type: 'string',
         default: 'Add: {domain} - {title}',
-        required: true,
-        description: 'Template for Git commit messages',
+        required: false,
+        description: 'Advanced template for Git commit messages',
       },
 
       // User Experience
@@ -190,7 +196,8 @@ class SettingsManager {
       const settings = this.mergeWithDefaults(savedSettings);
       console.log('SettingsManager: merged with defaults:', settings);
       
-      const validated = this.validateSettings(settings);
+      const validation = this.validateSettings(settings);
+      const validated = validation.isValid ? validation.validated : this.getDefaultSettings();
       console.log('SettingsManager: final validated settings:', validated);
 
       return validated;
@@ -205,11 +212,18 @@ class SettingsManager {
       console.log('SettingsManager: saveSettings called with:', settings);
       
       // Validate before saving
-      const validated = this.validateSettings(settings);
-      console.log('SettingsManager: validated settings:', validated);
+      const validation = this.validateSettings(settings);
+      console.log('SettingsManager: validation result:', validation);
+
+      if (!validation.isValid) {
+        return { 
+          success: false, 
+          errors: validation.errors 
+        };
+      }
 
       // Save to both sync and local for reliability during development
-      const data = { [this.STORAGE_KEY]: validated };
+      const data = { [this.STORAGE_KEY]: validation.validated };
       
       try {
         await chrome.storage.sync.set(data);
@@ -225,7 +239,7 @@ class SettingsManager {
       const verification = await chrome.storage.local.get([this.STORAGE_KEY]);
       console.log('SettingsManager: verification read from local storage:', verification);
 
-      return { success: true, settings: validated };
+      return { success: true, settings: validation.validated };
     } catch (error) {
       console.error('Failed to save settings:', error);
       return { success: false, error: error.message };
@@ -316,7 +330,11 @@ class SettingsManager {
       console.warn('Settings validation errors:', errors);
     }
 
-    return validated;
+    return {
+      isValid: errors.length === 0,
+      errors: errors,
+      validated: validated
+    };
   }
 
   async resetSettings() {
@@ -324,7 +342,12 @@ class SettingsManager {
     return await this.saveSettings(defaults);
   }
 
-  exportSettings(settings) {
+  async exportSettings(settings = null) {
+    // Load current settings if none provided
+    if (!settings) {
+      settings = await this.loadSettings();
+    }
+    
     // Remove sensitive data for export
     const exportData = { ...settings };
     Object.entries(this.schema).forEach(([key, config]) => {
@@ -340,6 +363,31 @@ class SettingsManager {
     };
   }
 
+  async importSettings(importData) {
+    try {
+      // Validate import data format
+      const validation = this.validateImportData(importData);
+      if (!validation.isValid) {
+        return {
+          success: false,
+          errors: validation.errors
+        };
+      }
+
+      // Merge imported settings with defaults to get complete settings
+      const completeSettings = this.mergeWithDefaults(importData.settings);
+      
+      // Save the complete settings
+      const saveResult = await this.saveSettings(completeSettings);
+      return saveResult;
+    } catch (error) {
+      return {
+        success: false,
+        errors: [error.message]
+      };
+    }
+  }
+
   validateImportData(importData) {
     if (!importData || typeof importData !== 'object') {
       throw new Error('Invalid import data format');
@@ -349,8 +397,43 @@ class SettingsManager {
       throw new Error('No settings found in import data');
     }
 
-    // Validate imported settings
-    return this.validateSettings(importData.settings);
+    // For import, we only validate that the provided fields are valid types/values
+    // We don't require all fields to be present (will be merged with defaults)
+    const errors = [];
+    const settings = importData.settings;
+
+    Object.entries(settings).forEach(([key, value]) => {
+      const config = this.schema[key];
+      if (!config) {
+        errors.push(`Unknown setting: ${key}`);
+        return;
+      }
+
+      // Type validation for provided values
+      if (config.type === 'boolean' && typeof value !== 'boolean') {
+        errors.push(`Invalid type for ${key}, expected boolean`);
+      } else if (config.type === 'string' && typeof value !== 'string') {
+        errors.push(`Invalid type for ${key}, expected string`);
+      } else if (config.type === 'number' && typeof value !== 'number') {
+        errors.push(`Invalid type for ${key}, expected number`);
+      }
+
+      // Pattern validation for strings
+      if (config.pattern && value && typeof value === 'string' && !config.pattern.test(value)) {
+        errors.push(`Field ${key} does not match required pattern`);
+      }
+
+      // Options validation
+      if (config.options && !config.options.includes(value)) {
+        errors.push(`Field ${key} must be one of: ${config.options.join(', ')}`);
+      }
+    });
+
+    return {
+      isValid: errors.length === 0,
+      errors: errors,
+      validated: settings
+    };
   }
 
   getFieldInfo(fieldName) {
@@ -389,6 +472,14 @@ if (typeof module !== 'undefined' && module.exports) {
   module.exports = SettingsManager;
 }
 
+// Export for both browser extension and Node.js/test environments
 if (typeof window !== 'undefined') {
   window.SettingsManager = SettingsManager;
+} else if (typeof self !== 'undefined') {
+  self.SettingsManager = SettingsManager;
+}
+
+// ES6 module export for tests
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = SettingsManager;
 }

@@ -1,0 +1,132 @@
+{
+  "environments": {
+    "development": {
+      "timeout": 30000,
+      "verbose": true,
+      "enableMocks": true,
+      "mockGitHubAPI": true,
+      "mockChromeAPI": true,
+      "collectCoverage": false,
+      "watchMode": true
+    },
+    "testing": {
+      "timeout": 15000,
+      "verbose": false,
+      "enableMocks": true,
+      "mockGitHubAPI": true,
+      "mockChromeAPI": true,
+      "collectCoverage": true,
+      "watchMode": false,
+      "coverageThreshold": {
+        "global": {
+          "branches": 80,
+          "functions": 80,
+          "lines": 80,
+          "statements": 80
+        }
+      }
+    },
+    "production": {
+      "timeout": 10000,
+      "verbose": false,
+      "enableMocks": false,
+      "mockGitHubAPI": false,
+      "mockChromeAPI": false,
+      "collectCoverage": false,
+      "watchMode": false
+    },
+    "ci": {
+      "timeout": 20000,
+      "verbose": true,
+      "enableMocks": true,
+      "mockGitHubAPI": true,
+      "mockChromeAPI": true,
+      "collectCoverage": true,
+      "watchMode": false,
+      "coverageThreshold": {
+        "global": {
+          "branches": 85,
+          "functions": 85,
+          "lines": 85,
+          "statements": 85
+        }
+      },
+      "reporters": [
+        "default",
+        ["jest-junit", {
+          "outputDirectory": "./test-results",
+          "outputName": "junit.xml"
+        }]
+      ]
+    }
+  },
+  "testPatterns": {
+    "unit": [
+      "tests/utils/**/*.test.js",
+      "tests/background/**/*.test.js",
+      "tests/popup/**/*.test.js",
+      "tests/content/**/*.test.js"
+    ],
+    "integration": [
+      "tests/integration/**/*.test.js"
+    ],
+    "all": [
+      "tests/**/*.test.js"
+    ],
+    "watch": [
+      "tests/utils/**/*.test.js"
+    ]
+  },
+  "performance": {
+    "memoryLimit": "512MB",
+    "maxWorkers": "50%",
+    "enableJestWorkers": true,
+    "cacheDirectory": "./tests/.jest-cache"
+  },
+  "mocks": {
+    "github": {
+      "enabled": true,
+      "rateLimitDelay": 100,
+      "simulateNetworkDelay": true,
+      "defaultResponses": {
+        "user": {
+          "login": "testuser",
+          "id": 12345,
+          "name": "Test User"
+        },
+        "repository": {
+          "name": "test-repo",
+          "full_name": "testuser/test-repo",
+          "private": false
+        }
+      }
+    },
+    "chrome": {
+      "enabled": true,
+      "apis": [
+        "storage",
+        "tabs",
+        "runtime",
+        "permissions",
+        "scripting"
+      ],
+      "simulateErrors": false,
+      "simulatePermissions": true
+    },
+    "network": {
+      "enabled": true,
+      "simulateLatency": true,
+      "defaultLatency": 100,
+      "errorRate": 0.05,
+      "timeoutRate": 0.02
+    }
+  },
+  "debugging": {
+    "enableDebugMode": false,
+    "logLevel": "info",
+    "saveTestArtifacts": false,
+    "artifactsDirectory": "./test-artifacts",
+    "enableSourceMaps": true,
+    "breakOnFailure": false
+  }
+}

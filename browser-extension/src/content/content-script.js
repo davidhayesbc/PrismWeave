@@ -425,11 +425,16 @@ class PrismWeaveContent {
   }
 }
 
-// Initialize content script
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => {
-    new PrismWeaveContent();
-  });
+// Export for tests
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = PrismWeaveContent;
 } else {
-  new PrismWeaveContent();
+  // Initialize content script in browser context
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+      new PrismWeaveContent();
+    });
+  } else {
+    new PrismWeaveContent();
+  }
 }
