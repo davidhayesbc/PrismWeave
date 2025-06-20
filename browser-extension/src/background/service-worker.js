@@ -104,9 +104,10 @@ class PrismWeaveBackground {
           }
           
           if (!targetTab) {
-            throw new Error('No active tab found for capture');
+            throw new Error('No active tab found for capture. Please ensure you have an active browser tab open.');
           }
           
+          logger.debug('Capturing page:', { url: targetTab.url, title: targetTab.title });
           const result = await this.captureCurrentPage(targetTab, settings);
           logger.debug('Capture result:', result);
           sendResponse({ success: true, data: result });
@@ -142,6 +143,12 @@ class PrismWeaveBackground {
             settings.githubRepo = message.githubRepo;
             settings.repositoryPath = message.githubRepo;
           }
+          
+          logger.debug('Testing connection with settings:', { 
+            hasToken: !!settings.githubToken, 
+            repo: settings.githubRepo 
+          });
+          
           await this.gitOperations.initialize(settings);
           const connectionResult = await this.gitOperations.testConnection();
           logger.debug('Connection test result:', connectionResult);
@@ -157,12 +164,85 @@ class PrismWeaveBackground {
             settings.githubRepo = message.githubRepo;
             settings.repositoryPath = message.githubRepo;
           }
-          await this.gitOperations.initialize(settings);
-          const repoResult = await this.gitOperations.validateRepository();
-          sendResponse({ success: true, data: repoResult });
+          
+          logger.debug('Validating repository with settings:', { 
+            hasToken: !!settings.githubToken, 
+            repo: settings.githubRepo || settings.repositoryPath,
+            tokenLength: settings.githubToken?.length
+          });
+          
+          try {
+            await this.gitOperations.initialize(settings);
+            const repoResult = await this.gitOperations.validateRepository();
+            logger.debug('Repository validation result:', repoResult);
+            sendResponse({ success: true, data: repoResult });
+          } catch (initError) {
+            logger.error('Failed to initialize git operations:', initError);
+            sendResponse({ 
+              success: false, 
+              data: { 
+                success: false, 
+                error: `Initialization failed: ${initError.message}` 
+              } 
+            });
+          }
+          break;
+        }
+        case 'CHECK_GITHUB_SETUP': {
+          logger.info('Processing CHECK_GITHUB_SETUP request');
+          const settings = await this.settingsManager.loadSettings();
+          
+          // Comprehensive GitHub setup validation
+          const setupCheck = {
+            hasToken: !!settings.githubToken,
+            hasRepo: !!(settings.githubRepo || settings.repositoryPath),
+            tokenValid: false,
+            repoValid: false,
+            repoWriteable: false,
+            errors: []
+          };
+          
+          if (!setupCheck.hasToken) {
+            setupCheck.errors.push('GitHub token not configured');
+          }
+          
+          if (!setupCheck.hasRepo) {
+            setupCheck.errors.push('Repository path not configured');
+          }
+          
+          if (setupCheck.hasToken && setupCheck.hasRepo) {
+            try {
+              await this.gitOperations.initialize(settings);
+              
+              // Test token validity
+              const connectionResult = await this.gitOperations.testConnection();
+              setupCheck.tokenValid = connectionResult.success;
+              if (!setupCheck.tokenValid) {
+                setupCheck.errors.push(`Token validation failed: ${connectionResult.error}`);
+              }
+              
+              // Test repository access
+              const repoResult = await this.gitOperations.validateRepository();
+              setupCheck.repoValid = repoResult.success;
+              setupCheck.repoWriteable = repoResult.hasWrite || false;
+              
+              if (!setupCheck.repoValid) {
+                setupCheck.errors.push(`Repository validation failed: ${repoResult.error}`);
+              } else if (!setupCheck.repoWriteable) {
+                setupCheck.errors.push('No write access to repository');
+              }
+              
+            } catch (error) {
+              setupCheck.errors.push(`Setup check failed: ${error.message}`);
+            }
+          }
+          
+          logger.debug('GitHub setup check result:', setupCheck);
+          sendResponse({ success: true, data: setupCheck });
           break;
         }
         case 'HIGHLIGHT_CONTENT': {
+          logger.info('Processing HIGHLIGHT_CONTENT request');
           // Get the current active tab if sender.tab is undefined (e.g., from popup)
           let targetTab = sender.tab;
           if (!targetTab) {
@@ -172,9 +252,10 @@ class PrismWeaveBackground {
           }
           
           if (!targetTab) {
-            throw new Error('No active tab found for highlight');
+            throw new Error('No active tab found for highlighting. Please ensure you have an active browser tab open.');
           }
           
+          logger.debug('Highlighting content on page:', { url: targetTab.url, title: targetTab.title });
           await this.highlightPageContent(targetTab);
           sendResponse({ success: true });
           break;
@@ -184,27 +265,53 @@ class PrismWeaveBackground {
         }
       }
     } catch (error) {
-      console.error('Background script error:', error);
-      sendResponse({ success: false, error: error.message });
+      logger.error('Background script error processing message:', message.action, error);
+      logger.error('Error details:', { 
+        message: error.message, 
+        stack: error.stack?.substring(0, 500) 
+      });
+      
+      // Provide more specific error messages based on error type
+      let userMessage = error.message;
+      
+      if (error.message.includes('GitHub API')) {
+        userMessage = `GitHub API Error: ${error.message}`;
+      } else if (error.message.includes('repository')) {
+        userMessage = `Repository Error: ${error.message}`;
+      } else if (error.message.includes('tab')) {
+        userMessage = `Browser Tab Error: ${error.message}`;
+      } else if (error.message.includes('token')) {
+        userMessage = `Authentication Error: ${error.message}`;
+      }
+      
+      sendResponse({ 
+        success: false, 
+        error: userMessage,
+        details: error.message !== userMessage ? error.message : undefined
+      });
     }
   }
   async captureCurrentPage(tab, settingsOverride = null) {
     try {
       if (!tab || typeof tab.id === 'undefined') {
-        throw new Error('Invalid tab or tab ID for page capture');
+        throw new Error('Invalid tab or tab ID for page capture. Please refresh the page and try again.');
       }
+      
+      logger.debug('Starting page capture for:', { url: tab.url, title: tab.title, tabId: tab.id });
       
       // Get current settings, allow override
       const settings = settingsOverride || await this.settingsManager.loadSettings();
       await this.gitOperations.initialize(settings);
 
       // Inject content script to extract page content
+      logger.debug('Injecting content extractor script');
       const results = await chrome.scripting.executeScript({
         target: { tabId: tab.id },
         files: ['src/utils/content-extractor.js'],
       });
 
       // Extract page content using enhanced extractor
+      logger.debug('Extracting page content');
       const contentResults = await chrome.scripting.executeScript({
         target: { tabId: tab.id },
         function: () => {
@@ -214,10 +321,15 @@ class PrismWeaveBackground {
       });
 
       if (!contentResults || !contentResults[0]) {
-        throw new Error('Failed to extract page content');
+        throw new Error('Failed to extract page content. The page may not be fully loaded or accessible.');
       }
 
       const pageData = contentResults[0].result;
+      logger.debug('Page data extracted:', { 
+        contentLength: pageData.content?.length,
+        quality: pageData.quality,
+        imagesCount: pageData.images?.length
+      });
 
       // Process the content and save to repository
       const processedContent = await this.processPageContent(pageData, {
@@ -228,12 +340,22 @@ class PrismWeaveBackground {
       });
 
       // Save to repository
+      logger.debug('Saving to repository');
       await this.saveToRepository(processedContent);
 
+      logger.info('Page capture completed successfully');
       return processedContent;
     } catch (error) {
-      console.error('Capture failed:', error);
-      throw error;
+      logger.error('Capture failed for tab:', tab?.url, error);
+      
+      // Enhance error message based on error type
+      if (error.message.includes('Cannot access')) {
+        throw new Error(`Cannot access this page for capture. The page may be restricted or require special permissions. Original error: ${error.message}`);
+      } else if (error.message.includes('GitHub API')) {
+        throw new Error(`Failed to save to GitHub: ${error.message}`);
+      } else {
+        throw error;
+      }
     }
   }
   async processPageContent(pageData, metadata) {
@@ -269,18 +391,50 @@ class PrismWeaveBackground {
     try {
       const settings = await this.settingsManager.loadSettings();
 
-      if (settings.githubToken && settings.repositoryPath) {
+      if (settings.githubToken && (settings.repositoryPath || settings.githubRepo)) {
+        const repoPath = settings.githubRepo || settings.repositoryPath;
+        logger.debug('Saving to GitHub repository:', repoPath);
+        logger.debug('GitHub configuration:', {
+          hasToken: !!settings.githubToken,
+          tokenLength: settings.githubToken?.length,
+          repositoryPath: settings.repositoryPath,
+          githubRepo: settings.githubRepo,
+          finalRepoPath: repoPath
+        });
+        
+        // First validate the repository exists and we have access
+        logger.debug('Validating repository access before saving...');
+        await this.gitOperations.initialize(settings);
+        const repoValidation = await this.gitOperations.validateRepository();
+        
+        if (!repoValidation.success) {
+          throw new Error(`Repository validation failed: ${repoValidation.error}`);
+        }
+        
+        logger.debug('Repository validation successful, proceeding with save');
         // Save to GitHub repository
         await this.gitOperations.saveToRepository(processedContent);
+        logger.info('Successfully saved to GitHub repository');
       } else {
+        logger.debug('No GitHub configuration found, downloading locally');
         // Fallback: download file locally
         await this.downloadFile(processedContent);
+        logger.info('File downloaded locally due to missing GitHub configuration');
       }
     } catch (error) {
-      console.error('Failed to save to repository:', error);
-      // Always fallback to local download
-      await this.downloadFile(processedContent);
-      throw error;
+      logger.error('Failed to save to repository:', error);
+      logger.debug('Attempting fallback to local download');
+      
+      // Always fallback to local download on GitHub failure
+      try {
+        await this.downloadFile(processedContent);
+        logger.info('Successfully downloaded file locally as fallback');
+        // Don't re-throw the error if local download succeeded
+        logger.warn('GitHub save failed but local download succeeded. GitHub error:', error.message);
+      } catch (downloadError) {
+        logger.error('Local download fallback also failed:', downloadError);
+        throw new Error(`Both GitHub save and local download failed. GitHub error: ${error.message}. Download error: ${downloadError.message}`);
+      }
     }
   }
   async downloadFile(processedContent) {
@@ -304,39 +458,74 @@ class PrismWeaveBackground {
   async testGitConnection() {
     try {
       const settings = await this.settingsManager.loadSettings();
+      logger.debug('Testing Git connection with settings:', { 
+        hasToken: !!settings.githubToken, 
+        repo: settings.githubRepo 
+      });
+      
       await this.gitOperations.initialize(settings);
-      return await this.gitOperations.testConnection();
+      const result = await this.gitOperations.testConnection();
+      logger.debug('Git connection test result:', result);
+      return result;
     } catch (error) {
-      return { success: false, error: error.message };
+      logger.error('Git connection test failed:', error);
+      return { 
+        success: false, 
+        error: `Connection test failed: ${error.message}`,
+        details: error.message
+      };
     }
   }
 
   async validateRepository() {
     try {
       const settings = await this.settingsManager.loadSettings();
+      logger.debug('Validating repository with settings:', { 
+        hasToken: !!settings.githubToken, 
+        repo: settings.githubRepo 
+      });
+      
       await this.gitOperations.initialize(settings);
-      return await this.gitOperations.validateRepository();
+      const result = await this.gitOperations.validateRepository();
+      logger.debug('Repository validation result:', result);
+      return result;
     } catch (error) {
-      return { success: false, error: error.message };
+      logger.error('Repository validation failed:', error);
+      return { 
+        success: false, 
+        error: `Repository validation failed: ${error.message}`,
+        details: error.message
+      };
     }
   }
 
   async highlightPageContent(tab) {
     if (!tab || typeof tab.id === 'undefined') {
-      throw new Error('Invalid tab or tab ID for highlighting content');
+      throw new Error('Invalid tab or tab ID for highlighting content. Please refresh the page and try again.');
     }
     
-    await chrome.scripting.executeScript({
-      target: { tabId: tab.id },
-      files: ['src/utils/content-extractor.js'],
-    });
-    await chrome.scripting.executeScript({
-      target: { tabId: tab.id },
-      function: () => {
-        const extractor = new ContentExtractor();
-        extractor.highlightMainContent();
-      },
-    });
+    logger.debug('Highlighting page content for:', { url: tab.url, title: tab.title, tabId: tab.id });
+    
+    try {
+      await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        files: ['src/utils/content-extractor.js'],
+      });
+      await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        function: () => {
+          const extractor = new ContentExtractor();
+          extractor.highlightMainContent();
+        },
+      });
+      logger.info('Page content highlighted successfully');
+    } catch (error) {
+      logger.error('Failed to highlight page content:', error);
+      if (error.message.includes('Cannot access')) {
+        throw new Error(`Cannot highlight content on this page. The page may be restricted or require special permissions. Original error: ${error.message}`);
+      }
+      throw error;
+    }
   }
 }
 
