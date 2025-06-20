@@ -1,12 +1,14 @@
 // PrismWeave Background Service Worker
 // Handles extension lifecycle, Git operations, and file management
 
-// Import utilities and dependencies
+// Import all required utilities at startup (more reliable than lazy loading in Manifest V3)
 importScripts('../utils/logger.js');
 importScripts('../utils/log-config.js');
-importScripts('../utils/shared-utils.js');
+importScripts('../utils/utils-registry.js');
+importScripts('../utils/error-handler.js');
+importScripts('../utils/performance-monitor.js');
 importScripts('../utils/settings-manager.js');
-// Note: Markdown conversion now happens in content script where TurndownService is available
+importScripts('../utils/shared-utils.js');
 importScripts('../utils/git-operations.js');
 importScripts('../utils/file-manager.js');
 
@@ -21,7 +23,6 @@ class PrismWeaveBackground {
     logger.debug('Initializing core components');
     
     this.settingsManager = new SettingsManager();
-    // Note: MarkdownConverter removed from service worker - conversion happens in content script
     this.gitOperations = new GitOperations();
     this.fileManager = new FileManager();
     this.isInitialized = false;
@@ -149,8 +150,9 @@ class PrismWeaveBackground {
             repo: settings.githubRepo 
           });
           
-          await this.gitOperations.initialize(settings);
-          const connectionResult = await this.gitOperations.testConnection();
+          const gitOps = this.gitOperations;
+          await gitOps.initialize(settings);
+          const connectionResult = await gitOps.testConnection();
           logger.debug('Connection test result:', connectionResult);
           sendResponse({ success: true, data: connectionResult });
           break;
@@ -172,8 +174,9 @@ class PrismWeaveBackground {
           });
           
           try {
-            await this.gitOperations.initialize(settings);
-            const repoResult = await this.gitOperations.validateRepository();
+            const gitOps = this.gitOperations;
+            await gitOps.initialize(settings);
+            const repoResult = await gitOps.validateRepository();
             logger.debug('Repository validation result:', repoResult);
             sendResponse({ success: true, data: repoResult });
           } catch (initError) {
@@ -212,17 +215,18 @@ class PrismWeaveBackground {
           
           if (setupCheck.hasToken && setupCheck.hasRepo) {
             try {
-              await this.gitOperations.initialize(settings);
+              const gitOps = this.gitOperations;
+              await gitOps.initialize(settings);
               
               // Test token validity
-              const connectionResult = await this.gitOperations.testConnection();
+              const connectionResult = await gitOps.testConnection();
               setupCheck.tokenValid = connectionResult.success;
               if (!setupCheck.tokenValid) {
                 setupCheck.errors.push(`Token validation failed: ${connectionResult.error}`);
               }
               
               // Test repository access
-              const repoResult = await this.gitOperations.validateRepository();
+              const repoResult = await gitOps.validateRepository();
               setupCheck.repoValid = repoResult.success;
               setupCheck.repoWriteable = repoResult.hasWrite || false;
               
@@ -301,7 +305,8 @@ class PrismWeaveBackground {
       
       // Get current settings, allow override
       const settings = settingsOverride || await this.settingsManager.loadSettings();
-      await this.gitOperations.initialize(settings);
+      const gitOps = this.gitOperations;
+      await gitOps.initialize(settings);
 
       // Inject content script to extract and convert page content
       logger.debug('Injecting content extractor and markdown converter scripts');
@@ -374,16 +379,17 @@ class PrismWeaveBackground {
   async processPageContent(pageData, metadata) {
     // Determine target folder
     const settings = await this.settingsManager.loadSettings();
-    const targetFolder = this.fileManager.suggestFolder(pageData.textContent, metadata);
+    const fileMgr = this.fileManager;
+    const targetFolder = fileMgr.suggestFolder(pageData.textContent, metadata);
 
     // Use the pre-converted markdown from the content script
     const markdown = pageData.markdown;
 
     // Generate filename using file manager
-    const filename = this.fileManager.generateFilename(metadata, settings);
+    const filename = fileMgr.generateFilename(metadata, settings);
 
     // Create YAML frontmatter with enhanced metadata
-    const frontmatter = this.fileManager.createFrontmatter(metadata, pageData);
+    const frontmatter = fileMgr.createFrontmatter(metadata, pageData);
 
     // Combine into final document
     const document = `${frontmatter}\n\n${markdown}`;
@@ -417,8 +423,9 @@ class PrismWeaveBackground {
         
         // First validate the repository exists and we have access
         logger.debug('Validating repository access before saving...');
-        await this.gitOperations.initialize(settings);
-        const repoValidation = await this.gitOperations.validateRepository();
+        const gitOps = this.gitOperations;
+        await gitOps.initialize(settings);
+        const repoValidation = await gitOps.validateRepository();
         
         if (!repoValidation.success) {
           throw new Error(`Repository validation failed: ${repoValidation.error}`);
@@ -426,7 +433,7 @@ class PrismWeaveBackground {
         
         logger.debug('Repository validation successful, proceeding with save');
         // Save to GitHub repository
-        await this.gitOperations.saveToRepository(processedContent);
+        await gitOps.saveToRepository(processedContent);
         logger.info('Successfully saved to GitHub repository');
       } else {
         logger.debug('No GitHub configuration found, downloading locally');
@@ -476,8 +483,9 @@ class PrismWeaveBackground {
         repo: settings.githubRepo 
       });
       
-      await this.gitOperations.initialize(settings);
-      const result = await this.gitOperations.testConnection();
+      const gitOps = this.gitOperations;
+      await gitOps.initialize(settings);
+      const result = await gitOps.testConnection();
       logger.debug('Git connection test result:', result);
       return result;
     } catch (error) {
@@ -498,8 +506,9 @@ class PrismWeaveBackground {
         repo: settings.githubRepo 
       });
       
-      await this.gitOperations.initialize(settings);
-      const result = await this.gitOperations.validateRepository();
+      const gitOps = this.gitOperations;
+      await gitOps.initialize(settings);
+      const result = await gitOps.validateRepository();
       logger.debug('Repository validation result:', result);
       return result;
     } catch (error) {

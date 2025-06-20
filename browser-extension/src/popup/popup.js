@@ -150,7 +150,6 @@ class PrismWeavePopup {
     logger.info('Event listeners setup completed');
     logger.groupEnd();
   }
-
   checkPageCapturability() {
     if (!this.currentTab) return;
 
@@ -179,11 +178,12 @@ class PrismWeavePopup {
       this.showStatus('Repository not configured. Click Settings to set up.', 'warning');
     }
   }
+
   async captureCurrentPage() {
     logger.group('Capturing current page');
     try {
       logger.info('Starting page capture process');
-      this.showLoading(true);
+      this.showAdvancedLoading();
       this.disableCaptureButton();
 
       logger.debug('Sending CAPTURE_PAGE message to background script');
@@ -197,21 +197,21 @@ class PrismWeavePopup {
 
       if (response.success) {
         logger.info('Page capture successful:', response.data.filename);
-        this.showStatus(`✓ Captured: ${response.data.filename}`, 'success');
-
+        this.showSuccessWithDetails(response.data);
+        
         // Auto-close popup after successful capture
         setTimeout(() => {
           logger.debug('Auto-closing popup after successful capture');
           window.close();
         }, 2000);
       } else {
-        throw new Error(response.error);
-      }    } catch (error) {
-      const errorMsg = error?.message || error?.toString() || 'Unknown error occurred';
-      logger.error('Capture failed:', errorMsg, error);
-      this.showStatus(`✗ Capture failed: ${errorMsg}`, 'error');
+        throw new Error(response.error || 'Capture failed');
+      }
+    } catch (error) {
+      logger.error('Capture failed:', error);
+      this.showEnhancedError(error);
     } finally {
-      this.showLoading(false);
+      this.hideLoading();
       this.enableCaptureButton();
       logger.groupEnd();
     }
@@ -290,6 +290,126 @@ class PrismWeavePopup {
     const button = document.getElementById('capture-btn');
     button.disabled = false;
     button.textContent = '📄 Capture This Page';
+  }
+
+  showAdvancedLoading() {
+    const steps = [
+      'Extracting page content...',
+      'Converting to markdown...',
+      'Preparing for upload...',
+      'Saving to repository...'
+    ];
+    
+    const loadingElement = document.getElementById('loading');
+    loadingElement.innerHTML = `
+      <div class="advanced-spinner">
+        <div class="spinner-circle"></div>
+      </div>
+      <div class="loading-steps">
+        <div class="current-step">${steps[0]}</div>
+        <div class="progress-dots">
+          <span class="dot active"></span>
+          <span class="dot"></span>
+          <span class="dot"></span>
+          <span class="dot"></span>
+        </div>
+      </div>
+    `;
+    loadingElement.style.display = 'block';
+    
+    // Simulate progress through steps
+    let currentStep = 0;
+    const stepInterval = setInterval(() => {
+      currentStep++;
+      if (currentStep < steps.length) {
+        this.updateLoadingStep(currentStep, steps[currentStep]);
+      } else {
+        clearInterval(stepInterval);
+      }
+    }, 800);
+    
+    this.loadingInterval = stepInterval;
+  }
+
+  updateLoadingStep(stepIndex, stepText) {
+    const stepElement = document.querySelector('.current-step');
+    const dots = document.querySelectorAll('.dot');
+    
+    if (stepElement) {
+      stepElement.textContent = stepText;
+    }
+    
+    dots.forEach((dot, index) => {
+      dot.classList.toggle('active', index <= stepIndex);
+    });
+  }
+
+  showSuccessWithDetails(data) {
+    const statusDiv = document.getElementById('status');
+    statusDiv.className = 'status success';
+    statusDiv.innerHTML = `
+      <div class="status-icon">✅</div>
+      <div class="status-content">
+        <div class="status-title">Page Captured Successfully!</div>
+        <div class="status-details">
+          <div class="detail-item">
+            <strong>File:</strong> ${data.filename}
+          </div>
+          <div class="detail-item">
+            <strong>Folder:</strong> ${data.metadata?.folder || 'unsorted'}
+          </div>
+          ${data.metadata?.quality ? `
+            <div class="detail-item">
+              <strong>Quality:</strong> ${this.formatQuality(data.metadata.quality)}
+            </div>
+          ` : ''}
+        </div>
+      </div>
+    `;
+    statusDiv.style.display = 'block';
+    
+    // Auto-hide after 5 seconds
+    setTimeout(() => {
+      statusDiv.style.display = 'none';
+    }, 5000);
+  }
+
+  showEnhancedError(error) {
+    const errorInfo = window.ErrorHandler ? 
+      window.ErrorHandler.createUserFriendlyError(error, 'page capture') :
+      { message: error.message, solution: 'Please try again.' };
+      
+    const statusDiv = document.getElementById('status');
+    statusDiv.className = 'status error';
+    statusDiv.innerHTML = `
+      <div class="status-icon">❌</div>
+      <div class="status-content">
+        <div class="status-title">Capture Failed</div>
+        <div class="status-message">${errorInfo.message}</div>
+        ${errorInfo.solution ? `
+          <div class="status-solution">
+            <strong>Solution:</strong> ${errorInfo.solution}
+          </div>
+        ` : ''}
+      </div>
+    `;
+    statusDiv.style.display = 'block';
+  }
+
+  formatQuality(quality) {
+    const percentage = Math.round(quality * 100);
+    if (percentage >= 80) return `${percentage}% (Excellent)`;
+    if (percentage >= 60) return `${percentage}% (Good)`;
+    if (percentage >= 40) return `${percentage}% (Fair)`;
+    return `${percentage}% (Poor)`;
+  }
+
+  hideLoading() {
+    if (this.loadingInterval) {
+      clearInterval(this.loadingInterval);
+      this.loadingInterval = null;
+    }
+    document.getElementById('loading').style.display = 'none';
   }
 
   // Utility method to estimate capture time

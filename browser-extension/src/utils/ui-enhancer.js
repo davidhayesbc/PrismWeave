@@ -1,0 +1,236 @@
+// PrismWeave UI Enhancement Utilities
+// Improved user experience with better feedback and interactions
+
+class UIEnhancer {
+  static showProgressToast(message, duration = 3000) {
+    const toast = document.createElement('div');
+    toast.className = 'prismweave-toast';
+    toast.innerHTML = `
+      <div class="toast-content">
+        <div class="toast-icon">⏳</div>
+        <div class="toast-message">${message}</div>
+      </div>
+    `;
+    
+    this.injectToastStyles();
+    document.body.appendChild(toast);
+    
+    // Animate in
+    setTimeout(() => toast.classList.add('show'), 100);
+    
+    // Remove after duration
+    setTimeout(() => {
+      toast.classList.remove('show');
+      setTimeout(() => toast.remove(), 300);
+    }, duration);
+  }
+
+  static showSuccessToast(message, duration = 3000) {
+    const toast = document.createElement('div');
+    toast.className = 'prismweave-toast success';
+    toast.innerHTML = `
+      <div class="toast-content">
+        <div class="toast-icon">✅</div>
+        <div class="toast-message">${message}</div>
+      </div>
+    `;
+    
+    this.injectToastStyles();
+    document.body.appendChild(toast);
+    
+    setTimeout(() => toast.classList.add('show'), 100);
+    setTimeout(() => {
+      toast.classList.remove('show');
+      setTimeout(() => toast.remove(), 300);
+    }, duration);
+  }
+
+  static showErrorToast(message, solution = '', duration = 5000) {
+    const toast = document.createElement('div');
+    toast.className = 'prismweave-toast error';
+    toast.innerHTML = `
+      <div class="toast-content">
+        <div class="toast-icon">❌</div>
+        <div class="toast-message">${message}</div>
+        ${solution ? `<div class="toast-solution">${solution}</div>` : ''}
+        <button class="toast-close" onclick="this.parentElement.parentElement.remove()">×</button>
+      </div>
+    `;
+    
+    this.injectToastStyles();
+    document.body.appendChild(toast);
+    
+    setTimeout(() => toast.classList.add('show'), 100);
+    setTimeout(() => {
+      toast.classList.remove('show');
+      setTimeout(() => toast.remove(), 300);
+    }, duration);
+  }
+
+  static injectToastStyles() {
+    if (document.getElementById('prismweave-toast-styles')) return;
+    
+    const styles = document.createElement('style');
+    styles.id = 'prismweave-toast-styles';
+    styles.textContent = `
+      .prismweave-toast {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #333;
+        color: white;
+        border-radius: 8px;
+        padding: 16px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        z-index: 10000;
+        opacity: 0;
+        transform: translateX(100%);
+        transition: all 0.3s ease;
+        max-width: 400px;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      }
+      
+      .prismweave-toast.show {
+        opacity: 1;
+        transform: translateX(0);
+      }
+      
+      .prismweave-toast.success {
+        background: #4CAF50;
+      }
+      
+      .prismweave-toast.error {
+        background: #f44336;
+      }
+      
+      .toast-content {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+      }
+      
+      .toast-icon {
+        font-size: 18px;
+        flex-shrink: 0;
+      }
+      
+      .toast-message {
+        font-weight: 500;
+        line-height: 1.4;
+      }
+      
+      .toast-solution {
+        font-size: 12px;
+        opacity: 0.9;
+        margin-top: 8px;
+        padding-top: 8px;
+        border-top: 1px solid rgba(255,255,255,0.2);
+      }
+      
+      .toast-close {
+        background: none;
+        border: none;
+        color: white;
+        font-size: 18px;
+        cursor: pointer;
+        margin-left: auto;
+        padding: 0;
+        width: 20px;
+        height: 20px;
+        flex-shrink: 0;
+      }
+    `;
+    
+    document.head.appendChild(styles);
+  }
+
+  static createProgressIndicator(steps) {
+    const indicator = document.createElement('div');
+    indicator.className = 'prismweave-progress';
+    indicator.innerHTML = `
+      <div class="progress-header">
+        <span class="progress-title">Processing...</span>
+        <span class="progress-step">1 of ${steps.length}</span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" style="width: 0%"></div>
+      </div>
+      <div class="progress-current-step">${steps[0]}</div>
+    `;
+    
+    this.injectProgressStyles();
+    return indicator;
+  }
+
+  static updateProgress(indicator, currentStep, totalSteps, stepName) {
+    const progress = (currentStep / totalSteps) * 100;
+    const progressFill = indicator.querySelector('.progress-fill');
+    const progressStep = indicator.querySelector('.progress-step');
+    const currentStepElement = indicator.querySelector('.progress-current-step');
+    
+    progressFill.style.width = `${progress}%`;
+    progressStep.textContent = `${currentStep} of ${totalSteps}`;
+    currentStepElement.textContent = stepName;
+  }
+
+  static injectProgressStyles() {
+    if (document.getElementById('prismweave-progress-styles')) return;
+    
+    const styles = document.createElement('style');
+    styles.id = 'prismweave-progress-styles';
+    styles.textContent = `
+      .prismweave-progress {
+        background: white;
+        border-radius: 8px;
+        padding: 16px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        margin: 16px 0;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      }
+      
+      .progress-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+      }
+      
+      .progress-title {
+        font-weight: 600;
+        color: #333;
+      }
+      
+      .progress-step {
+        font-size: 12px;
+        color: #666;
+      }
+      
+      .progress-bar {
+        width: 100%;
+        height: 4px;
+        background: #e0e0e0;
+        border-radius: 2px;
+        overflow: hidden;
+        margin-bottom: 8px;
+      }
+      
+      .progress-fill {
+        height: 100%;
+        background: #2196F3;
+        transition: width 0.3s ease;
+      }
+      
+      .progress-current-step {
+        font-size: 12px;
+        color: #666;
+      }
+    `;
+    
+    document.head.appendChild(styles);
+  }
+}
+
+// Export for both browser contexts
+if (typeof window !== 'undefined') {
+  window.UIEnhancer = UIEnhancer;
+}

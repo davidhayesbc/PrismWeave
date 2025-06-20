@@ -4,7 +4,16 @@
   "version": "1.0.0",
   "description": "Capture web pages as clean markdown and sync to your document repository",
 
-  "permissions": ["activeTab", "storage", "downloads", "scripting"],
+  "permissions": [
+    "activeTab", 
+    "storage", 
+    "downloads", 
+    "scripting"
+  ],
+
+  "optional_permissions": [
+    "background"
+  ],
 
   "host_permissions": ["<all_urls>"],
 
@@ -38,10 +47,23 @@
     "128": "icons/icon128.png"
   },
 
-  "options_page": "src/options/options.html",
-  "web_accessible_resources": [
+  "options_page": "src/options/options.html",  "web_accessible_resources": [
     {
-      "resources": ["src/utils/*.js", "src/libs/*.js"],
+      "resources": [
+        "src/utils/shared-utils.js",
+        "src/utils/git-operations.js", 
+        "src/utils/file-manager.js",
+        "src/utils/markdown-converter.js",
+        "src/utils/content-extractor.js",
+        "src/utils/logger.js",
+        "src/utils/log-config.js",        "src/utils/settings-manager.js",
+        "src/utils/error-handler.js",
+        "src/utils/performance-monitor.js",
+        "src/utils/utils-registry.js",
+        "src/utils/turndown-service.js",
+        "src/utils/ui-utils.js",
+        "src/libs/turndown.min.js"
+      ],
       "matches": ["<all_urls>"]
     }
   ]
