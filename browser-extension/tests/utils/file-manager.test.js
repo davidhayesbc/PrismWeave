@@ -236,18 +236,18 @@ describe('FileManager', () => {
       expect(metadata).toHaveProperty('tags');
       expect(metadata).toHaveProperty('wordCount');
       expect(metadata).toHaveProperty('readingTime');
-    });
-
-    test('should include auto-generated tags', () => {
+    });    test('should include auto-generated tags', () => {
       const pageContent = testUtils.createMockContent({
         title: 'JavaScript Tutorial for Beginners',
         content: 'Learn programming with JavaScript frameworks and Node.js',
+        textContent: 'Learn programming with JavaScript frameworks and Node.js',
         url: 'https://tutorial.example.com'
       });
       
       const settings = testUtils.createMockSettings();
 
-      const metadata = fileManager.generateMetadata(pageContent, settings);      expect(metadata.tags).toContain('javascript');
+      const metadata = fileManager.generateMetadata(pageContent, settings);
+      expect(metadata.tags).toContain('javascript');
       expect(metadata.tags).toContain('tutorial');
       expect(metadata.tags).toContain('node');
     });

@@ -48,100 +48,113 @@ class GitOperations {
   }
 
   async saveToGitHub(processedContent) {
-    const { filename, content, metadata } = processedContent;
-    const [owner, repo] = this.parseRepositoryPath();
+    try {
+      const { filename, content, metadata } = processedContent;
+      const [owner, repo] = this.parseRepositoryPath();
 
-    // Use the folder from metadata, fallback to 'unsorted'
-    const folder = metadata?.folder || 'unsorted';
-    
-    // Sanitize filename for GitHub (remove/replace problematic characters)
-    const sanitizedFilename = this.sanitizeFilenameForGitHub(filename);
-    const targetPath = `documents/${folder}/${sanitizedFilename}`;
+      // Use the folder from metadata, fallback to 'unsorted'
+      const folder = metadata?.folder || 'unsorted';
+      
+      // Sanitize filename for GitHub (remove/replace problematic characters)
+      const sanitizedFilename = this.sanitizeFilenameForGitHub(filename);
+      const targetPath = `documents/${folder}/${sanitizedFilename}`;
 
-    console.log('Saving to GitHub:', { 
-      owner, 
-      repo, 
-      targetPath, 
-      folder, 
-      originalFilename: filename,
-      sanitizedFilename,
-      pathLength: targetPath.length
-    });
+      console.log('Saving to GitHub:', { 
+        owner, 
+        repo, 
+        targetPath, 
+        folder, 
+        originalFilename: filename,
+        sanitizedFilename,
+        pathLength: targetPath.length
+      });
 
-    // First, let's get repository info to check the default branch
-    const repoInfo = await this.getRepositoryInfo(owner, repo);
-    const defaultBranch = repoInfo.default_branch || 'main';
-    console.log('Repository default branch:', defaultBranch);
+      // First, let's get repository info to check the default branch
+      const repoInfo = await this.getRepositoryInfo(owner, repo);
+      const defaultBranch = repoInfo.default_branch || 'main';
+      console.log('Repository default branch:', defaultBranch);
 
-    // Ensure repository structure exists (especially for new repos)
-    await this.ensureRepositoryStructure(owner, repo, defaultBranch);
+      // Ensure repository structure exists (especially for new repos)
+      await this.ensureRepositoryStructure(owner, repo, defaultBranch);
 
-    // Check if file already exists
-    const existingFile = await this.getFileFromGitHub(owner, repo, targetPath, defaultBranch);
+      // Check if file already exists
+      const existingFile = await this.getFileFromGitHub(owner, repo, targetPath, defaultBranch);
 
-    // Prepare the commit
-    const commitData = {
-      message: `Add: ${metadata?.domain || 'unknown'} - ${metadata?.title || sanitizedFilename}`,
-      content: btoa(unescape(encodeURIComponent(content))), // Base64 encode
-      branch: defaultBranch,
-    };
+      // Prepare the commit
+      const commitData = {
+        message: `Add: ${metadata?.domain || 'unknown'} - ${metadata?.title || sanitizedFilename}`,
+        content: btoa(unescape(encodeURIComponent(content))), // Base64 encode
+        branch: defaultBranch,
+      };
 
-    if (existingFile) {
-      commitData.sha = existingFile.sha;
-      console.log('Updating existing file with SHA:', existingFile.sha);
-    } else {
-      console.log('Creating new file');
-    }
-
-    // Create or update the file
-    const apiUrl = `${this.apiBase}/repos/${owner}/${repo}/contents/${targetPath}`;
-    console.log('Making API request to:', apiUrl);
-    console.log('Request payload:', { 
-      ...commitData, 
-      content: '[BASE64_CONTENT]',
-      contentLength: commitData.content.length 
-    });
-    
-    const response = await fetch(apiUrl, {
-      method: 'PUT',
-      headers: {
-        Authorization: `token ${this.settings.githubToken}`,
-        'Content-Type': 'application/json',
-        Accept: 'application/vnd.github.v3+json',
-      },
-      body: JSON.stringify(commitData),
-    });
-
-    if (!response.ok) {
-      let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
-      try {
-        const errorData = await response.json();
-        console.error('GitHub API Error Details:', errorData);
-        errorMessage = errorData.message || errorMessage;
-        
-        // Add specific error handling for common issues
-        if (response.status === 404) {
-          errorMessage = `Repository or path not found. Check that '${owner}/${repo}' exists and you have write access. Path: ${targetPath}`;
-        } else if (response.status === 409 && errorData.message?.includes('sha')) {
-          errorMessage = `File conflict - the file may have been modified. Try again or check the repository.`;
-        } else if (response.status === 422) {
-          errorMessage = `Invalid request. This might be due to path length (${targetPath.length} chars) or invalid characters. ${errorData.message || ''}`;
-        }
-      } catch (parseError) {
-        console.error('Failed to parse error response:', parseError);
+      if (existingFile) {
+        commitData.sha = existingFile.sha;
+        console.log('Updating existing file with SHA:', existingFile.sha);
+      } else {
+        console.log('Creating new file');
       }
-      throw new Error(`GitHub API error: ${errorMessage} (URL: ${apiUrl})`);
+
+      // Create or update the file
+      const apiUrl = `${this.apiBase}/repos/${owner}/${repo}/contents/${targetPath}`;
+      console.log('Making API request to:', apiUrl);
+      console.log('Request payload:', { 
+        ...commitData, 
+        content: '[BASE64_CONTENT]',
+        contentLength: commitData.content.length 
+      });
+      
+      const response = await fetch(apiUrl, {
+        method: 'PUT',
+        headers: {
+          Authorization: `token ${this.settings.githubToken}`,
+          'Content-Type': 'application/json',
+          Accept: 'application/vnd.github.v3+json',
+        },
+        body: JSON.stringify(commitData),
+      });
+
+      if (!response.ok) {
+        let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+        try {
+          const errorData = await response.json();
+          console.error('GitHub API Error Details:', errorData);
+          errorMessage = errorData.message || errorMessage;
+          
+          // Add specific error handling for common issues
+          if (response.status === 404) {
+            errorMessage = `Repository or path not found. Check that '${owner}/${repo}' exists and you have write access. Path: ${targetPath}`;
+          } else if (response.status === 409 && errorData.message?.includes('sha')) {
+            errorMessage = `File conflict - the file may have been modified. Try again or check the repository.`;
+          } else if (response.status === 422) {
+            errorMessage = `Invalid request. This might be due to path length (${targetPath.length} chars) or invalid characters. ${errorData.message || ''}`;
+          }
+        } catch (parseError) {
+          console.error('Failed to parse error response:', parseError);
+        }
+        return {
+          success: false,
+          error: `GitHub API error: ${errorMessage} (URL: ${apiUrl})`
+        };
+      }
+
+      const result = await response.json();
+      console.log('File saved successfully:', result.content?.name);
+
+      // Save images if any
+      if (processedContent.images && processedContent.images.length > 0) {
+        await this.saveImages(processedContent.images, owner, repo, defaultBranch);
+      }
+
+      return {
+        success: true,
+        result
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message
+      };
     }
-
-    const result = await response.json();
-    console.log('File saved successfully:', result.content?.name);
-
-    // Save images if any
-    if (processedContent.images && processedContent.images.length > 0) {
-      await this.saveImages(processedContent.images, owner, repo, defaultBranch);
-    }
-
-    return result;
   }
 
   async saveImages(images, owner, repo, branch = 'main') {
@@ -207,21 +220,100 @@ class GitOperations {
   }
 
   async ensureRepositoryStructure(owner, repo, branch = 'main') {
-    try {
-      console.log('Ensuring repository structure exists...');
-      
-      // Check if basic structure exists by trying to get the documents folder
-      const documentsCheck = await this.checkDirectoryExists(owner, repo, 'documents', branch);
-      
-      if (!documentsCheck) {
-        console.log('Repository structure not found, creating basic structure...');
-        await this.initializeRepositoryStructure(owner, repo, branch);
-      } else {
-        console.log('Repository structure exists');
+    // If called with parameters (legacy usage), just run the check
+    if (owner && repo) {
+      try {
+        console.log('Ensuring repository structure exists...');
+        
+        // Check if basic structure exists by trying to get the documents folder
+        const documentsCheck = await this.checkDirectoryExists(owner, repo, 'documents', branch);
+        
+        if (!documentsCheck) {
+          console.log('Repository structure not found, creating basic structure...');
+          await this.initializeRepositoryStructure(owner, repo, branch);
+        } else {
+          console.log('Repository structure exists');
+        }
+      } catch (error) {
+        console.warn('Failed to ensure repository structure, but continuing...', error);
+        // Don't throw here - the file creation might still work
       }
+      return;
+    }
+
+    // New version that returns a result object for tests
+    try {
+      const [repoOwner, repoName] = this.parseRepositoryPath();
+      const repoInfo = await this.getRepositoryInfo(repoOwner, repoName);
+      const defaultBranch = repoInfo.default_branch;
+      
+      const directories = ['documents', 'images'];
+      const results = [];
+      
+      for (const dir of directories) {
+        try {
+          // Check if directory exists by trying to get it
+          const checkUrl = `${this.apiBase}/repos/${repoOwner}/${repoName}/contents/${dir}?ref=${defaultBranch}`;
+          const checkResponse = await fetch(checkUrl, {
+            headers: {
+              Authorization: `token ${this.settings.githubToken}`,
+              Accept: 'application/vnd.github.v3+json',
+            },
+          });
+          
+          if (!checkResponse.ok) {
+            if (checkResponse.status === 404) {
+              // Directory doesn't exist, create it with a .gitkeep file
+              const createUrl = `${this.apiBase}/repos/${repoOwner}/${repoName}/contents/${dir}/.gitkeep`;
+              const createResponse = await fetch(createUrl, {
+                method: 'PUT',
+                headers: {
+                  Authorization: `token ${this.settings.githubToken}`,
+                  'Content-Type': 'application/json',
+                  Accept: 'application/vnd.github.v3+json',
+                },
+                body: JSON.stringify({
+                  message: `Create ${dir} directory`,
+                  content: Buffer.from('').toString('base64'),
+                  branch: defaultBranch
+                }),
+              });
+              
+              if (!createResponse.ok) {
+                const errorData = await createResponse.json().catch(() => ({}));
+                return {
+                  success: false,
+                  error: `Failed to create ${dir} directory: ${errorData.message || createResponse.statusText}`
+                };
+              }
+            } else {
+              // Other errors (403, 500, etc.)
+              const errorData = await checkResponse.json().catch(() => ({}));
+              return {
+                success: false,
+                error: `Failed to check ${dir} directory: ${errorData.message || checkResponse.statusText}`
+              };
+            }
+          }
+          
+          results.push({ directory: dir, created: checkResponse.status === 404 });
+        } catch (error) {
+          return {
+            success: false,
+            error: `Error processing ${dir} directory: ${error.message}`
+          };
+        }
+      }
+      
+      return {
+        success: true,
+        results
+      };
     } catch (error) {
-      console.warn('Failed to ensure repository structure, but continuing...', error);
-      // Don't throw here - the file creation might still work
+      return {
+        success: false,
+        error: error.message
+      };
     }
   }
 
@@ -382,9 +474,18 @@ class GitOperations {
 
       if (!response.ok) {
         if (response.status === 401) {
-          throw new Error(`Invalid GitHub token. Please check your token and try again. (URL: ${apiUrl})`);
+          throw new Error(`Unauthorized`);
         } else if (response.status === 403) {
-          throw new Error(`GitHub token lacks required permissions. (URL: ${apiUrl})`);
+          // Check if it's rate limiting
+          const errorData = await response.json().catch(() => ({}));
+          if (errorData.message && errorData.message.includes('rate limit')) {
+            throw new Error(`GitHub API rate limit exceeded: ${errorData.message}`);
+          } else {
+            throw new Error(`GitHub token lacks required permissions. (URL: ${apiUrl})`);
+          }
+        } else if (response.status === 429) {
+          // Handle timeout/rate limiting
+          throw new Error(`Request timeout or rate limit exceeded`);
         } else {
           throw new Error(`GitHub API error: HTTP ${response.status} - ${response.statusText} (URL: ${apiUrl})`);
         }
@@ -406,8 +507,24 @@ class GitOperations {
 
   async validateRepository() {
     try {
-      const [owner, repo] = this.parseRepositoryPath();
+      // Check repository path format first
       const repoPath = this.settings.githubRepo || this.settings.repositoryPath;
+      if (!repoPath) {
+        return {
+          success: false,
+          error: 'Repository path is not configured. Please set up your GitHub repository in settings.'
+        };
+      }
+      
+      const parts = repoPath.trim().split('/');
+      if (parts.length !== 2 || !parts[0] || !parts[1]) {
+        return {
+          success: false,
+          error: `Invalid repository path format: '${repoPath}'. Use format: username/repository`
+        };
+      }
+
+      const [owner, repo] = parts;
       console.log('Validating repository:', { 
         owner, 
         repo, 
@@ -426,9 +543,15 @@ class GitOperations {
 
       if (!response.ok) {
         if (response.status === 404) {
-          throw new Error(`Repository '${repoPath}' not found. Please check the repository name and ensure it exists. (URL: ${apiUrl})`);
+          return {
+            success: false,
+            error: `Repository not found: Not Found (URL: ${apiUrl})`
+          };
         } else if (response.status === 403) {
-          throw new Error(`Access denied to repository '${repoPath}'. Please check your GitHub token permissions. (URL: ${apiUrl})`);
+          return {
+            success: false,
+            error: `Access denied to repository '${repoPath}'. Please check your GitHub token permissions. (URL: ${apiUrl})`
+          };
         } else {
           let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
           try {
@@ -437,7 +560,10 @@ class GitOperations {
           } catch (parseError) {
             // Use default error message
           }
-          throw new Error(`GitHub API error: ${errorMessage} (URL: ${apiUrl})`);
+          return {
+            success: false,
+            error: `GitHub API error: ${errorMessage} (URL: ${apiUrl})`
+          };
         }
       }
 
@@ -584,14 +710,150 @@ class GitOperations {
   }
 
   generateCommitMessage(processedContent) {
-    if (!processedContent || !processedContent.title) {
+    if (!processedContent || (!processedContent.title && !processedContent.metadata?.title)) {
       return 'Add new document';
     }
 
-    const title = processedContent.title.substring(0, 50);
-    const domain = processedContent.domain || 'web';
+    // Support both old format (title/domain on root) and new format (metadata object)
+    const title = processedContent.title || processedContent.metadata?.title || 'Untitled';
+    const domain = processedContent.domain || processedContent.metadata?.domain || 'web';
     
-    return `Add: ${title} (from ${domain})`;
+    const truncatedTitle = title.substring(0, 50);
+    return `Add: ${truncatedTitle} from ${domain}`;
+  }
+
+  async saveImageToGitHub(imageData, filename) {
+    try {
+      if (!imageData || !imageData.startsWith('data:image/')) {
+        return {
+          success: false,
+          error: 'Invalid image data'
+        };
+      }
+
+      const [owner, repo] = this.parseRepositoryPath();
+      const repoInfo = await this.getRepositoryInfo(owner, repo);
+      const defaultBranch = repoInfo.default_branch;
+      
+      // Convert data URL to base64 content
+      const base64Content = imageData.split(',')[1];
+      
+      const targetPath = `images/${filename}`;
+      const apiUrl = `${this.apiBase}/repos/${owner}/${repo}/contents/${targetPath}`;
+      
+      const commitData = {
+        message: `Add image: ${filename}`,
+        content: base64Content,
+        branch: defaultBranch
+      };
+      
+      const response = await fetch(apiUrl, {
+        method: 'PUT',
+        headers: {
+          Authorization: `token ${this.settings.githubToken}`,
+          'Content-Type': 'application/json',
+          Accept: 'application/vnd.github.v3+json',
+        },
+        body: JSON.stringify(commitData),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        return {
+          success: false,
+          error: `Failed to save image: ${errorData.message || response.statusText}`
+        };
+      }
+      
+      return {
+        success: true,
+        result: await response.json()
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }
+
+
+  async saveBatch(files) {
+    const results = [];
+    
+    for (const file of files) {
+      const result = await this.saveToGitHub(file);
+      if (result.success) {
+        results.push({
+          success: true,
+          filename: file.filename,
+          result: result.result
+        });
+      } else {
+        results.push({
+          success: false,
+          filename: file.filename,
+          error: result.error
+        });
+      }
+    }
+    
+    return results;
+  }
+
+  async saveImageToGitHub(imageData, filename) {
+    try {
+      if (!imageData || !imageData.startsWith('data:image/')) {
+        return {
+          success: false,
+          error: 'Invalid image data'
+        };
+      }
+
+      const [owner, repo] = this.parseRepositoryPath();
+      const repoInfo = await this.getRepositoryInfo(owner, repo);
+      const defaultBranch = repoInfo.default_branch;
+      
+      // Convert data URL to base64 content
+      const base64Content = imageData.split(',')[1];
+      
+      const targetPath = `images/${filename}`;
+      const apiUrl = `${this.apiBase}/repos/${owner}/${repo}/contents/${targetPath}`;
+      
+      const commitData = {
+        message: `Add image: ${filename}`,
+        content: base64Content,
+        branch: defaultBranch
+      };
+      
+      const response = await fetch(apiUrl, {
+        method: 'PUT',
+        headers: {
+          Authorization: `token ${this.settings.githubToken}`,
+          'Content-Type': 'application/json',
+          Accept: 'application/vnd.github.v3+json',
+        },
+        body: JSON.stringify(commitData),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        return {
+          success: false,
+          error: `Failed to save image: ${errorData.message || response.statusText}`
+        };
+      }
+      
+      return {
+        success: true,
+        result: await response.json()
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message
+      };
+    }
   }
 }
 

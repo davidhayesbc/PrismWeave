@@ -175,61 +175,57 @@ global.self = {
 global.window = global;
 
 // Mock document object with proper Jest mocks
-global.document = {
-  getElementById: jest.fn().mockImplementation((id) => ({
-    addEventListener: jest.fn(),
-    style: { display: 'none' },
-    textContent: '',
-    value: '',
-    disabled: false,
-    className: '',
-    id: id,
-    setAttribute: jest.fn(),
-    getAttribute: jest.fn(),
-    removeAttribute: jest.fn(),
-    hasAttribute: jest.fn(() => false),
-    appendChild: jest.fn(),
-    removeChild: jest.fn(),
-    click: jest.fn(),
-    focus: jest.fn(),
-    blur: jest.fn()
-  })),
-  querySelector: jest.fn().mockImplementation(() => ({
-    style: {},
-    textContent: '',
-    appendChild: jest.fn(),
-    removeChild: jest.fn(),
-    addEventListener: jest.fn(),
-    remove: jest.fn()
-  })),
+const createMockElement = (options = {}) => ({
+  addEventListener: jest.fn(),
+  removeEventListener: jest.fn(),
+  style: { display: 'none', ...options.style },
+  textContent: options.textContent || '',
+  innerHTML: options.innerHTML || '',
+  value: options.value || '',
+  disabled: false,
+  className: options.className || '',
+  id: options.id || '',
+  tagName: options.tagName || 'DIV',
+  setAttribute: jest.fn(),
+  getAttribute: jest.fn().mockReturnValue(null),
+  removeAttribute: jest.fn(),
+  hasAttribute: jest.fn(() => false),
+  appendChild: jest.fn(),
+  removeChild: jest.fn(),
+  remove: jest.fn(),
+  click: jest.fn(),
+  focus: jest.fn(),
+  blur: jest.fn(),
+  cloneNode: jest.fn().mockImplementation((deep) => createMockElement(options)),
+  querySelector: jest.fn(),
   querySelectorAll: jest.fn(() => []),
-  createElement: jest.fn(() => ({
-    style: {},
-    appendChild: jest.fn(),
-    removeChild: jest.fn(),
-    addEventListener: jest.fn(),
-    remove: jest.fn(),
-    getAttribute: jest.fn(),
-    setAttribute: jest.fn(),
-    hasAttribute: jest.fn(() => false),
-    removeAttribute: jest.fn(),
-    cloneNode: jest.fn(),
-    textContent: '',
-    id: '',
-    className: ''
-  })),
-  body: {
-    appendChild: jest.fn(),
-    removeChild: jest.fn(),
-    cloneNode: jest.fn(() => ({
+  children: [],
+  childNodes: [],
+  innerText: options.innerText || options.textContent || '',
+  offsetWidth: options.offsetWidth || 100,
+  offsetHeight: options.offsetHeight || 100,
+  ...options
+});
+
+global.document = {
+  getElementById: jest.fn().mockImplementation((id) => createMockElement({ id })),
+  querySelector: jest.fn().mockImplementation(() => createMockElement()),
+  querySelectorAll: jest.fn(() => []),
+  createElement: jest.fn().mockImplementation((tagName) => createMockElement({ tagName: tagName.toUpperCase() })),
+  addEventListener: jest.fn(),
+  removeEventListener: jest.fn(),
+  body: createMockElement({
+    tagName: 'BODY',
+    innerHTML: '<div>Test content</div>',
+    textContent: 'Test content',
+    cloneNode: jest.fn(() => createMockElement({
+      tagName: 'BODY',
       querySelectorAll: jest.fn(() => []),
       querySelector: jest.fn(),
       appendChild: jest.fn(),
       removeChild: jest.fn()
-    })),
-    innerHTML: '<div>Test content</div>',
-    textContent: 'Test content'
-  },
+    }))
+  }),
   title: 'Test Page Title',
   URL: 'https://example.com/test-page'
 };

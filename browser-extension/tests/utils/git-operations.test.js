@@ -145,11 +145,10 @@ describe('GitOperations', () => {
 
       expect(result.success).toBe(false);
       expect(result.error).toContain('Not Found');
-    });
-
-    test('should handle invalid repository path format', async () => {
+    });    test('should handle invalid repository path format', async () => {
       const settings = testUtils.createMockSettings({
-        repositoryPath: 'invalid-format'
+        repositoryPath: 'invalid-format',
+        githubRepo: 'invalid-format'
       });
       
       await gitOps.initialize(settings);
@@ -164,13 +163,24 @@ describe('GitOperations', () => {
     beforeEach(async () => {
       const settings = testUtils.createMockSettings();
       await gitOps.initialize(settings);
-    });
-
-    test('should save file to GitHub successfully', async () => {
+    });    test('should save file to GitHub successfully', async () => {
       const processedContent = testUtils.createMockProcessedContent();
       
-      // Mock the GitHub API calls for file creation
+      // Mock the GitHub API calls in order:
+      // 1. getRepositoryInfo
+      // 2. ensureRepositoryStructure (check documents directory)
+      // 3. getFileFromGitHub (check if file exists)
+      // 4. actual file save
       fetch
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve({
+            default_branch: 'main'
+          })
+        })
+        .mockResolvedValueOnce({
+          ok: true // documents directory exists
+        })
         .mockResolvedValueOnce({
           ok: false,
           status: 404 // File doesn't exist
@@ -185,14 +195,25 @@ describe('GitOperations', () => {
       const result = await gitOps.saveToGitHub(processedContent);
 
       expect(result.success).toBe(true);
-      expect(fetch).toHaveBeenCalledTimes(2);
-    });
-
-    test('should update existing file on GitHub', async () => {
+      expect(fetch).toHaveBeenCalledTimes(4);
+    });    test('should update existing file on GitHub', async () => {
       const processedContent = testUtils.createMockProcessedContent();
       
-      // Mock existing file response
+      // Mock the GitHub API calls in order:
+      // 1. getRepositoryInfo
+      // 2. ensureRepositoryStructure (check documents directory)
+      // 3. getFileFromGitHub (file exists)
+      // 4. actual file update
       fetch
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve({
+            default_branch: 'main'
+          })
+        })
+        .mockResolvedValueOnce({
+          ok: true // documents directory exists
+        })
         .mockResolvedValueOnce({
           ok: true,
           json: () => Promise.resolve({
@@ -210,13 +231,19 @@ describe('GitOperations', () => {
       const result = await gitOps.saveToGitHub(processedContent);
 
       expect(result.success).toBe(true);
-      expect(fetch).toHaveBeenCalledTimes(2);
-    });
-
-    test('should handle file save errors', async () => {
+      expect(fetch).toHaveBeenCalledTimes(4);
+    });    test('should handle file save errors', async () => {
       const processedContent = testUtils.createMockProcessedContent();
       
-      fetch.mockResolvedValueOnce(testUtils.mockGitHubAPI.error(403, 'Forbidden'));
+      // Mock successful calls until the actual file save, then error
+      fetch
+        .mockResolvedValueOnce({ 
+          ok: true, 
+          json: () => Promise.resolve({ default_branch: 'main' }) 
+        }) // getRepositoryInfo
+        .mockResolvedValueOnce({ ok: true }) // ensureRepositoryStructure check
+        .mockResolvedValueOnce({ ok: false, status: 404 }) // getFileFromGitHub - file doesn't exist
+        .mockResolvedValueOnce(testUtils.mockGitHubAPI.error(403, 'Forbidden')); // actual file save fails
 
       const result = await gitOps.saveToGitHub(processedContent);
 
@@ -293,24 +320,30 @@ describe('GitOperations', () => {
     beforeEach(async () => {
       const settings = testUtils.createMockSettings();
       await gitOps.initialize(settings);
-    });
-
-    test('should ensure repository structure exists', async () => {
+    });    test('should ensure repository structure exists', async () => {
       // Mock responses for checking directory structure
       fetch
+        .mockResolvedValueOnce({ 
+          ok: true, 
+          json: () => Promise.resolve({ default_branch: 'main' }) 
+        }) // getRepositoryInfo
         .mockResolvedValueOnce({ ok: false, status: 404 }) // documents/ doesn't exist
-        .mockResolvedValueOnce({ ok: false, status: 404 }) // images/ doesn't exist
         .mockResolvedValueOnce({ ok: true }) // Create documents/
+        .mockResolvedValueOnce({ ok: false, status: 404 }) // images/ doesn't exist
         .mockResolvedValueOnce({ ok: true }); // Create images/
 
       const result = await gitOps.ensureRepositoryStructure();
 
       expect(result.success).toBe(true);
-      expect(fetch).toHaveBeenCalledTimes(4);
-    });
-
-    test('should handle structure creation errors', async () => {
-      fetch.mockResolvedValueOnce(testUtils.mockGitHubAPI.error(403, 'Forbidden'));
+      expect(fetch).toHaveBeenCalledTimes(5);
+    });    test('should handle structure creation errors', async () => {
+      // Mock successful getRepositoryInfo but then error on directory check/creation
+      fetch
+        .mockResolvedValueOnce({ 
+          ok: true, 
+          json: () => Promise.resolve({ default_branch: 'main' }) 
+        }) // getRepositoryInfo succeeds
+        .mockResolvedValueOnce(testUtils.mockGitHubAPI.error(403, 'Forbidden')); // directory check fails
 
       const result = await gitOps.ensureRepositoryStructure();
 
@@ -362,18 +395,21 @@ describe('GitOperations', () => {
     beforeEach(async () => {
       const settings = testUtils.createMockSettings();
       await gitOps.initialize(settings);
-    });
-
-    test('should save multiple files in batch', async () => {
+    });    test('should save multiple files in batch', async () => {
       const files = [
         testUtils.createMockProcessedContent({ filename: 'file1.md' }),
         testUtils.createMockProcessedContent({ filename: 'file2.md' })
       ];
 
-      // Mock successful saves for both files
+      // Mock calls for first file: getRepoInfo, ensureStructure, getFile, saveFile
+      // Mock calls for second file: getRepoInfo, ensureStructure, getFile, saveFile
       fetch
+        .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ default_branch: 'main' }) })
+        .mockResolvedValueOnce({ ok: true })
         .mockResolvedValueOnce({ ok: false, status: 404 })
         .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ content: { sha: 'sha1' } }) })
+        .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ default_branch: 'main' }) })
+        .mockResolvedValueOnce({ ok: true })
         .mockResolvedValueOnce({ ok: false, status: 404 })
         .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ content: { sha: 'sha2' } }) });
 
@@ -390,8 +426,10 @@ describe('GitOperations', () => {
         testUtils.createMockProcessedContent({ filename: 'file2.md' })
       ];
 
-      // Mock success for first file, failure for second
+      // Mock success for first file, failure for second file (error on getRepositoryInfo)
       fetch
+        .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ default_branch: 'main' }) })
+        .mockResolvedValueOnce({ ok: true })
         .mockResolvedValueOnce({ ok: false, status: 404 })
         .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ content: { sha: 'sha1' } }) })
         .mockResolvedValueOnce(testUtils.mockGitHubAPI.error(403, 'Forbidden'));

@@ -12,53 +12,14 @@ beforeAll(() => {
 
 describe('ContentExtractor', () => {
   let extractor;
-  let mockDocument;
-
-  beforeEach(() => {
+  let mockDocument;  beforeEach(() => {
     const ContentExtractorClass = require('../../src/utils/content-extractor.js');
     extractor = new ContentExtractorClass();
     
-    // Create a more sophisticated mock document
-    mockDocument = {
-      documentElement: {
-        innerHTML: '',
-        textContent: '',
-        cloneNode: jest.fn(() => mockDocument.documentElement)
-      },
-      body: {
-        innerHTML: '',
-        textContent: '',
-        cloneNode: jest.fn(() => mockDocument.body)
-      },
-      createElement: jest.fn((tagName) => ({
-        tagName: tagName.toUpperCase(),
-        innerHTML: '',
-        textContent: '',
-        style: {},
-        classList: {
-          add: jest.fn(),
-          remove: jest.fn(),
-          contains: jest.fn(() => false),
-          value: ''
-        },
-        setAttribute: jest.fn(),
-        getAttribute: jest.fn(() => null),
-        removeAttribute: jest.fn(),
-        appendChild: jest.fn(),
-        removeChild: jest.fn(),
-        remove: jest.fn(),
-        querySelector: jest.fn(() => null),
-        querySelectorAll: jest.fn(() => []),
-        parentNode: null,
-        childNodes: [],
-        children: []
-      })),
-      querySelector: jest.fn(() => null),
-      querySelectorAll: jest.fn(() => []),
-      getElementById: jest.fn(() => null),
-      title: 'Test Page Title',
-      URL: 'https://example.com/test-page'
-    };
+    // Use the global document mock from setup.js
+    mockDocument = global.document;
+    mockDocument.title = 'Test Page Title';
+    mockDocument.URL = 'https://example.com/test-page';
   });
 
   describe('Constructor and Selectors', () => {
@@ -142,17 +103,16 @@ describe('ContentExtractor', () => {
       expect(result.domain).toBe('example.com');
     });
   });
-
   describe('Content Cleaning', () => {
     test('should remove unwanted elements', () => {
-      const mockElement = {
-        querySelectorAll: jest.fn(() => [
-          { remove: jest.fn() },
-          { remove: jest.fn() }
-        ]),
-        innerHTML: '<p>Clean content</p>',
-        textContent: 'Clean content'
-      };
+      const mockElement = global.createMockElement('div');
+      mockElement.innerHTML = '<p>Clean content</p>';
+      mockElement.textContent = 'Clean content';
+      
+      // Mock querySelectorAll to return removable elements
+      const removableEl1 = global.createMockElement('script');
+      const removableEl2 = global.createMockElement('style');
+      mockElement.querySelectorAll.mockReturnValue([removableEl1, removableEl2]);
 
       const cleaned = extractor.cleanContent(mockElement);
 
@@ -163,16 +123,17 @@ describe('ContentExtractor', () => {
     });
 
     test('should preserve important elements', () => {
-      const importantElement = { remove: jest.fn() };
-      const regularElement = { remove: jest.fn() };
+      const importantElement = global.createMockElement('div');
+      const regularElement = global.createMockElement('div');
       
-      const mockElement = {
-        querySelectorAll: jest.fn()
-          .mockReturnValueOnce([importantElement, regularElement]) // unwanted elements
-          .mockReturnValueOnce([importantElement]), // preserve elements
-        innerHTML: '<p>Content with important info</p>',
-        textContent: 'Content with important info'
-      };
+      const mockElement = global.createMockElement('div');
+      mockElement.innerHTML = '<p>Content with important info</p>';
+      mockElement.textContent = 'Content with important info';
+      
+      // Mock querySelectorAll to return different elements for different calls
+      mockElement.querySelectorAll
+        .mockReturnValueOnce([importantElement, regularElement]) // unwanted elements
+        .mockReturnValueOnce([importantElement]); // preserve elements
 
       const cleaned = extractor.cleanContent(mockElement);
 
@@ -181,18 +142,17 @@ describe('ContentExtractor', () => {
     });
 
     test('should clean HTML attributes', () => {
-      const elementWithAttrs = {
-        removeAttribute: jest.fn(),
-        setAttribute: jest.fn(),
-        getAttribute: jest.fn(() => 'test-value'),
-        hasAttribute: jest.fn(() => true),
-        attributes: [
-          { name: 'onclick' },
-          { name: 'style' },
-          { name: 'class' },
-          { name: 'id' }
-        ]
-      };
+      const elementWithAttrs = global.createMockElement('div');
+      
+      // Mock attributes 
+      elementWithAttrs.getAttribute.mockImplementation((attr) => 'test-value');
+      elementWithAttrs.hasAttribute.mockImplementation(() => true);
+      elementWithAttrs.attributes = [
+        { name: 'onclick' },
+        { name: 'style' },
+        { name: 'class' },
+        { name: 'id' }
+      ];
 
       extractor.cleanAttributes(elementWithAttrs);
 
@@ -203,29 +163,28 @@ describe('ContentExtractor', () => {
       expect(elementWithAttrs.removeAttribute).not.toHaveBeenCalledWith('id');
     });
   });
-
   describe('Image Processing', () => {
     test('should extract and process images', () => {
-      const mockImages = [
-        {
-          src: 'https://example.com/image1.jpg',
-          alt: 'Test image 1',
-          getAttribute: jest.fn((attr) => attr === 'src' ? 'https://example.com/image1.jpg' : 'Test image 1'),
-          hasAttribute: jest.fn(() => true)
-        },
-        {
-          src: 'https://example.com/image2.png',
-          alt: 'Test image 2',
-          getAttribute: jest.fn((attr) => attr === 'src' ? 'https://example.com/image2.png' : 'Test image 2'),
-          hasAttribute: jest.fn(() => true)
-        }
-      ];
+      const mockImg1 = global.createMockElement('img');
+      mockImg1.src = 'https://example.com/image1.jpg';
+      mockImg1.alt = 'Test image 1';
+      mockImg1.getAttribute.mockImplementation((attr) => 
+        attr === 'src' ? 'https://example.com/image1.jpg' : 'Test image 1'
+      );
 
-      const mockElement = {
-        querySelectorAll: jest.fn(() => mockImages),
-        innerHTML: '<p>Content with images</p>',
-        textContent: 'Content with images'
-      };
+      const mockImg2 = global.createMockElement('img');
+      mockImg2.src = 'https://example.com/image2.png';
+      mockImg2.alt = 'Test image 2';
+      mockImg2.getAttribute.mockImplementation((attr) => 
+        attr === 'src' ? 'https://example.com/image2.png' : 'Test image 2'
+      );
+
+      const mockImages = [mockImg1, mockImg2];
+
+      const mockElement = global.createMockElement('div');
+      mockElement.innerHTML = '<p>Content with images</p>';
+      mockElement.textContent = 'Content with images';
+      mockElement.querySelectorAll.mockReturnValue(mockImages);
 
       const images = extractor.extractImages(mockElement);
 
@@ -235,41 +194,37 @@ describe('ContentExtractor', () => {
     });
 
     test('should filter out small and decorative images', () => {
-      const mockImages = [
-        {
-          src: 'https://example.com/icon.png',
-          alt: '',
-          width: 16,
-          height: 16,
-          getAttribute: jest.fn((attr) => {
-            if (attr === 'src') return 'https://example.com/icon.png';
-            if (attr === 'width') return '16';
-            if (attr === 'height') return '16';
-            return '';
-          }),
-          hasAttribute: jest.fn(() => true)
-        },
-        {
-          src: 'https://example.com/content-image.jpg',
-          alt: 'Content image',
-          width: 400,
-          height: 300,
-          getAttribute: jest.fn((attr) => {
-            if (attr === 'src') return 'https://example.com/content-image.jpg';
-            if (attr === 'alt') return 'Content image';
-            if (attr === 'width') return '400';
-            if (attr === 'height') return '300';
-            return '';
-          }),
-          hasAttribute: jest.fn(() => true)
-        }
-      ];
+      const iconImg = global.createMockElement('img');
+      iconImg.src = 'https://example.com/icon.png';
+      iconImg.alt = '';
+      iconImg.width = 16;
+      iconImg.height = 16;
+      iconImg.getAttribute.mockImplementation((attr) => {
+        if (attr === 'src') return 'https://example.com/icon.png';
+        if (attr === 'width') return '16';
+        if (attr === 'height') return '16';
+        return '';
+      });
 
-      const mockElement = {
-        querySelectorAll: jest.fn(() => mockImages),
-        innerHTML: '<p>Content with images</p>',
-        textContent: 'Content with images'
-      };
+      const contentImg = global.createMockElement('img');
+      contentImg.src = 'https://example.com/content-image.jpg';
+      contentImg.alt = 'Content image';
+      contentImg.width = 400;
+      contentImg.height = 300;
+      contentImg.getAttribute.mockImplementation((attr) => {
+        if (attr === 'src') return 'https://example.com/content-image.jpg';
+        if (attr === 'alt') return 'Content image';
+        if (attr === 'width') return '400';
+        if (attr === 'height') return '300';
+        return '';
+      });
+
+      const mockImages = [iconImg, contentImg];
+
+      const mockElement = global.createMockElement('div');
+      mockElement.innerHTML = '<p>Content with images</p>';
+      mockElement.textContent = 'Content with images';
+      mockElement.querySelectorAll.mockReturnValue(mockImages);
 
       const images = extractor.extractImages(mockElement);
 
@@ -278,22 +233,19 @@ describe('ContentExtractor', () => {
     });
 
     test('should handle relative image URLs', () => {
-      const mockImages = [
-        {
-          src: '/images/relative-image.jpg',
-          alt: 'Relative image',
-          getAttribute: jest.fn((attr) => 
-            attr === 'src' ? '/images/relative-image.jpg' : 'Relative image'
-          ),
-          hasAttribute: jest.fn(() => true)
-        }
-      ];
+      const relativeImg = global.createMockElement('img');
+      relativeImg.src = '/images/relative-image.jpg';
+      relativeImg.alt = 'Relative image';
+      relativeImg.getAttribute.mockImplementation((attr) => 
+        attr === 'src' ? '/images/relative-image.jpg' : 'Relative image'
+      );
 
-      const mockElement = {
-        querySelectorAll: jest.fn(() => mockImages),
-        innerHTML: '<p>Content with relative image</p>',
-        textContent: 'Content with relative image'
-      };
+      const mockImages = [relativeImg];
+
+      const mockElement = global.createMockElement('div');
+      mockElement.innerHTML = '<p>Content with relative image</p>';
+      mockElement.textContent = 'Content with relative image';
+      mockElement.querySelectorAll.mockReturnValue(mockImages);
 
       mockDocument.URL = 'https://example.com/article';
       const images = extractor.extractImages(mockElement, mockDocument.URL);
@@ -301,27 +253,24 @@ describe('ContentExtractor', () => {
       expect(images[0].src).toBe('https://example.com/images/relative-image.jpg');
     });
   });
-
   describe('Link Processing', () => {
     test('should extract and process links', () => {
-      const mockLinks = [
-        {
-          href: 'https://example.com/link1',
-          textContent: 'External Link',
-          getAttribute: jest.fn(() => 'https://example.com/link1')
-        },
-        {
-          href: '/internal-page',
-          textContent: 'Internal Link',
-          getAttribute: jest.fn(() => '/internal-page')
-        }
-      ];
+      const link1 = global.createMockElement('a');
+      link1.href = 'https://example.com/link1';
+      link1.textContent = 'External Link';
+      link1.getAttribute.mockReturnValue('https://example.com/link1');
 
-      const mockElement = {
-        querySelectorAll: jest.fn(() => mockLinks),
-        innerHTML: '<p>Content with links</p>',
-        textContent: 'Content with links'
-      };
+      const link2 = global.createMockElement('a');
+      link2.href = '/internal-page';
+      link2.textContent = 'Internal Link';
+      link2.getAttribute.mockReturnValue('/internal-page');
+
+      const mockLinks = [link1, link2];
+
+      const mockElement = global.createMockElement('div');
+      mockElement.innerHTML = '<p>Content with links</p>';
+      mockElement.textContent = 'Content with links';
+      mockElement.querySelectorAll.mockReturnValue(mockLinks);
 
       const links = extractor.extractLinks(mockElement, 'https://example.com');
 
@@ -331,24 +280,22 @@ describe('ContentExtractor', () => {
     });
 
     test('should classify internal vs external links', () => {
-      const mockLinks = [
-        {
-          href: 'https://example.com/internal',
-          textContent: 'Internal Link',
-          getAttribute: jest.fn(() => 'https://example.com/internal')
-        },
-        {
-          href: 'https://external.com/page',
-          textContent: 'External Link',
-          getAttribute: jest.fn(() => 'https://external.com/page')
-        }
-      ];
+      const internalLink = global.createMockElement('a');
+      internalLink.href = 'https://example.com/internal';
+      internalLink.textContent = 'Internal Link';
+      internalLink.getAttribute.mockReturnValue('https://example.com/internal');
 
-      const mockElement = {
-        querySelectorAll: jest.fn(() => mockLinks),
-        innerHTML: '<p>Content with links</p>',
-        textContent: 'Content with links'
-      };
+      const externalLink = global.createMockElement('a');
+      externalLink.href = 'https://external.com/page';
+      externalLink.textContent = 'External Link';
+      externalLink.getAttribute.mockReturnValue('https://external.com/page');
+
+      const mockLinks = [internalLink, externalLink];
+
+      const mockElement = global.createMockElement('div');
+      mockElement.innerHTML = '<p>Content with links</p>';
+      mockElement.textContent = 'Content with links';
+      mockElement.querySelectorAll.mockReturnValue(mockLinks);
 
       const links = extractor.extractLinks(mockElement, 'https://example.com');
 
@@ -381,16 +328,18 @@ describe('ContentExtractor', () => {
 
       expect(wordCount).toBe(0);
       expect(readingTime).toBe(0);
-    });
-
-    test('should analyze content quality', () => {
-      const highQualityContent = {
-        textContent: 'This is a high quality article with substantial content. '.repeat(100),
-        querySelectorAll: jest.fn(() => [
-          { textContent: 'Heading 1' },
-          { textContent: 'Heading 2' }
-        ])
-      };
+    });    test('should analyze content quality', () => {
+      const highQualityContent = global.createMockElement('div');
+      highQualityContent.textContent = 'This is a high quality article with substantial content. '.repeat(100);
+      
+      // Mock headings for structure analysis
+      const heading1 = global.createMockElement('h1');
+      heading1.textContent = 'Heading 1';
+      const heading2 = global.createMockElement('h2');
+      heading2.textContent = 'Heading 2';
+      
+      highQualityContent.querySelector.mockReturnValue(heading1); // For checking if element has headings
+      highQualityContent.querySelectorAll.mockReturnValue([heading1, heading2]);
 
       const analysis = extractor.analyzeContentQuality(highQualityContent);
 
@@ -400,15 +349,12 @@ describe('ContentExtractor', () => {
       expect(analysis.qualityScore).toBeGreaterThan(0);
     });
   });
-
   describe('Error Handling', () => {
     test('should handle malformed HTML gracefully', () => {
-      const malformedDocument = {
-        ...mockDocument,
-        querySelector: jest.fn(() => {
-          throw new Error('DOM parsing error');
-        })
-      };
+      const malformedDocument = Object.assign({}, mockDocument);
+      malformedDocument.querySelector = jest.fn(() => {
+        throw new Error('DOM parsing error');
+      });
 
       const result = extractor.extractPageContent(malformedDocument);
 
@@ -418,11 +364,10 @@ describe('ContentExtractor', () => {
     });
 
     test('should handle missing document properties', () => {
-      const incompleteDocument = {
-        body: null,
-        title: null,
-        URL: null
-      };
+      const incompleteDocument = Object.assign({}, mockDocument);
+      incompleteDocument.body = null;
+      incompleteDocument.title = null;
+      incompleteDocument.URL = null;
 
       const result = extractor.extractPageContent(incompleteDocument);
 
@@ -433,13 +378,11 @@ describe('ContentExtractor', () => {
     });
 
     test('should handle extraction timeouts', async () => {
-      const slowDocument = {
-        ...mockDocument,
-        querySelector: jest.fn(() => {
-          // Simulate slow DOM operation
-          return new Promise(resolve => setTimeout(resolve, 5000));
-        })
-      };
+      const slowDocument = Object.assign({}, mockDocument);
+      slowDocument.querySelector = jest.fn(() => {
+        // Simulate slow DOM operation
+        return new Promise(resolve => setTimeout(resolve, 5000));
+      });
 
       const result = await extractor.extractPageContentWithTimeout(slowDocument, 1000);
 

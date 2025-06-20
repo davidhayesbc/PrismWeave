@@ -192,14 +192,18 @@ class FileManager {
     
     // Extract tags from content
     const text = `${metadata.title || ''} ${content || ''}`.toLowerCase();
-    
-    // Technology keywords
+      // Technology keywords
     const techKeywords = ['javascript', 'python', 'react', 'node', 'css', 'html', 'api', 'database'];
     techKeywords.forEach(keyword => {
       if (text.includes(keyword)) {
         tags.add(keyword);
       }
     });
+    
+    // Special cases for compound terms
+    if (text.includes('node.js')) {
+      tags.add('node');
+    }
     
     // Content type keywords
     const contentKeywords = ['tutorial', 'guide', 'review', 'news', 'analysis'];
@@ -269,8 +273,7 @@ class FileManager {
     const title = pageContent.title || 'Untitled';
     const url = pageContent.url || '';
     const domain = this.sanitizeDomain(pageContent.domain || this._extractDomainFromUrl(url));
-    
-    // Calculate word count and reading time
+      // Calculate word count and reading time
     const words = content.split(/\s+/).filter(word => word.length > 0);
     const wordCount = words.length;
     const readingTime = Math.max(1, Math.ceil(wordCount / 200)); // 200 words per minute
