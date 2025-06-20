@@ -6,9 +6,12 @@ importScripts('../utils/logger.js');
 importScripts('../utils/log-config.js');
 importScripts('../utils/shared-utils.js');
 importScripts('../utils/settings-manager.js');
+// NOTE: TurndownService is NOT imported in service worker context to avoid 'window is not defined' error
+// MarkdownConverter will automatically use enhanced fallback conversion in service worker
 importScripts('../utils/markdown-converter.js');
 importScripts('../utils/git-operations.js');
 importScripts('../utils/file-manager.js');
+importScripts('../utils/test-service-worker-compatibility.js');
 
 // Initialize logger for background
 const logger = self.PrismWeaveLogger ? 

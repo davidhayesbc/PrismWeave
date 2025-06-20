@@ -39,10 +39,9 @@
   },
 
   "options_page": "src/options/options.html",
-
   "web_accessible_resources": [
     {
-      "resources": ["src/utils/*.js"],
+      "resources": ["src/utils/*.js", "src/libs/*.js"],
       "matches": ["<all_urls>"]
     }
   ]

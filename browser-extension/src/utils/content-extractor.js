@@ -32,47 +32,66 @@ class ContentExtractor {
       '.article-text',
       '.story-body',
       '.article-wrapper',
+      '.post-text',
+      '.content-area',
+      '.entry-text'
     ];
 
     this.unwantedSelectors = [
       'script',
       'style',
+      'noscript',
       'nav',
-      'header',
-      'footer',
-      'aside',
+      'header:not(.article-header):not(.post-header)',
+      'footer:not(.article-footer):not(.post-footer)',
+      'aside:not(.content-aside)',
       '.navigation',
       '.nav',
       '.menu',
-      '.sidebar',
+      '.sidebar:not(.content-sidebar)',
       '.ad',
       '.advertisement',
       '.ads',
       '.sponsored',
       '.promo',
-      '.banner',
+      '.banner:not(.content-banner)',
       '.social-share',
       '.social-buttons',
       '.share-buttons',
-      '.comments',
-      '.comment-section',
+      '.comments:not(.article-comments)',
+      '.comment-section:not(.article-comments)',
       '.newsletter',
       '.subscription',
       '.popup',
       '.modal',
       '.overlay',
       '.cookie-notice',
-      '.related-articles',
+      '.related-articles:not(.content-related)',
       '.recommendations',
       '.trending',
       '.most-popular',
-      '[class*="ad-"]',
-      '[id*="ad-"]',
-      '[class*="social"]',
-      '[class*="share"]',
+      '[class*="ad-"]:not([class*="read"])',
+      '[id*="ad-"]:not([id*="read"])',
+      '[class*="social"]:not([class*="article"])',
+      '[class*="share"]:not([class*="content"])',
       '[role="banner"]',
       '[role="navigation"]',
-      '[role="complementary"]',
+      '[role="complementary"]:not([class*="content"])',
+      '.skip-link',
+      '.screen-reader-text',
+      '.visually-hidden'
+    ];
+
+    // Enhanced selectors for better content preservation
+    this.preserveSelectors = [
+      '.article-comments',
+      '.content-related',
+      '.author-bio',
+      '.article-metadata',
+      '.post-metadata',
+      '.content-sidebar',
+      '.article-aside',
+      '.content-aside'
     ];
   }
 
@@ -117,14 +136,19 @@ class ContentExtractor {
     // Clone the document body to avoid modifying the original
     const cleanBody = document.body.cloneNode(true);
 
-    // Remove unwanted elements
+    // Remove unwanted elements, but be more selective
     this.unwantedSelectors.forEach(selector => {
-      cleanBody.querySelectorAll(selector).forEach(el => el.remove());
+      cleanBody.querySelectorAll(selector).forEach(el => {
+        // Double-check that we're not removing valuable content
+        if (!this.shouldPreserveElement(el)) {
+          el.remove();
+        }
+      });
     });
 
-    // Clean up attributes
+    // Clean up attributes selectively
     cleanBody.querySelectorAll('*').forEach(el => {
-      // Remove style attributes that might interfere
+      // Remove style attributes that might interfere with content extraction
       el.removeAttribute('style');
 
       // Remove event handlers
@@ -133,9 +157,168 @@ class ContentExtractor {
           el.removeAttribute(attr.name);
         }
       });
+
+      // Preserve important semantic attributes
+      const keepAttributes = [
+        'href', 'src', 'alt', 'title', 'lang', 'dir',
+        'colspan', 'rowspan', 'headers', 'scope',
+        'datetime', 'cite', 'data-lang', 'data-language',
+        'role', 'aria-label', 'aria-describedby'
+      ];
+      
+      // Keep class attributes that indicate semantic meaning
+      const className = el.getAttribute('class');
+      if (className && this.hasSemanticClass(className)) {
+        keepAttributes.push('class');
+      }
+
+      Array.from(el.attributes).forEach(attr => {
+        if (!keepAttributes.includes(attr.name) && !attr.name.startsWith('data-')) {
+          el.removeAttribute(attr.name);
+        }
+      });
     });
 
+    // Enhance semantic structure
+    this.enhanceSemanticStructure(cleanBody);
+
     return cleanBody;
+  }
+
+  shouldPreserveElement(element) {
+    // Check if element should be preserved despite being in unwanted selectors
+    const text = element.textContent.trim();
+    const wordCount = text.split(/\s+/).filter(word => word.length > 0).length;
+    
+    // Preserve if it has substantial content
+    if (wordCount > 20) return true;
+    
+    // Preserve if it contains semantic elements
+    if (element.querySelector('h1, h2, h3, h4, h5, h6, p, ul, ol, table, blockquote, pre, code, figure')) {
+      return true;
+    }
+    
+    // Preserve if it matches preserve selectors
+    return this.preserveSelectors.some(selector => {
+      try {
+        return element.matches(selector);
+      } catch (e) {
+        return false;
+      }
+    });
+  }
+
+  hasSemanticClass(className) {
+    const semanticClasses = [
+      'content', 'article', 'post', 'entry', 'main', 'body',
+      'header', 'title', 'subtitle', 'author', 'date', 'time',
+      'quote', 'blockquote', 'highlight', 'note', 'callout',
+      'code', 'syntax', 'example', 'demo',
+      'caption', 'figcaption', 'attribution',
+      'warning', 'info', 'tip', 'important', 'alert',
+      'metadata', 'byline', 'summary', 'abstract',
+      'section', 'chapter', 'paragraph'
+    ];
+    
+    return semanticClasses.some(semantic => 
+      className.toLowerCase().includes(semantic)
+    );
+  }
+
+  enhanceSemanticStructure(container) {
+    // Convert div elements with semantic classes to appropriate semantic tags
+    container.querySelectorAll('div').forEach(div => {
+      const className = div.className.toLowerCase();
+      
+      // Convert quote-like divs to blockquotes
+      if (className.includes('quote') || className.includes('blockquote')) {
+        const blockquote = document.createElement('blockquote');
+        blockquote.innerHTML = div.innerHTML;
+        Array.from(div.attributes).forEach(attr => {
+          if (attr.name !== 'class' || !attr.value.match(/quote|blockquote/i)) {
+            blockquote.setAttribute(attr.name, attr.value);
+          }
+        });
+        div.parentNode.replaceChild(blockquote, div);
+      }
+      
+      // Convert code-like divs to pre/code
+      else if (className.includes('code') && !div.querySelector('pre, code')) {
+        const pre = document.createElement('pre');
+        const code = document.createElement('code');
+        
+        // Preserve language information
+        const langMatch = className.match(/(?:language|lang|brush|highlight)-(\w+)/);
+        if (langMatch) {
+          code.className = `language-${langMatch[1]}`;
+        }
+        
+        code.textContent = div.textContent;
+        pre.appendChild(code);
+        div.parentNode.replaceChild(pre, div);
+      }
+    });
+
+    // Enhance image figures
+    container.querySelectorAll('img').forEach(img => {
+      const parent = img.parentElement;
+      if (parent && parent.tagName.toLowerCase() !== 'figure') {
+        // Look for nearby caption elements
+        const nextSibling = img.nextElementSibling;
+        const prevSibling = img.previousElementSibling;
+        
+        let caption = null;
+        if (nextSibling && this.isCaptionElement(nextSibling)) {
+          caption = nextSibling;
+        } else if (prevSibling && this.isCaptionElement(prevSibling)) {
+          caption = prevSibling;
+        }
+        
+        if (caption) {
+          const figure = document.createElement('figure');
+          const figcaption = document.createElement('figcaption');
+          figcaption.textContent = caption.textContent;
+          
+          parent.insertBefore(figure, img);
+          figure.appendChild(img);
+          figure.appendChild(figcaption);
+          caption.remove();
+        }
+      }
+    });
+
+    // Enhance definition lists from description lists patterns
+    container.querySelectorAll('.definition, .term').forEach(element => {
+      const parent = element.parentElement;
+      if (parent && !parent.querySelector('dl')) {
+        const dt = document.createElement('dt');
+        dt.textContent = element.textContent;
+        const dd = document.createElement('dd');
+        
+        // Look for definition content
+        const definition = element.nextElementSibling;
+        if (definition) {
+          dd.textContent = definition.textContent;
+          definition.remove();
+        }
+        
+        const dl = document.createElement('dl');
+        dl.appendChild(dt);
+        dl.appendChild(dd);
+        element.parentNode.replaceChild(dl, element);
+      }
+    });
+  }
+
+  isCaptionElement(element) {
+    const tagName = element.tagName.toLowerCase();
+    const className = element.className.toLowerCase();
+    
+    return tagName === 'figcaption' ||
+           className.includes('caption') ||
+           className.includes('image-caption') ||
+           className.includes('photo-caption') ||
+           className.includes('figure-caption');
   }
 
   findMainContent(cleanDocument) {
