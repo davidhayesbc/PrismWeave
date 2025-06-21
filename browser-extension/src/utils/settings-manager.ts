@@ -2,7 +2,17 @@
 // PrismWeave Settings Manager - TypeScript version
 // Centralized settings management with consistent schema and validation
 
-import { ISettings, IStorageData, StorageKeys, StorageResult } from '../types/index.js';
+// Type definitions for service worker compatibility
+interface ISettingsManagerSettings {
+  [key: string]: unknown;
+}
+
+interface ISettingsManagerStorageData {
+  [key: string]: unknown;
+}
+
+type SettingsManagerStorageKeys = string | string[] | Record<string, unknown> | null;
+type SettingsManagerStorageResult<T = Record<string, unknown>> = Promise<T>;
 
 interface ISettingDefinition {
   type: 'string' | 'boolean' | 'number' | 'array';
@@ -21,7 +31,7 @@ interface ISettingsSchema {
   [key: string]: ISettingDefinition;
 }
 
-export class SettingsManager {
+class SettingsManager {
   private readonly STORAGE_KEY: string = 'prismWeaveSettings';
   private readonly schema: ISettingsSchema;
 
@@ -409,7 +419,7 @@ export class SettingsManager {
     
     return sanitized;
   }
-  private async getFromStorage<T = IStorageData>(keys: StorageKeys): StorageResult<T> {
+  private async getFromStorage<T = ISettingsManagerStorageData>(keys: SettingsManagerStorageKeys): SettingsManagerStorageResult<T> {
     return new Promise<T>((resolve, reject) => {
       chrome.storage.sync.get(keys as any, (result: T) => {
         if (chrome.runtime.lastError) {
@@ -421,7 +431,7 @@ export class SettingsManager {
     });
   }
 
-  private async setToStorage(data: IStorageData): Promise<void> {
+  private async setToStorage(data: ISettingsManagerStorageData): Promise<void> {
     return new Promise<void>((resolve, reject) => {
       chrome.storage.sync.set(data, () => {
         if (chrome.runtime.lastError) {
@@ -434,7 +444,12 @@ export class SettingsManager {
   }
 }
 
-// Make available globally for backward compatibility
+// Export for ES6 modules
+export { SettingsManager };
+
+// Make available globally for service worker importScripts compatibility
 if (typeof globalThis !== 'undefined') {
   (globalThis as any).SettingsManager = SettingsManager;
+} else if (typeof self !== 'undefined') {
+  (self as any).SettingsManager = SettingsManager;
 }

@@ -4,7 +4,22 @@
 
 /// <reference path="../types/service-worker.d.ts" />
 
-import { IMessageData, IMessageResponse, ISettings } from '../types/index.js';
+// Type definitions for messages (removed ES6 import)
+interface IMessageData {
+  type: string;
+  data?: Record<string, unknown>;
+  timestamp?: number;
+}
+
+interface IMessageResponse {
+  success: boolean;
+  data?: unknown;
+  error?: string;
+}
+
+interface ISettings {
+  [key: string]: unknown;
+}
 
 // Import all required utilities at startup (more reliable than lazy loading in Manifest V3)
 importScripts('../utils/logger.js');

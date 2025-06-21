@@ -30,6 +30,16 @@ Browser extension for capturing web pages as clean markdown and syncing to your 
    - Enable "Developer mode"
    - Click "Load unpacked" and select the `dist` folder
 
+### Troubleshooting
+
+If you encounter a `SyntaxError: Unexpected token 'export'` error, see [MODULE_COMPATIBILITY_FIX.md](./MODULE_COMPATIBILITY_FIX.md) for the solution.
+
+## Development Guidelines
+
+- **Module System**: Uses CommonJS compilation for service worker compatibility
+- **No ES6 Imports**: Service workers use `importScripts()` instead
+- **Dual Exports**: Utility files support both CommonJS and global patterns
+
 ### Production Install
 *(Will be available on Chrome Web Store after development)*
 

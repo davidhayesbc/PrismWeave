@@ -2,9 +2,16 @@
 // PrismWeave Error Handler - TypeScript version
 // Centralized error handling with user-friendly messages
 
-import { IErrorInfo } from '../types/index.js';
+// Local type definition for service worker compatibility
+interface IErrorHandlerInfo {
+  message: string;
+  stack?: string;
+  context: string;
+  timestamp: string;
+  url?: string;
+}
 
-export class ErrorHandler {
+class ErrorHandler {
   static readonly ERROR_TYPES = {
     NETWORK: 'network',
     AUTH: 'auth',
@@ -14,7 +21,7 @@ export class ErrorHandler {
     GITHUB: 'github'
   } as const;
 
-  static createUserFriendlyError(error: Error, context: string = ''): IErrorInfo & { type: string; solution: string } {
+  static createUserFriendlyError(error: Error, context: string = ''): IErrorHandlerInfo & { type: string; solution: string } {
     const errorInfo = this.categorizeError(error);
       return {
       message: errorInfo.userMessage,
@@ -85,7 +92,7 @@ export class ErrorHandler {
     };
   }
 
-  static handle(error: Error, context: string = 'Unknown'): IErrorInfo & { type: string; solution: string } {
+  static handle(error: Error, context: string = 'Unknown'): IErrorHandlerInfo & { type: string; solution: string } {
     const errorInfo = this.createUserFriendlyError(error, context);
 
     console.error(`${context}:`, errorInfo);
@@ -139,13 +146,18 @@ export class ErrorHandler {
     }) as T;
   }
 
-  static showUserNotification(error: IErrorInfo & { type: string; solution: string }, duration: number = 5000): void {
+  static showUserNotification(error: IErrorHandlerInfo & { type: string; solution: string }, duration: number = 5000): void {
     // This would integrate with the UI notification system
     console.warn('User notification:', error.message, error.solution);
   }
 }
 
-// Make available globally for backward compatibility
+// Export for ES6 modules
+export { ErrorHandler };
+
+// Make available globally for service worker importScripts compatibility
 if (typeof globalThis !== 'undefined') {
   (globalThis as any).ErrorHandler = ErrorHandler;
+} else if (typeof self !== 'undefined') {
+  (self as any).ErrorHandler = ErrorHandler;
 }

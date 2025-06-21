@@ -27,6 +27,8 @@ PrismWeave is a comprehensive document management and content creation system th
 - Use background service workers for Git operations
 - Follow Chrome extension security best practices
 - Optimize for performance and minimal memory usage
+- **CRITICAL**: Use CommonJS modules, not ES6 modules for service worker compatibility
+- Implement dual export pattern for utilities (CommonJS + global assignments)
 
 ### AI Integration Best Practices
 - Use local models (Ollama) for privacy and cost efficiency
@@ -149,8 +151,25 @@ When generating articles or blog posts:
 - **AI Processing**: Use `ai-processing/copilot-instructions.md` for AI/ML related code
 - **VS Code Extension**: Use `vscode-extension/copilot-instructions.md` for VS Code API code
 
-## GitHub Copilot Integration
-- Leverage captured documents as context for content creation
-- Use semantic search results to inform article generation
-- Integrate with existing Git workflow for version control
-- Support iterative content refinement and editing
+## Common Issues and Solutions
+
+### Browser Extension Module Compatibility
+**Problem**: `Uncaught SyntaxError: Unexpected token 'export'` in service worker
+**Solution**: 
+1. Set `"module": "CommonJS"` in `tsconfig.json`
+2. Remove ES6 imports from service worker files
+3. Use inline type definitions instead of imports
+4. Implement dual export pattern in utility files
+
+**Correct Pattern**:
+```typescript
+// Service worker - NO imports
+interface IMessageData { type: string; }
+
+// Utility files - dual exports
+class MyUtil { }
+export { MyUtil };
+if (typeof globalThis !== 'undefined') {
+  (globalThis as any).MyUtil = MyUtil;
+}
+```
