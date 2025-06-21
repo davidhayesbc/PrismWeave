@@ -10,6 +10,8 @@ export class PrismWeaveOptions {
     this.initializeOptions();
   }
 
+  // ...existing code...
+
   private async initializeOptions(): Promise<void> {
     console.log('PrismWeaveOptions: Initializing options page');
     await this.loadSettings();
@@ -331,6 +333,13 @@ export class PrismWeaveOptions {
       });
     });
   }
+}
+
+// Make available globally for service worker importScripts compatibility
+if (typeof globalThis !== 'undefined') {
+  (globalThis as any).PrismWeaveOptions = PrismWeaveOptions;
+} else if (typeof self !== 'undefined') {
+  (self as any).PrismWeaveOptions = PrismWeaveOptions;
 }
 
 // Initialize options page when DOM is ready

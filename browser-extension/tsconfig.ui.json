@@ -1,0 +1,24 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    // UI components (popup, options) loaded as ES modules in HTML pages
+    "module": "ES2020",
+    "moduleResolution": "node"
+  },
+  "include": [
+    "src/popup/**/*.ts",
+    "src/options/**/*.ts",
+    "src/content/**/*.ts",
+    "src/utils/**/*.ts",
+    "src/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "coverage",
+    "**/*.test.ts",
+    "**/*.spec.ts",
+    "**/__tests__/**/*"
+  ]
+}

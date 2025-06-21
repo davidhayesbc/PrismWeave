@@ -193,10 +193,9 @@ class SharedUtils {
       .split(/\s+/)
       .filter(word => word.length > 0).length;
   }
-
   // Browser context detection
   static isServiceWorkerContext(): boolean {
-    return typeof importScripts === 'function' && typeof window === 'undefined';
+    return typeof (globalThis as any).importScripts === 'function' && typeof window === 'undefined';
   }
 
   static isBrowserContext(): boolean {

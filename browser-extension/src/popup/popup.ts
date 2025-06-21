@@ -30,6 +30,8 @@ export class PrismWeavePopup {
     this.initializePopup();
   }
 
+  // ...existing code...
+
   private async initializePopup(): Promise<void> {
     logger.group('Initializing popup');
     try {
@@ -364,6 +366,13 @@ export class PrismWeavePopup {
       });
     });
   }
+}
+
+// Make available globally for service worker importScripts compatibility
+if (typeof globalThis !== 'undefined') {
+  (globalThis as any).PrismWeavePopup = PrismWeavePopup;
+} else if (typeof self !== 'undefined') {
+  (self as any).PrismWeavePopup = PrismWeavePopup;
 }
 
 // Initialize popup when DOM is ready

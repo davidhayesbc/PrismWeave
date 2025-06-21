@@ -29,15 +29,38 @@ function convertForServiceWorker(filePath) {
     exportedClasses.push(...exports);
   }
   
-  // Find class declarations (to determine what classes exist for global assignment)
+  // Find export function declarations in CommonJS format
+  const exportedFunctionMatches = content.matchAll(/^exports\.(\w+)\s*=\s*(\w+);\s*$/gm);
+  for (const match of exportedFunctionMatches) {
+    const exportName = match[1];
+    const functionName = match[2];
+    if (functionName !== 'void') { // Skip "exports.Logger = void 0;" patterns
+      exportedClasses.push(functionName);
+    }
+  }
+    // Find class declarations (to determine what classes exist for global assignment)
   const classMatches = content.matchAll(/^class\s+(\w+)/gm);
   const availableClasses = [];
   for (const match of classMatches) {
     availableClasses.push(match[1]);
   }
   
+  // Find function declarations (to determine what functions exist for global assignment)
+  const functionMatches = content.matchAll(/^function\s+(\w+)/gm);
+  const availableFunctions = [];
+  for (const match of functionMatches) {
+    availableFunctions.push(match[1]);
+  }
+  
   // Remove all ES6 import statements
   content = content.replace(/^import\s+.*?from\s+.*?;?\s*$/gm, '// Removed import for service worker compatibility');
+  // Remove CommonJS exports (TypeScript compilation output)
+  content = content.replace(/^Object\.defineProperty\(exports,\s*"__esModule",\s*{\s*value:\s*true\s*}\);\s*$/gm, '// Removed CommonJS __esModule for service worker compatibility');
+  content = content.replace(/^exports\.\w+\s*=\s*void\s*0;\s*$/gm, '// Removed CommonJS exports for service worker compatibility');
+  content = content.replace(/^exports\.\w+\s*=\s*\w+;\s*$/gm, '// Removed CommonJS exports for service worker compatibility');
+  
+  // Remove duplicate global assignments (preserve the original ones from TypeScript)
+  const hasExistingGlobalAssignments = content.includes('PrismWeaveLogger');
   
   // Remove all ES6 export statements (including export class, export interface, etc.)
   content = content.replace(/^export\s*{\s*[^}]*\s*};\s*$/gm, '// Removed ES6 export for service worker compatibility');
@@ -58,12 +81,12 @@ function convertForServiceWorker(filePath) {
   content = content.replace(/^\s*(\w+)\s*\(/gm, '    $1(');
   
   // Remove any leftover comment artifacts that might break syntax
-  content = content.replace(/^\/\/\s*export\s*$/gm, '');
-    // Add global assignments for exported classes
-  // Filter to only include classes that actually exist in the file
-  const classesToExport = exportedClasses.filter(className => availableClasses.includes(className));
-  
-  if (classesToExport.length > 0) {
+  content = content.replace(/^\/\/\s*export\s*$/gm, '');    // Add global assignments for exported classes
+  // Filter to only include classes and functions that actually exist in the file
+  const classesToExport = exportedClasses.filter(className => 
+    availableClasses.includes(className) || availableFunctions.includes(className)
+  );
+    if (classesToExport.length > 0 && !hasExistingGlobalAssignments) {
     const sourcemapMatch = content.match(/\/\/# sourceMappingURL=.*$/m);
     if (sourcemapMatch) {
       content = content.replace(/\/\/# sourceMappingURL=.*$/m, '');
