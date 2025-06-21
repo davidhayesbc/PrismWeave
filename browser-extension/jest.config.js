@@ -34,7 +34,7 @@ module.exports = {
   },
   
   // Setup files
-  setupFilesAfterEnv: ['<rootDir>/tests/setup.js'],
+  // setupFilesAfterEnv: [],
   
   // Module name mapping for browser APIs
   moduleNameMapper: {

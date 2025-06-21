@@ -63,11 +63,38 @@ PrismWeave is a comprehensive document management and content creation system th
 - Use secure communication between components
 - Follow principle of least privilege
 
-## File Structure Conventions
+## Project Structure
+```
+PrismWeave/
+├── .github/                # GitHub configuration
+│   ├── instructions/       # Specialized Copilot instructions
+│   └── copilot-instructions.md
+├── .vscode/               # VS Code workspace settings
+├── browser-extension/     # Chrome/Edge extension
+│   ├── src/
+│   │   ├── __tests__/     # Jest test files
+│   │   ├── background/    # Service worker
+│   │   ├── content/       # Content scripts
+│   │   ├── options/       # Extension options page
+│   │   ├── popup/         # Extension popup
+│   │   └── utils/         # Shared utilities
+│   ├── icons/             # Extension icons
+│   ├── scripts/           # Build scripts
+│   ├── coverage/          # Test coverage reports
+│   └── dist/              # Built extension files
+├── ai-processing/         # Local AI integration (Ollama)
+├── vscode-extension/      # VS Code extension for document management
+└── docs/                  # Project documentation
+    ├── IMPLEMENTATION_PLAN.md
+    ├── REQUIREMENTS.md
+    └── PHASE1_COMPLETE.md
+```
+
+## Repository Structure (Target for captured content)
 ```
 prismweave-repo/
 ├── documents/              # Captured markdown files
-├── images/                 # Captured images
+├── images/                 # Captured images  
 ├── .prismweave/           # System metadata and vector DB
 ├── generated/             # AI-created content
 └── .github/               # GitHub configuration
@@ -115,6 +142,12 @@ When generating articles or blog posts:
 - Implement progress tracking for long operations
 - Cache AI results to avoid reprocessing
 - Handle multilingual content appropriately
+
+## Specialized Instructions
+- **Testing**: Use `.github/instructions/copilot-instructions-testing.md` for Jest test creation
+- **Browser Extension**: Use `browser-extension/copilot-instructions.md` for extension-specific code
+- **AI Processing**: Use `ai-processing/copilot-instructions.md` for AI/ML related code
+- **VS Code Extension**: Use `vscode-extension/copilot-instructions.md` for VS Code API code
 
 ## GitHub Copilot Integration
 - Leverage captured documents as context for content creation
