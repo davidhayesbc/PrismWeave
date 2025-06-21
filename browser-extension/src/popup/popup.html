@@ -34,9 +34,7 @@
             class="page-url"
             id="page-url"
           ></div>
-        </div>
-
-        <div
+        </div>        <div
           id="status"
           class="status"
           style="display: none"
@@ -47,25 +45,72 @@
           ></p>
         </div>
 
+        <!-- Capture status message -->
+        <div
+          id="capture-status"
+          class="capture-status"
+          style="display: none"
+        ></div>
+
+        <!-- Capture warning message -->
+        <div
+          id="capture-warning"
+          class="capture-status error"
+          style="display: none"
+        ></div>
+
         <button
-          id="capture-btn"
+          id="capture-page"
           class="action-button"
         >
           📄 Capture This Page
         </button>
 
         <button
-          id="highlight-btn"
+          id="capture-selection"
           class="secondary-button"
         >
-          🔍 Highlight Content
-        </button>
-
-        <button
+          ✂️ Capture Selection
+        </button>        <button
           id="settings-btn"
           class="secondary-button"
         >
           ⚙️ Settings
+        </button>
+
+        <!-- Quick Settings -->
+        <div class="quick-settings">
+          <div class="setting-item">
+            <label for="quick-capture">
+              <input type="checkbox" id="quick-capture" />
+              Quick Capture Mode
+            </label>
+          </div>
+          
+          <div class="setting-item">
+            <label for="folder-select">Save to folder:</label>
+            <select id="folder-select">
+              <option value="documents">Documents</option>
+              <option value="articles">Articles</option>
+              <option value="research">Research</option>
+              <option value="notes">Notes</option>
+            </select>
+          </div>
+
+          <div class="setting-item">
+            <label for="auto-commit">
+              <input type="checkbox" id="auto-commit" />
+              Auto-commit to Git
+            </label>
+          </div>
+        </div>
+
+        <button
+          id="view-repo"
+          class="secondary-button"
+          style="margin-top: 12px;"
+        >
+          🔗 View Repository
         </button>
       </div>
 

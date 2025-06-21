@@ -168,6 +168,80 @@ export class PrismWeavePopup {
     }
   }
 
+  /**
+   * Validates that crucial settings are configured for capture operations
+   * @returns Object with validation results and missing settings
+   */
+  private validateCaptureSettings(): { isValid: boolean; missingSettings: string[]; message?: string } {
+    const missingSettings: string[] = [];
+    
+    if (!this.settings) {
+      return {
+        isValid: false,
+        missingSettings: ['settings'],
+        message: 'Settings not loaded. Please try refreshing the extension.'
+      };
+    }
+
+    // Check crucial repository settings
+    if (!this.settings.githubToken) {
+      missingSettings.push('GitHub Token');
+    }
+    
+    if (!this.settings.githubRepo) {
+      missingSettings.push('GitHub Repository');
+    }
+    
+    if (!this.settings.repositoryPath && !this.settings.defaultFolder) {
+      missingSettings.push('Repository Path or Default Folder');
+    }
+
+    const isValid = missingSettings.length === 0;
+    
+    if (!isValid) {
+      const settingsText = missingSettings.length === 1 ? 'setting' : 'settings';
+      const message = `Missing required ${settingsText}: ${missingSettings.join(', ')}. Please configure these in the extension settings.`;
+      return { isValid, missingSettings, message };
+    }
+
+    return { isValid, missingSettings };
+  }
+
+  /**
+   * Shows a helpful message with link to settings when crucial settings are missing
+   * @param message The error message to display
+   */
+  private showMissingSettingsMessage(message: string): void {
+    const statusElement = document.getElementById('capture-status');
+    if (!statusElement) return;
+
+    // Create a more detailed message with action button
+    statusElement.innerHTML = `
+      <div class="missing-settings-message">
+        <div class="error-text">${message}</div>
+        <button id="open-settings-btn" class="settings-link-btn">
+          📝 Open Settings
+        </button>
+      </div>
+    `;
+    
+    statusElement.className = 'capture-status error missing-settings';
+    statusElement.style.display = 'block';
+
+    // Add click handler for the settings button
+    const openSettingsBtn = document.getElementById('open-settings-btn');
+    if (openSettingsBtn) {
+      openSettingsBtn.addEventListener('click', () => {
+        this.openSettings();
+        // Reset status after opening settings
+        setTimeout(() => this.resetCaptureStatus(), 500);
+      });
+    }
+
+    // Auto-hide after 10 seconds (longer than normal errors since this needs user action)
+    setTimeout(() => this.resetCaptureStatus(), 10000);
+  }
+
   private checkPageCapturability(): void {
     if (!this.currentTab?.url) return;
 
@@ -194,12 +268,19 @@ export class PrismWeavePopup {
       }
     }
   }
-
   private async capturePage(): Promise<void> {
     if (this.isCapturing || !this.currentTab?.id) return;
 
     try {
       this.isCapturing = true;
+
+      // Validate crucial settings before proceeding
+      const settingsValidation = this.validateCaptureSettings();
+      if (!settingsValidation.isValid) {
+        this.showMissingSettingsMessage(settingsValidation.message!);
+        return;
+      }
+
       this.updateCaptureStatus('Capturing page...', 'progress');
 
       const message: IMessageData = {
@@ -226,12 +307,19 @@ export class PrismWeavePopup {
       this.isCapturing = false;
     }
   }
-
   private async captureSelection(): Promise<void> {
     if (this.isCapturing || !this.currentTab?.id) return;
 
     try {
       this.isCapturing = true;
+
+      // Validate crucial settings before proceeding
+      const settingsValidation = this.validateCaptureSettings();
+      if (!settingsValidation.isValid) {
+        this.showMissingSettingsMessage(settingsValidation.message!);
+        return;
+      }
+
       this.updateCaptureStatus('Capturing selection...', 'progress');
 
       // First, check if there's a selection
