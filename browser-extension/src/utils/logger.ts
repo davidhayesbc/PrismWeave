@@ -176,9 +176,17 @@ function createLogger(component: string): Logger {
 export { Logger, createLogger };
 export type { LogLevel, ILogStyles };
 
-// Also set up global scope for backward compatibility
-if (typeof window !== 'undefined') {
-  (window as any).PrismWeaveLogger = { Logger, createLogger };
-} else {
+// Make available globally for service worker importScripts compatibility
+if (typeof globalThis !== 'undefined') {
+  (globalThis as any).Logger = Logger;
+  (globalThis as any).createLogger = createLogger;
+  (globalThis as any).PrismWeaveLogger = { Logger, createLogger };
+} else if (typeof self !== 'undefined') {
+  (self as any).Logger = Logger;
+  (self as any).createLogger = createLogger;
   (self as any).PrismWeaveLogger = { Logger, createLogger };
+} else if (typeof window !== 'undefined') {
+  (window as any).Logger = Logger;
+  (window as any).createLogger = createLogger;
+  (window as any).PrismWeaveLogger = { Logger, createLogger };
 }

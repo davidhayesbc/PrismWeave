@@ -1,0 +1,20 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "./dist/service-worker",
+    // Service workers need CommonJS for importScripts compatibility
+    "module": "CommonJS"
+  },
+  "include": [
+    "src/background/**/*.ts",
+    "src/utils/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "coverage",
+    "**/*.test.ts",
+    "**/*.spec.ts",
+    "**/__tests__/**/*"
+  ]
+}

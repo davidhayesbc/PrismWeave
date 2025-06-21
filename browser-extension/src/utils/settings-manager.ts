@@ -2,6 +2,8 @@
 // PrismWeave Settings Manager - TypeScript version
 // Centralized settings management with consistent schema and validation
 
+import { ISettings } from '../types/index';
+
 // Type definitions for service worker compatibility
 interface ISettingsManagerSettings {
   [key: string]: unknown;
@@ -256,17 +258,21 @@ class SettingsManager {
         default: false,
         description: 'Use dark theme for extension UI',
       },    };
-  }
-
-  async getSettings(): Promise<Partial<ISettings>> {
+  }  async getSettings(): Promise<Partial<ISettings>> {
     try {
       const result = await this.getFromStorage<Record<string, Partial<ISettings>>>([this.STORAGE_KEY]);
-      return result[this.STORAGE_KEY] || {};
+      const rawSettings = result[this.STORAGE_KEY] || {};      
+      // Validate settings against schema - just log errors, don't block
+      const validationResult = this.validateSettings(rawSettings);
+      if (!validationResult.isValid) {
+        console.warn('SettingsManager: Settings validation failed:', validationResult.errors);
+      }
+      
+      return rawSettings;
     } catch (error) {
       console.error('SettingsManager: Error getting settings:', error);
       return {};
-    }
-  }
+    }  }
 
   async getDefaults(): Promise<Partial<ISettings>> {
     const defaults: Partial<ISettings> = {};
@@ -321,7 +327,6 @@ class SettingsManager {
       return false;
     }
   }
-
   validateSettings(settings: Partial<ISettings>): { isValid: boolean; errors: string[] } {
     const errors: string[] = [];
     
@@ -332,19 +337,20 @@ class SettingsManager {
         return;
       }
 
-      // Type validation
-      if (typeof value !== definition.type) {
-        errors.push(`Invalid type for ${key}: expected ${definition.type}, got ${typeof value}`);
+      // Type validation with proper array handling
+      const isValidType = this.validateType(value, definition.type);
+      if (!isValidType) {
+        errors.push(`Invalid type for ${key}: expected ${definition.type}, got ${this.getActualType(value)}`);
         return;
       }
 
       // Pattern validation
-      if (definition.pattern && typeof value === 'string' && !definition.pattern.test(value)) {
+      if (definition.pattern && typeof value === 'string' && value !== '' && !definition.pattern.test(value)) {
         errors.push(`Invalid format for ${key}: does not match required pattern`);
       }
 
       // Options validation
-      if (definition.options && !definition.options.includes(value as string)) {
+      if (definition.options && value !== '' && !definition.options.includes(value as string)) {
         errors.push(`Invalid value for ${key}: must be one of ${definition.options.join(', ')}`);
       }
 
@@ -360,6 +366,27 @@ class SettingsManager {
     });
 
     return { isValid: errors.length === 0, errors };
+  }
+
+  private validateType(value: unknown, expectedType: string): boolean {
+    switch (expectedType) {
+      case 'array':
+        return Array.isArray(value);
+      case 'string':
+        return typeof value === 'string';
+      case 'boolean':
+        return typeof value === 'boolean';
+      case 'number':
+        return typeof value === 'number';
+      default:
+        return false;
+    }
+  }
+
+  private getActualType(value: unknown): string {
+    if (Array.isArray(value)) return 'array';
+    if (value === null) return 'null';
+    return typeof value;
   }
 
   async checkRequiredDependencies(settings: Partial<ISettings>): Promise<string[]> {

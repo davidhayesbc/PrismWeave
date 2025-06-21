@@ -1,7 +1,7 @@
-{  "compilerOptions": {
+{
+  "compilerOptions": {
     "target": "ES2020",
     "lib": ["ES2020", "DOM"],
-    "module": "ES2020",  // Use ES2020 modules for better compatibility
     "moduleResolution": "node",
     "outDir": "./dist",
     "rootDir": "./src",
@@ -25,8 +25,11 @@
     "strictPropertyInitialization": true,
     "noImplicitThis": true,
     "allowSyntheticDefaultImports": true,
-    "types": ["chrome", "jest", "node"]
-  },  "include": [
+    "types": ["chrome", "jest", "node"],
+    // Use ES2020 modules for better tree shaking and browser compatibility
+    "module": "ES2020"
+  },
+  "include": [
     "src/**/*.ts",
     "src/**/*.js"
   ],

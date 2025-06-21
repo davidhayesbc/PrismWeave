@@ -27,8 +27,9 @@ PrismWeave is a comprehensive document management and content creation system th
 - Use background service workers for Git operations
 - Follow Chrome extension security best practices
 - Optimize for performance and minimal memory usage
-- **CRITICAL**: Use CommonJS modules, not ES6 modules for service worker compatibility
-- Implement dual export pattern for utilities (CommonJS + global assignments)
+- **CRITICAL**: Service workers require IIFE format, no ES6 modules or exports
+- Use ES2020 modules in TypeScript, then convert to service worker-compatible format
+- Implement global assignments for service worker importScripts compatibility
 
 ### AI Integration Best Practices
 - Use local models (Ollama) for privacy and cost efficiency
@@ -156,20 +157,21 @@ When generating articles or blog posts:
 ### Browser Extension Module Compatibility
 **Problem**: `Uncaught SyntaxError: Unexpected token 'export'` in service worker
 **Solution**: 
-1. Set `"module": "CommonJS"` in `tsconfig.json`
-2. Remove ES6 imports from service worker files
-3. Use inline type definitions instead of imports
-4. Implement dual export pattern in utility files
+1. Use ES2020 modules in TypeScript for clean development
+2. Post-build conversion removes ES6 exports for service worker compatibility
+3. Use global assignments for service worker importScripts
+4. Maintain dual compatibility for different extension contexts
 
 **Correct Pattern**:
 ```typescript
-// Service worker - NO imports
+// Service worker - NO ES6 imports/exports after build
 interface IMessageData { type: string; }
 
-// Utility files - dual exports
+// Utility files - ES6 in source, converted for service worker
 class MyUtil { }
-export { MyUtil };
-if (typeof globalThis !== 'undefined') {
-  (globalThis as any).MyUtil = MyUtil;
+export { MyUtil };  // Removed in service worker build
+// Global assignments remain
+if (typeof self !== 'undefined') {
+  self.MyUtil = MyUtil;
 }
 ```

@@ -63,10 +63,9 @@ class PrismWeaveBackground {
 
   async initializeExtension(): Promise<void> {
     logger.group('Initializing extension');
-    
-    // Load initial settings to ensure they exist
+      // Load initial settings to ensure they exist
     try {
-      const initialSettings = await this.settingsManager.loadSettings();
+      const initialSettings = await this.settingsManager.getSettings();
       logger.info('Initial settings loaded on startup:', initialSettings);
       this.isInitialized = true;
     } catch (error) {
