@@ -18,6 +18,7 @@ import { SettingsManager } from '../../utils/settings-manager';
 
 describe('SettingsManager - Load/Save Operations', () => {
   let manager: SettingsManager;
+  
   beforeEach(() => {
     manager = new SettingsManager();
     jest.clearAllMocks();
@@ -124,8 +125,10 @@ describe('SettingsManager - Load/Save Operations', () => {
       { prismWeaveSettings: defaults },
       expect.any(Function)
     );
-  });
-  test('Handle storage errors gracefully', async () => {
+  });  test('Handle storage errors gracefully', async () => {
+    // Suppress expected console.error output during this test
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+    
     // Mock storage to fail
     (global as any).chrome.runtime.lastError = { message: 'Storage quota exceeded' };
     ((global as any).chrome.storage.sync.get as jest.Mock).mockImplementation((keys, callback) => {
@@ -134,6 +137,12 @@ describe('SettingsManager - Load/Save Operations', () => {
 
     const settings = await manager.getSettings();
     expect(settings).toEqual({});
+    
+    // Verify that console.error was called as expected
+    expect(consoleErrorSpy).toHaveBeenCalledWith('SettingsManager: Error getting settings:', expect.any(Error));
+    
+    // Restore console.error
+    consoleErrorSpy.mockRestore();
   });
   test('Export settings (sanitized)', async () => {
     // Mock storage to return settings with sensitive data
@@ -168,11 +177,19 @@ describe('SettingsManager - Load/Save Operations', () => {
     const result = await manager.importSettings(importData);
     expect(result).toBe(true);
   });
-
   test('Import invalid JSON fails gracefully', async () => {
+    // Suppress expected console.error output during this test
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+    
     const invalidJson = '{ invalid json }';
     
     const result = await manager.importSettings(invalidJson);
     expect(result).toBe(false);
+    
+    // Verify that console.error was called as expected
+    expect(consoleErrorSpy).toHaveBeenCalledWith('SettingsManager: Error importing settings:', expect.any(SyntaxError));
+    
+    // Restore console.error
+    consoleErrorSpy.mockRestore();
   });
 });

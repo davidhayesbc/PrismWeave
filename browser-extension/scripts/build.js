@@ -23,7 +23,7 @@ if (!fs.existsSync(distDir)) {
 // Compile TypeScript
 console.log('Compiling TypeScript...');
 try {
-  execSync('npx tsc', { 
+  execSync('npx tsc -p tsconfig.build.json', { 
     cwd: path.join(__dirname, '..'),
     stdio: 'inherit'
   });
@@ -32,6 +32,56 @@ try {
   console.error('TypeScript compilation failed:', error.message);
   process.exit(1);
 }
+
+// Clean up test files from dist (Chrome extensions can't load directories starting with _)
+console.log('Cleaning up test files...');
+const testDirs = [
+  path.join(distDir, '__tests__'),
+  path.join(distDir, 'src', '__tests__')
+];
+
+testDirs.forEach(testDir => {
+  if (fs.existsSync(testDir)) {
+    fs.rmSync(testDir, { recursive: true, force: true });
+    console.log('Removed test directory:', path.relative(distDir, testDir));
+  }
+});
+
+// Remove any .test.js files
+function removeTestFiles(dir) {
+  if (!fs.existsSync(dir)) return;
+  
+  const items = fs.readdirSync(dir, { withFileTypes: true });
+  items.forEach(item => {
+    const itemPath = path.join(dir, item.name);
+    if (item.isDirectory()) {
+      removeTestFiles(itemPath);
+      // Remove empty directories that might have contained test files
+      try {
+        const remainingItems = fs.readdirSync(itemPath);
+        if (remainingItems.length === 0) {
+          fs.rmdirSync(itemPath);
+          console.log('Removed empty test directory:', path.relative(distDir, itemPath));
+        }
+      } catch (e) {
+        // Directory not empty or doesn't exist, ignore
+      }
+    } else if (item.name.includes('.test.') || item.name.includes('.spec.')) {
+      fs.unlinkSync(itemPath);
+      console.log('Removed test file:', path.relative(distDir, itemPath));
+    }
+  });
+}
+
+removeTestFiles(distDir);
+
+// Final cleanup for any remaining __tests__ directories
+testDirs.forEach(testDir => {
+  if (fs.existsSync(testDir)) {
+    fs.rmSync(testDir, { recursive: true, force: true });
+    console.log('Final cleanup - removed test directory:', path.relative(distDir, testDir));
+  }
+});
 
 // Copy files function (for non-TypeScript files)
 function copyFiles(src, dest, extensions = ['.html', '.css', '.json']) {
@@ -178,3 +228,19 @@ if (allFilesPresent) {
 } else {
   console.log('\n✗ Build completed with missing files. Check compilation errors.');
 }
+
+// Final cleanup - ensure no test directories remain
+console.log('\nPerforming final cleanup...');
+const finalTestDirs = [
+  path.join(distDir, '__tests__'),
+  path.join(distDir, 'src', '__tests__')
+];
+
+finalTestDirs.forEach(testDir => {
+  if (fs.existsSync(testDir)) {
+    fs.rmSync(testDir, { recursive: true, force: true });
+    console.log('✓ Removed test directory:', path.relative(distDir, testDir));
+  }
+});
+
+console.log('✓ Final cleanup completed!');
