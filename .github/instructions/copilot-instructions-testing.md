@@ -1,5 +1,5 @@
 ---
-applyTo: '**/*.js'
+applyTo: '**/*.{js,ts}'
 ---
 
 # Copilot Instructions for Jest Test Case Creation - PrismWeave Project

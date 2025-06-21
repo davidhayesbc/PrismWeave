@@ -1,5 +1,8 @@
 // Jest configuration for PrismWeave Browser Extension
 module.exports = {
+  // Use ts-jest preset for TypeScript support
+  preset: 'ts-jest',
+  
   // Test environment setup
   testEnvironment: 'jsdom',
   
@@ -8,19 +11,31 @@ module.exports = {
   
   // Test file patterns
   testMatch: [
-    '<rootDir>/src/**/__tests__/**/*.test.js',
-    '<rootDir>/tests/**/*.test.js'
+    '<rootDir>/src/**/__tests__/**/*.test.{js,ts}',
+    '<rootDir>/tests/**/*.test.{js,ts}'
   ],
+  
+  // Transform configuration for TypeScript and JavaScript
+  transform: {
+    '^.+\\.ts$': ['ts-jest', {
+      tsconfig: 'tsconfig.json'
+    }],
+    '^.+\\.js$': 'babel-jest'
+  },
+  
+  // Module file extensions
+  moduleFileExtensions: ['ts', 'js', 'json'],
   
   // Coverage configuration
   collectCoverage: true,
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov', 'html'],
   collectCoverageFrom: [
-    'src/**/*.js',
+    'src/**/*.{js,ts}',
     '!src/libs/**',
     '!src/**/*.min.js',
-    '!**/node_modules/**'
+    '!**/node_modules/**',
+    '!**/*.d.ts'
   ],
   
   // Coverage thresholds
