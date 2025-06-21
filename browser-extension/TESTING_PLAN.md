@@ -25,6 +25,39 @@ This document outlines a comprehensive testing strategy for the PrismWeave brows
 
 ---
 
+## Completed Tests Summary
+
+### Tests Implemented and Passing ✅
+
+#### A. Settings Management (`settings-manager.test.ts`)
+- **A.1.1** ✅ Verify all schema fields have default values
+- **A.1.2** ✅ Test loading when storage is empty
+- **A.2.1** ✅ Test save to sync storage (saving valid settings)
+- **A.3.1** ✅ Test required field validation (Validate settings with correct types)
+- **A.3.2** ✅ Test type validation (Validate settings with incorrect types)
+- **A.3.3** ✅ Test pattern validation (GitHub repo format)
+- **A.4.1** ✅ Handle storage errors gracefully
+- **A.4.3** ✅ Test schema migration scenarios (Reset settings to defaults)
+- **A.5.1** ✅ Verify JSON format and structure (Export settings sanitized)
+- **A.5.2** ✅ Test sensitive data exclusion (GitHub tokens)
+- **A.6.1** ✅ Test successful import with complete data
+- **A.6.3** ✅ Test import with invalid values (Import invalid JSON fails gracefully)
+
+#### B. Popup Settings Validation (`popup-settings-validation.test.ts`)
+- **B.1.1** ✅ Verify validation passes with all required settings present
+- **B.1.2** ✅ Verify validation accepts default folder as alternative to repository path
+- **B.2.1** ✅ Test detection of missing GitHub token
+- **B.2.2** ✅ Test detection of missing GitHub repository
+- **B.2.3** ✅ Test detection of missing repository path/default folder
+- **B.2.4** ✅ Test handling of multiple missing settings
+- **B.3.1** ✅ Test handling of null/undefined settings
+- **B.3.2** ✅ Test proper error message generation
+
+**Total Completed Tests: 19**
+**Coverage Areas: Settings Management (12 tests), Popup Validation (7 tests)**
+
+---
+
 ## Core Functionality Test Plans
 
 ### A. Settings Management (`settings-manager.js`)
@@ -49,25 +82,25 @@ describe('SettingsManager - Load/Save Operations', () => {
 
 1. **Default Settings Loading**
    - [x] 1.1 Verify all schema fields have default values
-   - [ ] 1.2 Test loading when storage is empty
+   - [x] 1.2 Test loading when storage is empty
    - [ ] 1.3 Verify schema validation on load
 
 2. **Settings Persistence**
-   - [ ] 2.1 Test save to sync storage (primary)
+   - [x] 2.1 Test save to sync storage (primary)
    - [ ] 2.2 Test fallback to local storage
    - [ ] 2.3 Verify settings persist across browser sessions
    - [ ] 2.4 Test concurrent save operations
 
 3. **Settings Validation**
-   - [ ] 3.1 Test required field validation
-   - [ ] 3.2 Test type validation (string, boolean, number)
-   - [ ] 3.3 Test pattern validation (GitHub repo format)
+   - [x] 3.1 Test required field validation
+   - [x] 3.2 Test type validation (string, boolean, number)
+   - [x] 3.3 Test pattern validation (GitHub repo format)
    - [ ] 3.4 Test cross-field validation (autoPush requires githubToken)
 
 4. **Merge and Update Operations**
    - [ ] 4.1 Test merging partial updates with existing settings
    - [ ] 4.2 Test handling of unknown/deprecated fields
-   - [ ] 4.3 Test schema migration scenarios
+   - [x] 4.3 Test schema migration scenarios (Reset settings to defaults)
 
 #### A.2 Settings Import/Export
 
@@ -87,8 +120,8 @@ describe('SettingsManager - Import/Export', () => {
 **Critical Test Cases:**
 
 1. **Export Functionality**
-   - [ ] 1.1 Verify JSON format and structure
-   - [ ] 1.2 Test sensitive data exclusion (GitHub tokens)
+   - [x] 1.1 Verify JSON format and structure
+   - [x] 1.2 Test sensitive data exclusion (GitHub tokens)
    - [ ] 1.3 Test export of partial settings
    - [ ] 1.4 Verify metadata inclusion (version, timestamp)
 
@@ -99,10 +132,13 @@ describe('SettingsManager - Import/Export', () => {
    - [ ] 2.4 Test pattern validation for imported settings
 
 3. **Import Processing**
-   - [ ] 3.1 Test successful import with complete data
+   - [x] 3.1 Test successful import with complete data
    - [ ] 3.2 Test partial import scenarios
-   - [ ] 3.3 Test import with invalid values
+   - [x] 3.3 Test import with invalid values (Import invalid JSON fails gracefully)
    - [ ] 3.4 Verify settings merge after import
+
+4. **Error Handling**
+   - [x] 4.1 Handle storage errors gracefully
 
 #### A.3 Settings Schema and Validation
 
@@ -126,9 +162,43 @@ describe('SettingsManager - Schema Validation', () => {
 - [ ] 4. Out-of-range numeric values
 - [ ] 5. Unknown/extra fields
 
-### B. Content Extraction (`content-extractor.js`)
+### A.4 Popup Settings Validation (`popup.ts`)
 
-#### B.1 HTML Content Extraction
+#### A.4.1 Settings Validation for Capture Operations
+
+**Test Suite: Popup Settings Validation**
+
+```javascript
+describe('PrismWeavePopup - Settings Validation', () => {
+  test('should return valid when all required settings are present')
+  test('should return invalid when GitHub token is missing')
+  test('should return invalid when GitHub repo is missing')
+  test('should return invalid when both repository path and default folder are missing')
+  test('should return valid when default folder is provided instead of repository path')
+  test('should handle multiple missing settings')
+  test('should handle null settings')
+})
+```
+
+**Critical Test Cases:**
+
+1. **Complete Settings Validation**
+   - [x] 1.1 Verify validation passes with all required settings present
+   - [x] 1.2 Verify validation accepts default folder as alternative to repository path
+
+2. **Missing Settings Detection**
+   - [x] 2.1 Test detection of missing GitHub token
+   - [x] 2.2 Test detection of missing GitHub repository
+   - [x] 2.3 Test detection of missing repository path/default folder
+   - [x] 2.4 Test handling of multiple missing settings
+
+3. **Error Handling**
+   - [x] 3.1 Test handling of null/undefined settings
+   - [x] 3.2 Test proper error message generation
+
+### C. Content Extraction (`content-extractor.js`)
+
+#### C.1 HTML Content Extraction
 
 **Test Suite: Content Extraction Core**
 
@@ -173,7 +243,7 @@ describe('ContentExtractor - Core Extraction', () => {
    - [ ] 4.4 Test semantic richness detection
    - [ ] 4.5 Test media content assessment
 
-#### B.2 Image and Link Processing
+#### C.2 Image and Link Processing
 
 **Test Suite: Media and Link Extraction**
 
@@ -194,7 +264,7 @@ describe('ContentExtractor - Media Processing', () => {
 - Pages with broken/invalid media links
 - Pages with different link types (external, internal, anchor)
 
-#### B.3 Content Structure Analysis
+#### C.3 Content Structure Analysis
 
 **Test Suite: Structure and Semantic Analysis**
 
@@ -209,9 +279,9 @@ describe('ContentExtractor - Structure Analysis', () => {
 })
 ```
 
-### C. Markdown Conversion (`markdown-converter.js`)
+### D. Markdown Conversion (`markdown-converter.js`)
 
-#### C.1 HTML to Markdown Conversion
+#### D.1 HTML to Markdown Conversion
 
 **Test Suite: Core Markdown Conversion**
 
@@ -250,7 +320,7 @@ describe('MarkdownConverter - Core Conversion', () => {
    - Code language detection
    - Table alignment information
 
-#### C.2 Code Block Processing
+#### D.2 Code Block Processing
 
 **Test Suite: Code Block Conversion**
 
@@ -272,7 +342,7 @@ describe('MarkdownConverter - Code Blocks', () => {
 - Code with special markdown characters
 - Mixed inline and block code
 
-#### C.3 Table Conversion
+#### D.3 Table Conversion
 
 **Test Suite: Table Processing**
 
@@ -294,7 +364,7 @@ describe('MarkdownConverter - Table Conversion', () => {
 - Tables with merged cells
 - Tables with nested formatting
 
-#### C.4 Enhanced Content Processing
+#### D.4 Enhanced Content Processing
 
 **Test Suite: Advanced Markdown Features**
 
@@ -309,9 +379,9 @@ describe('MarkdownConverter - Advanced Features', () => {
 })
 ```
 
-### D. File Management (`file-manager.js`)
+### E. File Management (`file-manager.js`)
 
-#### D.1 Filename Generation
+#### E.1 Filename Generation
 
 **Test Suite: File Naming**
 
@@ -342,7 +412,7 @@ describe('FileManager - Filename Generation', () => {
    - Filesystem-invalid characters
    - Duplicate filename handling
 
-#### D.2 Metadata Generation
+#### E.2 Metadata Generation
 
 **Test Suite: Frontmatter Creation**
 
@@ -363,7 +433,7 @@ describe('FileManager - Metadata Processing', () => {
 - Content from different domains/topics
 - Content with edge case characters
 
-#### D.3 Content Organization
+#### E.3 Content Organization
 
 **Test Suite: Folder Classification**
 
@@ -378,9 +448,9 @@ describe('FileManager - Content Organization', () => {
 })
 ```
 
-### E. Integration Testing
+### F. Integration Testing
 
-#### E.1 Settings-Content Pipeline
+#### F.1 Settings-Content Pipeline
 
 **Test Suite: Settings Impact on Processing**
 
@@ -394,7 +464,7 @@ describe('Integration - Settings and Content Processing', () => {
 })
 ```
 
-#### E.2 Extraction-Conversion Pipeline
+#### F.2 Extraction-Conversion Pipeline
 
 **Test Suite: Content Flow Integration**
 
@@ -408,7 +478,7 @@ describe('Integration - Extraction to Markdown', () => {
 })
 ```
 
-#### E.3 Error Handling and Recovery
+#### F.3 Error Handling and Recovery
 
 **Test Suite: Error Scenarios**
 
