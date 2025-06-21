@@ -154,6 +154,80 @@ global.console = {
   groupEnd: jest.fn()
 };
 
+// Mock SharedUtils for ContentExtractor and other modules
+global.SharedUtils = {
+  sanitizeText: jest.fn((text) => text ? text.trim() : ''),
+  extractDomain: jest.fn((url) => {
+    try {
+      return new URL(url).hostname;
+    } catch {
+      return 'unknown';
+    }
+  }),
+  estimateReadingTime: jest.fn((text) => {
+    if (!text) return 0;
+    return Math.ceil(text.split(' ').length / 200);
+  }),
+  sanitizeForFilename: jest.fn((text, maxLength = 50) => {
+    if (!text) return 'untitled';
+    return text
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '')
+      .substring(0, maxLength);
+  }),
+  sanitizeDomain: jest.fn((domain) => {
+    if (!domain) return 'unknown';
+    return domain
+      .toLowerCase()
+      .replace(/^www\./, '')
+      .replace(/[^a-z0-9.-]/g, '');
+  }),
+  isValidUrl: jest.fn((url) => {
+    try {
+      new URL(url);
+      return true;
+    } catch {
+      return false;
+    }
+  }),
+  resolveUrl: jest.fn((url, baseUrl = '') => {
+    try {
+      return new URL(url, baseUrl || 'https://example.com').href;
+    } catch {
+      return url;
+    }
+  }),
+  isValidImageUrl: jest.fn((url) => {
+    const imageExtensions = /\.(jpg|jpeg|png|gif|svg|webp|bmp)(\?.*)?$/i;
+    return imageExtensions.test(url) || url.includes('image') || url.includes('img');
+  }),
+  truncateText: jest.fn((text, maxLength = 100) => {
+    if (!text || text.length <= maxLength) return text;
+    return text.substring(0, maxLength) + '...';
+  }),
+  delay: jest.fn((ms) => Promise.resolve()),
+  formatBytes: jest.fn((bytes) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  }),
+  validateSettings: jest.fn((settings) => ({ isValid: true, errors: [] })),
+  logError: jest.fn()
+};
+
+// Make SharedUtils available in both window and self contexts
+if (typeof window !== 'undefined') {
+  window.SharedUtils = global.SharedUtils;
+}
+if (typeof self !== 'undefined') {
+  self.SharedUtils = global.SharedUtils;
+}
+
 // Mock importScripts for service worker testing
 global.importScripts = jest.fn();
 
@@ -172,7 +246,98 @@ global.self = {
 };
 
 // Mock window object for content scripts  
-global.window = global;
+global.window = {
+  ...global,
+  document: global.document,
+  location: {
+    href: 'https://example.com/test-page',
+    hostname: 'example.com',
+    pathname: '/test-page',
+    search: '',
+    hash: ''
+  },
+  addEventListener: jest.fn(),
+  removeEventListener: jest.fn()
+};
+
+// Mock ContentExtractor class
+class MockContentExtractor {
+  constructor() {
+    this.readabilitySelectors = ['article', 'main', '.content'];
+    this.unwantedSelectors = ['script', 'style', 'nav'];
+  }
+
+  extractPageContent = jest.fn().mockImplementation((document) => ({
+    title: document?.title || 'Test Page Title',
+    content: 'This is test content for the article.',
+    markdown: '# Test Page Title\n\nThis is test content for the article.',
+    url: document?.URL || 'https://example.com/test-page',
+    domain: 'example.com',
+    timestamp: new Date().toISOString(),
+    wordCount: 10,
+    readingTime: 1,
+    quality: 8,
+    images: [],
+    links: [],
+    textContent: 'This is test content for the article.'
+  }));
+
+  extractPageContentWithTimeout = jest.fn().mockImplementation(async (document, timeoutMs = 5000) => {
+    return this.extractPageContent(document);
+  });
+
+  cleanContent = jest.fn().mockImplementation((html) => html);
+  extractText = jest.fn().mockImplementation((element) => element?.textContent || '');
+  calculateReadingTime = jest.fn().mockImplementation(() => 1);
+  analyzeQuality = jest.fn().mockImplementation(() => 8);
+  analyzePageStructure = jest.fn().mockImplementation((document) => ({
+    hasMainContent: true,
+    contentSections: 3,
+    quality: 8,
+    readabilityScore: 7.5
+  }));
+}
+
+global.window.ContentExtractor = MockContentExtractor;
+global.ContentExtractor = MockContentExtractor;
+
+// Mock PrismWeaveContent class for content script tests
+class MockPrismWeaveContent {
+  constructor() {
+    this.contentExtractor = new MockContentExtractor();
+    this.captureIndicator = {
+      style: { display: 'none' },
+      textContent: '',
+      remove: jest.fn()
+    };
+  }
+
+  captureCurrentPage = jest.fn().mockImplementation(async () => ({
+    success: true,
+    content: this.contentExtractor.extractPageContent(global.document)
+  }));
+
+  highlightMainContent = jest.fn();
+  
+  showCaptureIndicator = jest.fn().mockImplementation(() => {
+    this.captureIndicator.style.display = 'block';
+  });
+
+  hideCaptureIndicator = jest.fn().mockImplementation(() => {
+    this.captureIndicator.style.display = 'none';
+  });
+
+  updateCaptureProgress = jest.fn().mockImplementation((percentage, message) => {
+    this.captureIndicator.textContent = `${percentage}% - ${message}`;
+  });
+
+  analyzePageStructure = jest.fn().mockImplementation(async () => {
+    return this.contentExtractor.analyzePageStructure(global.document);
+  });
+}
+
+global.window.PrismWeaveContent = MockPrismWeaveContent;
+global.PrismWeaveContent = MockPrismWeaveContent;
 
 // Mock document object with proper Jest mocks
 const createMockElement = (options = {}) => ({
@@ -207,28 +372,104 @@ const createMockElement = (options = {}) => ({
   ...options
 });
 
-global.document = {
-  getElementById: jest.fn().mockImplementation((id) => createMockElement({ id })),
-  querySelector: jest.fn().mockImplementation(() => createMockElement()),
-  querySelectorAll: jest.fn(() => []),
-  createElement: jest.fn().mockImplementation((tagName) => createMockElement({ tagName: tagName.toUpperCase() })),
-  addEventListener: jest.fn(),
-  removeEventListener: jest.fn(),
-  body: createMockElement({
-    tagName: 'BODY',
-    innerHTML: '<div>Test content</div>',
-    textContent: 'Test content',
-    cloneNode: jest.fn(() => createMockElement({
+// Create a configurable document mock that extends existing jsdom document
+const createMockDocument = () => {
+  // Use existing document from jsdom if available, otherwise create mock
+  const mockDoc = global.document || {};
+  
+  // Override methods with jest mocks
+  mockDoc.getElementById = jest.fn().mockImplementation((id) => createMockElement({ id }));
+  mockDoc.querySelector = jest.fn().mockImplementation(() => createMockElement());
+  mockDoc.querySelectorAll = jest.fn(() => []);
+  mockDoc.createElement = jest.fn().mockImplementation((tagName) => createMockElement({ tagName: tagName.toUpperCase() }));
+  mockDoc.addEventListener = jest.fn();
+  mockDoc.removeEventListener = jest.fn();
+  
+  // Create a mock body if it doesn't exist
+  if (!mockDoc.body) {
+    mockDoc.body = createMockElement({
       tagName: 'BODY',
-      querySelectorAll: jest.fn(() => []),
-      querySelector: jest.fn(),
-      appendChild: jest.fn(),
-      removeChild: jest.fn()
-    }))
-  }),
-  title: 'Test Page Title',
-  URL: 'https://example.com/test-page'
+      innerHTML: '<div>Test content</div>',
+      textContent: 'Test content',
+      cloneNode: jest.fn(() => createMockElement({
+        tagName: 'BODY',
+        querySelectorAll: jest.fn(() => []),
+        querySelector: jest.fn(),
+        appendChild: jest.fn(),
+        removeChild: jest.fn()
+      }))
+    });
+  }
+
+  // Set title and URL properties safely - try to use defineProperty, fallback to direct assignment
+  try {
+    Object.defineProperty(mockDoc, 'title', {
+      value: 'Test Page Title',
+      writable: true,
+      configurable: true
+    });
+  } catch (e) {
+    mockDoc.title = 'Test Page Title';
+  }
+  
+  try {
+    Object.defineProperty(mockDoc, 'URL', {
+      value: 'https://example.com/test-page',
+      writable: true,
+      configurable: true
+    });
+  } catch (e) {
+    mockDoc.URL = 'https://example.com/test-page';
+  }
+
+  // Handle location property carefully - jsdom might have made it non-configurable
+  try {
+    Object.defineProperty(mockDoc, 'location', {
+      value: {
+        href: 'https://example.com/test-page',
+        hostname: 'example.com',
+        pathname: '/test-page',
+        search: '',
+        hash: ''
+      },
+      writable: true,
+      configurable: true
+    });
+  } catch (e) {
+    // If we can't redefine, try to modify existing location
+    if (mockDoc.location) {
+      try {
+        mockDoc.location.href = 'https://example.com/test-page';
+        mockDoc.location.hostname = 'example.com';
+        mockDoc.location.pathname = '/test-page';
+        mockDoc.location.search = '';
+        mockDoc.location.hash = '';
+      } catch (locationError) {
+        // Create a completely new location object if modification fails
+        mockDoc.location = {
+          href: 'https://example.com/test-page',
+          hostname: 'example.com',
+          pathname: '/test-page',
+          search: '',
+          hash: ''
+        };
+      }
+    } else {
+      mockDoc.location = {
+        href: 'https://example.com/test-page',
+        hostname: 'example.com',
+        pathname: '/test-page',
+        search: '',
+        hash: ''
+      };
+    }
+  }
+
+  return mockDoc;
 };
+
+// Don't override global.document immediately - let jsdom set it up first
+// We'll apply our mocks in beforeEach
 
 // Test utilities
 global.testUtils = {
@@ -326,8 +567,105 @@ global.testUtils = {
 // Setup DOM environment
 // Note: jsdom is provided by jest-environment-jsdom, no need for jsdom-global
 
-// Clean up after each test
+// Setup and cleanup functions
+beforeEach(() => {
+  // Apply document mocks before each test
+  if (!global.document.__prismweave_mocked) {
+    const mockedDoc = createMockDocument();
+    // Copy mocked methods to existing document
+    Object.assign(global.document, mockedDoc);
+    global.document.__prismweave_mocked = true;
+  }
+});
+
+// Clean up after each test and reset document
 afterEach(() => {
   jest.clearAllMocks();
   fetch.mockClear();
+  
+  // Reset document properties to defaults safely
+  try {
+    global.document.title = 'Test Page Title';
+  } catch (e) {
+    // Ignore if property is non-writable
+  }
+  
+  try {
+    global.document.URL = 'https://example.com/test-page';
+  } catch (e) {
+    // Ignore if property is non-writable
+  }
+
+  // Reset location properties safely
+  if (global.document.location) {
+    try {
+      global.document.location.href = 'https://example.com/test-page';
+      global.document.location.hostname = 'example.com';
+      global.document.location.pathname = '/test-page';
+      global.document.location.search = '';
+      global.document.location.hash = '';
+    } catch (e) {
+      // If we can't modify, create new location object
+      try {
+        global.document.location = {
+          href: 'https://example.com/test-page',
+          hostname: 'example.com',
+          pathname: '/test-page',
+          search: '',
+          hash: ''
+        };
+      } catch (e2) {
+        // Ignore if we can't set location at all
+      }
+    }
+  }
+  
+  // Reset document mocks if they exist
+  if (global.document.getElementById && global.document.getElementById.mockClear) {
+    global.document.getElementById.mockClear();
+  }
+  if (global.document.querySelector && global.document.querySelector.mockClear) {
+    global.document.querySelector.mockClear();
+  }
+  if (global.document.querySelectorAll && global.document.querySelectorAll.mockClear) {
+    global.document.querySelectorAll.mockClear();
+  }
+  if (global.document.createElement && global.document.createElement.mockClear) {
+    global.document.createElement.mockClear();
+  }
+  if (global.document.addEventListener && global.document.addEventListener.mockClear) {
+    global.document.addEventListener.mockClear();
+  }
+  if (global.document.removeEventListener && global.document.removeEventListener.mockClear) {
+    global.document.removeEventListener.mockClear();
+  }
+    // Reset ContentExtractor mocks
+  if (global.window.ContentExtractor) {
+    const mockInstance = new global.window.ContentExtractor();
+    mockInstance.extractPageContent.mockClear();
+    mockInstance.extractPageContentWithTimeout.mockClear();
+    mockInstance.cleanContent.mockClear();
+    mockInstance.extractText.mockClear();
+    mockInstance.calculateReadingTime.mockClear();
+    mockInstance.analyzeQuality.mockClear();
+    mockInstance.analyzePageStructure.mockClear();
+  }
+
+  // Reset PrismWeaveContent mocks
+  if (global.window.PrismWeaveContent) {
+    const mockInstance = new global.window.PrismWeaveContent();
+    mockInstance.captureCurrentPage.mockClear();
+    mockInstance.highlightMainContent.mockClear();
+    mockInstance.showCaptureIndicator.mockClear();
+    mockInstance.hideCaptureIndicator.mockClear();
+    mockInstance.updateCaptureProgress.mockClear();
+    mockInstance.analyzePageStructure.mockClear();
+  }
 });
+
+// Provide a helper function to reset document for tests
+global.resetDocument = () => {
+  const mockedDoc = createMockDocument();
+  Object.assign(global.document, mockedDoc);
+  global.document.__prismweave_mocked = true;
+};
