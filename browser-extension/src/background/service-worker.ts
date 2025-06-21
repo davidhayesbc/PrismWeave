@@ -2,9 +2,14 @@
 // PrismWeave Background Service Worker - TypeScript version
 // Handles extension lifecycle, Git operations, and file management
 
-/// <reference path="../types/service-worker.d.ts" />
+// Standard ES6 imports - esbuild will bundle everything into IIFE format
+import { SettingsManager } from '../utils/settings-manager';
+import { GitOperations } from '../utils/git-operations';
+import { FileManager } from '../utils/file-manager';
+import { Logger, createLogger } from '../utils/logger';
+import { ErrorHandler } from '../utils/error-handler';
 
-// Type definitions for messages (removed ES6 import)
+// Type definitions for messages
 interface IMessageData {
   type: string;
   data?: Record<string, unknown>;
@@ -21,32 +26,13 @@ interface ISettings {
   [key: string]: unknown;
 }
 
-// Import all required utilities at startup (more reliable than lazy loading in Manifest V3)
-importScripts('../utils/logger.js');
-importScripts('../utils/log-config.js');
-importScripts('../utils/utils-registry.js');
-importScripts('../utils/error-handler.js');
-importScripts('../utils/performance-monitor.js');
-importScripts('../utils/settings-manager.js');
-importScripts('../utils/shared-utils.js');
-importScripts('../utils/git-operations.js');
-importScripts('../utils/file-manager.js');
-
-// Declare global utilities for TypeScript
-declare const SettingsManager: any;
-declare const GitOperations: any;
-declare const FileManager: any;
-declare const PrismWeaveLogger: any;
-
 // Initialize logger for background
-const logger = (self as any).PrismWeaveLogger ? 
-  (self as any).PrismWeaveLogger.createLogger('Background') : 
-  { debug: console.log, info: console.log, warn: console.warn, error: console.error, group: console.group, groupEnd: console.groupEnd };
+const logger = createLogger('Background');
 
 class PrismWeaveBackground {
-  private settingsManager: any;
-  private gitOperations: any;
-  private fileManager: any;
+  private settingsManager: SettingsManager;
+  private gitOperations: GitOperations;
+  private fileManager: FileManager;
   private isInitialized: boolean = false;
 
   constructor() {
