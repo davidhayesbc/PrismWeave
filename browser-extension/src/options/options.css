@@ -51,6 +51,7 @@ label {
 }
 
 input[type='text'],
+input[type='password'],
 input[type='url'],
 textarea,
 select {
