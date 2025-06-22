@@ -27,9 +27,10 @@ PrismWeave is a comprehensive document management and content creation system th
 - Use background service workers for Git operations
 - Follow Chrome extension security best practices
 - Optimize for performance and minimal memory usage
-- **CRITICAL**: Service workers require IIFE format, no ES6 modules or exports
-- Use ES2020 modules in TypeScript, then convert to service worker-compatible format
-- Implement global assignments for service worker importScripts compatibility
+- **CRITICAL**: Service workers must be self-contained, no ES6 modules or importScripts
+- Implement all functionality directly in service worker files
+- Use inline type definitions and classes for Chrome extension compatibility
+- Avoid external dependencies in service workers to prevent loading issues
 
 ### AI Integration Best Practices
 - Use local models (Ollama) for privacy and cost efficiency
