@@ -1335,8 +1335,43 @@ function createSimpleMarkdown(html: string, title: string, url: string): string 
         return content.replace(/<li[^>]*>(.*?)<\/li>/gi, () => `${counter++}. $1\n`) + '\n';
       })
       .replace(/<blockquote[^>]*>(.*?)<\/blockquote>/gis, '> $1\n\n')
-      .replace(/<pre[^>]*><code[^>]*>(.*?)<\/code><\/pre>/gis, '```\n$1\n```\n\n')
-      .replace(/<code[^>]*>(.*?)<\/code>/gi, '`$1`')
+      // Enhanced code block processing with language detection and proper escaping
+      .replace(
+        /<pre[^>]*><code[^>]*class="[^"]*language-([^"]*)"[^>]*>([\s\S]*?)<\/code><\/pre>/gis,
+        (match, language, code) => {
+          // Decode HTML entities and preserve special characters in code
+          const cleanCode = code
+            .replace(/&lt;/g, '<')
+            .replace(/&gt;/g, '>')
+            .replace(/&amp;/g, '&')
+            .replace(/&quot;/g, '"')
+            .replace(/&#39;/g, "'")
+            .replace(/&nbsp;/g, ' ');
+          return `\`\`\`${language}\n${cleanCode}\n\`\`\`\n\n`;
+        }
+      )
+      .replace(/<pre[^>]*><code[^>]*>([\s\S]*?)<\/code><\/pre>/gis, (match, code) => {
+        // Handle code blocks without language specification
+        const cleanCode = code
+          .replace(/&lt;/g, '<')
+          .replace(/&gt;/g, '>')
+          .replace(/&amp;/g, '&')
+          .replace(/&quot;/g, '"')
+          .replace(/&#39;/g, "'")
+          .replace(/&nbsp;/g, ' ');
+        return `\`\`\`\n${cleanCode}\n\`\`\`\n\n`;
+      })
+      .replace(/<code[^>]*>(.*?)<\/code>/gi, (match, code) => {
+        // Handle inline code with proper escaping
+        const cleanCode = code
+          .replace(/&lt;/g, '<')
+          .replace(/&gt;/g, '>')
+          .replace(/&amp;/g, '&')
+          .replace(/&quot;/g, '"')
+          .replace(/&#39;/g, "'")
+          .replace(/&nbsp;/g, ' ');
+        return `\`${cleanCode}\``;
+      })
       .replace(/<img[^>]*src="([^"]*)"[^>]*alt="([^"]*)"[^>]*>/gi, '![$2]($1)')
       .replace(/<img[^>]*src="([^"]*)"[^>]*>/gi, '![]($1)')
       .replace(/<[^>]*>/g, '')

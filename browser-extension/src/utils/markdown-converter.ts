@@ -180,9 +180,7 @@ export class MarkdownConverter {
         const quotedLines = lines.map(line => '> ' + line);
         return '\n\n' + quotedLines.join('\n') + '\n\n';
       },
-    });
-
-    // Code block rule with language detection
+    }); // Code block rule with language detection and improved content preservation
     this.turndownService.addRule('enhancedCodeBlock', {
       filter: (node: any): boolean => {
         return node.nodeName === 'PRE' && node.firstChild && node.firstChild.nodeName === 'CODE';
@@ -190,19 +188,44 @@ export class MarkdownConverter {
       replacement: (content: string, node: any): string => {
         const codeElement = node.firstChild;
         const language = this.extractLanguageFromClass(codeElement.className);
-        const code = codeElement.textContent || content;
+
+        // Get raw text content to preserve formatting and special characters
+        let code = codeElement.textContent || '';
+
+        // Preserve HTML entities that should be decoded in code blocks
+        code = code
+          .replace(/&lt;/g, '<')
+          .replace(/&gt;/g, '>')
+          .replace(/&amp;/g, '&')
+          .replace(/&quot;/g, '"')
+          .replace(/&#39;/g, "'")
+          .replace(/&nbsp;/g, ' ');
 
         return '\n\n```' + language + '\n' + code + '\n```\n\n';
       },
     });
 
-    // Inline code rule
+    // Inline code rule with better escaping
     this.turndownService.addRule('enhancedInlineCode', {
       filter: (node: any): boolean => {
         return node.nodeName === 'CODE' && (!node.parentNode || node.parentNode.nodeName !== 'PRE');
       },
-      replacement: (content: string): string => {
-        return '`' + content + '`';
+      replacement: (content: string, node: any): string => {
+        let code = node.textContent || content;
+
+        // Decode HTML entities for inline code
+        code = code
+          .replace(/&lt;/g, '<')
+          .replace(/&gt;/g, '>')
+          .replace(/&amp;/g, '&')
+          .replace(/&quot;/g, '"')
+          .replace(/&#39;/g, "'")
+          .replace(/&nbsp;/g, ' ');
+
+        // Escape backticks in inline code
+        code = code.replace(/`/g, '\\`');
+
+        return '`' + code + '`';
       },
     });
 
@@ -546,11 +569,34 @@ export class MarkdownConverter {
             if (el.parentElement?.tagName.toLowerCase() === 'pre') {
               markdown += el.textContent;
             } else {
-              markdown += '`' + el.textContent + '`';
+              // Handle inline code with proper escaping for backticks
+              const codeContent = el.textContent || '';
+              const escapedContent = codeContent.replace(/`/g, '\\`');
+              markdown += '`' + escapedContent + '`';
             }
             break;
           case 'pre':
-            markdown += '\n\n```\n' + el.textContent + '\n```\n\n';
+            const codeEl = el.querySelector('code');
+            let language = '';
+            let codeContent = '';
+
+            if (codeEl) {
+              language = this.extractLanguageFromClass(codeEl.className);
+              codeContent = codeEl.textContent || '';
+            } else {
+              codeContent = el.textContent || '';
+            }
+
+            // Preserve special characters in code blocks
+            const preservedContent = codeContent
+              .replace(/&lt;/g, '<')
+              .replace(/&gt;/g, '>')
+              .replace(/&amp;/g, '&')
+              .replace(/&quot;/g, '"')
+              .replace(/&#39;/g, "'")
+              .replace(/&nbsp;/g, ' ');
+
+            markdown += '\n\n```' + language + '\n' + preservedContent + '\n```\n\n';
             break;
           case 'blockquote':
             const quotedLines = (el.textContent || '')
@@ -609,7 +655,6 @@ export class MarkdownConverter {
 
     return markdown;
   }
-
   private extractLanguageFromClass(className: string): string {
     if (!className) return '';
 
@@ -630,11 +675,55 @@ export class MarkdownConverter {
       sql: 'sql',
       bash: 'bash',
       shell: 'bash',
+      sh: 'bash',
+      zsh: 'zsh',
       powershell: 'powershell',
+      ps1: 'powershell',
       php: 'php',
       ruby: 'ruby',
+      rb: 'ruby',
       go: 'go',
       rust: 'rust',
+      rs: 'rust',
+      cpp: 'cpp',
+      'c++': 'cpp',
+      c: 'c',
+      haskell: 'haskell',
+      hs: 'haskell',
+      scala: 'scala',
+      kotlin: 'kotlin',
+      kt: 'kotlin',
+      swift: 'swift',
+      dockerfile: 'dockerfile',
+      docker: 'dockerfile',
+      yaml: 'yaml',
+      yml: 'yaml',
+      toml: 'toml',
+      ini: 'ini',
+      markdown: 'markdown',
+      md: 'markdown',
+      tex: 'latex',
+      latex: 'latex',
+      r: 'r',
+      matlab: 'matlab',
+      perl: 'perl',
+      pl: 'perl',
+      lua: 'lua',
+      vim: 'vim',
+      makefile: 'makefile',
+      make: 'makefile',
+      cmake: 'cmake',
+      diff: 'diff',
+      patch: 'diff',
+      console: 'console',
+      terminal: 'bash',
+      cmd: 'batch',
+      batch: 'batch',
+      apache: 'apache',
+      nginx: 'nginx',
+      // Unison language (from the blog post)
+      unison: 'unison',
+      ucm: 'unison',
     };
 
     const classes = className.toLowerCase().split(/\s+/);
@@ -649,6 +738,18 @@ export class MarkdownConverter {
       // Check for highlight- prefix
       if (cls.startsWith('highlight-')) {
         const lang = cls.substring(10);
+        return languageMap[lang] || lang;
+      }
+
+      // Check for hljs- prefix (highlight.js)
+      if (cls.startsWith('hljs-')) {
+        const lang = cls.substring(5);
+        return languageMap[lang] || lang;
+      }
+
+      // Check for prism- prefix
+      if (cls.startsWith('prism-')) {
+        const lang = cls.substring(6);
         return languageMap[lang] || lang;
       }
 

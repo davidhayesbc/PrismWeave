@@ -83,9 +83,46 @@
 
           console.log('\n🐳 Docker Content Indicators:');
           console.log('  Found:', foundIndicators.join(', ') || 'none');
-
           if (foundIndicators.length === 0) {
             console.warn('⚠️ No Docker-related content found - extraction may have failed');
+          }
+
+          // Enhanced code block analysis
+          console.log('\n📦 Code Block Quality Check:');
+          const codeBlockMatches = data.markdown.match(/```[\s\S]*?```/g) || [];
+          const inlineCodeMatches = data.markdown.match(/`[^`]+`/g) || [];
+
+          console.log(`  - Fenced code blocks found: ${codeBlockMatches.length}`);
+          console.log(`  - Inline code elements found: ${inlineCodeMatches.length}`);
+
+          // Check for language tagging
+          const languageTaggedBlocks = codeBlockMatches.filter(block => /```\w+/.test(block));
+          console.log(`  - Language-tagged blocks: ${languageTaggedBlocks.length}`); // Check for shell script preservation
+          const shellBlocks = codeBlockMatches.filter(
+            block => /(bash|shell|zsh|#!)/.test(block) || /\$\s+/.test(block)
+          );
+          console.log(`  - Shell script blocks: ${shellBlocks.length}`);
+
+          // Check for proper entity decoding
+          const entityIssues = [];
+          if (data.markdown.includes('&lt;')) entityIssues.push('&lt; found');
+          if (data.markdown.includes('&gt;')) entityIssues.push('&gt; found');
+          if (data.markdown.includes('&amp;')) entityIssues.push('&amp; found');
+          if (data.markdown.includes('&quot;')) entityIssues.push('&quot; found');
+
+          if (entityIssues.length > 0) {
+            console.log(`  ⚠️ HTML entity issues: ${entityIssues.join(', ')}`);
+          } else {
+            console.log('  ✅ HTML entities properly decoded');
+          }
+
+          // Show examples of preserved code blocks
+          if (codeBlockMatches.length > 0) {
+            console.log('\n📋 Code Block Examples:');
+            codeBlockMatches.slice(0, 3).forEach((block, i) => {
+              const preview = block.substring(0, 200);
+              console.log(`  ${i + 1}. ${preview}${block.length > 200 ? '...' : ''}`);
+            });
           }
         } else {
           console.error('❌ No markdown content in response');
