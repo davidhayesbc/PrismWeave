@@ -173,7 +173,6 @@ export class PrismWeavePopup {
       faviconElement.style.display = 'block';
     }
   }
-
   /**
    * Validates that crucial settings are configured for capture operations
    * @returns Object with validation results and missing settings
@@ -187,7 +186,9 @@ export class PrismWeavePopup {
         missingSettings: ['settings'],
         message: 'Settings not loaded. Please try refreshing the extension.'
       };
-    }    // Check crucial repository settings
+    }
+
+    // Check crucial repository settings
     if (!this.settings.githubToken) {
       missingSettings.push('GitHub Token');
     }
@@ -206,42 +207,6 @@ export class PrismWeavePopup {
 
     return { isValid, missingSettings };
   }
-
-  /**
-   * Shows a helpful message with link to settings when crucial settings are missing
-   * @param message The error message to display
-   */
-  private showMissingSettingsMessage(message: string): void {
-    const statusElement = document.getElementById('capture-status');
-    if (!statusElement) return;
-
-    // Create a more detailed message with action button
-    statusElement.innerHTML = `
-      <div class="missing-settings-message">
-        <div class="error-text">${message}</div>
-        <button id="open-settings-btn" class="settings-link-btn">
-          📝 Open Settings
-        </button>
-      </div>
-    `;
-    
-    statusElement.className = 'capture-status error missing-settings';
-    statusElement.style.display = 'block';
-
-    // Add click handler for the settings button
-    const openSettingsBtn = document.getElementById('open-settings-btn');
-    if (openSettingsBtn) {
-      openSettingsBtn.addEventListener('click', () => {
-        this.openSettings();
-        // Reset status after opening settings
-        setTimeout(() => this.resetCaptureStatus(), 500);
-      });
-    }
-
-    // Auto-hide after 10 seconds (longer than normal errors since this needs user action)
-    setTimeout(() => this.resetCaptureStatus(), 10000);
-  }
-
   private checkPageCapturability(): void {
     if (!this.currentTab?.url) return;
 
@@ -249,25 +214,26 @@ export class PrismWeavePopup {
     const isCapturable = !url.startsWith('chrome://') && 
                         !url.startsWith('chrome-extension://') && 
                         !url.startsWith('about:') &&
-                        !url.startsWith('moz-extension://');
+                        !url.startsWith('moz-extension://') &&
+                        !url.startsWith('edge://');
 
     const captureBtn = document.getElementById('capture-page') as HTMLButtonElement;
     const captureSelectionBtn = document.getElementById('capture-selection') as HTMLButtonElement;
-    const warningElement = document.getElementById('capture-warning');
+    const warningContainer = document.getElementById('capture-warning');
 
     if (isCapturable) {
       if (captureBtn) captureBtn.disabled = false;
       if (captureSelectionBtn) captureSelectionBtn.disabled = false;
-      if (warningElement) warningElement.style.display = 'none';
+      if (warningContainer) warningContainer.style.display = 'none';
     } else {
       if (captureBtn) captureBtn.disabled = true;
       if (captureSelectionBtn) captureSelectionBtn.disabled = true;
-      if (warningElement) {
-        warningElement.textContent = 'Cannot capture browser internal pages';
-        warningElement.style.display = 'block';
+      if (warningContainer) {
+        warningContainer.style.display = 'block';
+        // The warning content is already set in the HTML
       }
     }
-  }  private async capturePage(): Promise<void> {
+  }private async capturePage(): Promise<void> {
     if (this.isCapturing) return;
 
     try {
@@ -291,23 +257,30 @@ export class PrismWeavePopup {
         this.updateCaptureStatus('Unable to identify current tab', 'error');
         setTimeout(() => this.resetCaptureStatus(), 3000);
         return;
-      }
-
-      // Validate crucial settings before proceeding
+      }      // Validate crucial settings before proceeding
       const settingsValidation = this.validateCaptureSettings();
       if (!settingsValidation.isValid) {
-        this.showMissingSettingsMessage(settingsValidation.message!);
+        this.showMissingSettingsMessage(settingsValidation.message!, settingsValidation.missingSettings);
         return;
       }
 
       // Check if page is capturable
       if (!this.isPageCapturable()) {
-        this.updateCaptureStatus('Cannot capture this type of page', 'error');
-        setTimeout(() => this.resetCaptureStatus(), 3000);
+        this.updateCaptureStatus(
+          'Page Cannot Be Captured',
+          'This type of page (browser internal page) cannot be captured.',
+          'error',
+          { autoHide: 4000 }
+        );
         return;
       }
 
-      this.updateCaptureStatus('Capturing page...', 'progress');
+      this.updateCaptureStatus(
+        'Capturing Page...',
+        'Extracting content and preparing markdown',
+        'progress',
+        { showProgress: true, progressValue: 20 }
+      );
 
       const message: IMessageData = {
         type: 'CAPTURE_PAGE',
@@ -321,19 +294,66 @@ export class PrismWeavePopup {
         }
       };
 
+      // Update progress
+      this.updateCaptureStatus(
+        'Processing Content...',
+        'Converting to markdown format',
+        'progress',
+        { showProgress: true, progressValue: 60 }
+      );
+
       logger.debug('Sending capture message:', message);
       const response = await this.sendMessageToBackground(message.type, message.data);
       
       if (response.success) {
-        this.updateCaptureStatus('Page captured successfully!', 'success');
-        setTimeout(() => this.resetCaptureStatus(), 3000);
+        const responseData = response.data as any;
+        this.updateCaptureStatus(
+          'Page Captured Successfully!',
+          `Saved as: ${responseData?.filename || 'document.md'}`,
+          'success',
+          {
+            autoHide: 5000,
+            actions: [
+              {
+                label: 'View Repository',
+                action: () => this.openRepository(),
+                primary: true
+              },
+              {
+                label: 'Capture Another',
+                action: () => this.resetCaptureStatus()
+              }
+            ]
+          }
+        );
       } else {
         throw new Error(response.error || 'Capture failed');
-      }
-    } catch (error) {
+      }    } catch (error) {
       logger.error('Error capturing page:', error);
-      this.updateCaptureStatus('Capture failed: ' + (error as Error).message, 'error');
-      setTimeout(() => this.resetCaptureStatus(), 3000);
+      const errorMessage = (error as Error).message;
+      
+      this.updateCaptureStatus(
+        'Capture Failed',
+        errorMessage,
+        'error',
+        {
+          autoHide: 6000,
+          actions: [
+            {
+              label: 'Try Again',
+              action: () => {
+                this.resetCaptureStatus();
+                setTimeout(() => this.capturePage(), 100);
+              },
+              primary: true
+            },
+            {
+              label: 'Open Settings',
+              action: () => this.openSettings()
+            }
+          ]
+        }
+      );
     } finally {
       this.isCapturing = false;
     }
@@ -373,27 +393,61 @@ export class PrismWeavePopup {
         this.updateCaptureStatus('Unable to identify current tab', 'error');
         setTimeout(() => this.resetCaptureStatus(), 3000);
         return;
-      }
-
-      // Validate crucial settings before proceeding
+      }      // Validate crucial settings before proceeding
       const settingsValidation = this.validateCaptureSettings();
       if (!settingsValidation.isValid) {
-        this.showMissingSettingsMessage(settingsValidation.message!);
+        this.showMissingSettingsMessage(settingsValidation.message!, settingsValidation.missingSettings);
         return;
-      }      // Check if page is capturable
+      }      
+
+      // Check if page is capturable
       if (!this.isPageCapturable()) {
-        this.updateCaptureStatus('Cannot capture this type of page', 'error');
-        setTimeout(() => this.resetCaptureStatus(), 3000);
+        this.updateCaptureStatus(
+          'Page Cannot Be Captured',
+          'This type of page (browser internal page) cannot be captured.',
+          'error',
+          { autoHide: 4000 }
+        );
         return;
       }
 
-      this.updateCaptureStatus('Capturing selection...', 'progress');
+      this.updateCaptureStatus(
+        'Checking Selection...',
+        'Looking for selected text on the page',
+        'progress',
+        { showProgress: true, progressValue: 30 }
+      );
 
       // First, check if there's a selection
       const selectionCheck = await this.sendMessageToTab('GET_PAGE_INFO');
       if (!(selectionCheck.data as any)?.hasSelection) {
-        throw new Error('No text selected on the page');
+        this.updateCaptureStatus(
+          'No Selection Found',
+          'Please select some text on the page before capturing',
+          'warning',
+          {
+            autoHide: 5000,
+            actions: [
+              {
+                label: 'Capture Entire Page',
+                action: () => {
+                  this.resetCaptureStatus();
+                  setTimeout(() => this.capturePage(), 100);
+                },
+                primary: true
+              }
+            ]
+          }
+        );
+        return;
       }
+
+      this.updateCaptureStatus(
+        'Capturing Selection...',
+        'Processing selected content',
+        'progress',
+        { showProgress: true, progressValue: 70 }
+      );
 
       const message: IMessageData = {
         type: 'CAPTURE_SELECTION',
@@ -406,27 +460,217 @@ export class PrismWeavePopup {
       const response = await this.sendMessageToTab(message.type, message.data);
       
       if (response.success) {
-        this.updateCaptureStatus('Selection captured successfully!', 'success');
-        setTimeout(() => this.resetCaptureStatus(), 3000);
+        const responseData = response.data as any;
+        this.updateCaptureStatus(
+          'Selection Captured Successfully!',
+          `Saved selected content as: ${responseData?.filename || 'selection.md'}`,
+          'success',
+          {
+            autoHide: 5000,
+            actions: [
+              {
+                label: 'View Repository',
+                action: () => this.openRepository(),
+                primary: true
+              },
+              {
+                label: 'Capture More',
+                action: () => this.resetCaptureStatus()
+              }
+            ]
+          }
+        );
       } else {
         throw new Error(response.error || 'Selection capture failed');
-      }
-    } catch (error) {
+      }    } catch (error) {
       logger.error('Error capturing selection:', error);
-      this.updateCaptureStatus((error as Error).message, 'error');
-      setTimeout(() => this.resetCaptureStatus(), 3000);
+      const errorMessage = (error as Error).message;
+      
+      this.updateCaptureStatus(
+        'Selection Capture Failed',
+        errorMessage,
+        'error',
+        {
+          autoHide: 6000,
+          actions: [
+            {
+              label: 'Try Again',
+              action: () => {
+                this.resetCaptureStatus();
+                setTimeout(() => this.captureSelection(), 100);
+              },
+              primary: true
+            },
+            {
+              label: 'Capture Full Page',
+              action: () => {
+                this.resetCaptureStatus();
+                setTimeout(() => this.capturePage(), 100);
+              }
+            }
+          ]
+        }
+      );
     } finally {
       this.isCapturing = false;
     }
   }
+  /**
+   * Enhanced status update method with rich UI feedback
+   * @param title The main status title
+   * @param message Optional detailed message
+   * @param type Status type (success, error, progress, warning)
+   * @param options Additional options for the status display
+   */
+  private updateCaptureStatus(
+    title: string, 
+    message?: string, 
+    type: 'progress' | 'success' | 'error' | 'warning' = 'progress',
+    options: {
+      showProgress?: boolean;
+      progressValue?: number;
+      actions?: Array<{ label: string; action: () => void; primary?: boolean }>;
+      autoHide?: number;
+      details?: string[];
+    } = {}
+  ): void {
+    const container = document.getElementById('capture-status');
+    if (!container) return;
 
-  private updateCaptureStatus(message: string, type: 'progress' | 'success' | 'error'): void {
-    const statusElement = document.getElementById('capture-status');
-    if (!statusElement) return;
+    // Update container class
+    container.className = `capture-status-container ${type}`;
+    
+    // Update icon based on type
+    const iconElement = document.getElementById('status-icon');
+    if (iconElement) {
+      const icons = {
+        success: '✓',
+        error: '⚠',
+        progress: '⟳',
+        warning: '⚠'
+      };
+      iconElement.textContent = icons[type];
+    }
 
-    statusElement.textContent = message;
-    statusElement.className = `capture-status ${type}`;
-    statusElement.style.display = 'block';
+    // Update title
+    const titleElement = document.getElementById('status-title');
+    if (titleElement) {
+      titleElement.textContent = title;
+    }
+
+    // Update message
+    const messageElement = document.getElementById('status-message');
+    if (messageElement) {
+      messageElement.textContent = message || '';
+      messageElement.style.display = message ? 'block' : 'none';
+    }
+
+    // Handle progress bar
+    const progressBar = document.getElementById('progress-bar');
+    const progressFill = progressBar?.querySelector('.progress-fill') as HTMLElement;
+    if (options.showProgress && progressBar && progressFill) {
+      progressBar.style.display = 'block';
+      progressFill.style.width = `${options.progressValue || 0}%`;
+    } else if (progressBar) {
+      progressBar.style.display = 'none';
+    }
+
+    // Handle actions
+    const actionsContainer = document.getElementById('status-actions');
+    if (options.actions && actionsContainer) {
+      actionsContainer.innerHTML = '';
+      options.actions.forEach(action => {
+        const button = document.createElement('button');
+        button.className = `status-action-btn ${action.primary ? 'primary' : ''}`;
+        button.textContent = action.label;
+        button.addEventListener('click', action.action);
+        actionsContainer.appendChild(button);
+      });
+      actionsContainer.style.display = 'flex';
+    } else if (actionsContainer) {
+      actionsContainer.style.display = 'none';
+    }
+
+    // Handle details
+    const detailsContainer = document.getElementById('status-details');
+    if ((options.showProgress || options.actions) && detailsContainer) {
+      detailsContainer.style.display = 'block';
+    } else if (detailsContainer) {
+      detailsContainer.style.display = 'none';
+    }
+
+    // Setup close button
+    const closeButton = document.getElementById('status-close');
+    if (closeButton) {
+      closeButton.onclick = () => this.resetCaptureStatus();
+    }
+
+    // Show container
+    container.style.display = 'block';
+
+    // Auto-hide if specified
+    if (options.autoHide) {
+      setTimeout(() => this.resetCaptureStatus(), options.autoHide);
+    }
+  }
+
+  /**
+   * Shows enhanced missing settings message with better UX
+   * @param message The error message to display
+   * @param missingSettings Array of missing setting names
+   */
+  private showMissingSettingsMessage(message: string, missingSettings: string[] = []): void {
+    const container = document.getElementById('capture-status');
+    if (!container) return;
+
+    // Custom HTML for missing settings
+    container.innerHTML = `
+      <div class="status-card">
+        <div class="status-header">
+          <div class="status-icon-wrapper">
+            <div class="status-icon">⚙️</div>
+          </div>
+          <div class="status-content">
+            <div class="status-title">Configuration Required</div>
+            <div class="status-message">${message}</div>
+          </div>
+          <button class="status-close" id="missing-settings-close" aria-label="Close">×</button>
+        </div>
+        <div class="status-details" style="display: block;">
+          <div class="missing-settings-content">
+            ${missingSettings.length > 0 ? `
+              <div class="missing-settings-text">
+                <strong>Missing settings:</strong> ${missingSettings.join(', ')}
+              </div>
+            ` : ''}
+            <button id="open-settings-action" class="settings-action-btn">
+              ⚙️ Configure Settings
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+    
+    container.className = 'capture-status-container missing-settings';
+    container.style.display = 'block';
+
+    // Setup event handlers
+    const openSettingsBtn = document.getElementById('open-settings-action');
+    const closeBtn = document.getElementById('missing-settings-close');
+    
+    if (openSettingsBtn) {
+      openSettingsBtn.addEventListener('click', () => {
+        this.openSettings();
+        setTimeout(() => this.resetCaptureStatus(), 500);
+      });
+    }
+
+    if (closeBtn) {
+      closeBtn.addEventListener('click', () => this.resetCaptureStatus());
+    }
+
+    // Auto-hide after 12 seconds (longer for settings issues)
+    setTimeout(() => this.resetCaptureStatus(), 12000);
   }
 
   private resetCaptureStatus(): void {
