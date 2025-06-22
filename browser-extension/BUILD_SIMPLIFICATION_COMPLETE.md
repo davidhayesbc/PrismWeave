@@ -79,6 +79,49 @@ These complex scripts are no longer needed:
 - Standard tooling
 - Easy to understand
 
+## Recent Enhancement: Options Page Validation
+
+### ✅ **Added Comprehensive Validation**
+
+#### Real-time Field Validation
+- **GitHub Token**: Validates format (must start with `ghp_` or `github_pat_`), length, and presence
+- **GitHub Repository**: Validates format (`username/repository-name`) and repository name patterns
+- **Visual Feedback**: Input fields highlight in red when invalid, with specific error messages
+
+#### Test Connection Enhancement
+- **Pre-validation**: Checks required fields before attempting connection
+- **Clear Error Messages**: Specific messages for different failure scenarios:
+  - Missing token or repository
+  - Invalid token format
+  - Network issues
+  - Authentication failures
+  - Repository access problems
+- **Success Feedback**: Clear confirmation when connection works
+
+#### User Experience Improvements
+- **Input Validation**: Real-time validation as user types
+- **Error Prevention**: Save button validates before saving
+- **Helpful Messages**: Specific guidance on what needs to be fixed
+- **Visual Styling**: Color-coded validation messages and error states
+
+#### Changes Made
+1. **HTML Updates**: Added validation message containers and fixed ID consistency
+2. **CSS Enhancements**: Added styles for validation messages and error states  
+3. **TypeScript Logic**: Comprehensive validation methods and error handling
+4. **UX Flow**: Clear feedback at every step of the configuration process
+
+### Usage Example
+When user clicks "Test Connection" without proper settings:
+```
+❌ GitHub token is required. Please enter your personal access token.
+❌ GitHub repository is required. Please enter in format: username/repository-name
+```
+
+After fixing and testing successfully:
+```
+✅ GitHub connection established successfully
+```
+
 ## Usage
 
 ### Development

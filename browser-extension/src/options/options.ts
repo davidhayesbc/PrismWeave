@@ -40,7 +40,6 @@ export class PrismWeaveOptions {
       this.settings = {};
     }
   }
-
   private populateForm(): void {
     // Repository Settings
     this.setInputValue('repositoryPath', this.settings.repositoryPath || '');
@@ -77,7 +76,6 @@ export class PrismWeaveOptions {
     this.setCheckboxValue('showNotifications', this.settings.showNotifications ?? true);
     this.setCheckboxValue('darkMode', this.settings.darkMode ?? false);
   }
-
   private setupEventListeners(): void {
     // Save button
     const saveBtn = document.getElementById('save-settings');
@@ -109,8 +107,59 @@ export class PrismWeaveOptions {
       testBtn.addEventListener('click', () => this.testConnection());
     }
 
+    // Real-time validation for GitHub fields
+    const githubTokenInput = document.getElementById('githubToken') as HTMLInputElement;
+    if (githubTokenInput) {
+      githubTokenInput.addEventListener('input', () => this.validateGitHubToken());
+      githubTokenInput.addEventListener('blur', () => this.validateGitHubToken());
+    }
+
+    const githubRepoInput = document.getElementById('githubRepo') as HTMLInputElement;
+    if (githubRepoInput) {
+      githubRepoInput.addEventListener('input', () => this.validateGitHubRepo());
+      githubRepoInput.addEventListener('blur', () => this.validateGitHubRepo());
+    }
+
     // Show/hide custom fields based on selections
     this.setupConditionalFields();
+  }
+
+  private validateGitHubToken(): void {
+    const token = this.getInputValue('githubToken');
+    const validationElement = document.getElementById('githubToken-validation');
+    const inputElement = document.getElementById('githubToken') as HTMLInputElement;
+    
+    if (!validationElement || !inputElement) return;
+    
+    if (!token || token.trim() === '') {
+      this.showFieldValidation('githubToken', 'GitHub token is required for repository operations', 'error');
+    } else if (!token.startsWith('ghp_') && !token.startsWith('github_pat_')) {
+      this.showFieldValidation('githubToken', 'Invalid token format. GitHub tokens should start with "ghp_" or "github_pat_"', 'error');
+    } else if (token.length < 20) {
+      this.showFieldValidation('githubToken', 'Token appears to be too short. Please check your token', 'error');
+    } else {
+      // Clear validation if valid
+      validationElement.style.display = 'none';
+      inputElement.classList.remove('error');
+    }
+  }
+
+  private validateGitHubRepo(): void {
+    const repo = this.getInputValue('githubRepo');
+    const validationElement = document.getElementById('githubRepo-validation');
+    const inputElement = document.getElementById('githubRepo') as HTMLInputElement;
+    
+    if (!validationElement || !inputElement) return;
+    
+    if (!repo || repo.trim() === '') {
+      this.showFieldValidation('githubRepo', 'GitHub repository is required. Format: username/repository-name', 'error');
+    } else if (!/^[a-zA-Z0-9._-]+\/[a-zA-Z0-9._-]+$/.test(repo.trim())) {
+      this.showFieldValidation('githubRepo', 'Invalid format. Please use: username/repository-name', 'error');
+    } else {
+      // Clear validation if valid
+      validationElement.style.display = 'none';
+      inputElement.classList.remove('error');
+    }
   }
 
   private setupConditionalFields(): void {
@@ -140,9 +189,40 @@ export class PrismWeaveOptions {
       toggleCustomNaming(); // Initial state
     }
   }
-
   private async saveSettings(): Promise<void> {
     try {
+      // Clear previous validation messages
+      this.clearValidationMessages();
+      
+      // Validate required fields before saving
+      const githubToken = this.getInputValue('githubToken');
+      const githubRepo = this.getInputValue('githubRepo');
+      
+      let hasErrors = false;
+      
+      // Only validate if user has entered something (allow saving with empty fields)
+      if (githubToken && githubToken.trim() !== '') {
+        if (!githubToken.startsWith('ghp_') && !githubToken.startsWith('github_pat_')) {
+          this.showFieldValidation('githubToken', 'Invalid token format. GitHub tokens should start with "ghp_" or "github_pat_"', 'error');
+          hasErrors = true;
+        } else if (githubToken.length < 20) {
+          this.showFieldValidation('githubToken', 'Token appears to be too short. Please check your token', 'error');
+          hasErrors = true;
+        }
+      }
+      
+      if (githubRepo && githubRepo.trim() !== '') {
+        if (!/^[a-zA-Z0-9._-]+\/[a-zA-Z0-9._-]+$/.test(githubRepo.trim())) {
+          this.showFieldValidation('githubRepo', 'Invalid format. Please use: username/repository-name', 'error');
+          hasErrors = true;
+        }
+      }
+      
+      if (hasErrors) {
+        this.showMessage('Please fix the validation errors before saving', 'error');
+        return;
+      }
+      
       const formData = this.collectFormData();
       const response = await this.sendMessage('UPDATE_SETTINGS', formData);
       
@@ -232,23 +312,132 @@ export class PrismWeaveOptions {
     
     input.click();
   }
-
   private async testConnection(): Promise<void> {
+    // Clear previous validation messages
+    this.clearValidationMessages();
+    
+    // Get current form values for validation
+    const githubToken = this.getInputValue('githubToken');
+    const githubRepo = this.getInputValue('githubRepo');
+    
+    // Validate required fields
+    const validationErrors = this.validateConnectionFields(githubToken, githubRepo);
+    
+    if (validationErrors.length > 0) {
+      // Show validation errors
+      validationErrors.forEach(error => {
+        this.showFieldValidation(error.field, error.message, 'error');
+      });
+      
+      this.showMessage('Please fix the validation errors before testing connection', 'error');
+      return;
+    }
+    
     try {
       this.showMessage('Testing connection...', 'info');
       const response = await this.sendMessage('TEST_CONNECTION');
       
       if (response.success) {
         this.showMessage('Connection test successful!', 'success');
+        this.showConnectionResult('✅ GitHub connection established successfully', 'success');
       } else {
         throw new Error(response.error || 'Connection test failed');
       }
     } catch (error) {
       console.error('Connection test failed:', error);
-      this.showMessage('Connection test failed: ' + (error as Error).message, 'error');
+      const errorMessage = this.getDetailedErrorMessage(error as Error);
+      this.showMessage('Connection test failed: ' + errorMessage, 'error');
+      this.showConnectionResult('❌ ' + errorMessage, 'error');
     }
   }
 
+  private validateConnectionFields(githubToken: string, githubRepo: string): Array<{field: string, message: string}> {
+    const errors: Array<{field: string, message: string}> = [];
+    
+    if (!githubToken || githubToken.trim() === '') {
+      errors.push({
+        field: 'githubToken',
+        message: 'GitHub token is required. Please enter your personal access token.'
+      });
+    } else if (!githubToken.startsWith('ghp_') && !githubToken.startsWith('github_pat_')) {
+      errors.push({
+        field: 'githubToken', 
+        message: 'Invalid token format. GitHub tokens should start with "ghp_" or "github_pat_".'
+      });
+    }
+    
+    if (!githubRepo || githubRepo.trim() === '') {
+      errors.push({
+        field: 'githubRepo',
+        message: 'GitHub repository is required. Please enter in format: username/repository-name'
+      });
+    } else if (!/^[a-zA-Z0-9._-]+\/[a-zA-Z0-9._-]+$/.test(githubRepo.trim())) {
+      errors.push({
+        field: 'githubRepo',
+        message: 'Invalid repository format. Please use: username/repository-name'
+      });
+    }
+    
+    return errors;
+  }
+
+  private getDetailedErrorMessage(error: Error): string {
+    const message = error.message.toLowerCase();
+    
+    if (message.includes('unauthorized') || message.includes('401')) {
+      return 'Invalid GitHub token. Please check your personal access token.';
+    } else if (message.includes('not found') || message.includes('404')) {
+      return 'Repository not found. Please check the repository name and ensure you have access.';
+    } else if (message.includes('forbidden') || message.includes('403')) {
+      return 'Access denied. Please ensure your token has the necessary permissions.';
+    } else if (message.includes('network') || message.includes('connection')) {
+      return 'Network error. Please check your internet connection.';
+    } else {
+      return error.message;
+    }
+  }
+
+  private showFieldValidation(fieldId: string, message: string, type: 'error' | 'success'): void {
+    const validationElement = document.getElementById(`${fieldId}-validation`);
+    if (validationElement) {
+      validationElement.textContent = message;
+      validationElement.className = `validation-message ${type}`;
+      validationElement.style.display = 'block';
+    }
+    
+    // Also highlight the input field
+    const inputElement = document.getElementById(fieldId) as HTMLInputElement;
+    if (inputElement) {
+      inputElement.classList.toggle('error', type === 'error');
+    }
+  }
+
+  private clearValidationMessages(): void {
+    const validationElements = document.querySelectorAll('.validation-message');
+    validationElements.forEach(el => {
+      (el as HTMLElement).style.display = 'none';
+    });
+    
+    // Remove error classes from inputs
+    const inputElements = document.querySelectorAll('input.error');
+    inputElements.forEach(el => {
+      el.classList.remove('error');
+    });
+  }
+
+  private showConnectionResult(message: string, type: 'success' | 'error'): void {
+    const resultElement = document.getElementById('connection-test-result');
+    if (resultElement) {
+      resultElement.textContent = message;
+      resultElement.className = `test-result ${type}`;
+      resultElement.style.display = 'block';
+      
+      // Auto-hide after 10 seconds
+      setTimeout(() => {
+        resultElement.style.display = 'none';
+      }, 10000);
+    }
+  }
   private collectFormData(): Partial<ISettings> {
     return {
       repositoryPath: this.getInputValue('repositoryPath'),

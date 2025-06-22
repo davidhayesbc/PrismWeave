@@ -5,11 +5,16 @@
     <title>PrismWeave Settings</title>
     <link rel="stylesheet" href="options.css" />
   </head>
-  <body>
-    <div class="header">
+  <body>    <div class="header">
       <h1>PrismWeave Settings</h1>
       <p>Configure your document capture and repository settings</p>
     </div>
+
+    <div
+      id="message"
+      class="message"
+      style="display: none"
+    ></div>
 
     <div
       id="status"
@@ -17,43 +22,45 @@
     ></div>
 
     <div class="section">
-      <h2>Repository Configuration</h2>
-
-
-      <div class="form-group">
-        <label for="github-token">GitHub Personal Access Token</label>
+      <h2>Repository Configuration</h2>      <div class="form-group">
+        <label for="githubToken">GitHub Personal Access Token</label>
         <input
-          type="text"
-          id="github-token"
+          type="password"
+          id="githubToken"
           placeholder="ghp_..."
         />
         <div class="help-text">
           Required for Git operations. Create one at GitHub Settings > Developer settings > Personal access tokens
         </div>
+        <div class="validation-message" id="githubToken-validation" style="display: none;"></div>
+      </div>
+
+      <div class="form-group">
+        <label for="githubRepo">GitHub Repository</label>
+        <input
+          type="text"
+          id="githubRepo"
+          placeholder="username/repository-name"
+        />
+        <div class="help-text">Format: username/repository-name</div>
+        <div class="validation-message" id="githubRepo-validation" style="display: none;"></div>
+      </div>
+
+      <div class="form-group">
         <div class="test-connection">
           <button
             type="button"
             class="btn btn-secondary"
-            id="test-github"
+            id="test-connection"
           >
             Test Connection
           </button>
           <div
-            id="github-test-result"
+            id="connection-test-result"
             class="test-result"
             style="display: none"
           ></div>
         </div>
-      </div>
-
-      <div class="form-group">
-        <label for="github-repo">GitHub Repository</label>
-        <input
-          type="text"
-          id="github-repo"
-          placeholder="username/repository-name"
-        />
-        <div class="help-text">Format: username/repository-name</div>
       </div>
     </div>
 
