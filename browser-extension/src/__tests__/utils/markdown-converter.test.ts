@@ -69,27 +69,28 @@ describe('MarkdownConverter - TurndownService Integration', () => {
       expect(console.warn).toHaveBeenCalledWith(
         'TurndownService not available, using enhanced fallback conversion'
       );
-    });    it('should initialize TurndownService when available in window', async () => {
+    });
+    it('should initialize TurndownService when available in window', async () => {
       // Setup: TurndownService available in window
       const mockTurndownServiceConstructor = jest
         .fn()
         .mockImplementation(() => mockTurndownService);
-      
+
       // Save original window
       const originalWindow = global.window;
-      
+
       // Create a new window object with TurndownService
       const windowWithTurndown = {
         ...originalWindow,
         TurndownService: mockTurndownServiceConstructor,
       };
-      
+
       // Set the global window AND make sure it's accessible to the MarkdownConverter
       (global as any).window = windowWithTurndown;
-      
+
       // Also set global property for good measure
       (global as any).TurndownService = mockTurndownServiceConstructor;
-      
+
       // Ensure globalThis doesn't have TurndownService to test window fallback
       (global as any).globalThis = { ...global.globalThis };
       delete (global as any).globalThis.TurndownService;
@@ -104,7 +105,7 @@ describe('MarkdownConverter - TurndownService Integration', () => {
         globalThisHasTurndown: !!(global as any).globalThis?.TurndownService,
         typeofWindow: typeof (global as any).window,
         windowUndefined: typeof (global as any).window === 'undefined',
-        globalTurndown: !!(global as any).TurndownService
+        globalTurndown: !!(global as any).TurndownService,
       });
 
       markdownConverter = new MarkdownConverter();
@@ -115,18 +116,19 @@ describe('MarkdownConverter - TurndownService Integration', () => {
       // Debug the result instead of using expect for now
       console.log('Mock was called?', mockTurndownServiceConstructor.mock.calls.length > 0);
       console.log('AddRule was called?', mockTurndownService.addRule.mock.calls.length > 0);
-      
+
       // Use traditional Jest assertions
       if (mockTurndownServiceConstructor.mock.calls.length === 0) {
         throw new Error('TurndownService constructor was not called');
       }
-      
+
       if (mockTurndownService.addRule.mock.calls.length === 0) {
         throw new Error('TurndownService addRule was not called');
       }
-      
+
       // Restore original window
-      (global as any).window = originalWindow;      delete (global as any).TurndownService;
+      (global as any).window = originalWindow;
+      delete (global as any).TurndownService;
     });
 
     it('should initialize TurndownService when available in globalThis', async () => {

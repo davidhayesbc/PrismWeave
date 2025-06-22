@@ -60,7 +60,8 @@ export class MarkdownConverter {
     };
 
     this.initializeTurndown();
-  }  private initializeTurndown(): void {
+  }
+  private initializeTurndown(): void {
     // Service worker context check - TurndownService should never be loaded here
     const isServiceWorker =
       typeof (globalThis as any).importScripts === 'function' && typeof window === 'undefined';
@@ -72,9 +73,9 @@ export class MarkdownConverter {
       this.turndownService = null;
       return;
     }
-    
+
     // Get TurndownService constructor from window or globalThis
-    const TurndownService = 
+    const TurndownService =
       (typeof window !== 'undefined' && window.TurndownService) ||
       (typeof globalThis !== 'undefined' && (globalThis as any).TurndownService);
 
