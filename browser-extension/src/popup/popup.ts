@@ -2,23 +2,23 @@
 // PrismWeave Popup Script - TypeScript version
 // Handles the extension popup interface and user interactions
 
-import { ISettings, IMessageData, IMessageResponse } from '../types/index.js';
+import { IMessageData, IMessageResponse, ISettings } from '../types/index.js';
 
 // Declare logger for TypeScript
 declare const PrismWeaveLogger: any;
 
 // Initialize logger
-const logger = (window as any).PrismWeaveLogger ? 
-  (window as any).PrismWeaveLogger.createLogger('Popup') : 
-  { 
-    debug: console.log, 
-    info: console.log, 
-    warn: console.warn, 
-    error: console.error, 
-    trace: console.log,
-    group: console.group, 
-    groupEnd: console.groupEnd 
-  };
+const logger = (window as any).PrismWeaveLogger
+  ? (window as any).PrismWeaveLogger.createLogger('Popup')
+  : {
+      debug: console.log,
+      info: console.log,
+      warn: console.warn,
+      error: console.error,
+      trace: console.log,
+      group: console.group,
+      groupEnd: console.groupEnd,
+    };
 
 export class PrismWeavePopup {
   private currentTab: chrome.tabs.Tab | null = null;
@@ -48,14 +48,14 @@ export class PrismWeavePopup {
       // Update UI
       logger.debug('Updating page info');
       this.updatePageInfo();
-      
+
       logger.debug('Setting up event listeners');
       this.setupEventListeners();
 
       // Check if page is capturable
       logger.debug('Checking page capturability');
       this.checkPageCapturability();
-      
+
       logger.info('Initialization complete');
     } catch (error) {
       logger.error('Error initializing popup:', error);
@@ -75,7 +75,7 @@ export class PrismWeavePopup {
           logger.debug('Current tab found:', {
             id: this.currentTab.id,
             url: this.currentTab.url,
-            title: this.currentTab.title
+            title: this.currentTab.title,
           });
           resolve();
         } else {
@@ -115,33 +115,6 @@ export class PrismWeavePopup {
       settingsBtn.addEventListener('click', () => this.openSettings());
     }
 
-    // Quick capture toggle
-    const quickCaptureToggle = document.getElementById('quick-capture') as HTMLInputElement;
-    if (quickCaptureToggle) {
-      quickCaptureToggle.addEventListener('change', (e) => {
-        const target = e.target as HTMLInputElement;
-        this.toggleQuickCapture(target.checked);
-      });
-    }
-
-    // Folder selection
-    const folderSelect = document.getElementById('folder-select') as HTMLSelectElement;
-    if (folderSelect) {
-      folderSelect.addEventListener('change', (e) => {
-        const target = e.target as HTMLSelectElement;
-        this.updateSelectedFolder(target.value);
-      });
-    }
-
-    // Auto-commit toggle
-    const autoCommitToggle = document.getElementById('auto-commit') as HTMLInputElement;
-    if (autoCommitToggle) {
-      autoCommitToggle.addEventListener('change', (e) => {
-        const target = e.target as HTMLInputElement;
-        this.toggleAutoCommit(target.checked);
-      });
-    }
-
     // View repository button
     const viewRepoBtn = document.getElementById('view-repo');
     if (viewRepoBtn) {
@@ -177,14 +150,18 @@ export class PrismWeavePopup {
    * Validates that crucial settings are configured for capture operations
    * @returns Object with validation results and missing settings
    */
-  private validateCaptureSettings(): { isValid: boolean; missingSettings: string[]; message?: string } {
+  private validateCaptureSettings(): {
+    isValid: boolean;
+    missingSettings: string[];
+    message?: string;
+  } {
     const missingSettings: string[] = [];
-    
+
     if (!this.settings) {
       return {
         isValid: false,
         missingSettings: ['settings'],
-        message: 'Settings not loaded. Please try refreshing the extension.'
+        message: 'Settings not loaded. Please try refreshing the extension.',
       };
     }
 
@@ -192,13 +169,13 @@ export class PrismWeavePopup {
     if (!this.settings.githubToken) {
       missingSettings.push('GitHub Token');
     }
-    
+
     if (!this.settings.githubRepo) {
       missingSettings.push('GitHub Repository');
     }
 
     const isValid = missingSettings.length === 0;
-    
+
     if (!isValid) {
       const settingsText = missingSettings.length === 1 ? 'setting' : 'settings';
       const message = `Missing required ${settingsText}: ${missingSettings.join(', ')}. Please configure these in the extension settings.`;
@@ -211,11 +188,12 @@ export class PrismWeavePopup {
     if (!this.currentTab?.url) return;
 
     const url = this.currentTab.url;
-    const isCapturable = !url.startsWith('chrome://') && 
-                        !url.startsWith('chrome-extension://') && 
-                        !url.startsWith('about:') &&
-                        !url.startsWith('moz-extension://') &&
-                        !url.startsWith('edge://');
+    const isCapturable =
+      !url.startsWith('chrome://') &&
+      !url.startsWith('chrome-extension://') &&
+      !url.startsWith('about:') &&
+      !url.startsWith('moz-extension://') &&
+      !url.startsWith('edge://');
 
     const captureBtn = document.getElementById('capture-page') as HTMLButtonElement;
     const captureSelectionBtn = document.getElementById('capture-selection') as HTMLButtonElement;
@@ -232,7 +210,9 @@ export class PrismWeavePopup {
         warningContainer.style.display = 'block';
         // The warning content is already set in the HTML
       }
-    }  }private async capturePage(): Promise<void> {
+    }
+  }
+  private async capturePage(): Promise<void> {
     if (this.isCapturing) return;
 
     try {
@@ -250,7 +230,9 @@ export class PrismWeavePopup {
         const testResponse = await this.sendMessageToBackground('TEST');
         logger.info('Background service worker connected:', testResponse);
       } catch (error) {
-        throw new Error(`Failed to connect to background service worker: ${(error as Error).message}`);
+        throw new Error(
+          `Failed to connect to background service worker: ${(error as Error).message}`
+        );
       }
 
       // Check if we have a current tab, and try to get it if not
@@ -271,10 +253,13 @@ export class PrismWeavePopup {
         this.updateCaptureStatus('Unable to identify current tab', 'error');
         setTimeout(() => this.resetCaptureStatus(), 3000);
         return;
-      }// Validate crucial settings before proceeding
+      } // Validate crucial settings before proceeding
       const settingsValidation = this.validateCaptureSettings();
       if (!settingsValidation.isValid) {
-        this.showMissingSettingsMessage(settingsValidation.message!, settingsValidation.missingSettings);
+        this.showMissingSettingsMessage(
+          settingsValidation.message!,
+          settingsValidation.missingSettings
+        );
         return;
       }
 
@@ -298,14 +283,14 @@ export class PrismWeavePopup {
 
       const message: IMessageData = {
         type: 'CAPTURE_PAGE',
-        data: { 
+        data: {
           tabId: this.currentTab.id,
           tabInfo: {
             url: this.currentTab.url,
-            title: this.currentTab.title
+            title: this.currentTab.title,
           },
-          settings: this.settings 
-        }
+          settings: this.settings,
+        },
       };
 
       // Update progress
@@ -318,15 +303,15 @@ export class PrismWeavePopup {
 
       logger.debug('Sending capture message:', message);
       const response = await this.sendMessageToBackground(message.type, message.data);
-        if (response.success) {
+      if (response.success) {
         const responseData = response.data as any;
         const saveResult = responseData?.saveResult;
-        
+
         // Determine success message based on save result
         let statusTitle = 'Page Captured Successfully!';
         let statusMessage = '';
         let statusType: 'success' | 'warning' = 'success';
-        
+
         if (saveResult?.success && saveResult.committed) {
           statusMessage = `Saved and committed: ${responseData?.filename || 'document.md'}`;
           if (saveResult.sha) {
@@ -346,74 +331,65 @@ export class PrismWeavePopup {
         } else {
           statusMessage = `Content extracted as: ${responseData?.filename || 'document.md'}`;
         }
-        
+
         // Prepare actions based on save status
         const actions = [];
-        
+
         if (saveResult?.success && saveResult.url) {
           actions.push({
             label: 'View on GitHub',
             action: () => window.open(saveResult.url, '_blank'),
-            primary: true
+            primary: true,
           });
         } else if (this.settings?.githubRepo) {
           actions.push({
             label: 'View Repository',
             action: () => this.openRepository(),
-            primary: true
+            primary: true,
           });
         }
-        
+
         actions.push({
           label: 'Capture Another',
-          action: () => this.resetCaptureStatus()
+          action: () => this.resetCaptureStatus(),
         });
-        
+
         // Add retry action if save failed
         if (saveResult && !saveResult.success) {
           actions.push({
             label: 'Check Settings',
-            action: () => this.openSettings()
+            action: () => this.openSettings(),
           });
         }
-        
-        this.updateCaptureStatus(
-          statusTitle,
-          statusMessage,
-          statusType,
-          {
-            autoHide: statusType === 'success' ? 5000 : 8000,
-            actions
-          }
-        );
+
+        this.updateCaptureStatus(statusTitle, statusMessage, statusType, {
+          autoHide: statusType === 'success' ? 5000 : 8000,
+          actions,
+        });
       } else {
         throw new Error(response.error || 'Capture failed');
-      }} catch (error) {
+      }
+    } catch (error) {
       logger.error('Error capturing page:', error);
       const errorMessage = (error as Error).message;
-      
-      this.updateCaptureStatus(
-        'Capture Failed',
-        errorMessage,
-        'error',
-        {
-          autoHide: 6000,
-          actions: [
-            {
-              label: 'Try Again',
-              action: () => {
-                this.resetCaptureStatus();
-                setTimeout(() => this.capturePage(), 100);
-              },
-              primary: true
+
+      this.updateCaptureStatus('Capture Failed', errorMessage, 'error', {
+        autoHide: 6000,
+        actions: [
+          {
+            label: 'Try Again',
+            action: () => {
+              this.resetCaptureStatus();
+              setTimeout(() => this.capturePage(), 100);
             },
-            {
-              label: 'Open Settings',
-              action: () => this.openSettings()
-            }
-          ]
-        }
-      );
+            primary: true,
+          },
+          {
+            label: 'Open Settings',
+            action: () => this.openSettings(),
+          },
+        ],
+      });
     } finally {
       this.isCapturing = false;
     }
@@ -421,15 +397,18 @@ export class PrismWeavePopup {
 
   private isPageCapturable(): boolean {
     if (!this.currentTab?.url) return false;
-    
+
     const url = this.currentTab.url;
-    return !url.startsWith('chrome://') && 
-           !url.startsWith('chrome-extension://') && 
-           !url.startsWith('edge://') &&
-           !url.startsWith('about:') &&
-           !url.startsWith('moz-extension://') &&
-           (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('file://'));
-  }  private async captureSelection(): Promise<void> {
+    return (
+      !url.startsWith('chrome://') &&
+      !url.startsWith('chrome-extension://') &&
+      !url.startsWith('edge://') &&
+      !url.startsWith('about:') &&
+      !url.startsWith('moz-extension://') &&
+      (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('file://'))
+    );
+  }
+  private async captureSelection(): Promise<void> {
     if (this.isCapturing) return;
 
     try {
@@ -453,12 +432,15 @@ export class PrismWeavePopup {
         this.updateCaptureStatus('Unable to identify current tab', 'error');
         setTimeout(() => this.resetCaptureStatus(), 3000);
         return;
-      }      // Validate crucial settings before proceeding
+      } // Validate crucial settings before proceeding
       const settingsValidation = this.validateCaptureSettings();
       if (!settingsValidation.isValid) {
-        this.showMissingSettingsMessage(settingsValidation.message!, settingsValidation.missingSettings);
+        this.showMissingSettingsMessage(
+          settingsValidation.message!,
+          settingsValidation.missingSettings
+        );
         return;
-      }      
+      }
 
       // Check if page is capturable
       if (!this.isPageCapturable()) {
@@ -494,9 +476,9 @@ export class PrismWeavePopup {
                   this.resetCaptureStatus();
                   setTimeout(() => this.capturePage(), 100);
                 },
-                primary: true
-              }
-            ]
+                primary: true,
+              },
+            ],
           }
         );
         return;
@@ -511,14 +493,14 @@ export class PrismWeavePopup {
 
       const message: IMessageData = {
         type: 'CAPTURE_SELECTION',
-        data: { 
+        data: {
           tabId: this.currentTab.id,
-          settings: this.settings 
-        }
+          settings: this.settings,
+        },
       };
 
       const response = await this.sendMessageToTab(message.type, message.data);
-      
+
       if (response.success) {
         const responseData = response.data as any;
         this.updateCaptureStatus(
@@ -531,46 +513,42 @@ export class PrismWeavePopup {
               {
                 label: 'View Repository',
                 action: () => this.openRepository(),
-                primary: true
+                primary: true,
               },
               {
                 label: 'Capture More',
-                action: () => this.resetCaptureStatus()
-              }
-            ]
+                action: () => this.resetCaptureStatus(),
+              },
+            ],
           }
         );
       } else {
         throw new Error(response.error || 'Selection capture failed');
-      }    } catch (error) {
+      }
+    } catch (error) {
       logger.error('Error capturing selection:', error);
       const errorMessage = (error as Error).message;
-      
-      this.updateCaptureStatus(
-        'Selection Capture Failed',
-        errorMessage,
-        'error',
-        {
-          autoHide: 6000,
-          actions: [
-            {
-              label: 'Try Again',
-              action: () => {
-                this.resetCaptureStatus();
-                setTimeout(() => this.captureSelection(), 100);
-              },
-              primary: true
+
+      this.updateCaptureStatus('Selection Capture Failed', errorMessage, 'error', {
+        autoHide: 6000,
+        actions: [
+          {
+            label: 'Try Again',
+            action: () => {
+              this.resetCaptureStatus();
+              setTimeout(() => this.captureSelection(), 100);
             },
-            {
-              label: 'Capture Full Page',
-              action: () => {
-                this.resetCaptureStatus();
-                setTimeout(() => this.capturePage(), 100);
-              }
-            }
-          ]
-        }
-      );
+            primary: true,
+          },
+          {
+            label: 'Capture Full Page',
+            action: () => {
+              this.resetCaptureStatus();
+              setTimeout(() => this.capturePage(), 100);
+            },
+          },
+        ],
+      });
     } finally {
       this.isCapturing = false;
     }
@@ -583,8 +561,8 @@ export class PrismWeavePopup {
    * @param options Additional options for the status display
    */
   private updateCaptureStatus(
-    title: string, 
-    message?: string, 
+    title: string,
+    message?: string,
     type: 'progress' | 'success' | 'error' | 'warning' = 'progress',
     options: {
       showProgress?: boolean;
@@ -599,7 +577,7 @@ export class PrismWeavePopup {
 
     // Update container class
     container.className = `capture-status-container ${type}`;
-    
+
     // Update icon based on type
     const iconElement = document.getElementById('status-icon');
     if (iconElement) {
@@ -607,7 +585,7 @@ export class PrismWeavePopup {
         success: '✓',
         error: '⚠',
         progress: '⟳',
-        warning: '⚠'
+        warning: '⚠',
       };
       iconElement.textContent = icons[type];
     }
@@ -698,11 +676,15 @@ export class PrismWeavePopup {
         </div>
         <div class="status-details" style="display: block;">
           <div class="missing-settings-content">
-            ${missingSettings.length > 0 ? `
+            ${
+              missingSettings.length > 0
+                ? `
               <div class="missing-settings-text">
                 <strong>Missing settings:</strong> ${missingSettings.join(', ')}
               </div>
-            ` : ''}
+            `
+                : ''
+            }
             <button id="open-settings-action" class="settings-action-btn">
               ⚙️ Configure Settings
             </button>
@@ -710,14 +692,14 @@ export class PrismWeavePopup {
         </div>
       </div>
     `;
-    
+
     container.className = 'capture-status-container missing-settings';
     container.style.display = 'block';
 
     // Setup event handlers
     const openSettingsBtn = document.getElementById('open-settings-action');
     const closeBtn = document.getElementById('missing-settings-close');
-    
+
     if (openSettingsBtn) {
       openSettingsBtn.addEventListener('click', () => {
         this.openSettings();
@@ -739,39 +721,6 @@ export class PrismWeavePopup {
       statusElement.style.display = 'none';
       statusElement.textContent = '';
       statusElement.className = 'capture-status';
-    }
-  }
-
-  private async toggleQuickCapture(enabled: boolean): Promise<void> {
-    try {
-      await this.sendMessageToBackground('UPDATE_SETTINGS', { 
-        quickCapture: enabled 
-      });
-      logger.info('Quick capture toggled:', enabled);
-    } catch (error) {
-      logger.error('Error toggling quick capture:', error);
-    }
-  }
-
-  private async updateSelectedFolder(folder: string): Promise<void> {
-    try {
-      await this.sendMessageToBackground('UPDATE_SETTINGS', { 
-        defaultFolder: folder 
-      });
-      logger.info('Default folder updated:', folder);
-    } catch (error) {
-      logger.error('Error updating folder:', error);
-    }
-  }
-
-  private async toggleAutoCommit(enabled: boolean): Promise<void> {
-    try {
-      await this.sendMessageToBackground('UPDATE_SETTINGS', { 
-        autoCommit: enabled 
-      });
-      logger.info('Auto-commit toggled:', enabled);
-    } catch (error) {
-      logger.error('Error toggling auto-commit:', error);
     }
   }
 
@@ -797,7 +746,7 @@ export class PrismWeavePopup {
   private async sendMessageToBackground(type: string, data?: any): Promise<IMessageResponse> {
     return new Promise<IMessageResponse>((resolve, reject) => {
       const message: IMessageData = { type, data };
-      
+
       chrome.runtime.sendMessage(message, (response: IMessageResponse) => {
         if (chrome.runtime.lastError) {
           reject(new Error(chrome.runtime.lastError.message));
@@ -815,7 +764,7 @@ export class PrismWeavePopup {
 
     return new Promise<IMessageResponse>((resolve, reject) => {
       const message: IMessageData = { type, data };
-      
+
       chrome.tabs.sendMessage(this.currentTab!.id!, message, (response: IMessageResponse) => {
         if (chrome.runtime.lastError) {
           reject(new Error(chrome.runtime.lastError.message));
@@ -828,14 +777,14 @@ export class PrismWeavePopup {
   private async validateCurrentTab(): Promise<{ isValid: boolean; error?: string; tabInfo?: any }> {
     try {
       if (!this.currentTab?.id) {
-        return { 
-          isValid: false, 
-          error: 'No current tab ID available' 
+        return {
+          isValid: false,
+          error: 'No current tab ID available',
         };
       }
 
-      const response = await this.sendMessageToBackground('VALIDATE_TAB', { 
-        tabId: this.currentTab.id 
+      const response = await this.sendMessageToBackground('VALIDATE_TAB', {
+        tabId: this.currentTab.id,
       });
 
       if (response.success) {
@@ -843,19 +792,19 @@ export class PrismWeavePopup {
         return {
           isValid: data.isValid,
           error: data.isValid ? undefined : data.message,
-          tabInfo: data.tabInfo
+          tabInfo: data.tabInfo,
         };
       } else {
         return {
           isValid: false,
-          error: response.error || 'Unknown validation error'
+          error: response.error || 'Unknown validation error',
         };
       }
     } catch (error) {
       logger.error('Error validating current tab:', error);
       return {
         isValid: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       };
     }
   }

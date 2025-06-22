@@ -62,18 +62,28 @@
           ></div>
         </div>
       </div>
-    </div>
-
-    <div class="section">
+    </div>    <div class="section">
       <h2>Capture Settings</h2>
+
+      <div class="checkbox-group">
+        <input
+          type="checkbox"
+          id="quick-capture"
+        />
+        <label for="quick-capture">Quick Capture Mode</label>
+        <div class="help-text">Enable simplified capture interface with fewer prompts</div>
+      </div>
 
       <div class="form-group">
         <label for="default-folder">Default Folder</label>
         <select id="default-folder">
           <option value="unsorted">Unsorted</option>
+          <option value="documents">Documents</option>
+          <option value="articles">Articles</option>
+          <option value="research">Research</option>
+          <option value="notes">Notes</option>
           <option value="tech">Tech</option>
           <option value="business">Business</option>
-          <option value="research">Research</option>
           <option value="custom">Custom...</option>
         </select>
         <div class="help-text">Where new captures are saved by default</div>
@@ -92,11 +102,9 @@
           style="display: none"
           placeholder="my-custom-folder"
         />
-      </div>
-
-      <div class="form-group">
-        <label for="naming-pattern">File Naming Pattern</label>
-        <select id="naming-pattern">
+      </div>      <div class="form-group">
+        <label for="fileNamingPattern">File Naming Pattern</label>
+        <select id="fileNamingPattern">
           <option value="YYYY-MM-DD-domain-title">Date-Domain-Title</option>
           <option value="YYYY-MM-DD-title">Date-Title</option>
           <option value="domain-YYYY-MM-DD-title">Domain-Date-Title</option>

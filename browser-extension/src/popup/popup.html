@@ -2,7 +2,10 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <link rel="stylesheet" href="popup.css" />
+    <link
+      rel="stylesheet"
+      href="popup.css"
+    />
   </head>
   <body>
     <div class="header">
@@ -34,7 +37,8 @@
             class="page-url"
             id="page-url"
           ></div>
-        </div>        <div
+        </div>
+        <div
           id="status"
           class="status"
           style="display: none"
@@ -43,7 +47,8 @@
             class="status-text"
             id="status-text"
           ></p>
-        </div>        <!-- Enhanced Capture Status Messages -->
+        </div>
+        <!-- Enhanced Capture Status Messages -->
         <div
           id="capture-status"
           class="capture-status-container"
@@ -52,19 +57,46 @@
           <div class="status-card">
             <div class="status-header">
               <div class="status-icon-wrapper">
-                <div class="status-icon" id="status-icon"></div>
+                <div
+                  class="status-icon"
+                  id="status-icon"
+                ></div>
               </div>
               <div class="status-content">
-                <div class="status-title" id="status-title"></div>
-                <div class="status-message" id="status-message"></div>
+                <div
+                  class="status-title"
+                  id="status-title"
+                ></div>
+                <div
+                  class="status-message"
+                  id="status-message"
+                ></div>
               </div>
-              <button class="status-close" id="status-close" aria-label="Close">×</button>
+              <button
+                class="status-close"
+                id="status-close"
+                aria-label="Close"
+              >
+                ×
+              </button>
             </div>
-            <div class="status-details" id="status-details" style="display: none;">
-              <div class="progress-bar" id="progress-bar" style="display: none;">
+            <div
+              class="status-details"
+              id="status-details"
+              style="display: none"
+            >
+              <div
+                class="progress-bar"
+                id="progress-bar"
+                style="display: none"
+              >
                 <div class="progress-fill"></div>
               </div>
-              <div class="status-actions" id="status-actions" style="display: none;"></div>
+              <div
+                class="status-actions"
+                id="status-actions"
+                style="display: none"
+              ></div>
             </div>
           </div>
         </div>
@@ -96,44 +128,18 @@
           class="secondary-button"
         >
           ✂️ Capture Selection
-        </button>        <button
+        </button>
+        <button
           id="settings-btn"
           class="secondary-button"
         >
           ⚙️ Settings
         </button>
 
-        <!-- Quick Settings -->
-        <div class="quick-settings">
-          <div class="setting-item">
-            <label for="quick-capture">
-              <input type="checkbox" id="quick-capture" />
-              Quick Capture Mode
-            </label>
-          </div>
-          
-          <div class="setting-item">
-            <label for="folder-select">Save to folder:</label>
-            <select id="folder-select">
-              <option value="documents">Documents</option>
-              <option value="articles">Articles</option>
-              <option value="research">Research</option>
-              <option value="notes">Notes</option>
-            </select>
-          </div>
-
-          <div class="setting-item">
-            <label for="auto-commit">
-              <input type="checkbox" id="auto-commit" />
-              Auto-commit to Git
-            </label>
-          </div>
-        </div>
-
         <button
           id="view-repo"
           class="secondary-button"
-          style="margin-top: 12px;"
+          style="margin-top: 12px"
         >
           🔗 View Repository
         </button>
@@ -146,10 +152,15 @@
         >
           Advanced Options
         </a>
-      </div>    </div>    <script src="../libs/turndown.min.js"></script>
+      </div>
+    </div>
+    <script src="../libs/turndown.min.js"></script>
     <script src="../utils/logger.js"></script>
     <script src="../utils/log-config.js"></script>
     <script src="../utils/error-handler.js"></script>
-    <script type="module" src="popup.js"></script>
+    <script
+      type="module"
+      src="popup.js"
+    ></script>
   </body>
 </html>

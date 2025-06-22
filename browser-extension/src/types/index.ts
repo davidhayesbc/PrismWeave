@@ -6,12 +6,12 @@ export interface ISettings {
   enabled: boolean;
   extractionRules: string[];
   apiEndpoint?: string;
-  
+
   // Repository Settings
   repositoryPath: string;
   githubToken: string;
   githubRepo: string;
-  
+
   // File Organization Settings
   defaultFolder: string;
   customFolder: string;
@@ -19,36 +19,42 @@ export interface ISettings {
   customNamingPattern: string;
   documentPath: string;
   defaultTags: string[];
-  
+
   // Automation Settings
+  quickCapture: boolean;
   autoCapture: boolean;
   autoCommit: boolean;
   autoPush: boolean;
-  
   // Content Processing Settings
   captureImages: boolean;
   removeAds: boolean;
   removeNavigation: boolean;
   preserveFormatting: boolean;
+  preserveLinks: boolean;
+  customSelectors: string;
   imageQuality: number;
   maxImageSize: number;
   markdownFormat: 'github' | 'commonmark' | 'custom';
   customMarkdownRules: Record<string, unknown>;
-  
+
+  // Git & Repository Settings
+  commitMessageTemplate: string;
+
   // Content Enhancement Settings
   generateTags: boolean;
   generateSummary: boolean;
   enhanceMetadata: boolean;
   aiProcessing: boolean;
   aiModel: string;
-  
+
   // Performance & Debugging Settings
   debugMode: boolean;
   performanceMonitoring: boolean;
   logLevel: 'debug' | 'info' | 'warn' | 'error';
-  
+
   // UI Preferences
   showNotifications: boolean;
+  enableKeyboardShortcuts: boolean;
   darkMode: boolean;
 }
 
@@ -181,9 +187,19 @@ export type DeepPartial<T> = {
 export type RequiredFields<T, K extends keyof T> = T & Required<Pick<T, K>>;
 
 // Re-export utility types from each module
-export type { LogLevel, ILogStyles } from '../utils/logger';
-export type { IPerformanceMetric, IMemoryInfo, IOperationSummary, IMetricsSummary } from '../utils/performance-monitor';
-export type { IFileValidationResult, IPrismWeaveError } from '../utils/shared-utils';
-export type { StatusType, IEventListener, IValidationRules, IModalOptions } from '../utils/ui-utils';
-export type { ILogger, ILoggerFactory } from '../utils/utils-registry';
 export type { IComponentLogConfig, ILogConfig } from '../utils/log-config';
+export type { ILogStyles, LogLevel } from '../utils/logger';
+export type {
+  IMemoryInfo,
+  IMetricsSummary,
+  IOperationSummary,
+  IPerformanceMetric,
+} from '../utils/performance-monitor';
+export type { IFileValidationResult, IPrismWeaveError } from '../utils/shared-utils';
+export type {
+  IEventListener,
+  IModalOptions,
+  IValidationRules,
+  StatusType,
+} from '../utils/ui-utils';
+export type { ILogger, ILoggerFactory } from '../utils/utils-registry';

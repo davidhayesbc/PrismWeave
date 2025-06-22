@@ -4,7 +4,7 @@ body {
   width: 360px;
   padding: 0;
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
   min-height: 480px;
 }
@@ -14,7 +14,7 @@ body {
   color: white;
   padding: 20px;
   text-align: center;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
 }
 
 .header h1 {
@@ -29,7 +29,7 @@ body {
 }
 
 .action-button {
-  background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+  background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
   color: white;
   border: none;
   padding: 14px 20px;
@@ -87,7 +87,7 @@ body {
   border-radius: 12px;
   padding: 16px;
   margin-bottom: 20px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   border-left: 4px solid #667eea;
 }
 
@@ -163,7 +163,7 @@ body {
 }
 
 .status-icon::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: 0;
@@ -175,11 +175,11 @@ body {
 
 /* Success Status */
 .capture-status-container.success .status-card {
-  border-left: 4px solid #10B981;
+  border-left: 4px solid #10b981;
 }
 
 .capture-status-container.success .status-icon {
-  background: linear-gradient(135deg, #10B981, #059669);
+  background: linear-gradient(135deg, #10b981, #059669);
   color: white;
 }
 
@@ -193,11 +193,11 @@ body {
 
 /* Error Status */
 .capture-status-container.error .status-card {
-  border-left: 4px solid #EF4444;
+  border-left: 4px solid #ef4444;
 }
 
 .capture-status-container.error .status-icon {
-  background: linear-gradient(135deg, #EF4444, #DC2626);
+  background: linear-gradient(135deg, #ef4444, #dc2626);
   color: white;
 }
 
@@ -206,16 +206,16 @@ body {
 }
 
 .capture-status-container.error .status-title {
-  color: #DC2626;
+  color: #dc2626;
 }
 
 /* Progress Status */
 .capture-status-container.progress .status-card {
-  border-left: 4px solid #3B82F6;
+  border-left: 4px solid #3b82f6;
 }
 
 .capture-status-container.progress .status-icon {
-  background: linear-gradient(135deg, #3B82F6, #2563EB);
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
   color: white;
   animation: iconSpin 1s linear infinite;
 }
@@ -225,16 +225,16 @@ body {
 }
 
 .capture-status-container.progress .status-title {
-  color: #2563EB;
+  color: #2563eb;
 }
 
 /* Warning Status */
 .capture-status-container.warning .status-card {
-  border-left: 4px solid #F59E0B;
+  border-left: 4px solid #f59e0b;
 }
 
 .capture-status-container.warning .status-icon {
-  background: linear-gradient(135deg, #F59E0B, #D97706);
+  background: linear-gradient(135deg, #f59e0b, #d97706);
   color: white;
 }
 
@@ -243,7 +243,7 @@ body {
 }
 
 .capture-status-container.warning .status-title {
-  color: #D97706;
+  color: #d97706;
 }
 
 .status-content {
@@ -260,7 +260,7 @@ body {
 
 .status-message {
   font-size: 13px;
-  color: #6B7280;
+  color: #6b7280;
   line-height: 1.4;
   margin: 0;
 }
@@ -278,7 +278,7 @@ body {
   align-items: center;
   justify-content: center;
   font-size: 14px;
-  color: #6B7280;
+  color: #6b7280;
   cursor: pointer;
   transition: all 0.2s ease;
   opacity: 0.6;
@@ -307,7 +307,7 @@ body {
 
 .progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, #3B82F6, #1D4ED8);
+  background: linear-gradient(90deg, #3b82f6, #1d4ed8);
   border-radius: 2px;
   width: 0%;
   transition: width 0.3s ease;
@@ -322,7 +322,7 @@ body {
 
 .status-action-btn {
   padding: 6px 12px;
-  border: 1px solid #D1D5DB;
+  border: 1px solid #d1d5db;
   background: white;
   border-radius: 6px;
   font-size: 12px;
@@ -333,20 +333,20 @@ body {
 }
 
 .status-action-btn:hover {
-  background: #F9FAFB;
-  border-color: #9CA3AF;
+  background: #f9fafb;
+  border-color: #9ca3af;
   transform: translateY(-1px);
 }
 
 .status-action-btn.primary {
-  background: #3B82F6;
+  background: #3b82f6;
   color: white;
-  border-color: #3B82F6;
+  border-color: #3b82f6;
 }
 
 .status-action-btn.primary:hover {
-  background: #2563EB;
-  border-color: #2563EB;
+  background: #2563eb;
+  border-color: #2563eb;
 }
 
 /* Warning Container */
@@ -356,8 +356,8 @@ body {
 }
 
 .warning-card {
-  background: linear-gradient(135deg, #FEF3C7, #FDE68A);
-  border: 1px solid #F59E0B;
+  background: linear-gradient(135deg, #fef3c7, #fde68a);
+  border: 1px solid #f59e0b;
   border-radius: 10px;
   padding: 14px;
   display: flex;
@@ -385,24 +385,24 @@ body {
 .warning-title {
   font-size: 13px;
   font-weight: 600;
-  color: #92400E;
+  color: #92400e;
   margin-bottom: 2px;
 }
 
 .warning-message {
   font-size: 12px;
-  color: #A16207;
+  color: #a16207;
   line-height: 1.3;
 }
 
 /* Enhanced Missing Settings Message */
 .capture-status-container.missing-settings .status-card {
-  border-left: 4px solid #F59E0B;
-  background: linear-gradient(135deg, #FFFBEB, #FEF3C7);
+  border-left: 4px solid #f59e0b;
+  background: linear-gradient(135deg, #fffbeb, #fef3c7);
 }
 
 .capture-status-container.missing-settings .status-icon {
-  background: linear-gradient(135deg, #F59E0B, #D97706);
+  background: linear-gradient(135deg, #f59e0b, #d97706);
   color: white;
 }
 
@@ -414,7 +414,7 @@ body {
 
 .missing-settings-text {
   font-size: 13px;
-  color: #92400E;
+  color: #92400e;
   line-height: 1.4;
 }
 
@@ -423,7 +423,7 @@ body {
   align-items: center;
   gap: 6px;
   padding: 8px 16px;
-  background: linear-gradient(135deg, #F59E0B, #D97706);
+  background: linear-gradient(135deg, #f59e0b, #d97706);
   color: white;
   border: none;
   border-radius: 8px;
@@ -438,7 +438,7 @@ body {
 .settings-action-btn:hover {
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
-  background: linear-gradient(135deg, #D97706, #B45309);
+  background: linear-gradient(135deg, #d97706, #b45309);
 }
 
 .settings-action-btn:active {
@@ -459,7 +459,8 @@ body {
 }
 
 @keyframes iconPulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 0.8;
     transform: scale(1);
   }
@@ -479,7 +480,11 @@ body {
 }
 
 @keyframes iconBounce {
-  0%, 20%, 50%, 80%, 100% {
+  0%,
+  20%,
+  50%,
+  80%,
+  100% {
     transform: translateY(0);
   }
   40% {
@@ -493,12 +498,12 @@ body {
 @keyframes progressShimmer {
   0% {
     background-position: -200px 0;
-    background-image: linear-gradient(90deg, #3B82F6, #1D4ED8, #3B82F6);
+    background-image: linear-gradient(90deg, #3b82f6, #1d4ed8, #3b82f6);
     background-size: 200px 100%;
   }
   100% {
     background-position: calc(200px + 100%) 0;
-    background-image: linear-gradient(90deg, #3B82F6, #1D4ED8, #3B82F6);
+    background-image: linear-gradient(90deg, #3b82f6, #1d4ed8, #3b82f6);
     background-size: 200px 100%;
   }
 }
@@ -509,17 +514,17 @@ body {
     padding: 12px;
     gap: 10px;
   }
-  
+
   .status-icon {
     width: 28px;
     height: 28px;
     font-size: 14px;
   }
-  
+
   .status-title {
     font-size: 13px;
   }
-  
+
   .status-message {
     font-size: 12px;
   }
@@ -533,7 +538,7 @@ body {
   background: white;
   border-radius: 12px;
   margin: 16px 0;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 .advanced-spinner {
@@ -547,7 +552,7 @@ body {
   width: 40px;
   height: 40px;
   border: 3px solid #e0e0e0;
-  border-top: 3px solid #2196F3;
+  border-top: 3px solid #2196f3;
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -577,14 +582,14 @@ body {
 }
 
 .dot.active {
-  background: #2196F3;
+  background: #2196f3;
 }
 
 .settings-link {
   text-align: center;
   margin-top: 20px;
   padding-top: 16px;
-  border-top: 1px solid rgba(0,0,0,0.1);
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
 }
 
 .settings-link a {
@@ -650,56 +655,14 @@ body {
   box-shadow: 0 2px 4px rgba(255, 152, 0, 0.3);
 }
 
-/* Quick Settings Section */
-.quick-settings {
-  margin: 16px 0;
-  padding: 16px;
-  background: rgba(255, 255, 255, 0.7);
-  border-radius: 8px;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-}
-
-.setting-item {
-  margin: 12px 0;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.setting-item label {
-  font-size: 13px;
-  font-weight: 500;
-  color: #333;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-}
-
-.setting-item input[type="checkbox"] {
-  margin: 0;
-}
-
-.setting-item select {
-  padding: 6px 12px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 12px;
-  background: white;
-  min-width: 100px;
-}
-
-.setting-item select:focus {
-  outline: none;
-  border-color: #667eea;
-  box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
-}
-
 /* Animations */
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 @keyframes slideIn {
@@ -714,22 +677,29 @@ body {
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
 }
 
 /* Button ripple effect */
 .action-button::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 50%;
   left: 50%;
   width: 0;
   height: 0;
   border-radius: 50%;
-  background: rgba(255,255,255,0.3);
+  background: rgba(255, 255, 255, 0.3);
   transform: translate(-50%, -50%);
-  transition: width 0.6s, height 0.6s;
+  transition:
+    width 0.6s,
+    height 0.6s;
 }
 
 .action-button:active::before {
@@ -852,7 +822,7 @@ body {
   width: 40px;
   height: 40px;
   border: 3px solid #e0e0e0;
-  border-top: 3px solid #2196F3;
+  border-top: 3px solid #2196f3;
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -882,7 +852,7 @@ body {
 }
 
 .dot.active {
-  background: #2196F3;
+  background: #2196f3;
 }
 
 /* Enhanced Status Messages */
@@ -897,8 +867,14 @@ body {
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(-10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .status.success {
@@ -939,41 +915,48 @@ body {
 .status-solution {
   margin-top: 8px;
   padding-top: 8px;
-  border-top: 1px solid rgba(0,0,0,0.1);
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
   font-size: 12px;
 }
 
 /* Modern Button Enhancements */
-.action-button, .secondary-button {
+.action-button,
+.secondary-button {
   position: relative;
   overflow: hidden;
   transition: all 0.3s ease;
 }
 
-.action-button:hover, .secondary-button:hover {
+.action-button:hover,
+.secondary-button:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
-.action-button:active, .secondary-button:active {
+.action-button:active,
+.secondary-button:active {
   transform: translateY(0);
 }
 
 /* Ripple effect */
-.action-button::after, .secondary-button::after {
-  content: '';
+.action-button::after,
+.secondary-button::after {
+  content: "";
   position: absolute;
   top: 50%;
   left: 50%;
   width: 0;
   height: 0;
   border-radius: 50%;
-  background: rgba(255,255,255,0.3);
+  background: rgba(255, 255, 255, 0.3);
   transform: translate(-50%, -50%);
-  transition: width 0.3s, height 0.3s;
+  transition:
+    width 0.3s,
+    height 0.3s;
 }
 
-.action-button:active::after, .secondary-button:active::after {
+.action-button:active::after,
+.secondary-button:active::after {
   width: 100px;
   height: 100px;
 }

@@ -25,6 +25,23 @@ interface ISettingsData {
   customPrompt?: string;
   defaultFolder?: string;
   customFolder?: string;
+  quickCapture?: boolean;
+  autoPush?: boolean;
+  captureImages?: boolean;
+  removeAds?: boolean;
+  removeNavigation?: boolean;
+  preserveFormatting?: boolean;
+  preserveLinks?: boolean;
+  customSelectors?: string;
+  commitMessageTemplate?: string;
+  generateTags?: boolean;
+  generateSummary?: boolean;
+  enhanceMetadata?: boolean;
+  debugMode?: boolean;
+  performanceMonitoring?: boolean;
+  showNotifications?: boolean;
+  enableKeyboardShortcuts?: boolean;
+  darkMode?: boolean;
   [key: string]: unknown;
 }
 
@@ -159,6 +176,23 @@ class ServiceWorkerSettingsManager {
       customPrompt: '',
       defaultFolder: 'auto',
       customFolder: '',
+      quickCapture: false,
+      autoPush: false,
+      captureImages: true,
+      removeAds: true,
+      removeNavigation: true,
+      preserveFormatting: true,
+      preserveLinks: true,
+      customSelectors: '',
+      commitMessageTemplate: 'Add: {domain} - {title}',
+      generateTags: true,
+      generateSummary: false,
+      enhanceMetadata: true,
+      debugMode: false,
+      performanceMonitoring: false,
+      showNotifications: true,
+      enableKeyboardShortcuts: true,
+      darkMode: false,
     };
   }
 }
