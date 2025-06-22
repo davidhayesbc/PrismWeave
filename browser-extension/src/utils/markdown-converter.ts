@@ -62,7 +62,8 @@ export class MarkdownConverter {
 
     // Initialize synchronously for service worker, async for others
     this.initializeTurndown();
-  }  private initializeTurndown(): void {
+  }
+  private initializeTurndown(): void {
     // Service worker context check - TurndownService should never be loaded here
     const isServiceWorker =
       typeof (globalThis as any).importScripts === 'function' && typeof window === 'undefined';
@@ -91,7 +92,9 @@ export class MarkdownConverter {
 
     // Check if TurndownService is available
     if (!TurndownService) {
-      console.warn('MarkdownConverter: TurndownService not available, attempting to load library dynamically');
+      console.warn(
+        'MarkdownConverter: TurndownService not available, attempting to load library dynamically'
+      );
 
       // Store the initialization promise to avoid multiple concurrent loads
       if (!this._initializationPromise) {
@@ -99,11 +102,16 @@ export class MarkdownConverter {
           .then(() => {
             this.setupTurndownService();
             this._isInitialized = true;
-            console.info('MarkdownConverter: TurndownService initialization completed successfully');
+            console.info(
+              'MarkdownConverter: TurndownService initialization completed successfully'
+            );
           })
           .catch((error: Error) => {
-            console.warn('MarkdownConverter: Failed to load TurndownService dynamically, trying alternative methods:', error.message);
-            
+            console.warn(
+              'MarkdownConverter: Failed to load TurndownService dynamically, trying alternative methods:',
+              error.message
+            );
+
             // Try alternative loading strategy
             return this.tryAlternativeLoading()
               .then(() => {
@@ -112,7 +120,10 @@ export class MarkdownConverter {
                 console.info('MarkdownConverter: TurndownService loaded via alternative method');
               })
               .catch((altError: Error) => {
-                console.warn('MarkdownConverter: All loading methods failed, using fallback conversion:', altError.message);
+                console.warn(
+                  'MarkdownConverter: All loading methods failed, using fallback conversion:',
+                  altError.message
+                );
                 this.turndownService = null;
                 this._isInitialized = true; // Mark as initialized even with fallback
               });
@@ -132,41 +143,38 @@ export class MarkdownConverter {
       // Try to request the library content via message passing
       if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
         console.log('MarkdownConverter: Trying alternative loading via messaging');
-        
-        chrome.runtime.sendMessage(
-          { type: 'GET_TURNDOWN_LIBRARY' },
-          (response) => {
-            if (chrome.runtime.lastError) {
-              reject(new Error(`Message passing failed: ${chrome.runtime.lastError.message}`));
-              return;
-            }
-            
-            if (response && response.success && response.content) {
-              try {
-                // Execute the library code in global context
-                const script = document.createElement('script');
-                script.textContent = response.content;
-                script.type = 'text/javascript';
-                
-                document.head.appendChild(script);
-                
-                setTimeout(() => {
-                  if (window.TurndownService) {
-                    console.info('MarkdownConverter: TurndownService loaded via message passing');
-                    resolve();
-                  } else {
-                    reject(new Error('TurndownService not available after alternative loading'));
-                  }
-                }, 100);
-              } catch (error) {
-                reject(new Error(`Failed to execute library content: ${error}`));
-              }
-            } else {
-              reject(new Error('Invalid response from background script'));
-            }
+
+        chrome.runtime.sendMessage({ type: 'GET_TURNDOWN_LIBRARY' }, response => {
+          if (chrome.runtime.lastError) {
+            reject(new Error(`Message passing failed: ${chrome.runtime.lastError.message}`));
+            return;
           }
-        );
-        
+
+          if (response && response.success && response.content) {
+            try {
+              // Execute the library code in global context
+              const script = document.createElement('script');
+              script.textContent = response.content;
+              script.type = 'text/javascript';
+
+              document.head.appendChild(script);
+
+              setTimeout(() => {
+                if (window.TurndownService) {
+                  console.info('MarkdownConverter: TurndownService loaded via message passing');
+                  resolve();
+                } else {
+                  reject(new Error('TurndownService not available after alternative loading'));
+                }
+              }, 100);
+            } catch (error) {
+              reject(new Error(`Failed to execute library content: ${error}`));
+            }
+          } else {
+            reject(new Error('Invalid response from background script'));
+          }
+        });
+
         // Timeout for message passing
         setTimeout(() => {
           reject(new Error('Alternative loading timed out'));
@@ -175,7 +183,8 @@ export class MarkdownConverter {
         reject(new Error('Chrome runtime messaging not available'));
       }
     });
-  }private async loadTurndownService(): Promise<void> {
+  }
+  private async loadTurndownService(): Promise<void> {
     return new Promise((resolve, reject) => {
       // Check if already loaded
       if (window.TurndownService) {
@@ -187,7 +196,9 @@ export class MarkdownConverter {
 
       // Verify we're in the right context for chrome.runtime
       if (typeof chrome === 'undefined' || !chrome.runtime) {
-        console.warn('MarkdownConverter: Chrome runtime not available, cannot load TurndownService');
+        console.warn(
+          'MarkdownConverter: Chrome runtime not available, cannot load TurndownService'
+        );
         reject(new Error('Chrome runtime not available'));
         return;
       }
@@ -197,33 +208,37 @@ export class MarkdownConverter {
         try {
           const script = document.createElement('script');
           const scriptUrl = chrome.runtime.getURL('libs/turndown.min.js');
-          
+
           console.log('MarkdownConverter: Loading TurndownService from:', scriptUrl);
-          
+
           script.src = scriptUrl;
           script.type = 'text/javascript';
           script.async = true;
-          
+
           let resolved = false;
-          
+
           script.onload = () => {
             if (resolved) return;
-            
+
             // Give a small delay for the script to fully initialize
             setTimeout(() => {
               if (window.TurndownService) {
-                console.info('MarkdownConverter: TurndownService loaded successfully via dynamic injection');
+                console.info(
+                  'MarkdownConverter: TurndownService loaded successfully via dynamic injection'
+                );
                 resolved = true;
                 resolve();
               } else {
-                console.warn('MarkdownConverter: TurndownService script loaded but constructor not available');
+                console.warn(
+                  'MarkdownConverter: TurndownService script loaded but constructor not available'
+                );
                 resolved = true;
                 reject(new Error('TurndownService not available after loading script'));
               }
             }, 100);
           };
-          
-          script.onerror = (error) => {
+
+          script.onerror = error => {
             if (resolved) return;
             console.error('MarkdownConverter: Failed to load TurndownService script:', error);
             resolved = true;
@@ -256,7 +271,9 @@ export class MarkdownConverter {
       // Check if DOM is ready
       if (document.readyState === 'loading') {
         // DOM is still loading, wait for it
-        console.log('MarkdownConverter: Waiting for DOM to be ready before loading TurndownService');
+        console.log(
+          'MarkdownConverter: Waiting for DOM to be ready before loading TurndownService'
+        );
         const onDOMReady = () => {
           document.removeEventListener('DOMContentLoaded', onDOMReady);
           setTimeout(injectScript, 100); // Small delay after DOM ready
@@ -496,7 +513,7 @@ export class MarkdownConverter {
     console.warn(
       'MarkdownConverter: Initialization was not properly started, attempting to initialize now'
     );
-    
+
     try {
       this.initializeTurndown();
 

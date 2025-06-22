@@ -293,14 +293,14 @@ async function handleMessage(
 async function getTurndownLibrary(): Promise<unknown> {
   try {
     swLogger.info('Fetching TurndownService library for content script...');
-    
+
     const response = await fetch(chrome.runtime.getURL('libs/turndown.min.js'));
     if (!response.ok) {
       throw new Error(`Failed to fetch library: ${response.status}`);
     }
-    
+
     const content = await response.text();
-    
+
     return {
       success: true,
       content: content,
