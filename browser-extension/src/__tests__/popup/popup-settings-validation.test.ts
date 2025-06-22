@@ -8,12 +8,12 @@ import { PrismWeavePopup } from '../../popup/popup';
   runtime: {
     sendMessage: jest.fn(),
     openOptionsPage: jest.fn(),
-    lastError: undefined as chrome.runtime.LastError | undefined
+    lastError: undefined as chrome.runtime.LastError | undefined,
   },
   tabs: {
     query: jest.fn(),
-    create: jest.fn()
-  }
+    create: jest.fn(),
+  },
 };
 
 // Mock DOM elements
@@ -22,12 +22,24 @@ const mockElement = {
   textContent: '',
   className: '',
   style: { display: 'none' },
-  addEventListener: jest.fn()
+  addEventListener: jest.fn(),
 };
 
 (global as any).document = {
-  getElementById: jest.fn(() => mockElement)
+  getElementById: jest.fn(() => mockElement),
 };
+
+// Mock Chrome APIs for Jest
+declare const global: any;
+if (!global.chrome) {
+  global.chrome = {};
+}
+if (!global.chrome.runtime) {
+  global.chrome.runtime = {};
+}
+if (!global.chrome.runtime.lastError) {
+  global.chrome.runtime.lastError = undefined;
+}
 
 describe('PrismWeavePopup - Settings Validation', () => {
   let popup: PrismWeavePopup;
@@ -38,72 +50,69 @@ describe('PrismWeavePopup - Settings Validation', () => {
   });
 
   describe('validateCaptureSettings', () => {
-    test('should return valid when all required settings are present', () => {
-      // Set up valid settings
+    // B.1.1: Should return valid when all required settings are present
+    test('B.1.1 - should return valid when all required settings are present', () => {
       (popup as any).settings = {
         githubToken: 'test-token',
         githubRepo: 'user/repo',
-        repositoryPath: '/path/to/repo'
+        repositoryPath: '/path/to/repo',
       };
-
       const result = (popup as any).validateCaptureSettings();
-      
       expect(result.isValid).toBe(true);
       expect(result.missingSettings).toHaveLength(0);
     });
 
-    test('should return invalid when GitHub token is missing', () => {
+    // B.1.2: Should return invalid when GitHub token is missing
+    test('B.1.2 - should return invalid when GitHub token is missing', () => {
       (popup as any).settings = {
         githubRepo: 'user/repo',
-        repositoryPath: '/path/to/repo'
+        repositoryPath: '/path/to/repo',
       };
-
       const result = (popup as any).validateCaptureSettings();
-      
       expect(result.isValid).toBe(false);
       expect(result.missingSettings).toContain('GitHub Token');
       expect(result.message).toContain('Missing required setting: GitHub Token');
     });
 
-    test('should return invalid when GitHub repo is missing', () => {
+    // B.1.3: Should return invalid when GitHub repo is missing
+    test('B.1.3 - should return invalid when GitHub repo is missing', () => {
       (popup as any).settings = {
         githubToken: 'test-token',
-        repositoryPath: '/path/to/repo'
+        repositoryPath: '/path/to/repo',
       };
-
       const result = (popup as any).validateCaptureSettings();
-      
       expect(result.isValid).toBe(false);
       expect(result.missingSettings).toContain('GitHub Repository');
       expect(result.message).toContain('Missing required setting: GitHub Repository');
-    });    test('should return valid when both GitHub token and repository are present', () => {
-      (popup as any).settings = {
-        githubToken: 'test-token',
-        githubRepo: 'user/repo'
-      };
+    });
 
-      const result = (popup as any).validateCaptureSettings();
-      
-      expect(result.isValid).toBe(true);
-      expect(result.missingSettings).toHaveLength(0);
-    });    test('should return valid when optional settings like defaultFolder are also present', () => {
+    // B.1.4: Should return valid when both GitHub token and repository are present
+    test('B.1.4 - should return valid when both GitHub token and repository are present', () => {
       (popup as any).settings = {
         githubToken: 'test-token',
         githubRepo: 'user/repo',
-        defaultFolder: 'documents'
       };
-
       const result = (popup as any).validateCaptureSettings();
-      
       expect(result.isValid).toBe(true);
       expect(result.missingSettings).toHaveLength(0);
     });
 
-    test('should handle multiple missing settings', () => {
-      (popup as any).settings = {};
-
+    // B.1.5: Should return valid when optional settings like defaultFolder are also present
+    test('B.1.5 - should return valid when optional settings like defaultFolder are also present', () => {
+      (popup as any).settings = {
+        githubToken: 'test-token',
+        githubRepo: 'user/repo',
+        defaultFolder: 'documents',
+      };
       const result = (popup as any).validateCaptureSettings();
-      
+      expect(result.isValid).toBe(true);
+      expect(result.missingSettings).toHaveLength(0);
+    });
+
+    // B.1.6: Should handle multiple missing settings
+    test('B.1.6 - should handle multiple missing settings', () => {
+      (popup as any).settings = {};
+      const result = (popup as any).validateCaptureSettings();
       expect(result.isValid).toBe(false);
       expect(result.missingSettings).toHaveLength(2);
       expect(result.missingSettings).toContain('GitHub Token');
@@ -111,12 +120,12 @@ describe('PrismWeavePopup - Settings Validation', () => {
       expect(result.message).toContain('Missing required settings:');
     });
 
-    test('should handle null settings', () => {
+    // B.1.7: Should handle null settings
+    test('B.1.7 - should handle null settings', () => {
       (popup as any).settings = null;
-
       const result = (popup as any).validateCaptureSettings();
-      
       expect(result.isValid).toBe(false);
       expect(result.message).toContain('Settings not loaded');
-    });  });
+    });
+  });
 });

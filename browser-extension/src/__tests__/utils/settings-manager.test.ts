@@ -24,7 +24,7 @@ describe('SettingsManager - Load/Save Operations', () => {
     jest.clearAllMocks();
     (global as any).chrome.runtime.lastError = undefined;
   });
-  test('1.1 Verify all schema fields have default values', async () => {
+  test('A.1.1 Verify all schema fields have default values', async () => {
     // Test that all schema fields have proper default values
     const defaults = await manager.getDefaults();
 
@@ -53,7 +53,7 @@ describe('SettingsManager - Load/Save Operations', () => {
     });
   });
 
-  test('1.2 Test loading when storage is empty', async () => {
+  test('A.1.2 Test loading when storage is empty', async () => {
     // Mock storage to return empty object
     ((global as any).chrome.storage.sync.get as jest.Mock).mockImplementation((keys, callback) => {
       callback({});
@@ -66,7 +66,8 @@ describe('SettingsManager - Load/Save Operations', () => {
       expect.any(Function)
     );
   });
-  test('1.3 Test saving valid settings', async () => {
+  // Not in TESTING_PLAN.md, assigned A.2.2 (Test fallback to local storage) or next available if not matching plan
+  test('A.2.2 Test saving valid settings', async () => {
     // Mock storage set to succeed
     ((global as any).chrome.storage.sync.set as jest.Mock).mockImplementation((data, callback) => {
       callback();
@@ -85,7 +86,7 @@ describe('SettingsManager - Load/Save Operations', () => {
       expect.any(Function)
     );
   });
-  test('Validate settings with correct types', () => {
+  test('A.3.1 Validate settings with correct types', () => {
     const validSettings = {
       autoCommit: true,
       defaultFolder: 'tech',
@@ -97,7 +98,7 @@ describe('SettingsManager - Load/Save Operations', () => {
     expect(validation.errors).toEqual([]);
   });
 
-  test('Validate settings with incorrect types', () => {
+  test('A.3.2 Validate settings with incorrect types', () => {
     const invalidSettings = {
       autoCommit: 'yes', // should be boolean
       githubRepo: 'invalid-format', // should match pattern
@@ -107,7 +108,7 @@ describe('SettingsManager - Load/Save Operations', () => {
     expect(validation.isValid).toBe(false);
     expect(validation.errors.length).toBeGreaterThan(0);
   });
-  test('Reset settings to defaults', async () => {
+  test('A.4.3 Reset settings to defaults', async () => {
     // Mock storage set to succeed
     ((global as any).chrome.storage.sync.set as jest.Mock).mockImplementation((data, callback) => {
       callback();
@@ -122,7 +123,7 @@ describe('SettingsManager - Load/Save Operations', () => {
       expect.any(Function)
     );
   });
-  test('Handle storage errors gracefully', async () => {
+  test('A.4.1 Handle storage errors gracefully', async () => {
     // Suppress expected console.error output during this test
     const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
 
@@ -144,7 +145,7 @@ describe('SettingsManager - Load/Save Operations', () => {
     // Restore console.error
     consoleErrorSpy.mockRestore();
   });
-  test('Export settings (sanitized)', async () => {
+  test('A.5.1 Export settings (sanitized)', async () => {
     // Mock storage to return settings with sensitive data
     ((global as any).chrome.storage.sync.get as jest.Mock).mockImplementation((keys, callback) => {
       callback({
@@ -163,7 +164,7 @@ describe('SettingsManager - Load/Save Operations', () => {
     expect(parsed.autoCommit).toBe(true);
     expect(parsed.defaultFolder).toBe('tech');
   });
-  test('Import settings successfully', async () => {
+  test('A.6.1 Import settings successfully', async () => {
     // Mock storage set to succeed
     ((global as any).chrome.storage.sync.set as jest.Mock).mockImplementation((data, callback) => {
       callback();
@@ -177,7 +178,7 @@ describe('SettingsManager - Load/Save Operations', () => {
     const result = await manager.importSettings(importData);
     expect(result).toBe(true);
   });
-  test('Import invalid JSON fails gracefully', async () => {
+  test('A.6.3 Import invalid JSON fails gracefully', async () => {
     // Suppress expected console.error output during this test
     const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
 
