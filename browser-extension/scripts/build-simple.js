@@ -8,10 +8,10 @@ const path = require('path');
 
 async function buildExtension() {
   console.log('🚀 Building PrismWeave Browser Extension...');
-  
+
   const isProduction = process.env.NODE_ENV === 'production';
   console.log(`📦 Build mode: ${isProduction ? 'Production' : 'Development'}`);
-  
+
   // Clean dist directory
   if (fs.existsSync('./dist')) {
     fs.rmSync('./dist', { recursive: true });
@@ -24,53 +24,55 @@ async function buildExtension() {
     platform: 'browser',
     sourcemap: !isProduction, // No sourcemaps in production
     minify: isProduction, // Minify in production
-    bundle: true,  // Bundle all dependencies
+    bundle: true, // Bundle all dependencies
     define: {
-      'process.env.NODE_ENV': isProduction ? '"production"' : '"development"'
-    }
+      'process.env.NODE_ENV': isProduction ? '"production"' : '"development"',
+    },
   };
 
   try {
     // Build all components with consistent IIFE format
-    const builds = [      {
+    const builds = [
+      {
         name: 'Service Worker',
         entryPoints: ['src/background/service-worker.ts'],
         outfile: 'dist/background/service-worker.js',
-        ...buildOptions
+        ...buildOptions,
       },
       {
         name: 'Content Script',
         entryPoints: ['src/content/content-script.ts'],
         outfile: 'dist/content/content-script.js',
-        ...buildOptions
+        ...buildOptions,
       },
       {
         name: 'Popup',
         entryPoints: ['src/popup/popup.ts'],
         outfile: 'dist/popup/popup.js',
-        ...buildOptions
+        ...buildOptions,
       },
       {
         name: 'Options',
         entryPoints: ['src/options/options.ts'],
         outfile: 'dist/options/options.js',
-        ...buildOptions
-      }
+        ...buildOptions,
+      },
     ];
 
     // Build all components in parallel
-    await Promise.all(builds.map(async (build) => {
-      console.log(`  📦 Building ${build.name}...`);
-      const { name, ...options } = build;
-      await esbuild.build(options);
-      console.log(`  ✅ ${build.name} completed`);
-    }));
+    await Promise.all(
+      builds.map(async build => {
+        console.log(`  📦 Building ${build.name}...`);
+        const { name, ...options } = build;
+        await esbuild.build(options);
+        console.log(`  ✅ ${build.name} completed`);
+      })
+    );
 
     // Copy static assets
     await copyStaticAssets();
-    
+
     console.log('🎉 Build completed successfully!');
-    
   } catch (error) {
     console.error('❌ Build failed:', error);
     process.exit(1);
@@ -79,33 +81,33 @@ async function buildExtension() {
 
 async function copyStaticAssets() {
   console.log('  📁 Copying static assets...');
-    const assets = [
+  const assets = [
     // Manifest
     { src: 'manifest.json', dest: 'dist/manifest.json' },
-    
+
     // HTML and CSS files
     { src: 'src/popup/popup.html', dest: 'dist/popup/popup.html' },
     { src: 'src/popup/popup.css', dest: 'dist/popup/popup.css' },
     { src: 'src/options/options.html', dest: 'dist/options/options.html' },
     { src: 'src/options/options.css', dest: 'dist/options/options.css' },
-    
+
     // Icons directory
     { src: 'icons', dest: 'dist/icons', isDirectory: true },
-    
+
     // Libraries directory (TurndownService, etc.)
-    { src: 'src/libs', dest: 'dist/libs', isDirectory: true }
+    { src: 'src/libs', dest: 'dist/libs', isDirectory: true },
   ];
 
   for (const asset of assets) {
     const srcPath = asset.src;
     const destPath = asset.dest;
-    
+
     // Ensure destination directory exists
     const destDir = path.dirname(destPath);
     if (!fs.existsSync(destDir)) {
       fs.mkdirSync(destDir, { recursive: true });
     }
-    
+
     if (asset.isDirectory) {
       // Copy entire directory
       if (fs.existsSync(srcPath)) {
@@ -118,54 +120,54 @@ async function copyStaticAssets() {
       }
     }
   }
-  
+
   console.log('  ✅ Static assets copied');
 }
 
 // Development mode with watch
 async function buildDev() {
   console.log('🔄 Starting development build with watch mode...');
-  
+
   const buildOptions = {
     target: 'es2020',
     format: 'iife',
     platform: 'browser',
     sourcemap: true,
     minify: false,
-    bundle: true
+    bundle: true,
   };
 
   const contexts = await Promise.all([
     esbuild.context({
       entryPoints: ['src/background/service-worker.ts'],
       outfile: 'dist/background/service-worker.js',
-      ...buildOptions
+      ...buildOptions,
     }),
     esbuild.context({
       entryPoints: ['src/content/content-script.ts'],
       outfile: 'dist/content/content-script.js',
-      ...buildOptions
+      ...buildOptions,
     }),
     esbuild.context({
       entryPoints: ['src/popup/popup.ts'],
       outfile: 'dist/popup/popup.js',
-      ...buildOptions
+      ...buildOptions,
     }),
     esbuild.context({
       entryPoints: ['src/options/options.ts'],
       outfile: 'dist/options/options.js',
-      ...buildOptions
-    })
+      ...buildOptions,
+    }),
   ]);
 
   // Watch for changes
   await Promise.all(contexts.map(ctx => ctx.watch()));
-  
+
   // Copy static assets initially
   await copyStaticAssets();
-  
+
   console.log('👀 Watching for changes... Press Ctrl+C to stop');
-  
+
   // Keep the process alive
   process.on('SIGINT', async () => {
     console.log('\n🛑 Shutting down...');

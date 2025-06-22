@@ -2,7 +2,7 @@
 // PrismWeave Markdown Converter - TypeScript version
 // Enhanced HTML to Markdown conversion with high-fidelity preservation
 
-import { IMarkdownContent, IDocumentMetadata, IImageAsset } from '../types/index.js';
+import { IDocumentMetadata, IImageAsset } from '../types/index.js';
 
 interface IConversionOptions {
   preserveFormatting?: boolean;
@@ -56,33 +56,38 @@ export class MarkdownConverter {
       highlights: ['.highlight', '.featured', '.important', 'mark', '.marker'],
       captions: ['figcaption', '.caption', '.image-caption', '.photo-caption'],
       metadata: ['.byline', '.author', '.date', '.timestamp', '.published', '.updated'],
-      codeElements: ['code', 'pre', '.code', '.highlight', '.syntax']
+      codeElements: ['code', 'pre', '.code', '.highlight', '.syntax'],
     };
-    
+
     this.initializeTurndown();
   }
   private initializeTurndown(): void {
     // Service worker context check - TurndownService should never be loaded here
-    const isServiceWorker = (typeof (globalThis as any).importScripts === 'function' && typeof window === 'undefined');
-    
+    const isServiceWorker =
+      typeof (globalThis as any).importScripts === 'function' && typeof window === 'undefined';
+
     if (isServiceWorker) {
-      console.info('MarkdownConverter: Running in service worker context, using enhanced fallback conversion');
+      console.info(
+        'MarkdownConverter: Running in service worker context, using enhanced fallback conversion'
+      );
       this.turndownService = null;
       return;
     }
-      // Check if TurndownService is available (from imported library)
-    if (typeof window === 'undefined' || 
-        (!window.TurndownService && !(globalThis as any).TurndownService)) {
+    // Check if TurndownService is available (from imported library)
+    if (
+      typeof window === 'undefined' ||
+      (!window.TurndownService && !(globalThis as any).TurndownService)
+    ) {
       console.warn('TurndownService not available, using enhanced fallback conversion');
       this.turndownService = null;
       return;
     }
 
     console.info('MarkdownConverter: Initializing TurndownService with enhanced rules');
-    
+
     // Use TurndownService from window or globalThis
     const TurndownService = window.TurndownService || (globalThis as any).TurndownService;
-    
+
     // Initialize Turndown service with enhanced custom rules
     this.turndownService = new TurndownService({
       headingStyle: 'atx',
@@ -98,7 +103,7 @@ export class MarkdownConverter {
       },
       keepReplacement: function (content: string, node: any): string {
         return node.isBlock ? '\n\n' + node.outerHTML + '\n\n' : node.outerHTML;
-      }
+      },
     });
 
     this.addCustomRules();
@@ -112,7 +117,7 @@ export class MarkdownConverter {
       filter: 'table',
       replacement: (content: string, node: any): string => {
         return '\n\n' + content + '\n\n';
-      }
+      },
     });
 
     // Table cell rule
@@ -122,11 +127,11 @@ export class MarkdownConverter {
         const tag = node.nodeName.toLowerCase();
         const isHeader = tag === 'th';
         let cellContent = content.trim().replace(/\n/g, ' ').replace(/\|/g, '\\|');
-        
+
         if (!cellContent) cellContent = ' ';
-        
+
         return '| ' + cellContent + ' ';
-      }
+      },
     });
 
     // Table row rule with header detection
@@ -135,14 +140,14 @@ export class MarkdownConverter {
       replacement: (content: string, node: any): string => {
         const hasHeaders = node.querySelectorAll('th').length > 0;
         let row = content + '|\n';
-        
+
         if (hasHeaders) {
           const headerSeparator = content.replace(/[^|]/g, '').replace(/\|/g, '|---') + '|\n';
           row += headerSeparator;
         }
-        
+
         return row;
-      }
+      },
     });
 
     // Enhanced blockquote rule
@@ -152,34 +157,31 @@ export class MarkdownConverter {
         const lines = content.trim().split('\n');
         const quotedLines = lines.map(line => '> ' + line);
         return '\n\n' + quotedLines.join('\n') + '\n\n';
-      }
+      },
     });
 
     // Code block rule with language detection
     this.turndownService.addRule('enhancedCodeBlock', {
       filter: (node: any): boolean => {
-        return node.nodeName === 'PRE' && 
-               node.firstChild && 
-               node.firstChild.nodeName === 'CODE';
+        return node.nodeName === 'PRE' && node.firstChild && node.firstChild.nodeName === 'CODE';
       },
       replacement: (content: string, node: any): string => {
         const codeElement = node.firstChild;
         const language = this.extractLanguageFromClass(codeElement.className);
         const code = codeElement.textContent || content;
-        
+
         return '\n\n```' + language + '\n' + code + '\n```\n\n';
-      }
+      },
     });
 
     // Inline code rule
     this.turndownService.addRule('enhancedInlineCode', {
       filter: (node: any): boolean => {
-        return node.nodeName === 'CODE' && 
-               (!node.parentNode || node.parentNode.nodeName !== 'PRE');
+        return node.nodeName === 'CODE' && (!node.parentNode || node.parentNode.nodeName !== 'PRE');
       },
       replacement: (content: string): string => {
         return '`' + content + '`';
-      }
+      },
     });
 
     // Image rule with alt text and title preservation
@@ -189,17 +191,17 @@ export class MarkdownConverter {
         const alt = node.getAttribute('alt') || '';
         const src = node.getAttribute('src') || '';
         const title = node.getAttribute('title');
-        
+
         if (!src) return '';
-        
+
         let markdown = '![' + alt + '](' + src;
         if (title) {
           markdown += ' "' + title + '"';
         }
         markdown += ')';
-        
+
         return markdown;
-      }
+      },
     });
 
     // Enhanced link rule with title preservation
@@ -208,42 +210,42 @@ export class MarkdownConverter {
       replacement: (content: string, node: any): string => {
         const href = node.getAttribute('href');
         const title = node.getAttribute('title');
-        
+
         if (!href) return content;
-        
+
         let markdown = '[' + content + '](' + href;
         if (title) {
           markdown += ' "' + title + '"';
         }
         markdown += ')';
-        
+
         return markdown;
-      }
+      },
     });
 
     // Callout/Note box rule
     this.turndownService.addRule('callouts', {
       filter: (node: any): boolean => {
-        return this.semanticSelectors.callouts.some(selector => 
-          node.matches && node.matches(selector)
+        return this.semanticSelectors.callouts.some(
+          selector => node.matches && node.matches(selector)
         );
       },
       replacement: (content: string, node: any): string => {
         const type = this.getCalloutType(node);
         return '\n\n> **' + type + ':** ' + content.trim() + '\n\n';
-      }
+      },
     });
 
     // Highlight rule
     this.turndownService.addRule('highlights', {
       filter: (node: any): boolean => {
-        return this.semanticSelectors.highlights.some(selector => 
-          node.matches && node.matches(selector)
+        return this.semanticSelectors.highlights.some(
+          selector => node.matches && node.matches(selector)
         );
       },
       replacement: (content: string): string => {
         return '==' + content + '==';
-      }
+      },
     });
 
     // Figure and caption rule
@@ -252,47 +254,47 @@ export class MarkdownConverter {
       replacement: (content: string, node: any): string => {
         const img = node.querySelector('img');
         const caption = node.querySelector('figcaption');
-        
+
         if (!img) return content;
-        
+
         const alt = img.getAttribute('alt') || '';
         const src = img.getAttribute('src') || '';
         const captionText = caption ? caption.textContent?.trim() : '';
-        
+
         let markdown = '\n\n![' + alt + '](' + src + ')';
         if (captionText) {
           markdown += '\n*' + captionText + '*';
         }
         markdown += '\n\n';
-        
+
         return markdown;
-      }
+      },
     });
 
     // Line break rule
     this.turndownService.addRule('lineBreak', {
       filter: 'br',
-      replacement: (): string => '  \n'
+      replacement: (): string => '  \n',
     });
 
     // Horizontal rule
     this.turndownService.addRule('horizontalRule', {
       filter: 'hr',
-      replacement: (): string => '\n\n---\n\n'
+      replacement: (): string => '\n\n---\n\n',
     });
   }
 
   async convertToMarkdown(
-    html: string, 
-    metadata: IDocumentMetadata, 
+    html: string,
+    metadata: IDocumentMetadata,
     options: IConversionOptions = {}
   ): Promise<IConversionResult> {
     try {
       console.log('MarkdownConverter: Starting conversion');
-      
+
       // Preprocess HTML for better conversion
       const preprocessedHtml = this.preprocessHtml(html, options);
-      
+
       // Convert to markdown
       let markdown: string;
       if (this.turndownService) {
@@ -300,32 +302,31 @@ export class MarkdownConverter {
       } else {
         markdown = this.fallbackConversion(preprocessedHtml);
       }
-      
+
       // Post-process markdown
       markdown = this.postprocessMarkdown(markdown, options);
-      
+
       // Extract images
       const images = this.extractImages(html);
-      
+
       // Generate frontmatter if requested
-      const frontmatter = options.generateFrontmatter ? 
-        this.generateFrontmatter(metadata) : '';
-      
+      const frontmatter = options.generateFrontmatter ? this.generateFrontmatter(metadata) : '';
+
       // Calculate word count
       const wordCount = this.countWords(markdown);
-      
+
       console.log('MarkdownConverter: Conversion complete');
-      
+
       return {
         markdown,
         frontmatter,
         metadata: {
           ...metadata,
           wordCount,
-          estimatedReadingTime: Math.ceil(wordCount / 225)
+          estimatedReadingTime: Math.ceil(wordCount / 225),
         },
         images,
-        wordCount
+        wordCount,
       };
     } catch (error) {
       console.error('MarkdownConverter: Conversion failed:', error);
@@ -336,16 +337,16 @@ export class MarkdownConverter {
   private preprocessHtml(html: string, options: IConversionOptions): string {
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = html;
-    
+
     // Remove unwanted elements
     this.removeUnwantedElements(tempDiv);
-    
+
     // Normalize whitespace
     this.normalizeWhitespace(tempDiv);
-    
+
     // Enhance semantic structure
     this.enhanceSemanticStructure(tempDiv);
-    
+
     return tempDiv.innerHTML;
   }
 
@@ -360,22 +361,19 @@ export class MarkdownConverter {
       '.visually-hidden',
       '.sr-only',
       'iframe[src*="ads"]',
-      'iframe[src*="advertisement"]'
+      'iframe[src*="advertisement"]',
     ];
-    
+
     const unwanted = element.querySelectorAll(unwantedSelectors.join(','));
     unwanted.forEach(el => el.remove());
   }
 
   private normalizeWhitespace(element: Element): void {
-    const walker = document.createTreeWalker(
-      element,
-      NodeFilter.SHOW_TEXT
-    );
+    const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
 
     const textNodes: Text[] = [];
     let node;
-    while (node = walker.nextNode()) {
+    while ((node = walker.nextNode())) {
       textNodes.push(node as Text);
     }
 
@@ -392,10 +390,10 @@ export class MarkdownConverter {
   private enhanceSemanticStructure(element: Element): void {
     // Convert div elements with specific classes to semantic elements
     const divs = element.querySelectorAll('div');
-    
+
     divs.forEach(div => {
       const className = div.className.toLowerCase();
-      
+
       if (className.includes('quote') || className.includes('blockquote')) {
         const blockquote = document.createElement('blockquote');
         blockquote.innerHTML = div.innerHTML;
@@ -412,44 +410,44 @@ export class MarkdownConverter {
 
   private postprocessMarkdown(markdown: string, options: IConversionOptions): string {
     let processed = markdown;
-    
+
     // Clean up excessive line breaks
     processed = processed.replace(/\n{3,}/g, '\n\n');
-    
+
     // Fix spacing around headers
     processed = processed.replace(/\n+(#{1,6})/g, '\n\n$1');
     processed = processed.replace(/(#{1,6}.*)\n+/g, '$1\n\n');
-    
+
     // Fix list formatting
     processed = processed.replace(/\n+(\s*[-*+])/g, '\n$1');
     processed = processed.replace(/\n+(\s*\d+\.)/g, '\n$1');
-    
+
     // Fix blockquote formatting
     processed = processed.replace(/\n+(>)/g, '\n\n$1');
     processed = processed.replace(/(>\s.*)\n+/g, '$1\n\n');
-    
+
     // Fix code block formatting
     processed = processed.replace(/\n+(```)/g, '\n\n$1');
     processed = processed.replace(/(```.*?```)\n+/gs, '$1\n\n');
-    
+
     // Clean up beginning and end
     processed = processed.trim();
-    
+
     return processed;
   }
 
   private fallbackConversion(html: string): string {
     console.log('MarkdownConverter: Using fallback conversion');
-    
+
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = html;
-    
+
     return this.elementToMarkdown(tempDiv);
   }
 
   private elementToMarkdown(element: Element): string {
     let markdown = '';
-    
+
     for (const child of Array.from(element.childNodes)) {
       if (child.nodeType === Node.TEXT_NODE) {
         const text = child.textContent?.trim();
@@ -459,7 +457,7 @@ export class MarkdownConverter {
       } else if (child.nodeType === Node.ELEMENT_NODE) {
         const el = child as Element;
         const tagName = el.tagName.toLowerCase();
-        
+
         switch (tagName) {
           case 'h1':
             markdown += '\n\n# ' + el.textContent + '\n\n';
@@ -504,7 +502,8 @@ export class MarkdownConverter {
             markdown += '\n\n```\n' + el.textContent + '\n```\n\n';
             break;
           case 'blockquote':
-            const quotedLines = (el.textContent || '').split('\n')
+            const quotedLines = (el.textContent || '')
+              .split('\n')
               .map(line => '> ' + line.trim())
               .join('\n');
             markdown += '\n\n' + quotedLines + '\n\n';
@@ -537,7 +536,7 @@ export class MarkdownConverter {
         }
       }
     }
-    
+
     return markdown;
   }
 
@@ -545,96 +544,98 @@ export class MarkdownConverter {
     const isOrdered = listElement.tagName.toLowerCase() === 'ol';
     let markdown = '';
     let counter = 1;
-    
+
     const items = listElement.querySelectorAll(':scope > li');
-    
+
     items.forEach(item => {
       const prefix = isOrdered ? `${counter}. ` : '- ';
       const content = this.elementToMarkdown(item).trim();
-      
+
       markdown += prefix + content + '\n';
-      
+
       if (isOrdered) counter++;
     });
-    
+
     return markdown;
   }
 
   private extractLanguageFromClass(className: string): string {
     if (!className) return '';
-    
+
     const languageMap: Record<string, string> = {
-      'javascript': 'javascript',
-      'js': 'javascript',
-      'typescript': 'typescript',
-      'ts': 'typescript',
-      'python': 'python',
-      'py': 'python',
-      'java': 'java',
-      'csharp': 'csharp',
-      'cs': 'csharp',
-      'html': 'html',
-      'css': 'css',
-      'json': 'json',
-      'xml': 'xml',
-      'sql': 'sql',
-      'bash': 'bash',
-      'shell': 'bash',
-      'powershell': 'powershell',
-      'php': 'php',
-      'ruby': 'ruby',
-      'go': 'go',
-      'rust': 'rust'
+      javascript: 'javascript',
+      js: 'javascript',
+      typescript: 'typescript',
+      ts: 'typescript',
+      python: 'python',
+      py: 'python',
+      java: 'java',
+      csharp: 'csharp',
+      cs: 'csharp',
+      html: 'html',
+      css: 'css',
+      json: 'json',
+      xml: 'xml',
+      sql: 'sql',
+      bash: 'bash',
+      shell: 'bash',
+      powershell: 'powershell',
+      php: 'php',
+      ruby: 'ruby',
+      go: 'go',
+      rust: 'rust',
     };
-    
+
     const classes = className.toLowerCase().split(/\s+/);
-    
+
     for (const cls of classes) {
       // Check for language- prefix
       if (cls.startsWith('language-')) {
         const lang = cls.substring(9);
         return languageMap[lang] || lang;
       }
-      
+
       // Check for highlight- prefix
       if (cls.startsWith('highlight-')) {
         const lang = cls.substring(10);
         return languageMap[lang] || lang;
       }
-      
+
       // Check direct language match
       if (languageMap[cls]) {
         return languageMap[cls];
       }
     }
-    
+
     return '';
   }
 
   private getCalloutType(node: Element): string {
     const className = node.className.toLowerCase();
-    
+
     if (className.includes('warning') || className.includes('alert')) return 'Warning';
     if (className.includes('info') || className.includes('note')) return 'Note';
     if (className.includes('error') || className.includes('danger')) return 'Error';
     if (className.includes('success') || className.includes('tip')) return 'Tip';
-    
+
     return 'Note';
   }
 
   private extractImages(html: string): IImageAsset[] {
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = html;
-    
+
     const images = tempDiv.querySelectorAll('img');
-    
-    return Array.from(images).map((img, index) => ({
-      originalUrl: img.src,
-      localPath: '', // Will be set during image processing
-      filename: this.generateImageFilename(img.src, index),
-      size: 0, // Will be determined during download
-      mimeType: this.getMimeTypeFromUrl(img.src)
-    })).filter(img => img.originalUrl && !img.originalUrl.startsWith('data:'));
+
+    return Array.from(images)
+      .map((img, index) => ({
+        originalUrl: img.src,
+        localPath: '', // Will be set during image processing
+        filename: this.generateImageFilename(img.src, index),
+        size: 0, // Will be determined during download
+        mimeType: this.getMimeTypeFromUrl(img.src),
+      }))
+      .filter(img => img.originalUrl && !img.originalUrl.startsWith('data:'));
   }
 
   private generateImageFilename(url: string, index: number): string {
@@ -642,12 +643,12 @@ export class MarkdownConverter {
       const urlObj = new URL(url);
       const pathname = urlObj.pathname;
       const filename = pathname.split('/').pop() || `image-${index}`;
-      
+
       // Ensure filename has an extension
       if (!filename.includes('.')) {
         return `${filename}.jpg`;
       }
-      
+
       return filename;
     } catch {
       return `image-${index}.jpg`;
@@ -656,18 +657,18 @@ export class MarkdownConverter {
 
   private getMimeTypeFromUrl(url: string): string {
     const extension = url.split('.').pop()?.toLowerCase();
-    
+
     const mimeTypes: Record<string, string> = {
-      'jpg': 'image/jpeg',
-      'jpeg': 'image/jpeg',
-      'png': 'image/png',
-      'gif': 'image/gif',
-      'webp': 'image/webp',
-      'svg': 'image/svg+xml',
-      'bmp': 'image/bmp',
-      'ico': 'image/x-icon'
+      jpg: 'image/jpeg',
+      jpeg: 'image/jpeg',
+      png: 'image/png',
+      gif: 'image/gif',
+      webp: 'image/webp',
+      svg: 'image/svg+xml',
+      bmp: 'image/bmp',
+      ico: 'image/x-icon',
     };
-    
+
     return mimeTypes[extension || ''] || 'image/jpeg';
   }
 
@@ -679,11 +680,11 @@ export class MarkdownConverter {
       tags: metadata.tags,
       ...(metadata.author && { author: metadata.author }),
       ...(metadata.wordCount && { wordCount: metadata.wordCount }),
-      ...(metadata.estimatedReadingTime && { readingTime: metadata.estimatedReadingTime })
+      ...(metadata.estimatedReadingTime && { readingTime: metadata.estimatedReadingTime }),
     };
-    
+
     let frontmatter = '---\n';
-    
+
     Object.entries(frontmatterData).forEach(([key, value]) => {
       if (Array.isArray(value)) {
         frontmatter += `${key}:\n`;
@@ -694,9 +695,9 @@ export class MarkdownConverter {
         frontmatter += `${key}: ${value}\n`;
       }
     });
-    
+
     frontmatter += '---\n\n';
-    
+
     return frontmatter;
   }
 
@@ -704,8 +705,7 @@ export class MarkdownConverter {
     return text
       .replace(/[^\w\s]/g, ' ')
       .split(/\s+/)
-      .filter(word => word.length > 0)
-      .length;
+      .filter(word => word.length > 0).length;
   }
 
   // Public utility methods
@@ -715,39 +715,39 @@ export class MarkdownConverter {
 
   validateMarkdown(markdown: string): { isValid: boolean; errors: string[] } {
     const errors: string[] = [];
-    
+
     // Check for malformed links
     const malformedLinks = markdown.match(/\[([^\]]*)\]\([^)]*$/gm);
     if (malformedLinks) {
       errors.push(`Malformed links found: ${malformedLinks.length}`);
     }
-    
+
     // Check for malformed images
     const malformedImages = markdown.match(/!\[([^\]]*)\]\([^)]*$/gm);
     if (malformedImages) {
       errors.push(`Malformed images found: ${malformedImages.length}`);
     }
-    
+
     // Check for unbalanced code blocks
     const codeBlocks = markdown.match(/```/g);
     if (codeBlocks && codeBlocks.length % 2 !== 0) {
       errors.push('Unbalanced code blocks detected');
     }
-    
+
     // Check for unbalanced emphasis
     const boldMatches = markdown.match(/\*\*/g);
     if (boldMatches && boldMatches.length % 2 !== 0) {
       errors.push('Unbalanced bold formatting detected');
     }
-    
+
     const italicMatches = markdown.match(/(?<!\*)\*(?!\*)/g);
     if (italicMatches && italicMatches.length % 2 !== 0) {
       errors.push('Unbalanced italic formatting detected');
     }
-    
+
     return {
       isValid: errors.length === 0,
-      errors
+      errors,
     };
   }
 
@@ -765,7 +765,7 @@ export class MarkdownConverter {
       headings: (markdown.match(/^#+\s/gm) || []).length,
       links: (markdown.match(/\[([^\]]*)\]\([^)]*\)/g) || []).length,
       images: (markdown.match(/!\[([^\]]*)\]\([^)]*\)/g) || []).length,
-      codeBlocks: (markdown.match(/```/g) || []).length / 2
+      codeBlocks: (markdown.match(/```/g) || []).length / 2,
     };
   }
 }

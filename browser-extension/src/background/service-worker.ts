@@ -565,7 +565,7 @@ async function extractContentDirectly(tabId: number): Promise<IContentExtraction
 
         const extractMetadata = (): Record<string, string> => {
           const metadata: Record<string, string> = {};
-          
+
           // Extract meta tags
           const metaTags = document.querySelectorAll('meta');
           metaTags.forEach(meta => {
