@@ -2,7 +2,7 @@
 // PrismWeave Content Extractor - TypeScript version
 // Enhanced content extraction and cleaning utilities
 
-import { IDocumentMetadata, ICaptureOptions } from '../types/index.js';
+import { IDocumentMetadata } from '../types/index.js';
 
 interface IContentResult {
   content: string;
@@ -25,7 +25,6 @@ export class ContentExtractor {
   private readonly unwantedSelectors: string[];
   private readonly adSelectors: string[];
   private readonly navigationSelectors: string[];
-
   constructor() {
     this.readabilitySelectors = [
       'article',
@@ -45,15 +44,43 @@ export class ContentExtractor {
       '.article-wrapper',
       '.post-text',
       '.content-area',
-      '.entry-text'
+      '.entry-text',
+      // Enhanced selectors for various blog platforms
+      '.post__content',
+      '.blog-content',
+      '.article__content',
+      '.entry__content',
+      '.content__body',
+      '.prose',
+      '.rich-text',
+      '.wp-content',
+      '.post-body-content',
+      '.article-text-content',
+      '.blog-post-content',
+      '.single-post-content',
+      '.content-wrapper',
+      '.page-content',
+      '.entry-content-wrapper',
+      // Docker and tech blog specific
+      '.documentation-content',
+      '.tutorial-content',
+      '.guide-content',
+      '.blog-article-content',
+      // Fallback for broad content containers
+      '[data-content]',
+      '[data-article]',
+      '[id*="content"]',
+      '[class*="content"]',
+      '[class*="article"]',
+      '[class*="post"]',
     ];
-
     this.unwantedSelectors = [
       'script',
       'style',
       'noscript',
       'iframe[src*="ads"]',
       'iframe[src*="advertisement"]',
+      'iframe[src*="google"]',
       'embed[src*="ads"]',
       'object[data*="ads"]',
       '.ad',
@@ -68,7 +95,46 @@ export class ContentExtractor {
       '.comments-section',
       '.related-posts',
       '.sidebar',
-      '.widget'
+      '.widget',
+      // Additional unwanted elements
+      '.newsletter-signup',
+      '.subscription-box',
+      '.email-signup',
+      '.social-links',
+      '.author-bio',
+      '.author-card',
+      '.breadcrumb',
+      '.pagination',
+      '.tag-list',
+      '.category-list',
+      '.metadata',
+      '.post-meta',
+      '.article-meta',
+      '.sharing',
+      '.social-sharing',
+      '.follow-buttons',
+      '.call-to-action',
+      '.cta',
+      '.promo-box',
+      '.advertisement-block',
+      // Navigation elements
+      'nav',
+      'header:not(.article-header):not(.post-header)',
+      'footer:not(.article-footer):not(.post-footer)',
+      'aside:not(.content-aside)',
+      '.navigation',
+      '.nav',
+      '.menu',
+      '.navbar',
+      '.header',
+      '.footer',
+      '.top-bar',
+      '.bottom-bar',
+      // Cookie and privacy notices
+      '.cookie-notice',
+      '.privacy-notice',
+      '.gdpr-notice',
+      '.consent-banner',
     ];
 
     this.adSelectors = [
@@ -87,7 +153,7 @@ export class ContentExtractor {
       '.advertisement-wrapper',
       '.sponsored-content',
       '.promo',
-      '.promotion'
+      '.promotion',
     ];
 
     this.navigationSelectors = [
@@ -106,14 +172,14 @@ export class ContentExtractor {
       '.site-header',
       '.site-footer',
       '.top-bar',
-      '.bottom-bar'
+      '.bottom-bar',
     ];
   }
 
   async extractContent(options: IExtractorOptions = {}): Promise<IContentResult> {
     try {
       console.log('ContentExtractor: Starting content extraction');
-      
+
       const metadata = this.extractMetadata();
       console.log('ContentExtractor: Metadata extracted:', metadata);
 
@@ -135,13 +201,13 @@ export class ContentExtractor {
       const readingTime = this.estimateReadingTime(wordCount);
 
       console.log('ContentExtractor: Content extraction complete');
-      
+
       return {
         content,
         metadata,
         cleanedContent,
         wordCount,
-        readingTime
+        readingTime,
       };
     } catch (error) {
       console.error('ContentExtractor: Error during extraction:', error);
@@ -153,13 +219,14 @@ export class ContentExtractor {
     const title = this.extractTitle();
     const author = this.extractAuthor();
     const captureDate = new Date().toISOString();
-    const tags = this.extractTags();    const metadata: IDocumentMetadata = {
+    const tags = this.extractTags();
+    const metadata: IDocumentMetadata = {
       title,
       url: window.location.href,
       captureDate,
       tags,
       wordCount: 0, // Will be calculated later
-      estimatedReadingTime: 0 // Will be calculated later
+      estimatedReadingTime: 0, // Will be calculated later
     };
 
     if (author) {
@@ -178,7 +245,7 @@ export class ContentExtractor {
       () => document.querySelector('.article-title')?.textContent?.trim(),
       () => document.querySelector('.post-title')?.textContent?.trim(),
       () => document.querySelector('.entry-title')?.textContent?.trim(),
-      () => document.title?.trim()
+      () => document.title?.trim(),
     ];
 
     for (const method of methods) {
@@ -202,7 +269,7 @@ export class ContentExtractor {
       () => document.querySelector('.author')?.textContent?.trim(),
       () => document.querySelector('.byline')?.textContent?.trim(),
       () => document.querySelector('.post-author')?.textContent?.trim(),
-      () => document.querySelector('[rel="author"]')?.textContent?.trim()
+      () => document.querySelector('[rel="author"]')?.textContent?.trim(),
     ];
 
     for (const method of methods) {
@@ -241,80 +308,214 @@ export class ContentExtractor {
     });
 
     // Extract from URL-based categories
-    const urlParts = window.location.pathname.split('/').filter(part => 
-      part.length > 0 && !part.match(/^\d+$/) && part !== 'article' && part !== 'post'
-    );
+    const urlParts = window.location.pathname
+      .split('/')
+      .filter(
+        part => part.length > 0 && !part.match(/^\d+$/) && part !== 'article' && part !== 'post'
+      );
     urlParts.slice(0, 2).forEach(part => tags.add(part.toLowerCase()));
 
     return Array.from(tags).slice(0, 10); // Limit to 10 tags
   }
-
   private findMainContent(options: IExtractorOptions): string {
+    console.log('ContentExtractor: Starting main content search...');
+
     // Try to find the main content using various selectors
     let mainElement: Element | null = null;
+    let selectedSelector = '';
 
     // First try custom selectors if provided
     if (options.customSelectors?.length) {
+      console.log('ContentExtractor: Trying custom selectors:', options.customSelectors);
       for (const selector of options.customSelectors) {
-        mainElement = document.querySelector(selector);
-        if (mainElement) break;
-      }
-    }
-
-    // Then try readability selectors
-    if (!mainElement) {
-      for (const selector of this.readabilitySelectors) {
-        mainElement = document.querySelector(selector);
-        if (mainElement && this.isContentElement(mainElement)) {
-          break;
+        try {
+          mainElement = document.querySelector(selector);
+          if (mainElement && this.isContentElement(mainElement)) {
+            selectedSelector = selector;
+            console.log('ContentExtractor: Found content with custom selector:', selector);
+            break;
+          }
+        } catch (error) {
+          console.warn('ContentExtractor: Invalid custom selector:', selector, error);
         }
         mainElement = null;
       }
     }
 
-    // Fallback to body if nothing found
+    // Then try readability selectors
     if (!mainElement) {
-      mainElement = document.body;
+      console.log('ContentExtractor: Trying readability selectors...');
+      for (const selector of this.readabilitySelectors) {
+        try {
+          const elements = document.querySelectorAll(selector);
+          console.log(
+            `ContentExtractor: Found ${elements.length} elements for selector "${selector}"`
+          );
+          for (let i = 0; i < elements.length; i++) {
+            const element = elements[i];
+            if (this.isContentElement(element)) {
+              mainElement = element;
+              selectedSelector = selector;
+              console.log('ContentExtractor: Found content with selector:', selector);
+              break;
+            }
+          }
+          if (mainElement) break;
+        } catch (error) {
+          console.warn('ContentExtractor: Error with selector:', selector, error);
+        }
+      }
     }
+
+    // Enhanced fallback: Try to find largest content container
+    if (!mainElement) {
+      console.log(
+        'ContentExtractor: No specific content selector worked, trying enhanced fallback...'
+      );
+      mainElement = this.findLargestContentContainer();
+      selectedSelector = 'enhanced-fallback';
+    }
+
+    // Final fallback to body if nothing found
+    if (!mainElement) {
+      console.log('ContentExtractor: Using body as final fallback');
+      mainElement = document.body;
+      selectedSelector = 'body-fallback';
+    }
+
+    console.log('ContentExtractor: Selected element with selector:', selectedSelector);
+    console.log('ContentExtractor: Element tag:', mainElement.tagName);
+    console.log('ContentExtractor: Element text length:', mainElement.textContent?.length || 0);
 
     // Clone the element to avoid modifying the original DOM
     const cloned = mainElement.cloneNode(true) as Element;
-    
+
     // Remove unwanted elements
     this.removeUnwantedElements(cloned, options);
 
-    return cloned.innerHTML || '';
-  }
+    const finalContent = cloned.innerHTML || '';
+    console.log('ContentExtractor: Final content length after cleanup:', finalContent.length);
 
+    return finalContent;
+  }
   private isContentElement(element: Element): boolean {
     const text = element.textContent?.trim() || '';
     const html = element.innerHTML || '';
-    
-    // Check if element has substantial content
-    if (text.length < 100) return false;
-    
+
+    // More lenient minimum content length
+    if (text.length < 50) {
+      console.log('ContentExtractor: Element rejected - too short:', text.length);
+      return false;
+    }
+
     // Check ratio of text to HTML (avoid heavily nested/formatted content)
     const ratio = text.length / html.length;
-    if (ratio < 0.1) return false;
+    if (ratio < 0.05) {
+      console.log('ContentExtractor: Element rejected - poor text/html ratio:', ratio);
+      return false;
+    }
 
-    // Check for too many links (likely navigation)
+    // Check for too many links relative to content (likely navigation)
     const links = element.querySelectorAll('a').length;
     const paragraphs = element.querySelectorAll('p').length;
-    if (links > paragraphs * 2 && links > 10) return false;
+    const textBlocks = element.querySelectorAll('p, div, span, section').length;
 
-    return true;
+    // More sophisticated link density check
+    if (links > 20 && links > textBlocks && paragraphs < 3) {
+      console.log(
+        'ContentExtractor: Element rejected - too many links:',
+        links,
+        'paragraphs:',
+        paragraphs
+      );
+      return false;
+    }
+
+    // Positive signals for content
+    const hasHeadings = element.querySelectorAll('h1, h2, h3, h4, h5, h6').length > 0;
+    const hasParagraphs = paragraphs > 0;
+    const hasCodeBlocks = element.querySelectorAll('pre, code').length > 0;
+
+    // Content-related class/id names
+    const className = element.className.toLowerCase();
+    const id = element.id.toLowerCase();
+    const contentTerms = ['content', 'article', 'post', 'entry', 'body', 'text', 'prose'];
+    const hasContentClass = contentTerms.some(
+      term => className.includes(term) || id.includes(term)
+    );
+
+    // Navigation/non-content class/id names
+    const navTerms = ['nav', 'menu', 'sidebar', 'footer', 'header', 'ad', 'banner', 'widget'];
+    const hasNavClass = navTerms.some(term => className.includes(term) || id.includes(term));
+
+    if (hasNavClass) {
+      console.log('ContentExtractor: Element rejected - navigation class detected');
+      return false;
+    }
+
+    const isLikelyContent = hasHeadings || hasParagraphs || hasCodeBlocks || hasContentClass;
+
+    console.log('ContentExtractor: Element assessment:', {
+      textLength: text.length,
+      ratio: ratio.toFixed(3),
+      links,
+      paragraphs,
+      hasHeadings,
+      hasParagraphs,
+      hasCodeBlocks,
+      hasContentClass,
+      isLikelyContent,
+    });
+
+    return isLikelyContent;
   }
-
   private removeUnwantedElements(element: Element, options: IExtractorOptions): void {
+    console.log('ContentExtractor: Removing unwanted elements...');
+
     // Remove script, style, and other unwanted elements
     const unwanted = element.querySelectorAll(this.unwantedSelectors.join(','));
+    console.log('ContentExtractor: Removing', unwanted.length, 'unwanted elements');
     unwanted.forEach(el => el.remove());
 
     // Remove excluded selectors if specified
     if (options.excludeSelectors?.length) {
       const excluded = element.querySelectorAll(options.excludeSelectors.join(','));
+      console.log('ContentExtractor: Removing', excluded.length, 'excluded elements');
       excluded.forEach(el => el.remove());
     }
+
+    // Remove empty elements that might remain
+    const emptyElements = element.querySelectorAll('div:empty, span:empty, p:empty, section:empty');
+    console.log('ContentExtractor: Removing', emptyElements.length, 'empty elements');
+    emptyElements.forEach(el => el.remove());
+
+    // Remove elements with only whitespace
+    const allElements = element.querySelectorAll('*');
+    let removedWhitespace = 0;
+    for (let i = 0; i < allElements.length; i++) {
+      const el = allElements[i];
+      if (el.children.length === 0 && (!el.textContent || el.textContent.trim() === '')) {
+        el.remove();
+        removedWhitespace++;
+      }
+    }
+    console.log('ContentExtractor: Removed', removedWhitespace, 'whitespace-only elements');
+
+    // Remove elements that are likely ads by content
+    const suspiciousElements = element.querySelectorAll('div, span, section, aside');
+    let removedAds = 0;
+    for (let i = 0; i < suspiciousElements.length; i++) {
+      const el = suspiciousElements[i];
+      const text = el.textContent?.toLowerCase() || '';
+      const className = el.className?.toLowerCase() || '';
+      const id = el.id?.toLowerCase() || '';
+
+      if (this.isAdContent(text, id, className)) {
+        el.remove();
+        removedAds++;
+      }
+    }
+    console.log('ContentExtractor: Removed', removedAds, 'ad-like elements');
   }
 
   private removeAds(content: string): string {
@@ -331,7 +532,7 @@ export class ContentExtractor {
       const text = el.textContent?.toLowerCase() || '';
       const id = el.id?.toLowerCase() || '';
       const className = el.className?.toString().toLowerCase() || '';
-      
+
       if (this.isAdContent(text, id, className)) {
         el.remove();
       }
@@ -342,9 +543,19 @@ export class ContentExtractor {
 
   private isAdContent(text: string, id: string, className: string): boolean {
     const adKeywords = [
-      'advertisement', 'sponsored', 'promoted', 'ads by', 'google ads',
-      'affiliate', 'partner content', 'paid promotion', 'shop now',
-      'buy now', 'get deal', 'limited time', 'subscribe now'
+      'advertisement',
+      'sponsored',
+      'promoted',
+      'ads by',
+      'google ads',
+      'affiliate',
+      'partner content',
+      'paid promotion',
+      'shop now',
+      'buy now',
+      'get deal',
+      'limited time',
+      'subscribe now',
     ];
 
     const combinedText = `${text} ${id} ${className}`.toLowerCase();
@@ -379,13 +590,13 @@ export class ContentExtractor {
 
   private removeEmptyElements(element: Element): void {
     const allElements = element.querySelectorAll('*');
-    
+
     // Process elements in reverse order to avoid issues with removal
     for (let i = allElements.length - 1; i >= 0; i--) {
       const el = allElements[i];
       const text = el.textContent?.trim() || '';
       const hasVisibleChildren = el.querySelector('img, video, audio, canvas, svg, iframe');
-      
+
       // Remove if empty and has no visible children
       if (text.length === 0 && !hasVisibleChildren) {
         el.remove();
@@ -393,14 +604,11 @@ export class ContentExtractor {
     }
   }
   private normalizeWhitespace(element: Element): void {
-    const walker = document.createTreeWalker(
-      element,
-      NodeFilter.SHOW_TEXT
-    );
+    const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
 
     const textNodes: Text[] = [];
     let node;
-    while (node = walker.nextNode()) {
+    while ((node = walker.nextNode())) {
       textNodes.push(node as Text);
     }
 
@@ -422,12 +630,11 @@ export class ContentExtractor {
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = content;
     const text = tempDiv.textContent || '';
-    
+
     return text
       .trim()
       .split(/\s+/)
-      .filter(word => word.length > 0)
-      .length;
+      .filter(word => word.length > 0).length;
   }
 
   private estimateReadingTime(wordCount: number): number {
@@ -439,29 +646,33 @@ export class ContentExtractor {
   // Public utility methods
   extractImages(): Array<{ src: string; alt: string; title?: string }> {
     const images = document.querySelectorAll('img');
-    return Array.from(images).map(img => ({
-      src: img.src,
-      alt: img.alt || '',
-      title: img.title
-    })).filter(img => img.src && !img.src.startsWith('data:'));
+    return Array.from(images)
+      .map(img => ({
+        src: img.src,
+        alt: img.alt || '',
+        title: img.title,
+      }))
+      .filter(img => img.src && !img.src.startsWith('data:'));
   }
   extractLinks(): Array<{ href: string; text: string; title?: string }> {
     const links = document.querySelectorAll('a[href]');
-    return Array.from(links).map(link => {
-      const anchor = link as HTMLAnchorElement;
-      return {
-        href: anchor.href,
-        text: anchor.textContent?.trim() || '',
-        title: anchor.title
-      };
-    }).filter(link => link.href && !link.href.startsWith('javascript:'));
+    return Array.from(links)
+      .map(link => {
+        const anchor = link as HTMLAnchorElement;
+        return {
+          href: anchor.href,
+          text: anchor.textContent?.trim() || '',
+          title: anchor.title,
+        };
+      })
+      .filter(link => link.href && !link.href.startsWith('javascript:'));
   }
 
   getPageStructure(): { headings: string[]; sections: number; paragraphs: number } {
     const headings = Array.from(document.querySelectorAll('h1, h2, h3, h4, h5, h6'))
       .map(h => h.textContent?.trim() || '')
       .filter(text => text.length > 0);
-    
+
     const sections = document.querySelectorAll('section, article, div.section').length;
     const paragraphs = document.querySelectorAll('p').length;
 
@@ -476,18 +687,16 @@ export class ContentExtractor {
       '[class*="paywall"]',
       '[id*="paywall"]',
       '.login-required',
-      '.subscriber-only'
+      '.subscriber-only',
     ];
 
-    return paywallIndicators.some(selector => 
-      document.querySelector(selector) !== null
-    );
+    return paywallIndicators.some(selector => document.querySelector(selector) !== null);
   }
 
   getContentQualityScore(): number {
     let score = 0;
     const content = document.body.textContent || '';
-    
+
     // Length score (0-30 points)
     const wordCount = this.countWords(content);
     if (wordCount > 500) score += 30;
@@ -517,5 +726,80 @@ export class ContentExtractor {
     else if (document.querySelector('.post, .entry')) score += 5;
 
     return Math.min(score, 100);
+  }
+  private findLargestContentContainer(): Element | null {
+    console.log('ContentExtractor: Searching for largest content container...');
+
+    // Find all potential content containers
+    const candidates = document.querySelectorAll('div, section, article, main');
+    let bestCandidate: Element | null = null;
+    let bestScore = 0;
+
+    for (let i = 0; i < candidates.length; i++) {
+      const candidate = candidates[i];
+      const score = this.scoreContentElement(candidate);
+
+      if (score > bestScore && score > 100) {
+        // Minimum score threshold
+        bestScore = score;
+        bestCandidate = candidate;
+      }
+    }
+
+    if (bestCandidate) {
+      console.log('ContentExtractor: Found best content container with score:', bestScore);
+      console.log('ContentExtractor: Element tag:', bestCandidate.tagName);
+      console.log('ContentExtractor: Element class:', bestCandidate.className);
+    }
+
+    return bestCandidate;
+  }
+
+  private scoreContentElement(element: Element): number {
+    let score = 0;
+    const text = element.textContent?.trim() || '';
+    const html = element.innerHTML || '';
+
+    // Base score from text length
+    score += Math.min(text.length / 10, 500);
+
+    // Bonus for paragraphs
+    const paragraphs = element.querySelectorAll('p').length;
+    score += paragraphs * 25;
+
+    // Bonus for headings
+    const headings = element.querySelectorAll('h1, h2, h3, h4, h5, h6').length;
+    score += headings * 30;
+
+    // Penalty for too many links (likely navigation)
+    const links = element.querySelectorAll('a').length;
+    if (links > paragraphs * 2) {
+      score -= links * 10;
+    }
+
+    // Penalty for too many script/style tags
+    const scripts = element.querySelectorAll('script, style').length;
+    score -= scripts * 50;
+
+    // Bonus for content-related class names
+    const className = element.className.toLowerCase();
+    const id = element.id.toLowerCase();
+    const contentTerms = ['content', 'article', 'post', 'entry', 'main', 'body', 'text'];
+
+    contentTerms.forEach(term => {
+      if (className.includes(term) || id.includes(term)) {
+        score += 100;
+      }
+    });
+
+    // Penalty for navigation-related class names
+    const navTerms = ['nav', 'menu', 'sidebar', 'footer', 'header', 'ad', 'banner'];
+    navTerms.forEach(term => {
+      if (className.includes(term) || id.includes(term)) {
+        score -= 200;
+      }
+    });
+
+    return Math.max(0, score);
   }
 }

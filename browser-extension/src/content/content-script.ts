@@ -75,11 +75,21 @@ export class PrismWeaveContent {
           // Respond to ping to indicate content script is active
           sendResponse({ success: true, data: { active: true, timestamp: Date.now() } });
           break;
-
         case 'EXTRACT_CONTENT':
           // Extract content for service worker
           const extractionResult = await this.extractContentForServiceWorker(message.data);
           sendResponse({ success: true, data: extractionResult });
+          break;
+        case 'EXTRACT_AND_CONVERT_TO_MARKDOWN':
+          // Extract HTML content and convert to markdown for service worker
+          const conversionResult = await this.extractAndConvertToMarkdown(message.data);
+
+          // If the conversion was successful, return the data directly
+          if (conversionResult.success) {
+            sendResponse({ success: true, data: conversionResult.data });
+          } else {
+            sendResponse({ success: false, error: conversionResult.error });
+          }
           break;
 
         case 'CAPTURE_PAGE':
@@ -439,6 +449,100 @@ export class PrismWeaveContent {
           `Content extraction failed: ${fallbackError instanceof Error ? fallbackError.message : 'Unknown error'}`
         );
       }
+    }
+  }
+  private async extractAndConvertToMarkdown(data?: any): Promise<any> {
+    try {
+      console.log('Extracting content and converting to markdown for service worker');
+
+      // Validate that extractors are available
+      if (!this.contentExtractor) {
+        throw new Error('ContentExtractor not initialized');
+      }
+      if (!this.markdownConverter) {
+        throw new Error('MarkdownConverter not initialized');
+      }
+
+      // Extract content using the existing extractor
+      const extractedContent = await this.contentExtractor.extractContent({
+        preserveFormatting: true,
+        removeAds: true,
+        removeNavigation: true,
+        ...data, // Include any extraction options from the service worker
+      });
+      console.log('Content extraction completed:', {
+        hasContent: !!(extractedContent.content || extractedContent.cleanedContent),
+        contentLength: (extractedContent.content || extractedContent.cleanedContent || '').length,
+        hasMetadata: !!extractedContent.metadata,
+      });
+
+      // Validate that we have content to convert
+      const htmlContent = extractedContent.content || extractedContent.cleanedContent || '';
+      if (!htmlContent || htmlContent.trim().length === 0) {
+        throw new Error('No HTML content extracted from page');
+      }
+
+      // Convert to markdown using the existing converter
+      const metadata = {
+        ...extractedContent.metadata,
+        title: document.title || 'Untitled',
+        url: window.location.href,
+      };
+      console.log('Converting extracted content to markdown:', {
+        contentLength: htmlContent.length,
+        hasMarkdownConverter: !!this.markdownConverter,
+        metadata: metadata,
+      });
+
+      const conversionResult = await this.markdownConverter.convertToMarkdown(
+        htmlContent,
+        metadata,
+        {
+          preserveFormatting: true,
+          includeMetadata: true,
+          generateFrontmatter: true,
+          ...data?.conversionOptions, // Include any conversion options
+        }
+      );
+
+      console.log('Markdown conversion completed:', {
+        hasMarkdown: !!conversionResult.markdown,
+        markdownLength: conversionResult.markdown?.length || 0,
+        hasFrontmatter: !!conversionResult.frontmatter,
+        hasImages: !!(conversionResult.images && conversionResult.images.length > 0),
+      });
+
+      // Return the result in the format expected by service worker
+      return {
+        success: true,
+        data: {
+          markdown: conversionResult.markdown,
+          frontmatter: conversionResult.frontmatter,
+          html: htmlContent,
+          title: document.title || 'Untitled',
+          url: window.location.href,
+          metadata: {
+            ...conversionResult.metadata,
+            extractedAt: new Date().toISOString(),
+            extractionMethod: 'content-script',
+            wordCount: conversionResult.wordCount || extractedContent.wordCount,
+            readingTime: extractedContent.readingTime,
+          },
+          images: conversionResult.images || [],
+        },
+        extractionMethod: 'content-script',
+        timestamp: new Date().toISOString(),
+      };
+    } catch (error) {
+      console.error('Error extracting and converting content:', error);
+
+      // Return error result
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Content extraction and conversion failed',
+        extractionMethod: 'content-script',
+        timestamp: new Date().toISOString(),
+      };
     }
   }
 }
