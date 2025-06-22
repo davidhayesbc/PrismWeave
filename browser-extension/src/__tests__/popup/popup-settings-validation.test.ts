@@ -76,9 +76,7 @@ describe('PrismWeavePopup - Settings Validation', () => {
       expect(result.isValid).toBe(false);
       expect(result.missingSettings).toContain('GitHub Repository');
       expect(result.message).toContain('Missing required setting: GitHub Repository');
-    });
-
-    test('should return invalid when both repository path and default folder are missing', () => {
+    });    test('should return valid when both GitHub token and repository are present', () => {
       (popup as any).settings = {
         githubToken: 'test-token',
         githubRepo: 'user/repo'
@@ -86,11 +84,9 @@ describe('PrismWeavePopup - Settings Validation', () => {
 
       const result = (popup as any).validateCaptureSettings();
       
-      expect(result.isValid).toBe(false);
-      expect(result.missingSettings).toContain('Repository Path or Default Folder');
-    });
-
-    test('should return valid when default folder is provided instead of repository path', () => {
+      expect(result.isValid).toBe(true);
+      expect(result.missingSettings).toHaveLength(0);
+    });    test('should return valid when optional settings like defaultFolder are also present', () => {
       (popup as any).settings = {
         githubToken: 'test-token',
         githubRepo: 'user/repo',
@@ -109,10 +105,9 @@ describe('PrismWeavePopup - Settings Validation', () => {
       const result = (popup as any).validateCaptureSettings();
       
       expect(result.isValid).toBe(false);
-      expect(result.missingSettings).toHaveLength(3);
+      expect(result.missingSettings).toHaveLength(2);
       expect(result.missingSettings).toContain('GitHub Token');
       expect(result.missingSettings).toContain('GitHub Repository');
-      expect(result.missingSettings).toContain('Repository Path or Default Folder');
       expect(result.message).toContain('Missing required settings:');
     });
 

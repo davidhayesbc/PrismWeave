@@ -109,6 +109,13 @@ These complex scripts are no longer needed:
 2. **CSS Enhancements**: Added styles for validation messages and error states  
 3. **TypeScript Logic**: Comprehensive validation methods and error handling
 4. **UX Flow**: Clear feedback at every step of the configuration process
+5. **Validation Simplification**: Removed non-essential default folder validation - only GitHub token and repository are required for capture operations
+
+#### Key Validation Rules
+- **Required for Capture**: GitHub Personal Access Token and GitHub Repository
+- **Optional Settings**: Default folder, repository path, and other preferences
+- **User-Friendly**: Clear error messages guide users to configure missing required settings
+- **Real-time Feedback**: Validation occurs as users type and before save/test operations
 
 ### Usage Example
 When user clicks "Test Connection" without proper settings:

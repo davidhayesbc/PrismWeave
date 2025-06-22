@@ -181,19 +181,13 @@ export class PrismWeavePopup {
         missingSettings: ['settings'],
         message: 'Settings not loaded. Please try refreshing the extension.'
       };
-    }
-
-    // Check crucial repository settings
+    }    // Check crucial repository settings
     if (!this.settings.githubToken) {
       missingSettings.push('GitHub Token');
     }
     
     if (!this.settings.githubRepo) {
       missingSettings.push('GitHub Repository');
-    }
-    
-    if (!this.settings.repositoryPath && !this.settings.defaultFolder) {
-      missingSettings.push('Repository Path or Default Folder');
     }
 
     const isValid = missingSettings.length === 0;
