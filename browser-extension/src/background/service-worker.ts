@@ -26,6 +26,34 @@ interface ISettingsData {
   [key: string]: unknown;
 }
 
+interface IContentExtractionData {
+  html: string;
+  title?: string;
+  url?: string;
+  metadata?: Record<string, unknown>;
+}
+
+interface IContentExtractionResult {
+  success: boolean;
+  data?: IContentExtractionData;
+  error?: string;
+}
+
+interface ICaptureResult {
+  success: boolean;
+  message: string;
+  data?: {
+    filename: string;
+    filePath: string;
+    title?: string;
+    url?: string;
+    markdownLength: number;
+    commitUrl?: string;
+    status?: string;
+    timestamp: string;
+  };
+}
+
 // Simple logger - define inline
 const swLogger = {
   info: (...args: any[]) => console.log('[SW-INFO]', ...args),
@@ -365,8 +393,222 @@ async function testGitHubConnection(): Promise<unknown> {
   }
 }
 
+// Content script injection and extraction helpers
+async function ensureContentScriptInjected(tabId: number): Promise<void> {
+  try {
+    swLogger.debug('Ensuring content script is injected in tab:', tabId);
+
+    // Get tab info to validate it's a valid web page
+    const tab = await chrome.tabs.get(tabId);
+    if (
+      !tab.url ||
+      tab.url.startsWith('chrome://') ||
+      tab.url.startsWith('chrome-extension://') ||
+      tab.url.startsWith('moz-extension://')
+    ) {
+      throw new Error('Cannot inject content script into special pages');
+    }
+
+    // Check if content script is already available by sending a ping
+    const pingResult = await new Promise<boolean>(resolve => {
+      const timeout = setTimeout(() => resolve(false), 1000); // 1 second timeout for ping
+
+      chrome.tabs.sendMessage(tabId, { type: 'PING' }, response => {
+        clearTimeout(timeout);
+        if (chrome.runtime.lastError) {
+          swLogger.debug(
+            'Ping failed (expected if script not injected):',
+            chrome.runtime.lastError.message
+          );
+          resolve(false);
+        } else {
+          resolve(!!response);
+        }
+      });
+    });
+
+    if (pingResult) {
+      swLogger.debug('Content script already active');
+      return;
+    }
+
+    // Inject content script if not available
+    swLogger.debug('Injecting content script...');
+    try {
+      await chrome.scripting.executeScript({
+        target: { tabId },
+        files: ['content/content-script.js'],
+      });
+
+      swLogger.debug('Content script injected successfully');
+
+      // Wait a bit for the script to initialize
+      await new Promise(resolve => setTimeout(resolve, 500));
+    } catch (scriptError) {
+      swLogger.warn(
+        'Failed to inject content script file, script may not be built yet:',
+        scriptError
+      );
+      // This is not a fatal error - we'll use direct extraction instead
+      throw new Error('Content script injection failed');
+    }
+  } catch (error) {
+    swLogger.error('Failed to ensure content script injection:', error);
+    throw error;
+  }
+}
+
+async function extractContentFromTab(tabId: number): Promise<IContentExtractionResult> {
+  return new Promise<IContentExtractionResult>((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      reject(new Error('Content extraction timeout after 10 seconds'));
+    }, 10000); // 10 second timeout
+
+    swLogger.debug('Sending EXTRACT_CONTENT message to tab:', tabId);
+
+    chrome.tabs.sendMessage(
+      tabId,
+      {
+        type: 'EXTRACT_CONTENT',
+        data: {
+          extractionRules: ['article', 'main', '.content', '#content', 'body'],
+          includeImages: true,
+          cleanHtml: true,
+        },
+      },
+      (response: IContentExtractionResult) => {
+        clearTimeout(timeout);
+
+        if (chrome.runtime.lastError) {
+          swLogger.error('Content script message error:', chrome.runtime.lastError.message);
+          reject(new Error(chrome.runtime.lastError.message));
+        } else if (!response) {
+          swLogger.error('No response received from content script');
+          reject(new Error('No response received from content script'));
+        } else if (!response.success) {
+          swLogger.error('Content script reported failure:', response.error);
+          reject(new Error(response.error || 'Content extraction failed'));
+        } else {
+          swLogger.debug('Content extraction successful via content script');
+          resolve(response);
+        }
+      }
+    );
+  });
+}
+
+async function extractContentDirectly(tabId: number): Promise<IContentExtractionResult> {
+  try {
+    swLogger.debug('Extracting content directly using chrome.scripting API');
+
+    // Execute content extraction script directly
+    const results = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        try {
+          // Direct content extraction function
+          const extractContent = () => {
+            const title = document.title || 'Untitled';
+            const url = window.location.href;
+
+            // Try to find the main content area
+            const contentSelectors = [
+              'article',
+              'main',
+              '[role="main"]',
+              '.content',
+              '#content',
+              '.post-content',
+              '.entry-content',
+              '.article-content',
+              'body',
+            ];
+
+            let contentElement: Element | null = null;
+            for (const selector of contentSelectors) {
+              contentElement = document.querySelector(selector);
+              if (
+                contentElement &&
+                contentElement.textContent &&
+                contentElement.textContent.trim().length > 100
+              ) {
+                break;
+              }
+            }
+
+            if (!contentElement) {
+              contentElement = document.body;
+            }
+
+            // Clean up the HTML
+            const clonedElement = contentElement.cloneNode(true) as Element;
+
+            // Remove unwanted elements
+            const unwantedSelectors = [
+              'script',
+              'style',
+              'nav',
+              'header',
+              'footer',
+              '.advertisement',
+              '.ads',
+              '.sidebar',
+              '.navigation',
+              '.menu',
+            ];
+
+            unwantedSelectors.forEach(selector => {
+              const elements = clonedElement.querySelectorAll(selector);
+              elements.forEach(el => el.remove());
+            });
+
+            const html = clonedElement.innerHTML || '';
+
+            return {
+              success: true,
+              data: {
+                html,
+                title,
+                url,
+                metadata: {
+                  extractedAt: new Date().toISOString(),
+                  method: 'direct',
+                  contentLength: html.length,
+                },
+              },
+            };
+          };
+
+          return extractContent();
+        } catch (error) {
+          return {
+            success: false,
+            error: error instanceof Error ? error.message : 'Unknown extraction error',
+          };
+        }
+      },
+    });
+
+    if (!results || !results[0] || !results[0].result) {
+      throw new Error('No result from direct content extraction');
+    }
+
+    const result = results[0].result as IContentExtractionResult;
+
+    if (!result.success) {
+      throw new Error(result.error || 'Direct content extraction failed');
+    }
+
+    swLogger.debug('Direct content extraction successful');
+    return result;
+  } catch (error) {
+    swLogger.error('Direct content extraction failed:', error);
+    throw error;
+  }
+}
+
 // Handle page capture requests
-async function handleCapturePage(data?: Record<string, unknown>): Promise<unknown> {
+async function handleCapturePage(data?: Record<string, unknown>): Promise<ICaptureResult> {
   try {
     swLogger.info('Handling capture page request');
 
@@ -380,15 +622,383 @@ async function handleCapturePage(data?: Record<string, unknown>): Promise<unknow
       throw new Error(`Invalid settings: ${validation.errors.join(', ')}`);
     }
 
-    // Return success - actual capture logic would go here
+    const settings = await settingsManager.getSettings();
+
+    // Get active tab for content extraction
+    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (!tabs.length || !tabs[0].id) {
+      throw new Error('No active tab found');
+    }
+
+    const activeTab = tabs[0];
+    const tabId = activeTab.id!; // Assert non-null since we checked above
+    swLogger.debug('Capturing content from tab:', activeTab.url);
+
+    // Extract page content using content script with automatic injection
+    let extractionResult: IContentExtractionResult;
+    try {
+      // First, try to ensure content script is injected
+      await ensureContentScriptInjected(tabId);
+
+      // Add a small delay to let content script initialize
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      extractionResult = await extractContentFromTab(tabId);
+    } catch (error) {
+      swLogger.warn(
+        'Content script extraction failed, falling back to direct content extraction:',
+        error
+      );
+
+      // Fallback: Extract content directly using chrome.scripting API
+      try {
+        extractionResult = await extractContentDirectly(tabId);
+      } catch (fallbackError) {
+        swLogger.warn('Direct extraction also failed, using basic tab content:', fallbackError);
+
+        // Final fallback: Get basic page information
+        try {
+          const tab = await chrome.tabs.get(tabId);
+          extractionResult = {
+            success: true,
+            data: {
+              html: `<h1>${tab.title || 'Untitled'}</h1><p>Content extraction failed. Only basic page information is available.</p><p>URL: ${tab.url || 'Unknown'}</p>`,
+              title: tab.title || 'Untitled',
+              url: tab.url || '',
+              metadata: {
+                extractedAt: new Date().toISOString(),
+                method: 'basic-fallback',
+                error: 'Content extraction failed',
+              },
+            },
+          };
+        } catch (basicError) {
+          throw new Error(
+            `All extraction methods failed: ${fallbackError instanceof Error ? fallbackError.message : 'Unknown error'}`
+          );
+        }
+      }
+    }
+
+    if (!extractionResult?.success) {
+      throw new Error(extractionResult?.error || 'Content extraction failed');
+    }
+
+    const { html, title, url, metadata } = extractionResult.data || {};
+
+    // Validate that we have content to convert
+    if (!html) {
+      throw new Error('No HTML content extracted from page');
+    }
+
+    // Convert HTML to Markdown
+    const markdownContent = await convertHtmlToMarkdown(html, {
+      title: title || 'Untitled',
+      url: url || activeTab.url || '',
+      captureDate: new Date().toISOString(),
+      ...metadata,
+    });
+
+    // Generate filename
+    const filename = generateFileName(title, url || activeTab.url);
+    const filePath = `documents/${filename}`;
+
+    // Commit to GitHub repository if auto-commit is enabled
+    swLogger.info('Checking GitHub commit conditions:', {
+      autoCommit: settings.autoCommit,
+      hasGithubToken: !!settings.githubToken,
+      hasGithubRepo: !!settings.githubRepo,
+      githubTokenLength: settings.githubToken?.length || 0,
+      githubRepo: settings.githubRepo,
+    });
+
+    if (settings.autoCommit && settings.githubToken && settings.githubRepo) {
+      swLogger.info('All conditions met, starting GitHub commit process');
+
+      const commitParams = {
+        token: settings.githubToken,
+        repo: settings.githubRepo,
+        filePath,
+        content: markdownContent,
+        message: `Add captured page: ${title || 'Untitled'}`,
+        ...(url && { url }),
+      };
+
+      swLogger.debug('Commit parameters prepared:', {
+        repo: commitParams.repo,
+        filePath: commitParams.filePath,
+        messageLength: commitParams.message.length,
+        contentLength: commitParams.content.length,
+      });
+
+      const commitResult = await commitToGitHub(commitParams);
+
+      if (!commitResult.success) {
+        swLogger.error('GitHub commit failed:', commitResult.error);
+        // Continue with local storage fallback
+      } else {
+        swLogger.info('Successfully committed to GitHub:', commitResult.data?.html_url);
+
+        return {
+          success: true,
+          message: 'Page captured and committed to repository',
+          data: {
+            filename,
+            filePath,
+            ...(title && { title }),
+            ...(url && { url }),
+            markdownLength: markdownContent.length,
+            ...(commitResult.data?.html_url && { commitUrl: commitResult.data.html_url }),
+            timestamp: new Date().toISOString(),
+          },
+        };
+      }
+    } else {
+      swLogger.warn('GitHub commit conditions not met, storing locally:', {
+        autoCommit: settings.autoCommit,
+        hasToken: !!settings.githubToken,
+        hasRepo: !!settings.githubRepo,
+      });
+    }
+
+    // Fallback: Store locally for manual sync
+    await chrome.storage.local.set({
+      [`pending_capture_${Date.now()}`]: {
+        filePath,
+        content: markdownContent,
+        ...(title && { title }),
+        ...(url && { url }),
+        timestamp: new Date().toISOString(),
+      },
+    });
+
     return {
       success: true,
-      message: 'Page capture initiated',
-      timestamp: new Date().toISOString(),
+      message: 'Page captured and stored locally (pending sync)',
+      data: {
+        filename,
+        filePath,
+        ...(title && { title }),
+        ...(url && { url }),
+        markdownLength: markdownContent.length,
+        status: 'pending_sync',
+        timestamp: new Date().toISOString(),
+      },
     };
   } catch (error) {
     swLogger.error('Error in capture page:', error);
     throw error;
+  }
+}
+
+// Convert HTML to Markdown with frontmatter
+async function convertHtmlToMarkdown(
+  html: string,
+  metadata: {
+    title?: string;
+    url?: string;
+    captureDate?: string;
+    [key: string]: unknown;
+  }
+): Promise<string> {
+  try {
+    // Simple HTML to Markdown conversion
+    let markdown = html
+      // Convert headers
+      .replace(/<h1[^>]*>(.*?)<\/h1>/gi, '# $1\n\n')
+      .replace(/<h2[^>]*>(.*?)<\/h2>/gi, '## $1\n\n')
+      .replace(/<h3[^>]*>(.*?)<\/h3>/gi, '### $1\n\n')
+      .replace(/<h4[^>]*>(.*?)<\/h4>/gi, '#### $1\n\n')
+      .replace(/<h5[^>]*>(.*?)<\/h5>/gi, '##### $1\n\n')
+      .replace(/<h6[^>]*>(.*?)<\/h6>/gi, '###### $1\n\n')
+      // Convert paragraphs
+      .replace(/<p[^>]*>(.*?)<\/p>/gi, '$1\n\n')
+      // Convert links
+      .replace(/<a[^>]*href="([^"]*)"[^>]*>(.*?)<\/a>/gi, '[$2]($1)')
+      // Convert bold and italic
+      .replace(/<strong[^>]*>(.*?)<\/strong>/gi, '**$1**')
+      .replace(/<b[^>]*>(.*?)<\/b>/gi, '**$1**')
+      .replace(/<em[^>]*>(.*?)<\/em>/gi, '*$1*')
+      .replace(/<i[^>]*>(.*?)<\/i>/gi, '*$1*')
+      // Convert line breaks
+      .replace(/<br[^>]*\/?>/gi, '\n')
+      // Convert lists
+      .replace(/<ul[^>]*>(.*?)<\/ul>/gis, (match, content) => {
+        return content.replace(/<li[^>]*>(.*?)<\/li>/gi, '- $1\n') + '\n';
+      })
+      .replace(/<ol[^>]*>(.*?)<\/ol>/gis, (match, content) => {
+        let counter = 1;
+        return content.replace(/<li[^>]*>(.*?)<\/li>/gi, () => `${counter++}. $1\n`) + '\n';
+      })
+      // Convert blockquotes
+      .replace(/<blockquote[^>]*>(.*?)<\/blockquote>/gis, '> $1\n\n')
+      // Convert code blocks
+      .replace(/<pre[^>]*><code[^>]*>(.*?)<\/code><\/pre>/gis, '```\n$1\n```\n\n')
+      .replace(/<code[^>]*>(.*?)<\/code>/gi, '`$1`')
+      // Convert images
+      .replace(/<img[^>]*src="([^"]*)"[^>]*alt="([^"]*)"[^>]*>/gi, '![$2]($1)')
+      .replace(/<img[^>]*src="([^"]*)"[^>]*>/gi, '![]($1)')
+      // Remove remaining HTML tags
+      .replace(/<[^>]*>/g, '')
+      // Clean up extra whitespace
+      .replace(/\n\s*\n\s*\n/g, '\n\n')
+      .replace(/^\s+|\s+$/g, '');
+
+    // Generate YAML frontmatter
+    const frontmatter = [
+      '---',
+      `title: "${metadata.title || 'Untitled'}"`,
+      `url: "${metadata.url || ''}"`,
+      `capture_date: "${metadata.captureDate || new Date().toISOString()}"`,
+      `source: "PrismWeave Browser Extension"`,
+      `tags: ["web-capture", "article"]`,
+      '---',
+      '',
+    ].join('\n');
+
+    return frontmatter + markdown;
+  } catch (error) {
+    swLogger.error('Error converting HTML to markdown:', error);
+    throw error;
+  }
+}
+
+// Generate a safe filename from title and URL
+function generateFileName(title?: string, url?: string): string {
+  try {
+    let filename = title || 'untitled';
+
+    // Clean title for filename
+    filename = filename
+      .toLowerCase()
+      .replace(/[^\w\s-]/g, '') // Remove special characters
+      .replace(/\s+/g, '-') // Replace spaces with hyphens
+      .replace(/-+/g, '-') // Remove duplicate hyphens
+      .substring(0, 50); // Limit length
+
+    // Add timestamp to ensure uniqueness
+    const timestamp = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+
+    return `${timestamp}-${filename}.md`;
+  } catch (error) {
+    // Fallback to timestamp-based filename
+    return `capture-${Date.now()}.md`;
+  }
+}
+
+// Commit content to GitHub repository
+async function commitToGitHub(params: {
+  token: string;
+  repo: string;
+  filePath: string;
+  content: string;
+  message: string;
+  url?: string;
+}): Promise<{ success: boolean; data?: any; error?: string }> {
+  try {
+    const { token, repo, filePath, content, message } = params;
+
+    swLogger.info('Starting GitHub commit process:', {
+      repo,
+      filePath,
+      messageLength: message.length,
+      contentLength: content.length,
+    });
+
+    // Parse repository owner and name
+    const repoMatch = repo.match(/^([^\/]+)\/([^\/]+)$/);
+    if (!repoMatch) {
+      throw new Error('Invalid repository format');
+    }
+
+    const [, owner, repoName] = repoMatch;
+    swLogger.debug('Parsed repository:', { owner, repoName });
+
+    // Check if file already exists
+    let existingFile = null;
+    try {
+      swLogger.debug('Checking if file already exists...');
+      const existingResponse = await fetch(
+        `https://api.github.com/repos/${owner}/${repoName}/contents/${filePath}`,
+        {
+          headers: {
+            Authorization: `token ${token}`,
+            Accept: 'application/vnd.github.v3+json',
+            'User-Agent': 'PrismWeave-Extension/1.0',
+          },
+        }
+      );
+
+      if (existingResponse.ok) {
+        existingFile = await existingResponse.json();
+        swLogger.debug('File exists, will update with SHA:', existingFile.sha);
+      } else {
+        swLogger.debug(
+          'File does not exist, will create new file. Status:',
+          existingResponse.status
+        );
+      }
+    } catch (error) {
+      // File doesn't exist, which is fine
+      swLogger.debug('File existence check failed (normal for new files):', error);
+    }
+
+    // Prepare commit data
+    const commitData: any = {
+      message,
+      content: btoa(unescape(encodeURIComponent(content))), // Base64 encode
+      branch: 'main', // Default to main branch
+    };
+
+    // Include SHA if file exists (for updates)
+    if (existingFile && existingFile.sha) {
+      commitData.sha = existingFile.sha;
+    }
+
+    swLogger.debug('Commit data prepared:', {
+      hasMessage: !!commitData.message,
+      hasContent: !!commitData.content,
+      branch: commitData.branch,
+      hasSha: !!commitData.sha,
+    });
+
+    // Create or update file
+    const apiUrl = `https://api.github.com/repos/${owner}/${repoName}/contents/${filePath}`;
+    swLogger.debug('Making GitHub API request to:', apiUrl);
+
+    const response = await fetch(apiUrl, {
+      method: 'PUT',
+      headers: {
+        Authorization: `token ${token}`,
+        Accept: 'application/vnd.github.v3+json',
+        'User-Agent': 'PrismWeave-Extension/1.0',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(commitData),
+    });
+
+    swLogger.debug('GitHub API response status:', response.status);
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      const errorMessage = `GitHub API error: ${response.status} - ${errorData.message || 'Unknown error'}`;
+      swLogger.error('GitHub API error details:', { status: response.status, errorData });
+      throw new Error(errorMessage);
+    }
+
+    const result = await response.json();
+    swLogger.info('Successfully committed to GitHub:', result.content?.html_url);
+
+    return {
+      success: true,
+      data: result.content,
+    };
+  } catch (error) {
+    swLogger.error('GitHub commit failed:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    };
   }
 }
 

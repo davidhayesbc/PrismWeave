@@ -2,7 +2,7 @@
 // PrismWeave Content Script - TypeScript version
 // Runs on web pages to assist with content extraction and user interactions
 
-import { IMessageData, IMessageResponse, IContentScriptMessage } from '../types/index.js';
+import { IContentScriptMessage, IMessageResponse } from '../types/index.js';
 import { ContentExtractor } from '../utils/content-extractor.js';
 import { MarkdownConverter } from '../utils/markdown-converter.js';
 
@@ -27,14 +27,16 @@ export class PrismWeaveContent {
 
   private initializeContentScript(): void {
     // Listen for messages from background script and popup
-    chrome.runtime.onMessage.addListener((
-      message: IContentScriptMessage, 
-      sender: chrome.runtime.MessageSender, 
-      sendResponse: (response: IMessageResponse) => void
-    ) => {
-      this.handleMessage(message, sender, sendResponse);
-      return true; // Keep message channel open for async response
-    });
+    chrome.runtime.onMessage.addListener(
+      (
+        message: IContentScriptMessage,
+        sender: chrome.runtime.MessageSender,
+        sendResponse: (response: IMessageResponse) => void
+      ) => {
+        this.handleMessage(message, sender, sendResponse);
+        return true; // Keep message channel open for async response
+      }
+    );
 
     // Add keyboard shortcut listener
     document.addEventListener('keydown', (event: KeyboardEvent) => {
@@ -62,14 +64,24 @@ export class PrismWeaveContent {
 
     console.log('PrismWeave content script initialized');
   }
-
   private async handleMessage(
-    message: IContentScriptMessage, 
-    sender: chrome.runtime.MessageSender, 
+    message: IContentScriptMessage,
+    sender: chrome.runtime.MessageSender,
     sendResponse: (response: IMessageResponse) => void
   ): Promise<void> {
     try {
       switch (message.type) {
+        case 'PING':
+          // Respond to ping to indicate content script is active
+          sendResponse({ success: true, data: { active: true, timestamp: Date.now() } });
+          break;
+
+        case 'EXTRACT_CONTENT':
+          // Extract content for service worker
+          const extractionResult = await this.extractContentForServiceWorker(message.data);
+          sendResponse({ success: true, data: extractionResult });
+          break;
+
         case 'CAPTURE_PAGE':
           const pageResult = await this.captureCurrentPage();
           sendResponse({ success: true, data: pageResult });
@@ -100,9 +112,9 @@ export class PrismWeaveContent {
       }
     } catch (error) {
       console.error('PrismWeaveContent: Message handling error:', error);
-      sendResponse({ 
-        success: false, 
-        error: (error as Error).message 
+      sendResponse({
+        success: false,
+        error: (error as Error).message,
       });
     }
   }
@@ -120,15 +132,15 @@ export class PrismWeaveContent {
       const extractedContent = await this.contentExtractor.extractContent({
         preserveFormatting: true,
         removeAds: true,
-        removeNavigation: true
-      });      // Convert to markdown
+        removeNavigation: true,
+      }); // Convert to markdown
       const conversionResult = await this.markdownConverter.convertToMarkdown(
         extractedContent.content,
         extractedContent.metadata,
         {
           preserveFormatting: true,
           includeMetadata: true,
-          generateFrontmatter: true
+          generateFrontmatter: true,
         }
       );
 
@@ -143,9 +155,9 @@ export class PrismWeaveContent {
         readingTime: extractedContent.readingTime,
         captureDate: new Date().toISOString(),
         url: window.location.href,
-        title: document.title
+        title: document.title,
       };
-      
+
       this.showCaptureIndicator('Capture completed!', 'success');
       setTimeout(() => this.hideCaptureIndicator(), 2000);
 
@@ -177,14 +189,14 @@ export class PrismWeaveContent {
 
       if (!selectedHtml.trim()) {
         throw new Error('Selected content is empty');
-      }      // Convert selected content to markdown
+      } // Convert selected content to markdown
       const metadata = {
         title: `Selection from ${document.title}`,
         url: window.location.href,
         captureDate: new Date().toISOString(),
         tags: ['selection'],
         wordCount: selectedHtml.split(/\s+/).length,
-        estimatedReadingTime: Math.ceil(selectedHtml.split(/\s+/).length / 200)
+        estimatedReadingTime: Math.ceil(selectedHtml.split(/\s+/).length / 200),
       };
 
       const conversionResult = await this.markdownConverter.convertToMarkdown(
@@ -192,7 +204,7 @@ export class PrismWeaveContent {
         metadata,
         {
           preserveFormatting: true,
-          includeMetadata: false
+          includeMetadata: false,
         }
       );
 
@@ -202,9 +214,9 @@ export class PrismWeaveContent {
         selectedText: selection.toString(),
         captureDate: new Date().toISOString(),
         url: window.location.href,
-        title: document.title
+        title: document.title,
       };
-      
+
       this.showCaptureIndicator('Selection captured!', 'success');
       setTimeout(() => this.hideCaptureIndicator(), 2000);
 
@@ -227,7 +239,7 @@ export class PrismWeaveContent {
         '.content',
         '.post-content',
         '.entry-content',
-        '.article-content'
+        '.article-content',
       ];
 
       let mainElement: Element | null = null;
@@ -254,7 +266,7 @@ export class PrismWeaveContent {
       } else {
         this.showCaptureIndicator('Main content not found', 'error');
       }
-      
+
       setTimeout(() => this.hideCaptureIndicator(), 2000);
     } catch (error) {
       console.error('Error highlighting content:', error);
@@ -275,26 +287,29 @@ export class PrismWeaveContent {
       timestamp: new Date().toISOString(),
       hasSelection: (window.getSelection()?.toString().length || 0) > 0,
       wordCount: this.estimateWordCount(),
-      language: document.documentElement.lang || 'en'
+      language: document.documentElement.lang || 'en',
     };
   }
 
   private estimateWordCount(): number {
     const textContent = document.body.textContent || '';
-    return textContent.trim().split(/\s+/).filter(word => word.length > 0).length;
+    return textContent
+      .trim()
+      .split(/\s+/)
+      .filter(word => word.length > 0).length;
   }
 
   private injectStyles(styles: string): void {
     const styleElement = document.createElement('style');
     styleElement.textContent = styles;
     styleElement.id = 'prismweave-injected-styles';
-    
+
     // Remove existing injected styles
     const existing = document.getElementById('prismweave-injected-styles');
     if (existing) {
       existing.remove();
     }
-    
+
     document.head.appendChild(styleElement);
   }
 
@@ -318,7 +333,7 @@ export class PrismWeaveContent {
       transition: all 0.3s ease;
       max-width: 300px;
     `;
-    
+
     document.body.appendChild(this.captureIndicator);
   }
 
@@ -328,7 +343,7 @@ export class PrismWeaveContent {
     const colors = {
       info: '#4A90E2',
       success: '#7ED321',
-      error: '#D0021B'
+      error: '#D0021B',
     };
 
     this.captureIndicator.textContent = message;
@@ -339,6 +354,92 @@ export class PrismWeaveContent {
   private hideCaptureIndicator(): void {
     if (!this.captureIndicator) return;
     this.captureIndicator.style.display = 'none';
+  }
+
+  private async extractContentForServiceWorker(data?: any): Promise<any> {
+    try {
+      console.log('Extracting content for service worker');
+
+      // Extract basic page information
+      const title = document.title || 'Untitled';
+      const url = window.location.href;
+
+      // Use the existing content extractor to get content
+      const extractedContent = await this.contentExtractor.extractContent({
+        preserveFormatting: true,
+        removeAds: true,
+        removeNavigation: true,
+        ...data, // Include any extraction options from the service worker
+      });
+
+      // Return the extracted content in the format expected by service worker
+      return {
+        html: extractedContent.content || extractedContent.cleanedContent || '',
+        title,
+        url,
+        metadata: {
+          extractedAt: new Date().toISOString(),
+          method: 'content-script',
+          wordCount: extractedContent.wordCount,
+          readingTime: extractedContent.readingTime,
+          contentLength: (extractedContent.content || '').length,
+          ...extractedContent.metadata,
+        },
+      };
+    } catch (error) {
+      console.error('Error extracting content for service worker:', error);
+
+      // Fallback to basic HTML extraction
+      try {
+        const title = document.title || 'Untitled';
+        const url = window.location.href;
+
+        // Try to find main content area
+        const contentSelectors = data?.extractionRules || [
+          'article',
+          'main',
+          '[role="main"]',
+          '.content',
+          '#content',
+          '.post-content',
+          '.entry-content',
+          'body',
+        ];
+
+        let contentElement: Element | null = null;
+        for (const selector of contentSelectors) {
+          contentElement = document.querySelector(selector);
+          if (
+            contentElement &&
+            contentElement.textContent &&
+            contentElement.textContent.trim().length > 100
+          ) {
+            break;
+          }
+        }
+
+        if (!contentElement) {
+          contentElement = document.body;
+        }
+
+        const html = contentElement?.innerHTML || document.body.innerHTML;
+
+        return {
+          html,
+          title,
+          url,
+          metadata: {
+            extractedAt: new Date().toISOString(),
+            method: 'content-script-fallback',
+            contentLength: html.length,
+          },
+        };
+      } catch (fallbackError) {
+        throw new Error(
+          `Content extraction failed: ${fallbackError instanceof Error ? fallbackError.message : 'Unknown error'}`
+        );
+      }
+    }
   }
 }
 
