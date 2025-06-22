@@ -304,31 +304,77 @@ export class PrismWeavePopup {
 
       logger.debug('Sending capture message:', message);
       const response = await this.sendMessageToBackground(message.type, message.data);
-      
-      if (response.success) {
+        if (response.success) {
         const responseData = response.data as any;
+        const saveResult = responseData?.saveResult;
+        
+        // Determine success message based on save result
+        let statusTitle = 'Page Captured Successfully!';
+        let statusMessage = '';
+        let statusType: 'success' | 'warning' = 'success';
+        
+        if (saveResult?.success && saveResult.committed) {
+          statusMessage = `Saved and committed: ${responseData?.filename || 'document.md'}`;
+          if (saveResult.sha) {
+            statusMessage += ` (${saveResult.sha.substring(0, 7)})`;
+          }
+        } else if (saveResult?.success && !saveResult.committed) {
+          statusTitle = 'Page Captured (Not Committed)';
+          statusMessage = `Content saved as: ${responseData?.filename || 'document.md'}`;
+          if (saveResult.reason) {
+            statusMessage += ` - ${saveResult.reason}`;
+          }
+          statusType = 'warning';
+        } else if (saveResult && !saveResult.success) {
+          statusTitle = 'Page Captured (Save Failed)';
+          statusMessage = `Content extracted but save failed: ${saveResult.error || 'Unknown error'}`;
+          statusType = 'warning';
+        } else {
+          statusMessage = `Content extracted as: ${responseData?.filename || 'document.md'}`;
+        }
+        
+        // Prepare actions based on save status
+        const actions = [];
+        
+        if (saveResult?.success && saveResult.url) {
+          actions.push({
+            label: 'View on GitHub',
+            action: () => window.open(saveResult.url, '_blank'),
+            primary: true
+          });
+        } else if (this.settings?.githubRepo) {
+          actions.push({
+            label: 'View Repository',
+            action: () => this.openRepository(),
+            primary: true
+          });
+        }
+        
+        actions.push({
+          label: 'Capture Another',
+          action: () => this.resetCaptureStatus()
+        });
+        
+        // Add retry action if save failed
+        if (saveResult && !saveResult.success) {
+          actions.push({
+            label: 'Check Settings',
+            action: () => this.openSettings()
+          });
+        }
+        
         this.updateCaptureStatus(
-          'Page Captured Successfully!',
-          `Saved as: ${responseData?.filename || 'document.md'}`,
-          'success',
+          statusTitle,
+          statusMessage,
+          statusType,
           {
-            autoHide: 5000,
-            actions: [
-              {
-                label: 'View Repository',
-                action: () => this.openRepository(),
-                primary: true
-              },
-              {
-                label: 'Capture Another',
-                action: () => this.resetCaptureStatus()
-              }
-            ]
+            autoHide: statusType === 'success' ? 5000 : 8000,
+            actions
           }
         );
       } else {
         throw new Error(response.error || 'Capture failed');
-      }    } catch (error) {
+      }} catch (error) {
       logger.error('Error capturing page:', error);
       const errorMessage = (error as Error).message;
       

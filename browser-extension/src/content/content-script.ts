@@ -3,6 +3,8 @@
 // Runs on web pages to assist with content extraction and user interactions
 
 import { IMessageData, IMessageResponse, IContentScriptMessage } from '../types/index.js';
+import { ContentExtractor } from '../utils/content-extractor.js';
+import { MarkdownConverter } from '../utils/markdown-converter.js';
 
 interface IContentExtractor {
   extractPageContent(): Promise<any>;
@@ -12,22 +14,26 @@ interface IContentExtractor {
 
 export class PrismWeaveContent {
   private isCapturing: boolean = false;
-  private contentExtractor: IContentExtractor | null = null;
+  private contentExtractor: ContentExtractor;
+  private markdownConverter: MarkdownConverter;
   private captureIndicator: HTMLElement | null = null;
 
   constructor() {
+    // Initialize extractors immediately
+    this.contentExtractor = new ContentExtractor();
+    this.markdownConverter = new MarkdownConverter();
     this.initializeContentScript();
   }
 
   private initializeContentScript(): void {
-    // Listen for messages from background script
+    // Listen for messages from background script and popup
     chrome.runtime.onMessage.addListener((
       message: IContentScriptMessage, 
       sender: chrome.runtime.MessageSender, 
       sendResponse: (response: IMessageResponse) => void
     ) => {
       this.handleMessage(message, sender, sendResponse);
-      return true;
+      return true; // Keep message channel open for async response
     });
 
     // Add keyboard shortcut listener
@@ -54,16 +60,7 @@ export class PrismWeaveContent {
     // Add visual feedback for capturing
     this.createCaptureIndicator();
 
-    // Load content extractor when needed
-    this.loadContentExtractor();
-  }
-
-  private async loadContentExtractor(): Promise<void> {
-    if (!(window as any).ContentExtractor) {
-      // Content extractor will be injected by background script when needed
-      return;
-    }
-    this.contentExtractor = new (window as any).ContentExtractor();
+    console.log('PrismWeave content script initialized');
   }
 
   private async handleMessage(
@@ -109,7 +106,6 @@ export class PrismWeaveContent {
       });
     }
   }
-
   private async captureCurrentPage(): Promise<any> {
     if (this.isCapturing) {
       console.warn('Capture already in progress');
@@ -120,21 +116,40 @@ export class PrismWeaveContent {
       this.isCapturing = true;
       this.showCaptureIndicator('Capturing page...');
 
-      // Ensure content extractor is loaded
-      if (!this.contentExtractor) {
-        await this.loadContentExtractor();
-      }
+      // Extract page content using ContentExtractor
+      const extractedContent = await this.contentExtractor.extractContent({
+        preserveFormatting: true,
+        removeAds: true,
+        removeNavigation: true
+      });      // Convert to markdown
+      const conversionResult = await this.markdownConverter.convertToMarkdown(
+        extractedContent.content,
+        extractedContent.metadata,
+        {
+          preserveFormatting: true,
+          includeMetadata: true,
+          generateFrontmatter: true
+        }
+      );
 
-      if (!this.contentExtractor) {
-        throw new Error('Content extractor not available');
-      }
-
-      const content = await this.contentExtractor.extractPageContent();
+      // Prepare result with metadata
+      const result = {
+        markdown: conversionResult.markdown,
+        frontmatter: conversionResult.frontmatter,
+        metadata: conversionResult.metadata,
+        images: conversionResult.images,
+        cleanedContent: extractedContent.cleanedContent,
+        wordCount: conversionResult.wordCount,
+        readingTime: extractedContent.readingTime,
+        captureDate: new Date().toISOString(),
+        url: window.location.href,
+        title: document.title
+      };
       
       this.showCaptureIndicator('Capture completed!', 'success');
       setTimeout(() => this.hideCaptureIndicator(), 2000);
 
-      return content;
+      return result;
     } catch (error) {
       console.error('Error capturing page:', error);
       this.showCaptureIndicator('Capture failed!', 'error');
@@ -149,25 +164,51 @@ export class PrismWeaveContent {
     try {
       this.showCaptureIndicator('Capturing selection...');
 
-      if (!this.contentExtractor) {
-        await this.loadContentExtractor();
-      }
-
-      if (!this.contentExtractor) {
-        throw new Error('Content extractor not available');
-      }
-
       const selection = window.getSelection();
       if (!selection || selection.rangeCount === 0) {
         throw new Error('No content selected');
       }
 
-      const content = await this.contentExtractor.extractSelection();
+      // Get the selected content as HTML
+      const range = selection.getRangeAt(0);
+      const container = document.createElement('div');
+      container.appendChild(range.cloneContents());
+      const selectedHtml = container.innerHTML;
+
+      if (!selectedHtml.trim()) {
+        throw new Error('Selected content is empty');
+      }      // Convert selected content to markdown
+      const metadata = {
+        title: `Selection from ${document.title}`,
+        url: window.location.href,
+        captureDate: new Date().toISOString(),
+        tags: ['selection'],
+        wordCount: selectedHtml.split(/\s+/).length,
+        estimatedReadingTime: Math.ceil(selectedHtml.split(/\s+/).length / 200)
+      };
+
+      const conversionResult = await this.markdownConverter.convertToMarkdown(
+        selectedHtml,
+        metadata,
+        {
+          preserveFormatting: true,
+          includeMetadata: false
+        }
+      );
+
+      const result = {
+        markdown: conversionResult.markdown,
+        metadata: conversionResult.metadata,
+        selectedText: selection.toString(),
+        captureDate: new Date().toISOString(),
+        url: window.location.href,
+        title: document.title
+      };
       
       this.showCaptureIndicator('Selection captured!', 'success');
       setTimeout(() => this.hideCaptureIndicator(), 2000);
 
-      return content;
+      return result;
     } catch (error) {
       console.error('Error capturing selection:', error);
       this.showCaptureIndicator('Selection capture failed!', 'error');
@@ -178,13 +219,42 @@ export class PrismWeaveContent {
 
   private highlightMainContent(): void {
     try {
-      if (!this.contentExtractor) {
-        console.warn('Content extractor not loaded for highlighting');
-        return;
+      // Find main content using similar logic to ContentExtractor
+      const readabilitySelectors = [
+        'article',
+        'main',
+        '[role="main"]',
+        '.content',
+        '.post-content',
+        '.entry-content',
+        '.article-content'
+      ];
+
+      let mainElement: Element | null = null;
+      for (const selector of readabilitySelectors) {
+        mainElement = document.querySelector(selector);
+        if (mainElement) break;
       }
 
-      this.contentExtractor.highlightContent();
-      this.showCaptureIndicator('Content highlighted', 'info');
+      if (mainElement) {
+        // Add highlight styling
+        const originalStyle = (mainElement as HTMLElement).style.cssText;
+        (mainElement as HTMLElement).style.cssText += `
+          outline: 3px solid #667eea !important;
+          background: rgba(102, 126, 234, 0.1) !important;
+          transition: all 0.3s ease !important;
+        `;
+
+        // Remove highlight after 3 seconds
+        setTimeout(() => {
+          (mainElement as HTMLElement).style.cssText = originalStyle;
+        }, 3000);
+
+        this.showCaptureIndicator('Content highlighted', 'info');
+      } else {
+        this.showCaptureIndicator('Main content not found', 'error');
+      }
+      
       setTimeout(() => this.hideCaptureIndicator(), 2000);
     } catch (error) {
       console.error('Error highlighting content:', error);

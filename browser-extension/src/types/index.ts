@@ -109,6 +109,8 @@ export interface IFileOperationResult {
   filePath?: string;
   error?: string;
   size?: number;
+  sha?: string;
+  url?: string;
 }
 
 export interface IPerformanceMetrics {

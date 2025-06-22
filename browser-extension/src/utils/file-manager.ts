@@ -356,4 +356,58 @@ export class FileManager {
       warnings: [...warnings, ...validation.errors]
     };
   }
+
+  /**
+   * Save markdown file using the provided save function
+   * This is a browser extension, so we can't write directly to filesystem
+   * Instead, we'll save to GitHub via GitOperations
+   */
+  async saveMarkdownFile(
+    content: string, 
+    metadata: IDocumentMetadata, 
+    options: IFileManagerOptions = {},
+    gitOperations?: any
+  ): Promise<IFileOperationResult> {
+    try {
+      // Generate file path
+      const fullPath = this.generateFilePath(metadata, options);
+      const validation = this.validateFilePath(fullPath);
+      
+      if (!validation.isValid) {
+        return {
+          success: false,
+          filePath: fullPath,
+          error: `Invalid file path: ${validation.errors.join(', ')}`
+        };
+      }
+
+      // For browser extension, we need to use Git operations to save
+      if (gitOperations) {
+        const gitResult = await gitOperations.saveToGitHub(content, fullPath, metadata);
+        
+        return {
+          success: gitResult.success,
+          filePath: fullPath,
+          sha: gitResult.sha,
+          url: gitResult.url,
+          error: gitResult.error
+        };
+      } else {
+        // If no git operations provided, we can't actually save the file
+        // This would be handled by the calling code
+        return {
+          success: false,
+          filePath: fullPath,
+          error: 'No save mechanism provided (Git operations required)'
+        };
+      }
+    } catch (error) {
+      console.error('FileManager: Error saving markdown file:', error);
+      return {
+        success: false,
+        filePath: '',
+        error: (error as Error).message
+      };
+    }
+  }
 }

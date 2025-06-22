@@ -8,6 +8,7 @@ import { GitOperations } from '../utils/git-operations';
 import { FileManager } from '../utils/file-manager';
 import { Logger, createLogger } from '../utils/logger';
 import { ErrorHandler } from '../utils/error-handler';
+import { ISettings, IDocumentMetadata } from '../types/index';
 
 // Type definitions for messages
 interface IMessageData {
@@ -22,8 +23,11 @@ interface IMessageResponse {
   error?: string;
 }
 
-interface ISettings {
-  [key: string]: unknown;
+interface IFileManagerOptions {
+  defaultFolder?: string;
+  customFolder?: string;
+  fileNamingPattern?: string;
+  customNamingPattern?: string;
 }
 
 // Initialize logger for background
@@ -191,8 +195,7 @@ class PrismWeaveBackground {
     } catch (error) {
       logger.error('Error validating settings:', error);
     }
-  }
-  private async capturePage(data: any, sender: chrome.runtime.MessageSender): Promise<any> {
+  }  private async capturePage(data: any, sender: chrome.runtime.MessageSender): Promise<any> {
     try {
       logger.info('Capturing page - sender tab ID:', sender.tab?.id, 'data tab ID:', data?.tabId);
       
@@ -234,16 +237,103 @@ class PrismWeaveBackground {
 
       logger.info('Starting page capture for tab:', tabId, 'URL:', tabInfo.url);
 
-      // Implementation would go here
-      // This is a placeholder for the actual capture logic
-      return { 
+      // Send message to content script to perform the actual capture
+      const captureResult = await this.sendMessageToTab(tabId, 'CAPTURE_PAGE', data);
+      
+      if (!captureResult.success) {
+        throw new Error(captureResult.error || 'Content script capture failed');
+      }
+
+      const capturedData = captureResult.data as any;
+      logger.info('Content extracted successfully, processing for storage');
+
+      // Get settings for file management
+      const settings = await this.settingsManager.getSettings();
+      
+      // Generate filename
+      const filename = this.generateFilename(capturedData.metadata || capturedData);
+      
+      // Prepare file content
+      let fileContent = '';
+      if (capturedData.frontmatter) {
+        fileContent += capturedData.frontmatter + '\n\n';
+      }
+      fileContent += capturedData.markdown || capturedData.content || '';      // Save file using FileManager and GitOperations if configured
+      let saveResult: any = { success: false };
+      
+      if (settings.autoCommit && settings.githubToken && settings.repositoryPath) {
+        try {
+          // Initialize git operations with full settings (cast to ensure all required fields)
+          const gitOps = new GitOperations();
+          await gitOps.initialize(settings as any);
+          
+          // Use FileManager to save the file
+          const fileManager = new FileManager();
+          
+          // Prepare file manager options with proper defaults
+          const fileOptions: IFileManagerOptions = {};
+          if (settings.defaultFolder) fileOptions.defaultFolder = settings.defaultFolder;
+          if (settings.customFolder) fileOptions.customFolder = settings.customFolder;
+          if (settings.fileNamingPattern) fileOptions.fileNamingPattern = settings.fileNamingPattern;
+          
+          // Create proper metadata object matching IDocumentMetadata interface
+          const metadata: IDocumentMetadata = {
+            title: capturedData.metadata?.title || capturedData.title || 'Untitled',
+            url: capturedData.metadata?.url || capturedData.url || '',
+            captureDate: capturedData.metadata?.captureDate || new Date().toISOString(),
+            tags: capturedData.metadata?.tags || [],
+            author: capturedData.metadata?.author,
+            wordCount: capturedData.wordCount || 0,
+            estimatedReadingTime: capturedData.metadata?.estimatedReadingTime
+          };
+          
+          saveResult = await fileManager.saveMarkdownFile(
+            fileContent,
+            metadata,
+            fileOptions,
+            gitOps
+          );
+
+          if (saveResult.success) {
+            logger.info('File saved and committed successfully:', saveResult.filePath);
+          } else {
+            logger.warn('File save/commit failed:', saveResult.error);
+          }
+        } catch (saveError) {
+          logger.error('Save operation failed:', saveError);
+          saveResult = {
+            success: false,
+            error: (saveError as Error).message
+          };
+        }
+      } else {
+        logger.info('Auto-commit not enabled or missing configuration, capture completed without save');
+        saveResult = {
+          success: true,
+          filePath: filename,
+          committed: false,
+          reason: 'Auto-commit disabled or missing configuration'
+        };
+      }      return { 
         success: true, 
-        message: 'Page capture initiated',
+        message: saveResult.success ? 'Page captured and saved successfully' : 'Page captured (save failed)',
+        filename: filename,
+        wordCount: capturedData.wordCount,
+        metadata: capturedData.metadata,
         tabId: tabId,
         tabInfo: {
           id: tabInfo.id,
           url: tabInfo.url,
           title: tabInfo.title
+        },
+        saveResult: {
+          success: saveResult.success,
+          filePath: saveResult.filePath,
+          committed: saveResult.committed !== false,
+          error: saveResult.error,
+          reason: saveResult.reason,
+          sha: saveResult.sha,
+          url: saveResult.url
         }
       };
     } catch (error) {
@@ -473,6 +563,62 @@ class PrismWeaveBackground {
         error: error instanceof Error ? error.message : 'Unknown error' 
       };
     }
+  }
+
+  /**
+   * Send a message to a specific tab
+   */
+  private async sendMessageToTab(tabId: number, type: string, data?: any): Promise<IMessageResponse> {
+    return new Promise<IMessageResponse>((resolve, reject) => {
+      const message: IMessageData = { type, data, timestamp: Date.now() };
+      
+      chrome.tabs.sendMessage(tabId, message, (response: IMessageResponse) => {
+        if (chrome.runtime.lastError) {
+          logger.error('Error sending message to tab:', chrome.runtime.lastError.message);
+          reject(new Error(chrome.runtime.lastError.message));
+        } else if (!response) {
+          reject(new Error('No response received from content script'));
+        } else {
+          resolve(response);
+        }
+      });
+    });
+  }
+
+  /**
+   * Generate a filename based on page metadata
+   */
+  private generateFilename(metadata: any): string {
+    // Get title and clean it
+    const title = metadata.title || metadata.pageTitle || 'untitled';
+    const cleanTitle = title
+      .toLowerCase()
+      .replace(/[^\w\s-]/g, '') // Remove special characters
+      .replace(/\s+/g, '-') // Replace spaces with hyphens
+      .replace(/-+/g, '-') // Replace multiple hyphens with single
+      .replace(/^-|-$/g, '') // Remove leading/trailing hyphens
+      .substring(0, 100); // Limit length
+
+    // Add date prefix
+    const date = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+    
+    // Add domain if available
+    const url = metadata.url || '';
+    let domain = '';
+    try {
+      domain = new URL(url).hostname.replace(/^www\./, '');
+    } catch (e) {
+      // Ignore URL parsing errors
+    }
+
+    // Construct filename
+    let filename = `${date}-${cleanTitle}`;
+    if (domain) {
+      filename += `-${domain}`;
+    }
+    filename += '.md';
+
+    return filename;
   }
 }
 
