@@ -1,11 +1,15 @@
 # PrismWeave Browser Extension
 
-Browser extension for capturing web pages as clean markdown and syncing to your Git repository.
+Browser extension for capturing web pages as clean markdown and syncing to your
+Git repository.
 
 ## Features
 
 - **One-Click Capture**: Save any web page as clean, readable markdown
-- **Smart Content Extraction**: Automatically removes ads, navigation, and clutter
+- **Smart Content Extraction**: Automatically removes ads, navigation, and
+  clutter
+- **Automatic Organization**: Intelligently sorts articles into topic-based
+  folders
 - **Git Integration**: Direct sync to your GitHub repository
 - **Cross-Browser**: Works with Chrome and Edge (Manifest V3)
 - **Customizable**: Configure capture settings and output formats
@@ -15,12 +19,14 @@ Browser extension for capturing web pages as clean markdown and syncing to your 
 ### Development Setup
 
 1. **Clone and Install Dependencies**:
+
    ```bash
    cd browser-extension
    npm install
    ```
 
 2. **Build the Extension**:
+
    ```bash
    npm run build
    ```
@@ -32,7 +38,8 @@ Browser extension for capturing web pages as clean markdown and syncing to your 
 
 ### Troubleshooting
 
-If you encounter a `SyntaxError: Unexpected token 'export'` error, see [MODULE_COMPATIBILITY_FIX.md](./MODULE_COMPATIBILITY_FIX.md) for the solution.
+If you encounter a `SyntaxError: Unexpected token 'export'` error, see
+[MODULE_COMPATIBILITY_FIX.md](./MODULE_COMPATIBILITY_FIX.md) for the solution.
 
 ## Development Guidelines
 
@@ -41,19 +48,23 @@ If you encounter a `SyntaxError: Unexpected token 'export'` error, see [MODULE_C
 - **Dual Exports**: Utility files support both CommonJS and global patterns
 
 ### Production Install
-*(Will be available on Chrome Web Store after development)*
+
+_(Will be available on Chrome Web Store after development)_
 
 ## Usage
 
 ### Quick Capture
+
 1. **Click the Extension Icon** in your browser toolbar
 2. **Click "Capture This Page"** to save the current page
 3. **Files are saved** to your configured repository path
 
 ### Keyboard Shortcut
+
 - Press `Ctrl+Shift+S` to quickly capture the current page
 
 ### Settings Configuration
+
 1. **Click the Extension Icon** and select "Settings"
 2. **Configure Repository**: Set your local Git repository path
 3. **GitHub Integration**: Add your GitHub token and repository
@@ -62,20 +73,32 @@ If you encounter a `SyntaxError: Unexpected token 'export'` error, see [MODULE_C
 ## Configuration
 
 ### Repository Setup
-The extension needs a local Git repository to save captured documents:
+
+The extension creates an organized folder structure in your Git repository:
 
 ```
 your-prismweave-repo/
 ├── documents/           # Captured markdown files
-│   ├── tech/
-│   ├── business/
-│   ├── research/
-│   └── unsorted/       # Default folder
+│   ├── tech/           # Programming, software development
+│   ├── business/       # Marketing, finance, startups
+│   ├── tutorial/       # How-to guides, learning content
+│   ├── news/           # News articles, current events
+│   ├── research/       # Academic papers, studies
+│   ├── design/         # UI/UX, visual design
+│   ├── tools/          # Software tools, utilities
+│   ├── personal/       # Personal blogs, opinions
+│   ├── reference/      # Documentation, manuals
+│   └── unsorted/       # Unclassified content
 ├── images/             # Downloaded images
 └── .git/              # Git repository
 ```
 
+**Automatic Organization**: Articles are automatically sorted into appropriate
+folders based on content analysis. See
+[FOLDER_ORGANIZATION.md](./FOLDER_ORGANIZATION.md) for details.
+
 ### GitHub Integration
+
 1. Create a [GitHub Personal Access Token](https://github.com/settings/tokens)
 2. Give it `repo` permissions
 3. Add the token in extension settings
@@ -87,12 +110,12 @@ Captured pages are saved as markdown files with YAML frontmatter:
 
 ```markdown
 ---
-title: "Article Title"
-source_url: "https://example.com/article"
-domain: "example.com"
-captured_date: "2025-06-13T10:30:00Z"
+title: 'Article Title'
+source_url: 'https://example.com/article'
+domain: 'example.com'
+captured_date: '2025-06-13T10:30:00Z'
 tags: []
-summary: ""
+summary: ''
 ---
 
 # Article Content
@@ -105,6 +128,7 @@ The main article content converted to clean markdown...
 The extension intelligently processes web pages:
 
 ### Removes Unwanted Content
+
 - Navigation menus and headers
 - Advertisements and promotional content
 - Sidebars and widgets
@@ -112,6 +136,7 @@ The extension intelligently processes web pages:
 - Cookie notices and popups
 
 ### Preserves Important Content
+
 - Main article text and structure
 - Headings and formatting
 - Images and captions
@@ -121,6 +146,7 @@ The extension intelligently processes web pages:
 ## Settings Options
 
 ### Capture Settings
+
 - **Default Folder**: Where new captures are saved
 - **File Naming**: Pattern for generated filenames
 - **Auto-Commit**: Automatically commit captures to Git
@@ -128,12 +154,14 @@ The extension intelligently processes web pages:
 - **Image Handling**: Download images locally or reference URLs
 
 ### Content Processing
+
 - **Remove Ads**: Strip advertising content
 - **Remove Navigation**: Remove menu and navigation elements
 - **Preserve Links**: Keep all links in markdown
 - **Custom Selectors**: Additional CSS selectors to remove
 
 ### Advanced Options
+
 - **Commit Messages**: Template for Git commit messages
 - **Keyboard Shortcuts**: Enable/disable shortcuts
 - **Notifications**: Browser notification preferences
@@ -141,6 +169,7 @@ The extension intelligently processes web pages:
 ## Development
 
 ### Project Structure
+
 ```
 browser-extension/
 ├── src/
@@ -156,6 +185,7 @@ browser-extension/
 ```
 
 ### Build Commands
+
 - `npm run dev` - Development build
 - `npm run build` - Production build
 - `npm run lint` - Code linting
@@ -165,18 +195,21 @@ browser-extension/
 ### Architecture
 
 #### Background Service Worker
+
 - Handles extension lifecycle
 - Manages Git operations
 - Processes captured content
 - Stores user settings
 
 #### Content Script
+
 - Extracts page content
 - Removes unwanted elements
 - Provides visual feedback
 - Handles keyboard shortcuts
 
 #### Popup Interface
+
 - Quick capture controls
 - Status indicators
 - Settings access
@@ -187,27 +220,33 @@ browser-extension/
 ### Common Issues
 
 **Extension Won't Load**
+
 - Check that all files are in the `dist` folder
 - Verify manifest.json is valid
 - Check browser console for errors
 
 **Capture Fails**
+
 - Ensure the page is fully loaded
 - Check if the site blocks content scripts
 - Verify repository path is accessible
 
 **Git Operations Fail**
+
 - Check repository path exists
 - Verify GitHub token has correct permissions
 - Ensure Git is installed and configured
 
 **Images Not Saving**
+
 - Check image capture is enabled in settings
 - Verify sufficient disk space
 - Check for CORS restrictions on images
 
 ### Debug Mode
+
 Enable extension developer mode to see detailed logs:
+
 1. Go to `chrome://extensions/`
 2. Click "Inspect views: background page"
 3. Check Console tab for logs
@@ -215,6 +254,7 @@ Enable extension developer mode to see detailed logs:
 ## Roadmap
 
 ### Phase 1 (Current)
+
 - [x] Basic page capture
 - [x] Markdown conversion
 - [x] Settings interface
@@ -223,12 +263,14 @@ Enable extension developer mode to see detailed logs:
 - [ ] Image handling
 
 ### Phase 2 (Planned)
+
 - [ ] AI content processing
 - [ ] Advanced filtering rules
 - [ ] Batch capture
 - [ ] Site-specific configurations
 
 ### Phase 3 (Future)
+
 - [ ] Team collaboration features
 - [ ] Cloud sync options
 - [ ] Mobile companion app

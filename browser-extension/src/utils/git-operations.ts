@@ -2,7 +2,12 @@
 // PrismWeave Git Operations - TypeScript version
 // Handles Git repository management and synchronization
 
-import { ISettings, IDocumentMetadata, IFileOperationResult, IGitCommitOptions } from '../types/index.js';
+import {
+  IDocumentMetadata,
+  IFileOperationResult,
+  IGitCommitOptions,
+  ISettings,
+} from '../types/index.js';
 
 interface IGitHubApiResponse {
   sha?: string;
@@ -36,6 +41,137 @@ export class GitOperations {
   private readonly apiBase: string = 'https://api.github.com';
   private settings: ISettings | null = null;
 
+  private readonly folderMapping: Record<string, string[]> = {
+    tech: [
+      'programming',
+      'software',
+      'coding',
+      'development',
+      'technology',
+      'tech',
+      'javascript',
+      'python',
+      'react',
+      'node',
+      'github',
+      'stackoverflow',
+      'dev.to',
+      'css',
+      'html',
+      'typescript',
+      'api',
+      'framework',
+      'library',
+    ],
+    business: [
+      'business',
+      'marketing',
+      'finance',
+      'startup',
+      'entrepreneur',
+      'sales',
+      'management',
+      'strategy',
+      'linkedin',
+      'enterprise',
+      'corporate',
+      'economics',
+      'market',
+      'revenue',
+      'profit',
+    ],
+    tutorial: [
+      'tutorial',
+      'guide',
+      'how-to',
+      'learn',
+      'course',
+      'lesson',
+      'walkthrough',
+      'step-by-step',
+      'instructions',
+      'tips',
+      'howto',
+      'example',
+    ],
+    news: [
+      'news',
+      'article',
+      'blog',
+      'opinion',
+      'analysis',
+      'update',
+      'announcement',
+      'breaking',
+      'report',
+      'current',
+      'events',
+    ],
+    research: [
+      'research',
+      'study',
+      'paper',
+      'academic',
+      'journal',
+      'thesis',
+      'analysis',
+      'data',
+      'science',
+      'experiment',
+      'findings',
+      'methodology',
+    ],
+    design: [
+      'design',
+      'ui',
+      'ux',
+      'css',
+      'figma',
+      'adobe',
+      'creative',
+      'visual',
+      'art',
+      'layout',
+      'typography',
+      'color',
+      'interface',
+    ],
+    tools: [
+      'tool',
+      'utility',
+      'software',
+      'app',
+      'service',
+      'platform',
+      'extension',
+      'plugin',
+      'resource',
+      'toolkit',
+    ],
+    personal: [
+      'personal',
+      'diary',
+      'journal',
+      'thoughts',
+      'reflection',
+      'life',
+      'experience',
+      'blog',
+      'opinion',
+    ],
+    reference: [
+      'reference',
+      'documentation',
+      'manual',
+      'spec',
+      'api',
+      'docs',
+      'wiki',
+      'handbook',
+      'guide',
+    ],
+  };
+
   constructor() {
     this.settings = null;
   }
@@ -52,18 +188,22 @@ export class GitOperations {
     if (!repoPath) {
       throw new Error('Repository path not configured');
     }
-    
+
     // Normalize the repository path
     this.settings.repositoryPath = repoPath;
-    
+
     console.log('GitOperations initialized with:', {
       hasToken: !!this.settings.githubToken,
       repositoryPath: this.settings.repositoryPath,
-      githubRepo: this.settings.githubRepo
+      githubRepo: this.settings.githubRepo,
     });
   }
 
-  async saveToRepository(content: string, filename: string, metadata: IDocumentMetadata): Promise<IFileOperationResult> {
+  async saveToRepository(
+    content: string,
+    filename: string,
+    metadata: IDocumentMetadata
+  ): Promise<IFileOperationResult> {
     try {
       if (!this.settings) {
         throw new Error('Git operations not initialized');
@@ -72,48 +212,54 @@ export class GitOperations {
       // For browser extension, we'll use GitHub API directly
       // since we can't run git commands in the browser
       const result = await this.saveToGitHub(content, filename, metadata);
-      
+
       return {
         success: true,
         filePath: filename,
-        size: content.length
+        size: content.length,
       };
     } catch (error) {
       console.error('Failed to save to repository:', error);
-      
+
       // Fallback to local download
       await this.downloadFile(content, filename);
-      
+
       return {
         success: false,
-        error: (error as Error).message
+        error: (error as Error).message,
       };
     }
   }
-
-  async saveToGitHub(content: string, filename: string, metadata: IDocumentMetadata): Promise<IGitCommitResult> {
+  async saveToGitHub(
+    content: string,
+    filename: string,
+    metadata: IDocumentMetadata
+  ): Promise<IGitCommitResult> {
     if (!this.settings) {
       throw new Error('Git operations not initialized');
     }
 
     try {
       const repoInfo = this.parseRepositoryPath(this.settings.repositoryPath);
-      const fullPath = this.buildFilePath(filename);
-      
+
+      // Use FileManager to determine folder and build proper path
+      const folder = this.determineFolder(metadata);
+      const fullPath = this.buildFilePathWithFolder(filename, folder);
+
       // Check if file already exists
       const existingFile = await this.getFileInfo(repoInfo, fullPath);
-      
+
       // Prepare file content with metadata
       const fileContent = this.prepareFileContent(content, metadata);
-        // Create commit options
+      // Create commit options
       const commitOptions: IGitCommitOptions = {
         message: this.generateCommitMessage(metadata, existingFile !== null),
-        timestamp: metadata.captureDate
+        timestamp: metadata.captureDate,
       };
 
       if (metadata.author) {
         commitOptions.author = metadata.author;
-      }      // Create or update the file
+      } // Create or update the file
       const apiResult = await this.createOrUpdateFile(
         repoInfo,
         fullPath,
@@ -123,7 +269,7 @@ export class GitOperations {
       );
 
       const result: IGitCommitResult = {
-        success: true
+        success: true,
       };
 
       if (apiResult.commit?.sha) {
@@ -139,12 +285,15 @@ export class GitOperations {
       console.error('GitHub API error:', error);
       return {
         success: false,
-        error: (error as Error).message
+        error: (error as Error).message,
       };
     }
   }
 
-  private async getFileInfo(repoInfo: IRepositoryInfo, path: string): Promise<IGitHubFileInfo | null> {
+  private async getFileInfo(
+    repoInfo: IRepositoryInfo,
+    path: string
+  ): Promise<IGitHubFileInfo | null> {
     if (!this.settings?.githubToken) {
       throw new Error('GitHub token not available');
     }
@@ -155,10 +304,10 @@ export class GitOperations {
         {
           method: 'GET',
           headers: {
-            'Authorization': `token ${this.settings.githubToken}`,
-            'Accept': 'application/vnd.github.v3+json',
-            'User-Agent': 'PrismWeave-Extension'
-          }
+            Authorization: `token ${this.settings.githubToken}`,
+            Accept: 'application/vnd.github.v3+json',
+            'User-Agent': 'PrismWeave-Extension',
+          },
         }
       );
 
@@ -170,7 +319,7 @@ export class GitOperations {
         throw new Error(`GitHub API error: ${response.status} ${response.statusText}`);
       }
 
-      const data = await response.json() as IGitHubFileInfo;
+      const data = (await response.json()) as IGitHubFileInfo;
       return data;
     } catch (error) {
       if ((error as Error).message.includes('404')) {
@@ -192,11 +341,11 @@ export class GitOperations {
     }
 
     const encodedContent = btoa(unescape(encodeURIComponent(content)));
-    
+
     const requestBody: any = {
       message: commitOptions.message,
       content: encodedContent,
-      branch: 'main' // Default to main branch
+      branch: 'main', // Default to main branch
     };
 
     // Include SHA if updating existing file
@@ -208,7 +357,7 @@ export class GitOperations {
     if (commitOptions.author) {
       requestBody.author = {
         name: commitOptions.author,
-        email: 'prismweave@example.com' // Default email
+        email: 'prismweave@example.com', // Default email
       };
     }
 
@@ -217,12 +366,12 @@ export class GitOperations {
       {
         method: 'PUT',
         headers: {
-          'Authorization': `token ${this.settings.githubToken}`,
-          'Accept': 'application/vnd.github.v3+json',
+          Authorization: `token ${this.settings.githubToken}`,
+          Accept: 'application/vnd.github.v3+json',
           'Content-Type': 'application/json',
-          'User-Agent': 'PrismWeave-Extension'
+          'User-Agent': 'PrismWeave-Extension',
         },
-        body: JSON.stringify(requestBody)
+        body: JSON.stringify(requestBody),
       }
     );
 
@@ -231,26 +380,26 @@ export class GitOperations {
       throw new Error(`GitHub API error: ${response.status} ${response.statusText} - ${errorText}`);
     }
 
-    return await response.json() as IGitHubApiResponse;
+    return (await response.json()) as IGitHubApiResponse;
   }
 
   private parseRepositoryPath(repoPath: string): IRepositoryInfo {
     // Handle different repository path formats
     let cleanPath = repoPath;
-    
+
     // Remove GitHub URL prefixes if present
     cleanPath = cleanPath.replace(/^https?:\/\/github\.com\//, '');
     cleanPath = cleanPath.replace(/\.git$/, '');
-    
+
     const parts = cleanPath.split('/');
-    
+
     if (parts.length < 2) {
       throw new Error('Invalid repository path format. Expected: owner/repo');
     }
-    
+
     return {
       owner: parts[0],
-      repo: parts[1]
+      repo: parts[1],
     };
   }
 
@@ -260,18 +409,18 @@ export class GitOperations {
     }
 
     const documentPath = this.settings.documentPath || 'documents';
-    
+
     // Ensure proper path separators
     const cleanDocumentPath = documentPath.replace(/^\/+|\/+$/g, '');
     const cleanFilename = filename.replace(/^\/+/, '');
-    
+
     return cleanDocumentPath ? `${cleanDocumentPath}/${cleanFilename}` : cleanFilename;
   }
 
   private prepareFileContent(content: string, metadata: IDocumentMetadata): string {
     // Add frontmatter with metadata
     const frontmatter = this.generateFrontmatter(metadata);
-    
+
     return `${frontmatter}\n${content}`;
   }
 
@@ -280,7 +429,7 @@ export class GitOperations {
       title: metadata.title,
       url: metadata.url,
       captured: metadata.captureDate,
-      tags: metadata.tags
+      tags: metadata.tags,
     };
 
     if (metadata.author) {
@@ -296,7 +445,7 @@ export class GitOperations {
     }
 
     let frontmatter = '---\n';
-    
+
     Object.entries(frontmatterData).forEach(([key, value]) => {
       if (Array.isArray(value)) {
         frontmatter += `${key}:\n`;
@@ -307,16 +456,16 @@ export class GitOperations {
         frontmatter += `${key}: ${JSON.stringify(value)}\n`;
       }
     });
-    
+
     frontmatter += '---';
-    
+
     return frontmatter;
   }
 
   private generateCommitMessage(metadata: IDocumentMetadata, isUpdate: boolean): string {
     const action = isUpdate ? 'Update' : 'Add';
     const domain = this.extractDomain(metadata.url);
-    
+
     return `${action} captured content: ${metadata.title} (${domain})`;
   }
 
@@ -333,25 +482,105 @@ export class GitOperations {
     try {
       const blob = new Blob([content], { type: 'text/markdown' });
       const url = URL.createObjectURL(blob);
-      
+
       // Create a temporary download link
       const a = document.createElement('a');
       a.href = url;
       a.download = filename;
       a.style.display = 'none';
-      
+
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-      
+
       // Clean up the object URL
       URL.revokeObjectURL(url);
-      
+
       console.log('File downloaded as fallback:', filename);
     } catch (error) {
       console.error('Failed to download file:', error);
       throw error;
     }
+  }
+
+  // Folder classification logic integrated into GitOperations
+  private determineFolder(metadata: IDocumentMetadata): string {
+    if (!this.settings) {
+      return 'unsorted';
+    }
+
+    // Use explicit folder setting if provided
+    if (
+      this.settings.defaultFolder &&
+      this.settings.defaultFolder !== 'auto' &&
+      this.settings.defaultFolder !== 'custom'
+    ) {
+      return this.settings.defaultFolder;
+    }
+
+    if (this.settings.defaultFolder === 'custom' && this.settings.customFolder) {
+      return this.sanitizeFolderName(this.settings.customFolder);
+    }
+
+    // Auto-detect folder based on content
+    const detectedFolder = this.autoDetectFolder(metadata);
+    return detectedFolder || 'unsorted';
+  }
+
+  private autoDetectFolder(metadata: IDocumentMetadata): string | null {
+    const searchText = [
+      metadata.title.toLowerCase(),
+      metadata.url.toLowerCase(),
+      ...metadata.tags.map(tag => tag.toLowerCase()),
+    ].join(' ');
+
+    // Score each folder based on keyword matches
+    const folderScores: Record<string, number> = {};
+
+    Object.entries(this.folderMapping).forEach(([folder, keywords]) => {
+      let score = 0;
+      keywords.forEach(keyword => {
+        const regex = new RegExp(`\\b${keyword}\\b`, 'gi');
+        const matches = searchText.match(regex);
+        if (matches) {
+          score += matches.length;
+        }
+      });
+
+      if (score > 0) {
+        folderScores[folder] = score;
+      }
+    });
+
+    // Return folder with highest score
+    const bestFolder = Object.entries(folderScores).sort(([, a], [, b]) => b - a)[0];
+
+    return bestFolder ? bestFolder[0] : null;
+  }
+
+  private sanitizeFolderName(folderName: string): string {
+    return folderName
+      .toLowerCase()
+      .replace(/[^\w\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '');
+  }
+
+  private buildFilePathWithFolder(filename: string, folder: string): string {
+    if (!this.settings) {
+      throw new Error('Settings not initialized');
+    }
+
+    const documentPath = this.settings.documentPath || 'documents';
+
+    // Ensure proper path separators
+    const cleanDocumentPath = documentPath.replace(/^\/+|\/+$/g, '');
+    const cleanFolder = folder.replace(/^\/+|\/+$/g, '');
+    const cleanFilename = filename.replace(/^\/+/, '');
+
+    // Build: documents/folder/filename
+    return `${cleanDocumentPath}/${cleanFolder}/${cleanFilename}`;
   }
 
   // Public utility methods
@@ -362,36 +591,35 @@ export class GitOperations {
 
     try {
       const repoInfo = this.parseRepositoryPath(this.settings.repositoryPath);
-      
-      const response = await fetch(
-        `${this.apiBase}/repos/${repoInfo.owner}/${repoInfo.repo}`,
-        {
-          method: 'GET',
-          headers: {
-            'Authorization': `token ${this.settings.githubToken}`,
-            'Accept': 'application/vnd.github.v3+json',
-            'User-Agent': 'PrismWeave-Extension'
-          }
-        }
-      );
+
+      const response = await fetch(`${this.apiBase}/repos/${repoInfo.owner}/${repoInfo.repo}`, {
+        method: 'GET',
+        headers: {
+          Authorization: `token ${this.settings.githubToken}`,
+          Accept: 'application/vnd.github.v3+json',
+          'User-Agent': 'PrismWeave-Extension',
+        },
+      });
 
       if (response.ok) {
         return { success: true };
       } else {
-        return { 
-          success: false, 
-          error: `GitHub API error: ${response.status} ${response.statusText}` 
+        return {
+          success: false,
+          error: `GitHub API error: ${response.status} ${response.statusText}`,
         };
       }
     } catch (error) {
-      return { 
-        success: false, 
-        error: (error as Error).message 
+      return {
+        success: false,
+        error: (error as Error).message,
       };
     }
   }
 
-  async listFiles(path: string = ''): Promise<Array<{ name: string; type: 'file' | 'dir'; size?: number }>> {
+  async listFiles(
+    path: string = ''
+  ): Promise<Array<{ name: string; type: 'file' | 'dir'; size?: number }>> {
     if (!this.settings) {
       throw new Error('Git operations not initialized');
     }
@@ -399,16 +627,16 @@ export class GitOperations {
     try {
       const repoInfo = this.parseRepositoryPath(this.settings.repositoryPath);
       const fullPath = this.buildFilePath(path);
-      
+
       const response = await fetch(
         `${this.apiBase}/repos/${repoInfo.owner}/${repoInfo.repo}/contents/${fullPath}`,
         {
           method: 'GET',
           headers: {
-            'Authorization': `token ${this.settings.githubToken}`,
-            'Accept': 'application/vnd.github.v3+json',
-            'User-Agent': 'PrismWeave-Extension'
-          }
+            Authorization: `token ${this.settings.githubToken}`,
+            Accept: 'application/vnd.github.v3+json',
+            'User-Agent': 'PrismWeave-Extension',
+          },
         }
       );
 
@@ -417,20 +645,22 @@ export class GitOperations {
       }
 
       const data = await response.json();
-      
+
       if (Array.isArray(data)) {
         return data.map(item => ({
           name: item.name,
           type: item.type === 'dir' ? 'dir' : 'file',
-          size: item.size
+          size: item.size,
         }));
       } else {
         // Single file
-        return [{
-          name: data.name,
-          type: 'file',
-          size: data.size
-        }];
+        return [
+          {
+            name: data.name,
+            type: 'file',
+            size: data.size,
+          },
+        ];
       }
     } catch (error) {
       console.error('Failed to list files:', error);
@@ -462,38 +692,37 @@ export class GitOperations {
         description: description || 'PrismWeave document repository',
         private: false,
         auto_init: true,
-        gitignore_template: 'Node'
+        gitignore_template: 'Node',
       };
 
-      const response = await fetch(
-        `${this.apiBase}/user/repos`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `token ${this.settings.githubToken}`,
-            'Accept': 'application/vnd.github.v3+json',
-            'Content-Type': 'application/json',
-            'User-Agent': 'PrismWeave-Extension'
-          },
-          body: JSON.stringify(requestBody)
-        }
-      );
+      const response = await fetch(`${this.apiBase}/user/repos`, {
+        method: 'POST',
+        headers: {
+          Authorization: `token ${this.settings.githubToken}`,
+          Accept: 'application/vnd.github.v3+json',
+          'Content-Type': 'application/json',
+          'User-Agent': 'PrismWeave-Extension',
+        },
+        body: JSON.stringify(requestBody),
+      });
 
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(`GitHub API error: ${response.status} ${response.statusText} - ${errorText}`);
+        throw new Error(
+          `GitHub API error: ${response.status} ${response.statusText} - ${errorText}`
+        );
       }
 
       const data = await response.json();
-      
+
       return {
         success: true,
-        url: data.html_url
+        url: data.html_url,
       };
     } catch (error) {
       return {
         success: false,
-        error: (error as Error).message
+        error: (error as Error).message,
       };
     }
   }

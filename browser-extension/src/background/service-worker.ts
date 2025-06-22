@@ -23,6 +23,8 @@ interface ISettingsData {
   autoCommit?: boolean;
   outputFormat?: string;
   customPrompt?: string;
+  defaultFolder?: string;
+  customFolder?: string;
   [key: string]: unknown;
 }
 
@@ -155,6 +157,8 @@ class ServiceWorkerSettingsManager {
       autoCommit: true,
       outputFormat: 'markdown',
       customPrompt: '',
+      defaultFolder: 'auto',
+      customFolder: '',
     };
   }
 }
@@ -709,9 +713,16 @@ async function handleCapturePage(data?: Record<string, unknown>): Promise<ICaptu
       ...metadata,
     });
 
-    // Generate filename
+    // Generate filename and determine appropriate folder
     const filename = generateFileName(title, url || activeTab.url);
-    const filePath = `documents/${filename}`;
+    const documentMetadata = {
+      title: title || 'Untitled',
+      url: url || activeTab.url || '',
+      captureDate: new Date().toISOString(),
+      tags: extractTagsFromMetadata(metadata || {}),
+    };
+    const folder = determineFolder(documentMetadata, settings);
+    const filePath = `documents/${folder}/${filename}`;
 
     // Commit to GitHub repository if auto-commit is enabled
     swLogger.info('Checking GitHub commit conditions:', {
@@ -894,6 +905,229 @@ function generateFileName(title?: string, url?: string): string {
     // Fallback to timestamp-based filename
     return `capture-${Date.now()}.md`;
   }
+}
+
+// Folder classification logic - self-contained implementation
+interface IFolderMapping {
+  [key: string]: string[];
+}
+
+interface IDocumentMetadata {
+  title: string;
+  url: string;
+  captureDate: string;
+  tags: string[];
+}
+
+const FOLDER_MAPPING: IFolderMapping = {
+  tech: [
+    'programming',
+    'software',
+    'coding',
+    'development',
+    'technology',
+    'tech',
+    'javascript',
+    'python',
+    'react',
+    'node',
+    'github',
+    'stackoverflow',
+    'dev.to',
+    'css',
+    'html',
+    'typescript',
+    'api',
+    'framework',
+    'library',
+  ],
+  business: [
+    'business',
+    'marketing',
+    'finance',
+    'startup',
+    'entrepreneur',
+    'sales',
+    'management',
+    'strategy',
+    'linkedin',
+    'enterprise',
+    'corporate',
+    'economics',
+    'market',
+    'revenue',
+    'profit',
+  ],
+  tutorial: [
+    'tutorial',
+    'guide',
+    'how-to',
+    'learn',
+    'course',
+    'lesson',
+    'walkthrough',
+    'step-by-step',
+    'instructions',
+    'tips',
+    'howto',
+    'example',
+  ],
+  news: [
+    'news',
+    'article',
+    'blog',
+    'opinion',
+    'analysis',
+    'update',
+    'announcement',
+    'breaking',
+    'report',
+    'current',
+    'events',
+  ],
+  research: [
+    'research',
+    'study',
+    'paper',
+    'academic',
+    'journal',
+    'thesis',
+    'analysis',
+    'data',
+    'science',
+    'experiment',
+    'findings',
+    'methodology',
+  ],
+  design: [
+    'design',
+    'ui',
+    'ux',
+    'css',
+    'figma',
+    'adobe',
+    'creative',
+    'visual',
+    'art',
+    'layout',
+    'typography',
+    'color',
+    'interface',
+  ],
+  tools: [
+    'tool',
+    'utility',
+    'software',
+    'app',
+    'service',
+    'platform',
+    'extension',
+    'plugin',
+    'resource',
+    'toolkit',
+  ],
+  personal: [
+    'personal',
+    'diary',
+    'journal',
+    'thoughts',
+    'reflection',
+    'life',
+    'experience',
+    'blog',
+    'opinion',
+  ],
+  reference: [
+    'reference',
+    'documentation',
+    'manual',
+    'spec',
+    'api',
+    'docs',
+    'wiki',
+    'handbook',
+    'guide',
+  ],
+};
+
+function extractTagsFromMetadata(metadata: Record<string, any>): string[] {
+  const tags: string[] = [];
+
+  // Extract keywords from common metadata fields
+  const keywordFields = ['keywords', 'description', 'author', 'category', 'tags'];
+
+  keywordFields.forEach(field => {
+    const value = metadata[field];
+    if (typeof value === 'string') {
+      // Split by common delimiters and clean up
+      const extractedTags = value
+        .split(/[,;|]/)
+        .map(tag => tag.trim().toLowerCase())
+        .filter(tag => tag.length > 2 && tag.length < 30);
+      tags.push(...extractedTags);
+    }
+  });
+
+  return [...new Set(tags)]; // Remove duplicates
+}
+
+function determineFolder(metadata: IDocumentMetadata, settings: ISettingsData): string {
+  // Use explicit folder setting if provided
+  if (
+    settings.defaultFolder &&
+    settings.defaultFolder !== 'auto' &&
+    settings.defaultFolder !== 'custom'
+  ) {
+    return settings.defaultFolder;
+  }
+
+  if (settings.defaultFolder === 'custom' && settings.customFolder) {
+    return sanitizeFolderName(settings.customFolder);
+  }
+
+  // Auto-detect folder based on content
+  const detectedFolder = autoDetectFolder(metadata);
+  return detectedFolder || 'unsorted';
+}
+
+function autoDetectFolder(metadata: IDocumentMetadata): string | null {
+  const searchText = [
+    metadata.title.toLowerCase(),
+    metadata.url.toLowerCase(),
+    ...metadata.tags.map(tag => tag.toLowerCase()),
+  ].join(' ');
+
+  // Score each folder based on keyword matches
+  const folderScores: Record<string, number> = {};
+
+  Object.entries(FOLDER_MAPPING).forEach(([folder, keywords]) => {
+    let score = 0;
+    keywords.forEach(keyword => {
+      const regex = new RegExp(`\\b${keyword}\\b`, 'gi');
+      const matches = searchText.match(regex);
+      if (matches) {
+        score += matches.length;
+      }
+    });
+
+    if (score > 0) {
+      folderScores[folder] = score;
+    }
+  });
+
+  // Return folder with highest score
+  const bestFolder = Object.entries(folderScores).sort(([, a], [, b]) => b - a)[0];
+
+  return bestFolder ? bestFolder[0] : null;
+}
+
+function sanitizeFolderName(folderName: string): string {
+  return folderName
+    .toLowerCase()
+    .replace(/[^\w\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
 }
 
 // Commit content to GitHub repository
