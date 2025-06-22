@@ -32,23 +32,23 @@ const mockDOM = () => {
     querySelector: jest.fn(),
     querySelectorAll: jest.fn().mockReturnValue([]),
     createTreeWalker: jest.fn().mockReturnValue({
-      nextNode: jest.fn().mockReturnValue(null)
-    })
+      nextNode: jest.fn().mockReturnValue(null),
+    }),
   };
 };
 
 // Mock the global document and window objects
 (global as any).document = mockDOM();
 (global as any).window = {
-  location: { 
+  location: {
     href: 'https://example.com/article/test',
-    pathname: '/article/test-article'
-  }
+    pathname: '/article/test-article',
+  },
 };
 
 // Mock NodeFilter for tree walker
 (global as any).NodeFilter = {
-  SHOW_TEXT: 4
+  SHOW_TEXT: 4,
 };
 
 describe('ContentExtractor - Core Functionality', () => {
@@ -56,25 +56,25 @@ describe('ContentExtractor - Core Functionality', () => {
   beforeEach(() => {
     extractor = new ContentExtractor();
     jest.clearAllMocks();
-    
+
     // Mock window.location properly
     Object.defineProperty(window, 'location', {
       value: {
         href: 'https://example.com/article/test',
         pathname: '/article/test-article',
-        hostname: 'example.com'
+        hostname: 'example.com',
       },
-      writable: true
+      writable: true,
     });
-    
+
     // Reset DOM mocks
     (global as any).document = mockDOM();
     (global as any).window = {
-      location: { 
+      location: {
         href: 'https://example.com/article/test',
         pathname: '/article/test-article',
-        hostname: 'example.com'
-      }
+        hostname: 'example.com',
+      },
     };
 
     // Suppress console.log output during tests
@@ -106,7 +106,8 @@ describe('ContentExtractor - Core Functionality', () => {
       // Mock article element - main content container
       const mockArticle = {
         tagName: 'ARTICLE',
-        textContent: 'Test Article Title John Doe 2024-01-15 This is the first paragraph of the article content. It contains substantial text that should be extracted. This is the second paragraph with more detailed information about the topic being discussed. Subsection Title This paragraph is under a subsection and contains more valuable content.',
+        textContent:
+          'Test Article Title John Doe 2024-01-15 This is the first paragraph of the article content. It contains substantial text that should be extracted. This is the second paragraph with more detailed information about the topic being discussed. Subsection Title This paragraph is under a subsection and contains more valuable content.',
         innerHTML: mockArticleHTML,
         id: '',
         className: '',
@@ -127,7 +128,7 @@ describe('ContentExtractor - Core Functionality', () => {
         cloneNode: jest.fn().mockReturnValue({
           innerHTML: mockArticleHTML,
           querySelectorAll: jest.fn().mockReturnValue([]),
-          textContent: 'Test Article Title John Doe...'
+          textContent: 'Test Article Title John Doe...',
         }),
         remove: jest.fn(),
         getAttribute: jest.fn().mockReturnValue(null),
@@ -152,15 +153,14 @@ describe('ContentExtractor - Core Functionality', () => {
       });
 
       // Mock document.querySelectorAll for tag extraction
-      (global as any).document.querySelectorAll = jest.fn().mockImplementation((selector: string) => {
-        if (selector.includes('.tag') || selector.includes('.category')) {
-          return [
-            { textContent: 'Technology' },
-            { textContent: 'Testing' }
-          ];
-        }
-        return [];
-      });
+      (global as any).document.querySelectorAll = jest
+        .fn()
+        .mockImplementation((selector: string) => {
+          if (selector.includes('.tag') || selector.includes('.category')) {
+            return [{ textContent: 'Technology' }, { textContent: 'Testing' }];
+          }
+          return [];
+        });
 
       // Mock document.title
       (global as any).document.title = 'Test Article Title - Example Site';
@@ -173,7 +173,7 @@ describe('ContentExtractor - Core Functionality', () => {
       expect(result.content).toContain('This is the first paragraph');
       expect(result.content).toContain('This is the second paragraph');
       expect(result.content).toContain('Subsection Title');
-      
+
       // Verify metadata extraction
       expect(result.metadata).toBeDefined();
       expect(result.metadata.title).toBe('Test Article Title');
@@ -181,7 +181,7 @@ describe('ContentExtractor - Core Functionality', () => {
       expect(result.metadata.author).toBe('John Doe');
       expect(result.metadata.tags).toContain('test');
       expect(result.metadata.tags).toContain('article');
-      
+
       // Verify content quality metrics
       expect(result.wordCount).toBeGreaterThan(0);
       expect(result.readingTime).toBeGreaterThan(0);
@@ -201,7 +201,8 @@ describe('ContentExtractor - Core Functionality', () => {
 
       const mockMain = {
         tagName: 'MAIN',
-        textContent: 'Main Content Title This is content in a main element instead of article. It should still be extracted properly.',
+        textContent:
+          'Main Content Title This is content in a main element instead of article. It should still be extracted properly.',
         innerHTML: mockMainContent,
         id: '',
         className: '',
@@ -221,7 +222,7 @@ describe('ContentExtractor - Core Functionality', () => {
         querySelector: jest.fn().mockReturnValue(null),
         cloneNode: jest.fn().mockReturnValue({
           innerHTML: mockMainContent,
-          querySelectorAll: jest.fn().mockReturnValue([])
+          querySelectorAll: jest.fn().mockReturnValue([]),
         }),
         remove: jest.fn(),
         getAttribute: jest.fn().mockReturnValue(null),
@@ -251,7 +252,7 @@ describe('ContentExtractor - Core Functionality', () => {
       // Assert
       expect(result.content).toContain('This is content in a main element');
       expect(result.metadata.title).toBe('Main Content Title');
-      
+
       // Verify fallback selector was used
       expect((global as any).document.querySelector).toHaveBeenCalledWith('article');
       expect((global as any).document.querySelector).toHaveBeenCalledWith('main');
@@ -267,7 +268,8 @@ describe('ContentExtractor - Core Functionality', () => {
 
       const mockCustomElement = {
         tagName: 'DIV',
-        textContent: 'Custom Content Area This content is in a custom selector area. It should be extracted when custom selectors are provided.',
+        textContent:
+          'Custom Content Area This content is in a custom selector area. It should be extracted when custom selectors are provided.',
         innerHTML: mockCustomContent,
         id: 'custom-content',
         className: 'content-area',
@@ -281,7 +283,7 @@ describe('ContentExtractor - Core Functionality', () => {
         querySelector: jest.fn().mockReturnValue(null),
         cloneNode: jest.fn().mockReturnValue({
           innerHTML: mockCustomContent,
-          querySelectorAll: jest.fn().mockReturnValue([])
+          querySelectorAll: jest.fn().mockReturnValue([]),
         }),
         remove: jest.fn(),
         getAttribute: jest.fn().mockReturnValue(null),
@@ -303,16 +305,348 @@ describe('ContentExtractor - Core Functionality', () => {
 
       // Act: Extract with custom selectors
       const result = await extractor.extractContent({
-        customSelectors: ['#custom-content']
+        customSelectors: ['#custom-content'],
       });
 
       // Assert
       expect(result.content).toContain('This content is in a custom selector area');
       expect(result.metadata.title).toBe('Custom Content Title');
-      
+
       // Verify custom selector was used first
       expect((global as any).document.querySelector).toHaveBeenCalledWith('#custom-content');
-    });    // TODO: C.1.1c - Fallback to body test requires more complex DOM mocking
+    });
+
+    test('C.1.2 - Extract content from blog posts', async () => {
+      // Setup: Create a typical blog post structure
+      const mockBlogContent = `
+        <h1>Blog Post Title: Understanding Modern Web Development</h1>
+        <div class="post-meta">
+          <span class="author">Jane Smith</span>
+          <time class="published">2024-01-20</time>
+          <div class="categories">
+            <span class="category">Web Development</span>
+            <span class="category">JavaScript</span>
+          </div>
+        </div>
+        <div class="post-content">
+          <p>Welcome to this comprehensive guide on modern web development practices. In this post, we'll explore various techniques and tools.</p>
+          <h2>Introduction</h2>
+          <p>Web development has evolved significantly over the past few years. With new frameworks and libraries emerging constantly, developers need to stay updated.</p>
+          <blockquote>
+            <p>"The best way to learn web development is through hands-on practice and continuous learning."</p>
+          </blockquote>
+          <h2>Key Concepts</h2>
+          <ul>
+            <li>Responsive design principles</li>
+            <li>Performance optimization</li>
+            <li>Accessibility considerations</li>
+          </ul>
+          <p>Each of these concepts plays a crucial role in creating effective web applications.</p>
+        </div>
+      `;
+
+      const mockBlogPost = {
+        tagName: 'DIV',
+        textContent:
+          'Blog Post Title: Understanding Modern Web Development Jane Smith 2024-01-20 Web Development JavaScript Welcome to this comprehensive guide...',
+        innerHTML: mockBlogContent,
+        id: '',
+        className: 'blog-post',
+        children: [],
+        querySelectorAll: jest.fn().mockImplementation((selector: string) => {
+          if (selector.includes('script') || selector.includes('style')) {
+            return [];
+          }
+          if (selector === 'a') {
+            return []; // No links for link ratio test
+          }
+          if (selector === 'p') {
+            return [{}, {}, {}, {}]; // 4 paragraphs
+          }
+          return [];
+        }),
+        querySelector: jest.fn().mockReturnValue(null),
+        cloneNode: jest.fn().mockReturnValue({
+          innerHTML: mockBlogContent,
+          querySelectorAll: jest.fn().mockReturnValue([]),
+        }),
+        remove: jest.fn(),
+        getAttribute: jest.fn().mockReturnValue(null),
+        setAttribute: jest.fn(),
+      };
+
+      // Mock selectors for blog post structure
+      (global as any).document.querySelector = jest.fn().mockImplementation((selector: string) => {
+        if (selector === '.post-content' || selector === '.blog-post') {
+          return mockBlogPost;
+        }
+        if (selector === 'meta[property="og:title"]') {
+          return { getAttribute: () => 'Blog Post Title: Understanding Modern Web Development' };
+        }
+        if (selector === 'meta[name="author"]') {
+          return { getAttribute: () => 'Jane Smith' };
+        }
+        if (selector === 'meta[name="description"]') {
+          return {
+            getAttribute: () =>
+              'A comprehensive guide on modern web development practices and techniques.',
+          };
+        }
+        return null;
+      });
+
+      (global as any).document.querySelectorAll = jest
+        .fn()
+        .mockImplementation((selector: string) => {
+          if (selector.includes('.category') || selector.includes('.tag')) {
+            return [
+              { textContent: 'Web Development' },
+              { textContent: 'JavaScript' },
+              { textContent: 'Frontend' },
+            ];
+          }
+          return [];
+        });
+
+      (global as any).document.title =
+        'Blog Post Title: Understanding Modern Web Development - Tech Blog';
+
+      // Act
+      const result = await extractor.extractContent();
+
+      // Assert
+      expect(result).toBeDefined();
+      expect(result.content).toContain('Welcome to this comprehensive guide');
+      expect(result.content).toContain('Web development has evolved significantly');
+      expect(result.content).toContain('The best way to learn web development');
+      expect(result.content).toContain('Responsive design principles'); // Verify blog-specific metadata
+      expect(result.metadata.title).toBe('Blog Post Title Understanding Modern Web Development');
+      expect(result.metadata.author).toBe('Jane Smith');
+      expect(result.metadata.tags).toContain('web development');
+      expect(result.metadata.tags).toContain('javascript');
+
+      // Verify content quality for blog posts
+      expect(result.wordCount).toBeGreaterThan(50);
+      expect(result.readingTime).toBeGreaterThan(0);
+    });
+
+    test('C.1.3 - Handle pages with no clear main content', async () => {
+      // Setup: Create a page with scattered content and no main container
+      const mockScatteredHTML = `
+        <div class="header">Navigation and header content</div>
+        <div class="sidebar">Sidebar content with ads</div>
+        <div class="content-fragment">
+          <p>This is a small piece of content scattered on the page.</p>
+        </div>
+        <div class="another-section">
+          <p>Another piece of content in a different section.</p>
+          <p>This might be valuable content but it's not in a main container.</p>
+        </div>
+        <div class="footer">Footer information</div>
+      `;
+
+      // Mock body element with scattered content
+      const mockBody = {
+        tagName: 'BODY',
+        textContent:
+          "Navigation and header content Sidebar content with ads This is a small piece of content scattered on the page. Another piece of content in a different section. This might be valuable content but it's not in a main container. Footer information",
+        innerHTML: mockScatteredHTML,
+        id: '',
+        className: '',
+        children: [],
+        querySelectorAll: jest.fn().mockImplementation((selector: string) => {
+          if (selector.includes('script') || selector.includes('style')) {
+            return [];
+          }
+          if (selector === 'a') {
+            return []; // No links
+          }
+          if (selector === 'p') {
+            return [{}, {}, {}]; // 3 paragraphs scattered
+          }
+          return [];
+        }),
+        querySelector: jest.fn().mockReturnValue(null),
+        cloneNode: jest.fn().mockReturnValue({
+          innerHTML: mockScatteredHTML,
+          querySelectorAll: jest.fn().mockReturnValue([]),
+        }),
+        remove: jest.fn(),
+        getAttribute: jest.fn().mockReturnValue(null),
+        setAttribute: jest.fn(),
+      }; // Mock document to return null for main content selectors
+      (global as any).document.querySelector = jest.fn().mockImplementation((selector: string) => {
+        if (
+          selector === 'article' ||
+          selector === 'main' ||
+          selector === '.content' ||
+          selector === '#content'
+        ) {
+          return null; // No main content containers
+        }
+        if (selector === 'meta[property="og:title"]') {
+          return { getAttribute: () => 'Page Without Clear Structure' };
+        }
+        return null;
+      }); // Override document.body property to avoid JSDOM restrictions
+      Object.defineProperty((global as any).document, 'body', {
+        value: mockBody,
+        writable: true,
+        configurable: true,
+      });
+      (global as any).document.querySelectorAll = jest.fn().mockReturnValue([]);
+      (global as any).document.title = 'Page Without Clear Structure';
+      // Note: Set document.body directly for fallback content extraction
+
+      // Act
+      const result = await extractor.extractContent();
+
+      // Assert
+      expect(result).toBeDefined();
+      expect(result.content).toContain('This is a small piece of content');
+      expect(result.content).toContain('Another piece of content');
+      expect(result.metadata.title).toBe('Page Without Clear Structure');
+
+      // Content should be extracted but with lower confidence
+      expect(result.wordCount).toBeGreaterThan(0);
+      expect(result.cleanedContent).toBeDefined();
+
+      // Should fallback to body content extraction
+      expect((global as any).document.querySelector).toHaveBeenCalledWith('article');
+      expect((global as any).document.querySelector).toHaveBeenCalledWith('main');
+    });
+
+    test('C.1.4 - Process single-page applications', async () => {
+      // Setup: Create a SPA-like structure with dynamic content
+      const mockSPAContent = `
+        <div id="app">
+          <div class="spa-header">
+            <h1>Single Page Application</h1>
+            <nav>Navigation items</nav>
+          </div>
+          <div class="spa-main" data-testid="main-content">
+            <div class="view-container">
+              <h2>Dynamic Content View</h2>
+              <p>This content is dynamically loaded in a single-page application. The structure might be different from traditional web pages.</p>
+              <div class="content-section">
+                <h3>Features</h3>
+                <p>SPAs often have client-side routing and dynamic content loading.</p>
+                <ul>
+                  <li>Real-time updates</li>
+                  <li>Smooth user experience</li>
+                  <li>Reduced server requests</li>
+                </ul>
+              </div>
+              <div class="data-section" data-content="true">
+                <p>This section contains data-driven content that is updated frequently.</p>
+              </div>
+            </div>
+          </div>
+          <div class="spa-footer">Footer content</div>
+        </div>
+      `;
+
+      const mockSPAElement = {
+        tagName: 'DIV',
+        textContent:
+          'Single Page Application Navigation items Dynamic Content View This content is dynamically loaded in a single-page application...',
+        innerHTML: mockSPAContent,
+        id: 'app',
+        className: '',
+        children: [],
+        querySelectorAll: jest.fn().mockImplementation((selector: string) => {
+          if (selector.includes('script') || selector.includes('style')) {
+            return [];
+          }
+          if (selector === 'a') {
+            return []; // No links
+          }
+          if (selector === 'p') {
+            return [{}, {}, {}]; // 3 paragraphs
+          }
+          if (selector === '[data-content]') {
+            return [{}]; // Data-driven content
+          }
+          return [];
+        }),
+        querySelector: jest.fn().mockReturnValue(null),
+        cloneNode: jest.fn().mockReturnValue({
+          innerHTML: mockSPAContent,
+          querySelectorAll: jest.fn().mockReturnValue([]),
+        }),
+        remove: jest.fn(),
+        getAttribute: jest.fn().mockReturnValue(null),
+        setAttribute: jest.fn(),
+      };
+
+      // Mock SPA-specific selectors
+      (global as any).document.querySelector = jest.fn().mockImplementation((selector: string) => {
+        if (
+          selector === '[data-testid="main-content"]' ||
+          selector === '.spa-main' ||
+          selector === '#app'
+        ) {
+          return mockSPAElement;
+        }
+        if (selector === 'meta[property="og:title"]') {
+          return { getAttribute: () => 'Single Page Application' };
+        }
+        if (selector === 'meta[name="description"]') {
+          return { getAttribute: () => 'A modern single-page application with dynamic content.' };
+        }
+        return null;
+      });
+      (global as any).document.querySelectorAll = jest
+        .fn()
+        .mockImplementation((selector: string) => {
+          if (selector.includes('[data-')) {
+            return [{ textContent: 'spa' }, { textContent: 'dynamic' }];
+          }
+          if (selector.includes('.tag') || selector.includes('.category')) {
+            return [{ textContent: 'spa' }, { textContent: 'dynamic' }];
+          }
+          return [];
+        });
+
+      (global as any).document.title = 'Single Page Application - Modern Web App';
+
+      // Mock window.location for SPA pathname
+      Object.defineProperty(window, 'location', {
+        value: {
+          href: 'https://spa-example.com/spa/dynamic-content',
+          pathname: '/spa/dynamic-content',
+          hostname: 'spa-example.com',
+        },
+        writable: true,
+      });
+
+      // Act: Extract content with SPA-aware options
+      const result = await extractor.extractContent({
+        customSelectors: ['[data-testid="main-content"]', '.spa-main'],
+      });
+
+      // Assert
+      expect(result).toBeDefined();
+      expect(result.content).toContain('This content is dynamically loaded');
+      expect(result.content).toContain('SPAs often have client-side routing');
+      expect(result.content).toContain('Real-time updates');
+      expect(result.content).toContain('data-driven content');
+      // Verify SPA-specific metadata
+      expect(result.metadata.title).toBe('Single Page Application');
+      expect(result.metadata.tags).toContain('spa');
+      expect(result.metadata.tags).toContain('dynamic');
+
+      // Verify content quality for SPAs
+      expect(result.wordCount).toBeGreaterThan(30);
+      expect(result.readingTime).toBeGreaterThan(0);
+
+      // Should use custom selectors for SPA detection
+      expect((global as any).document.querySelector).toHaveBeenCalledWith(
+        '[data-testid="main-content"]'
+      );
+    });
+
+    // TODO: C.1.1c - Fallback to body test requires more complex DOM mocking
     // Will be implemented in a future iteration with proper JSDOM setup
   });
 });

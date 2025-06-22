@@ -217,7 +217,11 @@ class SharedUtils {
     console.error(`[PrismWeave${context ? ' ' + context : ''}] ${timestamp}:`, error);
   }
 
-  static generateFilename(title: string, url: string, pattern: string = 'YYYY-MM-DD-domain-title'): string {
+  static generateFilename(
+    title: string,
+    url: string,
+    pattern: string = 'YYYY-MM-DD-domain-title'
+  ): string {
     // Generate filename based on pattern
     const date = this.formatDateForFilename();
     const domain = this.sanitizeDomain(new URL(url).hostname);
@@ -231,7 +235,7 @@ class SharedUtils {
 
     // Ensure valid filename
     filename = this.sanitizeForFilename(filename, 100);
-    
+
     return filename.endsWith('.md') ? filename : `${filename}.md`;
   }
 }
