@@ -183,18 +183,13 @@ export class GitOperations {
       throw new Error('GitHub token not configured');
     }
 
-    // Check for repository path in either githubRepo or repositoryPath
-    const repoPath = this.settings.githubRepo || this.settings.repositoryPath;
-    if (!repoPath) {
-      throw new Error('Repository path not configured');
+    // Check for repository path
+    if (!this.settings.githubRepo) {
+      throw new Error('GitHub repository not configured');
     }
-
-    // Normalize the repository path
-    this.settings.repositoryPath = repoPath;
 
     console.log('GitOperations initialized with:', {
       hasToken: !!this.settings.githubToken,
-      repositoryPath: this.settings.repositoryPath,
       githubRepo: this.settings.githubRepo,
     });
   }
@@ -238,9 +233,8 @@ export class GitOperations {
     if (!this.settings) {
       throw new Error('Git operations not initialized');
     }
-
     try {
-      const repoInfo = this.parseRepositoryPath(this.settings.repositoryPath);
+      const repoInfo = this.parseRepositoryPath(this.settings.githubRepo);
 
       // Use FileManager to determine folder and build proper path
       const folder = this.determineFolder(metadata);
@@ -402,13 +396,12 @@ export class GitOperations {
       repo: parts[1],
     };
   }
-
   private buildFilePath(filename: string): string {
     if (!this.settings) {
       throw new Error('Settings not initialized');
     }
 
-    const documentPath = this.settings.documentPath || 'documents';
+    const documentPath = 'documents';
 
     // Ensure proper path separators
     const cleanDocumentPath = documentPath.replace(/^\/+|\/+$/g, '');
@@ -566,13 +559,12 @@ export class GitOperations {
       .replace(/-+/g, '-')
       .replace(/^-|-$/g, '');
   }
-
   private buildFilePathWithFolder(filename: string, folder: string): string {
     if (!this.settings) {
       throw new Error('Settings not initialized');
     }
 
-    const documentPath = this.settings.documentPath || 'documents';
+    const documentPath = 'documents';
 
     // Ensure proper path separators
     const cleanDocumentPath = documentPath.replace(/^\/+|\/+$/g, '');
@@ -588,9 +580,8 @@ export class GitOperations {
     if (!this.settings) {
       return { success: false, error: 'Git operations not initialized' };
     }
-
     try {
-      const repoInfo = this.parseRepositoryPath(this.settings.repositoryPath);
+      const repoInfo = this.parseRepositoryPath(this.settings.githubRepo);
 
       const response = await fetch(`${this.apiBase}/repos/${repoInfo.owner}/${repoInfo.repo}`, {
         method: 'GET',
@@ -623,9 +614,8 @@ export class GitOperations {
     if (!this.settings) {
       throw new Error('Git operations not initialized');
     }
-
     try {
-      const repoInfo = this.parseRepositoryPath(this.settings.repositoryPath);
+      const repoInfo = this.parseRepositoryPath(this.settings.githubRepo);
       const fullPath = this.buildFilePath(path);
 
       const response = await fetch(
@@ -667,14 +657,13 @@ export class GitOperations {
       throw error;
     }
   }
-
   getRepositoryUrl(): string | null {
-    if (!this.settings?.repositoryPath) {
+    if (!this.settings?.githubRepo) {
       return null;
     }
 
     try {
-      const repoInfo = this.parseRepositoryPath(this.settings.repositoryPath);
+      const repoInfo = this.parseRepositoryPath(this.settings.githubRepo);
       return `https://github.com/${repoInfo.owner}/${repoInfo.repo}`;
     } catch {
       return null;

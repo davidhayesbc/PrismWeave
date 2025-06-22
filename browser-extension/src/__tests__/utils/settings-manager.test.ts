@@ -8,58 +8,52 @@ import { SettingsManager } from '../../utils/settings-manager';
   storage: {
     sync: {
       get: jest.fn(),
-      set: jest.fn()
-    }
+      set: jest.fn(),
+    },
   },
   runtime: {
-    lastError: undefined as chrome.runtime.LastError | undefined
-  }
+    lastError: undefined as chrome.runtime.LastError | undefined,
+  },
 };
 
 describe('SettingsManager - Load/Save Operations', () => {
   let manager: SettingsManager;
-  
+
   beforeEach(() => {
     manager = new SettingsManager();
     jest.clearAllMocks();
     (global as any).chrome.runtime.lastError = undefined;
   });
-
   test('1.1 Verify all schema fields have default values', async () => {
     // Test that all schema fields have proper default values
     const defaults = await manager.getDefaults();
-    
-    // List of expected default keys and values (from schema)
+
+    // List of expected default keys and values (functional settings only)
     const expectedDefaults = {
-      repositoryPath: '',
       githubToken: '',
       githubRepo: '',
       defaultFolder: 'unsorted',
       customFolder: '',
       fileNamingPattern: 'YYYY-MM-DD-domain-title',
-      customNamingPattern: '',
       autoCommit: true,
-      autoPush: false,
       captureImages: true,
       removeAds: true,
       removeNavigation: true,
-      preserveFormatting: true,
-      generateTags: true,
-      generateSummary: false,
-      enhanceMetadata: true,
+      customSelectors: '',
+      commitMessageTemplate: 'Add: {domain} - {title}',
       debugMode: false,
-      performanceMonitoring: false,
-      maxImageSize: 5,
       showNotifications: true,
-      darkMode: false,
+      enableKeyboardShortcuts: true,
     };
 
     expect(defaults).toMatchObject(expectedDefaults);
-      // All keys present
+    // All keys present
     Object.keys(expectedDefaults).forEach(key => {
       expect(defaults).toHaveProperty(key, (expectedDefaults as any)[key]);
     });
-  });  test('1.2 Test loading when storage is empty', async () => {
+  });
+
+  test('1.2 Test loading when storage is empty', async () => {
     // Mock storage to return empty object
     ((global as any).chrome.storage.sync.get as jest.Mock).mockImplementation((keys, callback) => {
       callback({});
@@ -67,8 +61,12 @@ describe('SettingsManager - Load/Save Operations', () => {
 
     const settings = await manager.getSettings();
     expect(settings).toEqual({});
-    expect((global as any).chrome.storage.sync.get).toHaveBeenCalledWith(['prismWeaveSettings'], expect.any(Function));
-  });  test('1.3 Test saving valid settings', async () => {
+    expect((global as any).chrome.storage.sync.get).toHaveBeenCalledWith(
+      ['prismWeaveSettings'],
+      expect.any(Function)
+    );
+  });
+  test('1.3 Test saving valid settings', async () => {
     // Mock storage set to succeed
     ((global as any).chrome.storage.sync.set as jest.Mock).mockImplementation((data, callback) => {
       callback();
@@ -77,7 +75,7 @@ describe('SettingsManager - Load/Save Operations', () => {
     const testSettings = {
       autoCommit: false,
       defaultFolder: 'tech',
-      captureImages: false
+      captureImages: false,
     };
 
     const result = await manager.updateSettings(testSettings);
@@ -87,13 +85,11 @@ describe('SettingsManager - Load/Save Operations', () => {
       expect.any(Function)
     );
   });
-
   test('Validate settings with correct types', () => {
     const validSettings = {
       autoCommit: true,
       defaultFolder: 'tech',
-      maxImageSize: 10,
-      githubRepo: 'owner/repo'
+      githubRepo: 'owner/repo',
     };
 
     const validation = manager.validateSettings(validSettings);
@@ -104,14 +100,14 @@ describe('SettingsManager - Load/Save Operations', () => {
   test('Validate settings with incorrect types', () => {
     const invalidSettings = {
       autoCommit: 'yes', // should be boolean
-      maxImageSize: 'large', // should be number
-      githubRepo: 'invalid-format' // should match pattern
+      githubRepo: 'invalid-format', // should match pattern
     };
 
     const validation = manager.validateSettings(invalidSettings as any);
     expect(validation.isValid).toBe(false);
     expect(validation.errors.length).toBeGreaterThan(0);
-  });  test('Reset settings to defaults', async () => {
+  });
+  test('Reset settings to defaults', async () => {
     // Mock storage set to succeed
     ((global as any).chrome.storage.sync.set as jest.Mock).mockImplementation((data, callback) => {
       callback();
@@ -119,16 +115,17 @@ describe('SettingsManager - Load/Save Operations', () => {
 
     const result = await manager.resetSettings();
     expect(result).toBe(true);
-    
+
     const defaults = await manager.getDefaults();
     expect((global as any).chrome.storage.sync.set).toHaveBeenCalledWith(
       { prismWeaveSettings: defaults },
       expect.any(Function)
     );
-  });  test('Handle storage errors gracefully', async () => {
+  });
+  test('Handle storage errors gracefully', async () => {
     // Suppress expected console.error output during this test
     const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
-    
+
     // Mock storage to fail
     (global as any).chrome.runtime.lastError = { message: 'Storage quota exceeded' };
     ((global as any).chrome.storage.sync.get as jest.Mock).mockImplementation((keys, callback) => {
@@ -137,10 +134,13 @@ describe('SettingsManager - Load/Save Operations', () => {
 
     const settings = await manager.getSettings();
     expect(settings).toEqual({});
-    
+
     // Verify that console.error was called as expected
-    expect(consoleErrorSpy).toHaveBeenCalledWith('SettingsManager: Error getting settings:', expect.any(Error));
-    
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      'SettingsManager: Error getting settings:',
+      expect.any(Error)
+    );
+
     // Restore console.error
     consoleErrorSpy.mockRestore();
   });
@@ -151,14 +151,14 @@ describe('SettingsManager - Load/Save Operations', () => {
         prismWeaveSettings: {
           githubToken: 'secret-token',
           autoCommit: true,
-          defaultFolder: 'tech'
-        }
+          defaultFolder: 'tech',
+        },
       });
     });
 
     const exported = await manager.exportSettings();
     const parsed = JSON.parse(exported);
-    
+
     expect(parsed.githubToken).toBe('[REDACTED]');
     expect(parsed.autoCommit).toBe(true);
     expect(parsed.defaultFolder).toBe('tech');
@@ -171,7 +171,7 @@ describe('SettingsManager - Load/Save Operations', () => {
 
     const importData = JSON.stringify({
       autoCommit: false,
-      defaultFolder: 'business'
+      defaultFolder: 'business',
     });
 
     const result = await manager.importSettings(importData);
@@ -180,15 +180,18 @@ describe('SettingsManager - Load/Save Operations', () => {
   test('Import invalid JSON fails gracefully', async () => {
     // Suppress expected console.error output during this test
     const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
-    
+
     const invalidJson = '{ invalid json }';
-    
+
     const result = await manager.importSettings(invalidJson);
     expect(result).toBe(false);
-    
+
     // Verify that console.error was called as expected
-    expect(consoleErrorSpy).toHaveBeenCalledWith('SettingsManager: Error importing settings:', expect.any(SyntaxError));
-    
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      'SettingsManager: Error importing settings:',
+      expect.any(SyntaxError)
+    );
+
     // Restore console.error
     consoleErrorSpy.mockRestore();
   });

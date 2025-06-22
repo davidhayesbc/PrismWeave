@@ -2,13 +2,7 @@
 // Common TypeScript interfaces and types for PrismWeave Browser Extension
 
 export interface ISettings {
-  // Core Extension Settings
-  enabled: boolean;
-  extractionRules: string[];
-  apiEndpoint?: string;
-
   // Repository Settings
-  repositoryPath: string;
   githubToken: string;
   githubRepo: string;
 
@@ -16,46 +10,25 @@ export interface ISettings {
   defaultFolder: string;
   customFolder: string;
   fileNamingPattern: string;
-  customNamingPattern: string;
-  documentPath: string;
-  defaultTags: string[];
 
   // Automation Settings
-  quickCapture: boolean;
-  autoCapture: boolean;
   autoCommit: boolean;
-  autoPush: boolean;
+
   // Content Processing Settings
   captureImages: boolean;
   removeAds: boolean;
   removeNavigation: boolean;
-  preserveFormatting: boolean;
-  preserveLinks: boolean;
   customSelectors: string;
-  imageQuality: number;
-  maxImageSize: number;
-  markdownFormat: 'github' | 'commonmark' | 'custom';
-  customMarkdownRules: Record<string, unknown>;
 
   // Git & Repository Settings
   commitMessageTemplate: string;
 
-  // Content Enhancement Settings
-  generateTags: boolean;
-  generateSummary: boolean;
-  enhanceMetadata: boolean;
-  aiProcessing: boolean;
-  aiModel: string;
-
-  // Performance & Debugging Settings
+  // Debugging Settings
   debugMode: boolean;
-  performanceMonitoring: boolean;
-  logLevel: 'debug' | 'info' | 'warn' | 'error';
 
   // UI Preferences
   showNotifications: boolean;
   enableKeyboardShortcuts: boolean;
-  darkMode: boolean;
 }
 
 export interface IMessageData {

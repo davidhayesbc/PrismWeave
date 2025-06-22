@@ -23,13 +23,7 @@ export class PrismWeaveOptions {
   }
   private getDefaultSettings(): Partial<ISettings> {
     return {
-      // Core Extension Settings
-      enabled: true,
-      extractionRules: [],
-      apiEndpoint: '',
-
       // Repository Settings
-      repositoryPath: '',
       githubToken: '',
       githubRepo: '',
 
@@ -37,47 +31,25 @@ export class PrismWeaveOptions {
       defaultFolder: 'auto',
       customFolder: '',
       fileNamingPattern: 'YYYY-MM-DD-domain-title',
-      customNamingPattern: '',
-      documentPath: '',
-      defaultTags: [],
 
       // Automation Settings
-      quickCapture: false,
-      autoCapture: false,
       autoCommit: true,
-      autoPush: false,
 
       // Content Processing Settings
       captureImages: true,
       removeAds: true,
       removeNavigation: true,
-      preserveFormatting: true,
-      preserveLinks: true,
       customSelectors: '',
-      imageQuality: 85,
-      maxImageSize: 5,
-      markdownFormat: 'github' as const,
-      customMarkdownRules: {},
 
       // Git & Repository Settings
       commitMessageTemplate: 'Add: {domain} - {title}',
 
-      // Content Enhancement Settings
-      generateTags: true,
-      generateSummary: false,
-      enhanceMetadata: true,
-      aiProcessing: false,
-      aiModel: '',
-
-      // Performance & Debugging Settings
+      // Debugging Settings
       debugMode: false,
-      performanceMonitoring: false,
-      logLevel: 'info' as const,
 
       // UI Preferences
       showNotifications: true,
       enableKeyboardShortcuts: true,
-      darkMode: false,
     };
   }
 
@@ -103,26 +75,24 @@ export class PrismWeaveOptions {
   }
   private populateForm(): void {
     // Repository Settings
-    this.setInputValue('repositoryPath', this.settings.repositoryPath || '');
     this.setInputValue('githubToken', this.settings.githubToken || '');
-    this.setInputValue('githubRepo', this.settings.githubRepo || ''); // File Organization
+    this.setInputValue('githubRepo', this.settings.githubRepo || '');
+
+    // File Organization
     this.setSelectValue('defaultFolder', this.settings.defaultFolder || 'unsorted');
     this.setInputValue('customFolder', this.settings.customFolder || '');
     this.setSelectValue(
       'fileNamingPattern',
       this.settings.fileNamingPattern || 'YYYY-MM-DD-domain-title'
     );
-    this.setInputValue('customNamingPattern', this.settings.customNamingPattern || '');
 
     // Automation Settings
-    this.setCheckboxValue('quickCapture', this.settings.quickCapture ?? false);
     this.setCheckboxValue('autoCommit', this.settings.autoCommit ?? true);
-    this.setCheckboxValue('autoPush', this.settings.autoPush ?? false); // Content Processing
+
+    // Content Processing
     this.setCheckboxValue('captureImages', this.settings.captureImages ?? true);
     this.setCheckboxValue('removeAds', this.settings.removeAds ?? true);
     this.setCheckboxValue('removeNavigation', this.settings.removeNavigation ?? true);
-    this.setCheckboxValue('preserveFormatting', this.settings.preserveFormatting ?? true);
-    this.setCheckboxValue('preserveLinks', this.settings.preserveLinks ?? true);
     this.setInputValue('customSelectors', this.settings.customSelectors || '');
 
     // Git & Repository Settings
@@ -131,20 +101,12 @@ export class PrismWeaveOptions {
       this.settings.commitMessageTemplate || 'Add: {domain} - {title}'
     );
 
-    // Content Enhancement
-    this.setCheckboxValue('generateTags', this.settings.generateTags ?? true);
-    this.setCheckboxValue('generateSummary', this.settings.generateSummary ?? false);
-    this.setCheckboxValue('enhanceMetadata', this.settings.enhanceMetadata ?? true);
-
-    // Performance & Debugging
+    // Debugging
     this.setCheckboxValue('debugMode', this.settings.debugMode ?? false);
-    this.setCheckboxValue('performanceMonitoring', this.settings.performanceMonitoring ?? false);
-    this.setInputValue('maxImageSize', (this.settings.maxImageSize || 5).toString());
 
     // UI Preferences
     this.setCheckboxValue('showNotifications', this.settings.showNotifications ?? true);
     this.setCheckboxValue('enableKeyboardShortcuts', this.settings.enableKeyboardShortcuts ?? true);
-    this.setCheckboxValue('darkMode', this.settings.darkMode ?? false);
   }
   private setupEventListeners(): void {
     // Save button
@@ -251,7 +213,6 @@ export class PrismWeaveOptions {
       inputElement.classList.remove('error');
     }
   }
-
   private setupConditionalFields(): void {
     // Show custom folder field when 'custom' is selected
     const defaultFolderSelect = document.getElementById('defaultFolder') as HTMLSelectElement;
@@ -264,19 +225,6 @@ export class PrismWeaveOptions {
 
       defaultFolderSelect.addEventListener('change', toggleCustomFolder);
       toggleCustomFolder(); // Initial state
-    }
-
-    // Show custom naming pattern field when 'custom' is selected
-    const namingPatternSelect = document.getElementById('fileNamingPattern') as HTMLSelectElement;
-    const customNamingField = document.getElementById('customNamingField');
-
-    if (namingPatternSelect && customNamingField) {
-      const toggleCustomNaming = () => {
-        customNamingField.style.display = namingPatternSelect.value === 'custom' ? 'block' : 'none';
-      };
-
-      namingPatternSelect.addEventListener('change', toggleCustomNaming);
-      toggleCustomNaming(); // Initial state
     }
   }
   private async saveSettings(): Promise<void> {
@@ -545,32 +493,20 @@ export class PrismWeaveOptions {
   }
   private collectFormData(): Partial<ISettings> {
     return {
-      repositoryPath: this.getInputValue('repositoryPath'),
       githubToken: this.getInputValue('githubToken'),
       githubRepo: this.getInputValue('githubRepo'),
       defaultFolder: this.getSelectValue('defaultFolder'),
       customFolder: this.getInputValue('customFolder'),
       fileNamingPattern: this.getSelectValue('fileNamingPattern'),
-      customNamingPattern: this.getInputValue('customNamingPattern'),
-      quickCapture: this.getCheckboxValue('quickCapture'),
       autoCommit: this.getCheckboxValue('autoCommit'),
-      autoPush: this.getCheckboxValue('autoPush'),
       captureImages: this.getCheckboxValue('captureImages'),
       removeAds: this.getCheckboxValue('removeAds'),
       removeNavigation: this.getCheckboxValue('removeNavigation'),
-      preserveFormatting: this.getCheckboxValue('preserveFormatting'),
-      preserveLinks: this.getCheckboxValue('preserveLinks'),
       customSelectors: this.getInputValue('customSelectors'),
       commitMessageTemplate: this.getInputValue('commitMessageTemplate'),
-      generateTags: this.getCheckboxValue('generateTags'),
-      generateSummary: this.getCheckboxValue('generateSummary'),
-      enhanceMetadata: this.getCheckboxValue('enhanceMetadata'),
       debugMode: this.getCheckboxValue('debugMode'),
-      performanceMonitoring: this.getCheckboxValue('performanceMonitoring'),
-      maxImageSize: parseInt(this.getInputValue('maxImageSize')) || 5,
       showNotifications: this.getCheckboxValue('showNotifications'),
       enableKeyboardShortcuts: this.getCheckboxValue('enableKeyboardShortcuts'),
-      darkMode: this.getCheckboxValue('darkMode'),
     };
   }
   // Helper methods for form manipulation

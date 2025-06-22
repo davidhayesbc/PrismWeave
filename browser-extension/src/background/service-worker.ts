@@ -19,29 +19,18 @@ interface IMessageResponse {
 interface ISettingsData {
   githubToken?: string;
   githubRepo?: string;
-  githubUsername?: string;
   autoCommit?: boolean;
-  outputFormat?: string;
-  customPrompt?: string;
   defaultFolder?: string;
   customFolder?: string;
-  quickCapture?: boolean;
-  autoPush?: boolean;
+  fileNamingPattern?: string;
   captureImages?: boolean;
   removeAds?: boolean;
   removeNavigation?: boolean;
-  preserveFormatting?: boolean;
-  preserveLinks?: boolean;
   customSelectors?: string;
   commitMessageTemplate?: string;
-  generateTags?: boolean;
-  generateSummary?: boolean;
-  enhanceMetadata?: boolean;
   debugMode?: boolean;
-  performanceMonitoring?: boolean;
   showNotifications?: boolean;
   enableKeyboardShortcuts?: boolean;
-  darkMode?: boolean;
   [key: string]: unknown;
 }
 
@@ -170,29 +159,18 @@ class ServiceWorkerSettingsManager {
     return {
       githubToken: '',
       githubRepo: '',
-      githubUsername: '',
       autoCommit: true,
-      outputFormat: 'markdown',
-      customPrompt: '',
       defaultFolder: 'auto',
       customFolder: '',
-      quickCapture: false,
-      autoPush: false,
+      fileNamingPattern: 'YYYY-MM-DD-domain-title',
       captureImages: true,
       removeAds: true,
       removeNavigation: true,
-      preserveFormatting: true,
-      preserveLinks: true,
       customSelectors: '',
       commitMessageTemplate: 'Add: {domain} - {title}',
-      generateTags: true,
-      generateSummary: false,
-      enhanceMetadata: true,
       debugMode: false,
-      performanceMonitoring: false,
       showNotifications: true,
       enableKeyboardShortcuts: true,
-      darkMode: false,
     };
   }
 }

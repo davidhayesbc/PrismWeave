@@ -42,31 +42,7 @@ class SettingsManager {
   }
   private getSettingsSchema(): ISettingsSchema {
     return {
-      // Core Extension Settings
-      enabled: {
-        type: 'boolean',
-        default: true,
-        description: 'Enable/disable the extension',
-      },
-      extractionRules: {
-        type: 'array',
-        default: [],
-        description: 'Content extraction rules',
-      },
-      apiEndpoint: {
-        type: 'string',
-        default: '',
-        required: false,
-        description: 'API endpoint URL',
-      },
-      
       // Repository Configuration
-      repositoryPath: {
-        type: 'string',
-        default: '',
-        required: false,
-        description: 'Local or remote repository path',
-      },
       githubToken: {
         type: 'string',
         default: '',
@@ -116,43 +92,15 @@ class SettingsManager {
           'YYYY-MM-DD-title',
           'domain-YYYY-MM-DD-title',
           'title-YYYY-MM-DD',
-          'custom',
         ],
         description: 'Template for generated filenames',
       },
-      customNamingPattern: {
-        type: 'string',
-        default: '',
-        required: false,
-        description: 'Custom naming pattern when fileNamingPattern is "custom"',
-      },
-      documentPath: {
-        type: 'string',
-        default: 'documents',
-        description: 'Path within repository for documents',
-      },
-      defaultTags: {
-        type: 'array',
-        default: [],
-        description: 'Default tags for captured documents',
-      },
 
       // Automation Settings
-      autoCapture: {
-        type: 'boolean',
-        default: false,
-        description: 'Automatically capture pages when visiting',
-      },
       autoCommit: {
         type: 'boolean',
         default: true,
         description: 'Automatically commit captured files to Git',
-      },
-      autoPush: {
-        type: 'boolean',
-        default: false,
-        description: 'Automatically push commits to remote repository',
-        requires: ['githubToken', 'githubRepo'],
       },
 
       // Content Processing
@@ -171,80 +119,25 @@ class SettingsManager {
         default: true,
         description: 'Remove navigation menus and site headers/footers',
       },
-      preserveFormatting: {
-        type: 'boolean',
-        default: true,
-        description: 'Preserve original formatting and styling',
-      },
-      imageQuality: {
-        type: 'number',
-        default: 85,
-        min: 1,
-        max: 100,
-        description: 'Image quality for compression (1-100)',
-      },
-      maxImageSize: {
-        type: 'number',
-        default: 5,
-        min: 1,
-        max: 50,
-        description: 'Maximum image size in MB',
-      },
-      markdownFormat: {
+      customSelectors: {
         type: 'string',
-        default: 'github',
-        options: ['github', 'commonmark', 'custom'],
-        description: 'Markdown format to use',
-      },
-      customMarkdownRules: {
-        type: 'string', // Will be parsed as JSON
-        default: '{}',
-        description: 'Custom markdown conversion rules',
+        default: '',
+        required: false,
+        description: 'Custom CSS selectors for elements to remove during capture',
       },
 
-      // Content Enhancement
-      generateTags: {
-        type: 'boolean',
-        default: true,
-        description: 'Automatically generate tags for captured content',
-      },
-      generateSummary: {
-        type: 'boolean',
-        default: false,
-        description: 'Generate AI-powered content summaries',
-      },
-      enhanceMetadata: {
-        type: 'boolean',
-        default: true,
-        description: 'Extract and enhance document metadata',
-      },
-      aiProcessing: {
-        type: 'boolean',
-        default: false,
-        description: 'Enable AI processing features',
-      },
-      aiModel: {
+      // Git & Repository Settings
+      commitMessageTemplate: {
         type: 'string',
-        default: 'local',
-        description: 'AI model to use for processing',
+        default: 'Add: {domain} - {title}',
+        description: 'Template for git commit messages',
       },
 
-      // Performance & Debugging
+      // Debugging Settings
       debugMode: {
         type: 'boolean',
         default: false,
         description: 'Enable detailed logging and debug information',
-      },
-      performanceMonitoring: {
-        type: 'boolean',
-        default: false,
-        description: 'Track and log performance metrics',
-      },
-      logLevel: {
-        type: 'string',
-        default: 'info',
-        options: ['debug', 'info', 'warn', 'error'],
-        description: 'Logging level',
       },
 
       // UI Preferences
@@ -253,44 +146,47 @@ class SettingsManager {
         default: true,
         description: 'Show completion notifications',
       },
-      darkMode: {
+      enableKeyboardShortcuts: {
         type: 'boolean',
-        default: false,
-        description: 'Use dark theme for extension UI',
-      },    };
-  }  async getSettings(): Promise<Partial<ISettings>> {
+        default: true,
+        description: 'Enable keyboard shortcuts for capture',
+      },
+    };
+  }
+
+  async getSettings(): Promise<Partial<ISettings>> {
     try {
-      const result = await this.getFromStorage<Record<string, Partial<ISettings>>>([this.STORAGE_KEY]);
-      const rawSettings = result[this.STORAGE_KEY] || {};      
+      const result = await this.getFromStorage<Record<string, Partial<ISettings>>>([
+        this.STORAGE_KEY,
+      ]);
+      const rawSettings = result[this.STORAGE_KEY] || {};
       // Validate settings against schema - just log errors, don't block
       const validationResult = this.validateSettings(rawSettings);
       if (!validationResult.isValid) {
         console.warn('SettingsManager: Settings validation failed:', validationResult.errors);
       }
-      
+
       return rawSettings;
     } catch (error) {
       console.error('SettingsManager: Error getting settings:', error);
       return {};
-    }  }
+    }
+  }
 
   async getDefaults(): Promise<Partial<ISettings>> {
     const defaults: Partial<ISettings> = {};
-    
+
     Object.entries(this.schema).forEach(([key, definition]) => {
       (defaults as any)[key] = definition.default;
     });
-    
+
     return defaults;
   }
 
   async getSettingsWithDefaults(): Promise<Partial<ISettings>> {
     try {
-      const [current, defaults] = await Promise.all([
-        this.getSettings(),
-        this.getDefaults()
-      ]);
-      
+      const [current, defaults] = await Promise.all([this.getSettings(), this.getDefaults()]);
+
       return { ...defaults, ...current };
     } catch (error) {
       console.error('SettingsManager: Error getting settings with defaults:', error);
@@ -308,7 +204,7 @@ class SettingsManager {
 
       const current = await this.getSettings();
       const updated = { ...current, ...updates };
-      
+
       await this.setToStorage({ [this.STORAGE_KEY]: updated });
       return true;
     } catch (error) {
@@ -329,7 +225,7 @@ class SettingsManager {
   }
   validateSettings(settings: Partial<ISettings>): { isValid: boolean; errors: string[] } {
     const errors: string[] = [];
-    
+
     Object.entries(settings).forEach(([key, value]) => {
       const definition = this.schema[key];
       if (!definition) {
@@ -340,12 +236,19 @@ class SettingsManager {
       // Type validation with proper array handling
       const isValidType = this.validateType(value, definition.type);
       if (!isValidType) {
-        errors.push(`Invalid type for ${key}: expected ${definition.type}, got ${this.getActualType(value)}`);
+        errors.push(
+          `Invalid type for ${key}: expected ${definition.type}, got ${this.getActualType(value)}`
+        );
         return;
       }
 
       // Pattern validation
-      if (definition.pattern && typeof value === 'string' && value !== '' && !definition.pattern.test(value)) {
+      if (
+        definition.pattern &&
+        typeof value === 'string' &&
+        value !== '' &&
+        !definition.pattern.test(value)
+      ) {
         errors.push(`Invalid format for ${key}: does not match required pattern`);
       }
 
@@ -391,7 +294,7 @@ class SettingsManager {
 
   async checkRequiredDependencies(settings: Partial<ISettings>): Promise<string[]> {
     const missingDependencies: string[] = [];
-    
+
     Object.entries(settings).forEach(([key, value]) => {
       const definition = this.schema[key];
       if (definition?.requires && value) {
@@ -437,16 +340,18 @@ class SettingsManager {
 
   private sanitizeForExport(settings: Partial<ISettings>): Partial<ISettings> {
     const sanitized = { ...settings };
-    
+
     Object.entries(this.schema).forEach(([key, definition]) => {
       if (definition.sensitive && sanitized[key as keyof ISettings]) {
         (sanitized as any)[key] = '[REDACTED]';
       }
     });
-    
+
     return sanitized;
   }
-  private async getFromStorage<T = ISettingsManagerStorageData>(keys: SettingsManagerStorageKeys): SettingsManagerStorageResult<T> {
+  private async getFromStorage<T = ISettingsManagerStorageData>(
+    keys: SettingsManagerStorageKeys
+  ): SettingsManagerStorageResult<T> {
     return new Promise<T>((resolve, reject) => {
       chrome.storage.sync.get(keys as any, (result: T) => {
         if (chrome.runtime.lastError) {
