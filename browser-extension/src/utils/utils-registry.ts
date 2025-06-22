@@ -2,23 +2,7 @@
 // PrismWeave Utilities Registry
 // Centralized utility management to eliminate duplication
 
-interface ILogger {
-  debug: (...args: unknown[]) => void;
-  info: (...args: unknown[]) => void;
-  warn: (...args: unknown[]) => void;
-  error: (...args: unknown[]) => void;
-  group: (label?: string) => void;
-  groupEnd: () => void;
-}
-
-interface ILoggerFactory {
-  createLogger: (component: string) => ILogger;
-}
-
-interface IGlobalScope {
-  PrismWeaveRegistry?: UtilsRegistry;
-  PrismWeaveLogger?: ILoggerFactory;
-}
+import { ILogger, ILoggerFactory, getGlobalScope } from './global-types';
 
 class UtilsRegistry {
   private static instance: UtilsRegistry;
@@ -47,7 +31,7 @@ class UtilsRegistry {
 
   getLogger(component: string): ILogger {
     if (!this.logger) {
-      const globalScope = typeof window !== 'undefined' ? window as IGlobalScope : self as IGlobalScope;
+      const globalScope = getGlobalScope();
       if (globalScope.PrismWeaveLogger) {
         this.logger = globalScope.PrismWeaveLogger;
       }
@@ -62,17 +46,14 @@ class UtilsRegistry {
       warn: console.warn.bind(console),
       error: console.error.bind(console),
       group: console.group.bind(console),
-      groupEnd: console.groupEnd.bind(console)
+      groupEnd: console.groupEnd.bind(console),
     };
   }
 }
 
 // Global registry instance
-if (typeof window !== 'undefined') {
-  (window as IGlobalScope).PrismWeaveRegistry = UtilsRegistry.getInstance();
-} else if (typeof self !== 'undefined') {
-  (self as IGlobalScope).PrismWeaveRegistry = UtilsRegistry.getInstance();
-}
+const globalScope = getGlobalScope();
+globalScope.PrismWeaveRegistry = UtilsRegistry.getInstance();
 
 export default UtilsRegistry;
 export type { ILogger, ILoggerFactory };

@@ -2,13 +2,11 @@
 // PrismWeave Shared Utilities
 // Common helper functions used across multiple modules
 
+import { getGlobalScope } from './global-types';
+
 interface IFileValidationResult {
   valid: boolean;
   errors: string[];
-}
-
-interface IGlobalScope {
-  SharedUtils?: typeof SharedUtils;
 }
 
 interface IPrismWeaveError extends Error {
@@ -203,7 +201,11 @@ class SharedUtils {
   }
 
   // Error handling utilities
-  static createError(message: string, code: string = 'GENERAL_ERROR', details: Record<string, unknown> = {}): IPrismWeaveError {
+  static createError(
+    message: string,
+    code: string = 'GENERAL_ERROR',
+    details: Record<string, unknown> = {}
+  ): IPrismWeaveError {
     const error = new Error(message) as IPrismWeaveError;
     error.code = code;
     error.details = details;
@@ -216,11 +218,14 @@ class SharedUtils {
   }
 }
 
-// Export to global scope (works in both window and service worker contexts)
-if (typeof window !== 'undefined') {
-  (window as IGlobalScope).SharedUtils = SharedUtils;
-} else if (typeof self !== 'undefined') {
-  (self as IGlobalScope).SharedUtils = SharedUtils;
+// Export to global scope using centralized approach
+const globalScope = getGlobalScope();
+if (globalScope.SharedUtils === undefined) {
+  globalScope.SharedUtils = {
+    isValidUrl: SharedUtils.isValidUrl.bind(SharedUtils),
+    sanitizeForFilename: SharedUtils.sanitizeForFilename.bind(SharedUtils),
+    generateFilename: SharedUtils.generateFilename.bind(SharedUtils),
+  };
 }
 
 export default SharedUtils;

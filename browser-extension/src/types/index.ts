@@ -126,17 +126,6 @@ export interface IElementAttributes {
   style?: Record<string, string>;
 }
 
-export interface IUtilityClasses {
-  SettingsManager: new () => any;
-  GitOperations: new () => any;
-  FileManager: new () => any;
-  ContentExtractor: new () => any;
-  MarkdownConverter: new () => any;
-  Logger: new (context: string) => any;
-  ErrorHandler: new () => any;
-  PerformanceMonitor: new () => any;
-}
-
 // Chrome extension specific types
 export interface IExtensionContext {
   tabId?: number;
@@ -158,21 +147,3 @@ export type DeepPartial<T> = {
 };
 
 export type RequiredFields<T, K extends keyof T> = T & Required<Pick<T, K>>;
-
-// Re-export utility types from each module
-export type { IComponentLogConfig, ILogConfig } from '../utils/log-config';
-export type { ILogStyles, LogLevel } from '../utils/logger';
-export type {
-  IMemoryInfo,
-  IMetricsSummary,
-  IOperationSummary,
-  IPerformanceMetric,
-} from '../utils/performance-monitor';
-export type { IFileValidationResult, IPrismWeaveError } from '../utils/shared-utils';
-export type {
-  IEventListener,
-  IModalOptions,
-  IValidationRules,
-  StatusType,
-} from '../utils/ui-utils';
-export type { ILogger, ILoggerFactory } from '../utils/utils-registry';

@@ -2,6 +2,8 @@
 // PrismWeave Performance Monitor
 // Tracks extension performance and provides optimization insights
 
+import { getGlobalScope } from './global-types';
+
 interface IPerformanceMemory {
   usedJSHeapSize: number;
   totalJSHeapSize: number;
@@ -40,10 +42,6 @@ interface IMetricsSummary {
   totalMetrics: number;
 }
 
-interface IGlobalScope {
-  PrismWeavePerf?: PerformanceMonitor;
-}
-
 class PerformanceMonitor {
   private metrics: Map<string, IPerformanceMetric>;
   private isEnabled: boolean;
@@ -55,46 +53,52 @@ class PerformanceMonitor {
 
   startTimer(operation: string): string | null {
     if (!this.isEnabled) return null;
-    
+
     const startTime = performance.now();
     const timerId = `${operation}_${Date.now()}`;
-    
+
     this.metrics.set(timerId, {
       operation,
       startTime,
       endTime: null,
       duration: null,
-      metadata: {}
+      metadata: {},
     });
-    
+
     return timerId;
   }
 
-  endTimer(timerId: string | null, metadata: Record<string, unknown> = {}): IPerformanceMetric | null {
+  endTimer(
+    timerId: string | null,
+    metadata: Record<string, unknown> = {}
+  ): IPerformanceMetric | null {
     if (!this.isEnabled || !timerId) return null;
-    
+
     const metric = this.metrics.get(timerId);
     if (!metric) return null;
-    
+
     const endTime = performance.now();
     const duration = endTime - metric.startTime;
-    
+
     metric.endTime = endTime;
     metric.duration = duration;
     metric.metadata = metadata;
-    
+
     this.logPerformance(metric);
     return metric;
   }
 
   private logPerformance(metric: IPerformanceMetric): void {
     const { operation, duration, metadata } = metric;
-    
+
     if (duration === null) return;
-    
+
     // Log slow operations
     if (duration > 1000) {
-      console.warn(`🐌 Slow operation detected: ${operation} took ${duration.toFixed(2)}ms`, metadata);
+      console.warn(
+        `🐌 Slow operation detected: ${operation} took ${duration.toFixed(2)}ms`,
+        metadata
+      );
     } else if (duration > 500) {
       console.info(`⚠️ Moderate operation: ${operation} took ${duration.toFixed(2)}ms`, metadata);
     } else {
@@ -104,30 +108,30 @@ class PerformanceMonitor {
   measureMemory(): IMemoryInfo | null {
     const perf = performance as IExtendedPerformance;
     if (!perf.memory) return null;
-    
+
     return {
-      used: Math.round(perf.memory.usedJSHeapSize / 1024 / 1024 * 100) / 100,
-      total: Math.round(perf.memory.totalJSHeapSize / 1024 / 1024 * 100) / 100,
-      limit: Math.round(perf.memory.jsHeapSizeLimit / 1024 / 1024 * 100) / 100
+      used: Math.round((perf.memory.usedJSHeapSize / 1024 / 1024) * 100) / 100,
+      total: Math.round((perf.memory.totalJSHeapSize / 1024 / 1024) * 100) / 100,
+      limit: Math.round((perf.memory.jsHeapSizeLimit / 1024 / 1024) * 100) / 100,
     };
   }
 
   getMetricsSummary(): IMetricsSummary {
     const operations: Record<string, IOperationSummary> = {};
-    
+
     for (const [timerId, metric] of this.metrics) {
       if (!metric.duration) continue;
-      
+
       if (!operations[metric.operation]) {
         operations[metric.operation] = {
           count: 0,
           totalDuration: 0,
           averageDuration: 0,
           minDuration: Infinity,
-          maxDuration: 0
+          maxDuration: 0,
         };
       }
-      
+
       const op = operations[metric.operation];
       op.count++;
       op.totalDuration += metric.duration;
@@ -135,11 +139,11 @@ class PerformanceMonitor {
       op.maxDuration = Math.max(op.maxDuration, metric.duration);
       op.averageDuration = op.totalDuration / op.count;
     }
-    
+
     return {
       operations,
       memory: this.measureMemory(),
-      totalMetrics: this.metrics.size
+      totalMetrics: this.metrics.size,
     };
   }
 
@@ -160,12 +164,13 @@ class PerformanceMonitor {
 const perfMonitor = new PerformanceMonitor();
 
 // Export for different contexts
-if (typeof window !== 'undefined') {
-  (window as IGlobalScope).PrismWeavePerf = perfMonitor;
-} else if (typeof self !== 'undefined') {
-  (self as IGlobalScope).PrismWeavePerf = perfMonitor;
-}
+const globalScope = getGlobalScope();
+globalScope.PerformanceMonitor = {
+  startTimer: perfMonitor.startTimer.bind(perfMonitor),
+  endTimer: perfMonitor.endTimer.bind(perfMonitor),
+  getMetrics: perfMonitor.getMetricsSummary.bind(perfMonitor),
+};
 
 export { PerformanceMonitor };
 export default perfMonitor;
-export type { IPerformanceMetric, IMemoryInfo, IOperationSummary, IMetricsSummary };
+export type { IMemoryInfo, IMetricsSummary, IOperationSummary, IPerformanceMetric };

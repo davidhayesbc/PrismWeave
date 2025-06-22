@@ -2,6 +2,8 @@
 // PrismWeave Logging Utility
 // Simple logging system with configurable levels and easy on/off toggle
 
+import { getGlobalScope } from './global-types';
+
 type LogLevel = 0 | 1 | 2 | 3 | 4;
 
 interface ILogStyles {
@@ -10,15 +12,6 @@ interface ILogStyles {
   info: string;
   debug: string;
   trace: string;
-}
-
-interface IGlobalScope {
-  PRISMWEAVE_LOG_ENABLED?: boolean;
-  PRISMWEAVE_LOG_LEVEL?: LogLevel;
-  PrismWeaveLogger?: {
-    Logger: typeof Logger;
-    createLogger: typeof createLogger;
-  };
 }
 
 class Logger {
@@ -32,7 +25,7 @@ class Logger {
     WARN: 1 as const,
     INFO: 2 as const,
     DEBUG: 3 as const,
-    TRACE: 4 as const
+    TRACE: 4 as const,
   };
 
   static readonly LEVEL_NAMES = ['ERROR', 'WARN', 'INFO', 'DEBUG', 'TRACE'] as const;
@@ -46,7 +39,7 @@ class Logger {
       warn: 'color: #ffaa00; font-weight: bold;',
       info: 'color: #4444ff; font-weight: bold;',
       debug: 'color: #888888;',
-      trace: 'color: #cccccc;'
+      trace: 'color: #cccccc;',
     };
   }
 
@@ -58,11 +51,20 @@ class Logger {
     const levelName = Logger.LEVEL_NAMES[level];
     const timestamp = new Date().toISOString().substr(11, 12);
     const prefix = `[${timestamp}] [${this.component}] [${levelName}]`;
-    
+
     if (typeof message === 'string') {
-      return [`%c${prefix} ${message}`, this.styles[levelName.toLowerCase() as keyof ILogStyles], ...args];
+      return [
+        `%c${prefix} ${message}`,
+        this.styles[levelName.toLowerCase() as keyof ILogStyles],
+        ...args,
+      ];
     } else {
-      return [`%c${prefix}`, this.styles[levelName.toLowerCase() as keyof ILogStyles], message, ...args];
+      return [
+        `%c${prefix}`,
+        this.styles[levelName.toLowerCase() as keyof ILogStyles],
+        message,
+        ...args,
+      ];
     }
   }
 
@@ -95,14 +97,14 @@ class Logger {
       console.log(...this._formatMessage(Logger.LEVELS.TRACE, message, ...args));
     }
   }
-
   // Utility methods
-  group(label: string, collapsed: boolean = false): void {
+  group(label?: string, collapsed: boolean = false): void {
     if (this.enabled) {
+      const groupLabel = label ? `[${this.component}] ${label}` : `[${this.component}]`;
       if (collapsed) {
-        console.groupCollapsed(`[${this.component}] ${label}`);
+        console.groupCollapsed(groupLabel);
       } else {
-        console.group(`[${this.component}] ${label}`);
+        console.group(groupLabel);
       }
     }
   }
@@ -148,45 +150,35 @@ class Logger {
   }
   // Global configuration methods
   static setGlobalLevel(level: LogLevel): void {
-    (typeof window !== 'undefined' ? window as any : self as any).PRISMWEAVE_LOG_LEVEL = level;
+    (typeof window !== 'undefined' ? (window as any) : (self as any)).PRISMWEAVE_LOG_LEVEL = level;
   }
 
   static setGlobalEnabled(enabled: boolean): void {
-    (typeof window !== 'undefined' ? window as any : self as any).PRISMWEAVE_LOG_ENABLED = enabled;
+    (typeof window !== 'undefined' ? (window as any) : (self as any)).PRISMWEAVE_LOG_ENABLED =
+      enabled;
   }
 }
 
 // Global logger factory
 function createLogger(component: string): Logger {
   const logger = new Logger(component);
-  
+
   // Check for global overrides
-  const globalScope = typeof window !== 'undefined' ? window as any : self as any;
+  const globalScope = typeof window !== 'undefined' ? (window as any) : (self as any);
   if (globalScope.PRISMWEAVE_LOG_ENABLED !== undefined) {
     logger.enabled = globalScope.PRISMWEAVE_LOG_ENABLED;
   }
   if (globalScope.PRISMWEAVE_LOG_LEVEL !== undefined) {
     logger.level = globalScope.PRISMWEAVE_LOG_LEVEL;
   }
-  
+
   return logger;
 }
 
 // Export for use in other modules
 export { Logger, createLogger };
-export type { LogLevel, ILogStyles };
+export type { ILogStyles, LogLevel };
 
-// Make available globally for service worker importScripts compatibility
-if (typeof globalThis !== 'undefined') {
-  (globalThis as any).Logger = Logger;
-  (globalThis as any).createLogger = createLogger;
-  (globalThis as any).PrismWeaveLogger = { Logger, createLogger };
-} else if (typeof self !== 'undefined') {
-  (self as any).Logger = Logger;
-  (self as any).createLogger = createLogger;
-  (self as any).PrismWeaveLogger = { Logger, createLogger };
-} else if (typeof window !== 'undefined') {
-  (window as any).Logger = Logger;
-  (window as any).createLogger = createLogger;
-  (window as any).PrismWeaveLogger = { Logger, createLogger };
-}
+// Export to global scope
+const globalScope = getGlobalScope();
+globalScope.PrismWeaveLogger = { createLogger };
