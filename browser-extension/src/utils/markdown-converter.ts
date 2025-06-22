@@ -48,7 +48,6 @@ declare global {
 export class MarkdownConverter {
   private turndownService: ITurndownService | null = null;
   private readonly semanticSelectors: ISemanticSelectors;
-  private _initializationPromise: Promise<void> | null = null;
   private _isInitialized: boolean = false;
   constructor() {
     this.semanticSelectors = {
@@ -60,7 +59,7 @@ export class MarkdownConverter {
       codeElements: ['code', 'pre', '.code', '.highlight', '.syntax'],
     };
 
-    // Initialize synchronously for service worker, async for others
+    // Initialize TurndownService
     this.initializeTurndown();
   }
   private initializeTurndown(): void {
@@ -92,198 +91,14 @@ export class MarkdownConverter {
 
     // Check if TurndownService is available
     if (!TurndownService) {
-      console.warn(
-        'MarkdownConverter: TurndownService not available, attempting to load library dynamically'
-      );
-
-      // Store the initialization promise to avoid multiple concurrent loads
-      if (!this._initializationPromise) {
-        this._initializationPromise = this.loadTurndownService()
-          .then(() => {
-            this.setupTurndownService();
-            this._isInitialized = true;
-            console.info(
-              'MarkdownConverter: TurndownService initialization completed successfully'
-            );
-          })
-          .catch((error: Error) => {
-            console.warn(
-              'MarkdownConverter: Failed to load TurndownService dynamically, trying alternative methods:',
-              error.message
-            );
-
-            // Try alternative loading strategy
-            return this.tryAlternativeLoading()
-              .then(() => {
-                this.setupTurndownService();
-                this._isInitialized = true;
-                console.info('MarkdownConverter: TurndownService loaded via alternative method');
-              })
-              .catch((altError: Error) => {
-                console.warn(
-                  'MarkdownConverter: All loading methods failed, using fallback conversion:',
-                  altError.message
-                );
-                this.turndownService = null;
-                this._isInitialized = true; // Mark as initialized even with fallback
-              });
-          });
-      }
+      console.warn('MarkdownConverter: TurndownService not available, using fallback conversion');
+      this.turndownService = null;
+      this._isInitialized = true;
       return;
-    }
-
-    // TurndownService is already available
+    } // TurndownService is available - initialize it
     this.setupTurndownService();
     this._isInitialized = true;
-    console.info('MarkdownConverter: TurndownService initialized from existing global');
-  }
-
-  private async tryAlternativeLoading(): Promise<void> {
-    return new Promise((resolve, reject) => {
-      // Try to request the library content via message passing
-      if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
-        console.log('MarkdownConverter: Trying alternative loading via messaging');
-
-        chrome.runtime.sendMessage({ type: 'GET_TURNDOWN_LIBRARY' }, response => {
-          if (chrome.runtime.lastError) {
-            reject(new Error(`Message passing failed: ${chrome.runtime.lastError.message}`));
-            return;
-          }
-
-          if (response && response.success && response.content) {
-            try {
-              // Execute the library code in global context
-              const script = document.createElement('script');
-              script.textContent = response.content;
-              script.type = 'text/javascript';
-
-              document.head.appendChild(script);
-
-              setTimeout(() => {
-                if (window.TurndownService) {
-                  console.info('MarkdownConverter: TurndownService loaded via message passing');
-                  resolve();
-                } else {
-                  reject(new Error('TurndownService not available after alternative loading'));
-                }
-              }, 100);
-            } catch (error) {
-              reject(new Error(`Failed to execute library content: ${error}`));
-            }
-          } else {
-            reject(new Error('Invalid response from background script'));
-          }
-        });
-
-        // Timeout for message passing
-        setTimeout(() => {
-          reject(new Error('Alternative loading timed out'));
-        }, 3000);
-      } else {
-        reject(new Error('Chrome runtime messaging not available'));
-      }
-    });
-  }
-  private async loadTurndownService(): Promise<void> {
-    return new Promise((resolve, reject) => {
-      // Check if already loaded
-      if (window.TurndownService) {
-        resolve();
-        return;
-      }
-
-      console.log('MarkdownConverter: Attempting to load TurndownService dynamically');
-
-      // Verify we're in the right context for chrome.runtime
-      if (typeof chrome === 'undefined' || !chrome.runtime) {
-        console.warn(
-          'MarkdownConverter: Chrome runtime not available, cannot load TurndownService'
-        );
-        reject(new Error('Chrome runtime not available'));
-        return;
-      }
-
-      // Ensure DOM is ready before injecting script
-      const injectScript = () => {
-        try {
-          const script = document.createElement('script');
-          const scriptUrl = chrome.runtime.getURL('libs/turndown.min.js');
-
-          console.log('MarkdownConverter: Loading TurndownService from:', scriptUrl);
-
-          script.src = scriptUrl;
-          script.type = 'text/javascript';
-          script.async = true;
-
-          let resolved = false;
-
-          script.onload = () => {
-            if (resolved) return;
-
-            // Give a small delay for the script to fully initialize
-            setTimeout(() => {
-              if (window.TurndownService) {
-                console.info(
-                  'MarkdownConverter: TurndownService loaded successfully via dynamic injection'
-                );
-                resolved = true;
-                resolve();
-              } else {
-                console.warn(
-                  'MarkdownConverter: TurndownService script loaded but constructor not available'
-                );
-                resolved = true;
-                reject(new Error('TurndownService not available after loading script'));
-              }
-            }, 100);
-          };
-
-          script.onerror = error => {
-            if (resolved) return;
-            console.error('MarkdownConverter: Failed to load TurndownService script:', error);
-            resolved = true;
-            reject(new Error('Failed to load TurndownService script'));
-          };
-
-          // Set a timeout as fallback
-          setTimeout(() => {
-            if (!resolved) {
-              console.warn('MarkdownConverter: TurndownService loading timed out');
-              resolved = true;
-              reject(new Error('TurndownService loading timed out'));
-            }
-          }, 5000);
-
-          // Add to document with error handling
-          const targetElement = document.head || document.documentElement;
-          if (targetElement) {
-            targetElement.appendChild(script);
-          } else {
-            resolved = true;
-            reject(new Error('No suitable element found to inject script'));
-          }
-        } catch (error) {
-          console.error('MarkdownConverter: Exception while creating script element:', error);
-          reject(error);
-        }
-      };
-
-      // Check if DOM is ready
-      if (document.readyState === 'loading') {
-        // DOM is still loading, wait for it
-        console.log(
-          'MarkdownConverter: Waiting for DOM to be ready before loading TurndownService'
-        );
-        const onDOMReady = () => {
-          document.removeEventListener('DOMContentLoaded', onDOMReady);
-          setTimeout(injectScript, 100); // Small delay after DOM ready
-        };
-        document.addEventListener('DOMContentLoaded', onDOMReady);
-      } else {
-        // DOM is already ready
-        injectScript();
-      }
-    });
+    console.info('MarkdownConverter: TurndownService initialized successfully');
   }
 
   private setupTurndownService(): void {
@@ -487,8 +302,7 @@ export class MarkdownConverter {
       filter: 'hr',
       replacement: (): string => '\n\n---\n\n',
     });
-  }
-  /**
+  } /**
    * Ensures that the MarkdownConverter is fully initialized before proceeding with conversion
    */
   private async ensureInitialized(): Promise<void> {
@@ -498,32 +312,16 @@ export class MarkdownConverter {
 
     console.log('MarkdownConverter: Waiting for initialization to complete...');
 
-    if (this._initializationPromise) {
-      try {
-        await this._initializationPromise;
-        console.log('MarkdownConverter: Initialization completed via promise');
-        return;
-      } catch (error) {
-        console.warn('MarkdownConverter: Initialization promise failed:', error);
-        // Continue with fallback
-      }
+    // TurndownService should be available immediately via manifest injection
+    // If not already initialized, try once more
+    if (!this._isInitialized) {
+      console.warn('MarkdownConverter: Not initialized, attempting to initialize now');
+      this.initializeTurndown();
     }
 
-    // If no initialization promise exists and not initialized, something went wrong
-    console.warn(
-      'MarkdownConverter: Initialization was not properly started, attempting to initialize now'
-    );
-
-    try {
-      this.initializeTurndown();
-
-      if (this._initializationPromise) {
-        await this._initializationPromise;
-        console.log('MarkdownConverter: Late initialization completed');
-      }
-    } catch (error) {
-      console.error('MarkdownConverter: Late initialization failed:', error);
-      // Mark as initialized with fallback
+    if (!this._isInitialized) {
+      console.error('MarkdownConverter: Initialization failed - using fallback conversion');
+      this.turndownService = null;
       this._isInitialized = true;
     }
   }
