@@ -79,8 +79,7 @@ async function buildExtension() {
 
 async function copyStaticAssets() {
   console.log('  📁 Copying static assets...');
-  
-  const assets = [
+    const assets = [
     // Manifest
     { src: 'manifest.json', dest: 'dist/manifest.json' },
     
@@ -91,7 +90,10 @@ async function copyStaticAssets() {
     { src: 'src/options/options.css', dest: 'dist/options/options.css' },
     
     // Icons directory
-    { src: 'icons', dest: 'dist/icons', isDirectory: true }
+    { src: 'icons', dest: 'dist/icons', isDirectory: true },
+    
+    // Libraries directory (TurndownService, etc.)
+    { src: 'src/libs', dest: 'dist/libs', isDirectory: true }
   ];
 
   for (const asset of assets) {

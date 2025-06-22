@@ -45,23 +45,9 @@
     "128": "icons/icon128.png"
   },
   "options_page": "options/options.html",
-
   "web_accessible_resources": [
     {
       "resources": [
-        "utils/shared-utils.js",
-        "utils/git-operations.js", 
-        "utils/file-manager.js",
-        "utils/markdown-converter.js",
-        "utils/content-extractor.js",
-        "utils/logger.js",
-        "utils/log-config.js",
-        "utils/settings-manager.js",
-        "utils/error-handler.js",
-        "utils/performance-monitor.js",
-        "utils/utils-registry.js",
-        "utils/turndown-service.js",
-        "utils/ui-utils.js",
         "libs/turndown.min.js"
       ],
       "matches": ["<all_urls>"]

@@ -37,6 +37,8 @@ interface IContentExtractionResult {
   success: boolean;
   data?: IContentExtractionData;
   error?: string;
+  extractionMethod?: 'content-script' | 'direct';
+  timestamp?: string;
 }
 
 interface ICaptureResult {
@@ -432,6 +434,19 @@ async function ensureContentScriptInjected(tabId: number): Promise<void> {
       return;
     }
 
+    // Inject TurndownService library first
+    swLogger.debug('Injecting TurndownService library...');
+    try {
+      await chrome.scripting.executeScript({
+        target: { tabId },
+        files: ['libs/turndown.min.js'],
+      });
+      swLogger.debug('TurndownService library injected successfully');
+    } catch (libraryError) {
+      swLogger.warn('Failed to inject TurndownService library:', libraryError);
+      // This is not fatal - content script has fallback conversion
+    }
+
     // Inject content script if not available
     swLogger.debug('Injecting content script...');
     try {
@@ -499,111 +514,106 @@ async function extractContentFromTab(tabId: number): Promise<IContentExtractionR
 
 async function extractContentDirectly(tabId: number): Promise<IContentExtractionResult> {
   try {
-    swLogger.debug('Extracting content directly using chrome.scripting API');
+    swLogger.debug('Extracting content directly from tab:', tabId);
 
-    // Execute content extraction script directly
+    // Execute extraction script directly in the page
     const results = await chrome.scripting.executeScript({
       target: { tabId },
       func: () => {
-        try {
-          // Direct content extraction function
-          const extractContent = () => {
-            const title = document.title || 'Untitled';
-            const url = window.location.href;
+        // Direct extraction function that runs in page context
+        const getPageTitle = (): string => {
+          return document.title || 'Untitled';
+        };
 
-            // Try to find the main content area
-            const contentSelectors = [
-              'article',
-              'main',
-              '[role="main"]',
-              '.content',
-              '#content',
-              '.post-content',
-              '.entry-content',
-              '.article-content',
-              'body',
-            ];
+        const getPageUrl = (): string => {
+          return window.location.href;
+        };
 
-            let contentElement: Element | null = null;
-            for (const selector of contentSelectors) {
-              contentElement = document.querySelector(selector);
-              if (
-                contentElement &&
-                contentElement.textContent &&
-                contentElement.textContent.trim().length > 100
-              ) {
-                break;
-              }
+        const extractMainContent = (): string => {
+          // Try to find main content using semantic selectors
+          const contentSelectors = [
+            'article',
+            '[role="article"]',
+            'main',
+            '[role="main"]',
+            '.content',
+            '#content',
+            '.post-content',
+            '.entry-content',
+            '.article-content',
+            '.page-content',
+          ];
+
+          let contentElement: Element | null = null;
+          for (const selector of contentSelectors) {
+            contentElement = document.querySelector(selector);
+            if (
+              contentElement &&
+              contentElement.textContent &&
+              contentElement.textContent.trim().length > 100
+            ) {
+              break;
             }
+          }
 
-            if (!contentElement) {
-              contentElement = document.body;
+          if (!contentElement) {
+            contentElement = document.body;
+          }
+
+          return contentElement?.innerHTML || document.body.innerHTML;
+        };
+
+        const extractMetadata = (): Record<string, string> => {
+          const metadata: Record<string, string> = {};
+          
+          // Extract meta tags
+          const metaTags = document.querySelectorAll('meta');
+          metaTags.forEach(meta => {
+            const name = meta.getAttribute('name') || meta.getAttribute('property');
+            const content = meta.getAttribute('content');
+            if (name && content) {
+              metadata[name] = content;
             }
+          });
 
-            // Clean up the HTML
-            const clonedElement = contentElement.cloneNode(true) as Element;
+          return metadata;
+        };
 
-            // Remove unwanted elements
-            const unwantedSelectors = [
-              'script',
-              'style',
-              'nav',
-              'header',
-              'footer',
-              '.advertisement',
-              '.ads',
-              '.sidebar',
-              '.navigation',
-              '.menu',
-            ];
-
-            unwantedSelectors.forEach(selector => {
-              const elements = clonedElement.querySelectorAll(selector);
-              elements.forEach(el => el.remove());
-            });
-
-            const html = clonedElement.innerHTML || '';
-
-            return {
-              success: true,
-              data: {
-                html,
-                title,
-                url,
-                metadata: {
-                  extractedAt: new Date().toISOString(),
-                  method: 'direct',
-                  contentLength: html.length,
-                },
-              },
-            };
-          };
-
-          return extractContent();
-        } catch (error) {
-          return {
-            success: false,
-            error: error instanceof Error ? error.message : 'Unknown extraction error',
-          };
-        }
+        return {
+          title: getPageTitle(),
+          url: getPageUrl(),
+          html: extractMainContent(),
+          metadata: extractMetadata(),
+        };
       },
     });
 
-    if (!results || !results[0] || !results[0].result) {
-      throw new Error('No result from direct content extraction');
+    if (!results || results.length === 0 || !results[0].result) {
+      throw new Error('Failed to execute extraction script');
     }
 
-    const result = results[0].result as IContentExtractionResult;
+    const extractedData = results[0].result;
+    swLogger.debug('Direct extraction completed successfully');
 
-    if (!result.success) {
-      throw new Error(result.error || 'Direct content extraction failed');
-    }
-
-    swLogger.debug('Direct content extraction successful');
-    return result;
+    return {
+      success: true,
+      data: {
+        html: extractedData.html,
+        title: extractedData.title,
+        url: extractedData.url,
+        metadata: extractedData.metadata,
+      },
+      extractionMethod: 'direct',
+      timestamp: new Date().toISOString(),
+    };
   } catch (error) {
     swLogger.error('Direct content extraction failed:', error);
-    throw error;
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown extraction error',
+      extractionMethod: 'direct',
+      timestamp: new Date().toISOString(),
+    };
   }
 }
 

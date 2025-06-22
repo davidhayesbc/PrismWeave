@@ -70,9 +70,9 @@ export class MarkdownConverter {
       this.turndownService = null;
       return;
     }
-    
-    // Check if TurndownService is available (from imported library)
-    if (typeof window === 'undefined' || !window.TurndownService) {
+      // Check if TurndownService is available (from imported library)
+    if (typeof window === 'undefined' || 
+        (!window.TurndownService && !(globalThis as any).TurndownService)) {
       console.warn('TurndownService not available, using enhanced fallback conversion');
       this.turndownService = null;
       return;
@@ -80,8 +80,11 @@ export class MarkdownConverter {
 
     console.info('MarkdownConverter: Initializing TurndownService with enhanced rules');
     
+    // Use TurndownService from window or globalThis
+    const TurndownService = window.TurndownService || (globalThis as any).TurndownService;
+    
     // Initialize Turndown service with enhanced custom rules
-    this.turndownService = new window.TurndownService({
+    this.turndownService = new TurndownService({
       headingStyle: 'atx',
       bulletListMarker: '-',
       codeBlockStyle: 'fenced',
