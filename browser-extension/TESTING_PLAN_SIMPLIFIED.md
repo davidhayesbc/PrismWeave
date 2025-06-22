@@ -2,7 +2,10 @@
 
 ## Overview
 
-This document outlines a focused testing strategy for the PrismWeave browser extension based on the current implementation. It covers core functionality including settings management, popup validation, content extraction, and service worker operations.
+This document outlines a focused testing strategy for the PrismWeave browser
+extension based on the current implementation. It covers core functionality
+including settings management, popup validation, content extraction, and service
+worker operations.
 
 ## Testing Framework
 
@@ -17,6 +20,7 @@ This document outlines a focused testing strategy for the PrismWeave browser ext
 ### ✅ Implemented Tests (18 total)
 
 #### A. Settings Management (11 tests) - `settings-manager.test.ts`
+
 - **A.1.1** ✅ Verify all schema fields have default values
 - **A.1.2** ✅ Test loading when storage is empty
 - **A.1.3** ✅ Verify schema validation on load
@@ -30,11 +34,14 @@ This document outlines a focused testing strategy for the PrismWeave browser ext
 - **A.6.3** ✅ Import invalid JSON fails gracefully
 
 #### B. Popup Settings Validation (7 tests) - `popup-settings-validation.test.ts`
+
 - **B.1.1** ✅ Should return valid when all required settings are present
 - **B.1.2** ✅ Should return invalid when GitHub token is missing
 - **B.1.3** ✅ Should return invalid when GitHub repo is missing
-- **B.1.4** ✅ Should return valid when both GitHub token and repository are present
-- **B.1.5** ✅ Should return valid when optional settings like defaultFolder are also present
+- **B.1.4** ✅ Should return valid when both GitHub token and repository are
+  present
+- **B.1.5** ✅ Should return valid when optional settings like defaultFolder are
+  also present
 - **B.1.6** ✅ Should handle multiple missing settings
 - **B.1.7** ✅ Should handle null settings
 
@@ -55,18 +62,21 @@ describe('ContentExtractor - Core Functionality', () => {
 **Test Cases Needed:**
 
 1. **Content Identification**
+
    - **C.1.1** Extract main content from article pages
    - **C.1.2** Extract content from blog posts
    - **C.1.3** Handle pages with no clear main content
    - **C.1.4** Process single-page applications
 
 2. **Content Cleaning**
+
    - **C.2.1** Remove unwanted selectors (ads, navigation)
    - **C.2.2** Preserve formatting elements
    - **C.2.3** Handle custom selectors for removal
    - **C.2.4** Clean malformed HTML
 
 3. **Metadata Extraction**
+
    - **C.3.1** Extract title from various sources
    - **C.3.2** Extract description and keywords
    - **C.3.3** Extract author information
@@ -91,12 +101,14 @@ describe('ServiceWorker - Message Handling', () => {
 **Test Cases Needed:**
 
 1. **Message Processing**
+
    - **D.1.1** Handle GET_SETTINGS message
    - **D.1.2** Handle UPDATE_SETTINGS message
    - **D.1.3** Handle CAPTURE_PAGE message
    - **D.1.4** Return proper error responses
 
 2. **Storage Operations**
+
    - **D.2.1** Read settings from chrome.storage
    - **D.2.2** Write settings to chrome.storage
    - **D.2.3** Handle storage quota errors
@@ -120,6 +132,7 @@ describe('ErrorHandler - Error Processing', () => {
 **Test Cases Needed:**
 
 1. **Error Categorization**
+
    - **E.1.1** Categorize Chrome API errors
    - **E.1.2** Categorize network errors
    - **E.1.3** Categorize validation errors
@@ -138,6 +151,7 @@ describe('ErrorHandler - Error Processing', () => {
 **Test Cases Needed:**
 
 1. **HTML Conversion**
+
    - **F.1.1** Convert basic HTML elements
    - **F.1.2** Handle nested structures
    - **F.1.3** Preserve code blocks
@@ -154,13 +168,16 @@ describe('ErrorHandler - Error Processing', () => {
 ## Test Implementation Priority
 
 ### Phase 1: Critical Core Tests (Week 1)
+
 1. **Content Extraction Tests (C.1.1 - C.4.4)** - Core functionality
 2. **Service Worker Tests (D.1.1 - D.2.4)** - Extension communication
 
 ### Phase 2: Error Handling (Week 2)
+
 1. **Error Handler Tests (E.1.1 - E.2.4)** - Robust error management
 
 ### Phase 3: Markdown Processing (Week 3)
+
 1. **Markdown Converter Tests (F.1.1 - F.2.4)** - Output generation
 
 ---
@@ -168,17 +185,20 @@ describe('ErrorHandler - Error Processing', () => {
 ## Test Data and Fixtures
 
 ### HTML Test Fixtures
+
 - **Article Page**: Standard blog/news article
 - **E-commerce Page**: Product listings with ads
 - **Documentation Page**: Technical documentation
 - **Social Media Page**: Timeline/feed structure
 
 ### Settings Test Data
+
 - **Valid Settings**: Complete configuration
 - **Invalid Settings**: Type mismatches, missing required fields
 - **Edge Cases**: Empty values, extremely long strings
 
 ### Error Scenarios
+
 - **Network Failures**: Timeout, connection refused
 - **Storage Failures**: Quota exceeded, permission denied
 - **Validation Failures**: Schema violations, type errors
@@ -205,14 +225,14 @@ npm test -- --watch
 
 ## Coverage Goals
 
-| Component | Target Coverage | Current Coverage |
-|-----------|----------------|------------------|
-| SettingsManager | 90% | 67% |
-| PopupValidation | 85% | 100% |
-| ContentExtractor | 80% | 0% |
-| ServiceWorker | 75% | 9% |
-| ErrorHandler | 70% | 0% |
-| MarkdownConverter | 70% | 0% |
+| Component         | Target Coverage | Current Coverage |
+| ----------------- | --------------- | ---------------- |
+| SettingsManager   | 90%             | 67%              |
+| PopupValidation   | 85%             | 100%             |
+| ContentExtractor  | 80%             | 0%               |
+| ServiceWorker     | 75%             | 9%               |
+| ErrorHandler      | 70%             | 0%               |
+| MarkdownConverter | 70%             | 0%               |
 
 **Overall Target**: 70% line coverage
 
@@ -264,7 +284,7 @@ describe('ServiceWorker - Message Handling', () => {
     // Mock Chrome APIs
     (global as any).chrome = {
       storage: { sync: { get: jest.fn(), set: jest.fn() } },
-      runtime: { onMessage: { addListener: jest.fn() } }
+      runtime: { onMessage: { addListener: jest.fn() } },
     };
   });
 
@@ -280,8 +300,10 @@ describe('ServiceWorker - Message Handling', () => {
 
 ## Implementation Guidelines
 
-1. **Test Isolation**: Each test should be independent and not rely on other tests
-2. **Mock Dependencies**: Use Jest mocks for Chrome APIs and external dependencies
+1. **Test Isolation**: Each test should be independent and not rely on other
+   tests
+2. **Mock Dependencies**: Use Jest mocks for Chrome APIs and external
+   dependencies
 3. **Test Data**: Use realistic test data that represents actual use cases
 4. **Error Scenarios**: Test both success and failure paths
 5. **Async Testing**: Use async/await for asynchronous operations

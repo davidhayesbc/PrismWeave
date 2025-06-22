@@ -23,6 +23,41 @@ declare namespace chrome {
 };
 
 describe('SettingsManager - Load/Save Operations', () => {
+  test('A.1.3 Verify schema validation on load', async () => {
+    // Mock storage to return settings with invalid types and values
+    ((global as any).chrome.storage.sync.get as jest.Mock).mockImplementation((keys, callback) => {
+      callback({
+        prismWeaveSettings: {
+          githubToken: 12345, // should be string
+          githubRepo: 'invalid repo format', // should match pattern
+          defaultFolder: 'not-a-valid-folder', // not in options
+          autoCommit: 'yes', // should be boolean
+        },
+      });
+    });
+
+    // Spy on console.warn to verify validation warning is logged
+    const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation();
+
+    const settings = await manager.getSettings();
+    // Should return the raw settings (even if invalid), but log a warning
+    expect(settings).toEqual({
+      githubToken: 12345,
+      githubRepo: 'invalid repo format',
+      defaultFolder: 'not-a-valid-folder',
+      autoCommit: 'yes',
+    });
+    expect(consoleWarnSpy).toHaveBeenCalledWith(
+      'SettingsManager: Settings validation failed:',
+      expect.arrayContaining([
+        expect.stringContaining('Invalid type for githubToken'),
+        expect.stringContaining('Invalid format for githubRepo'),
+        expect.stringContaining('Invalid value for defaultFolder'),
+        expect.stringContaining('Invalid type for autoCommit'),
+      ])
+    );
+    consoleWarnSpy.mockRestore();
+  });
   let manager: SettingsManager;
 
   beforeEach(() => {
