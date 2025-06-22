@@ -61,10 +61,9 @@ export class MarkdownConverter {
     
     this.initializeTurndown();
   }
-
   private initializeTurndown(): void {
     // Service worker context check - TurndownService should never be loaded here
-    const isServiceWorker = (typeof importScripts === 'function' && typeof window === 'undefined');
+    const isServiceWorker = (typeof (globalThis as any).importScripts === 'function' && typeof window === 'undefined');
     
     if (isServiceWorker) {
       console.info('MarkdownConverter: Running in service worker context, using enhanced fallback conversion');
