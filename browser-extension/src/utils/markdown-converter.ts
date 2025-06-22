@@ -60,8 +60,7 @@ export class MarkdownConverter {
     };
 
     this.initializeTurndown();
-  }
-  private initializeTurndown(): void {
+  }  private initializeTurndown(): void {
     // Service worker context check - TurndownService should never be loaded here
     const isServiceWorker =
       typeof (globalThis as any).importScripts === 'function' && typeof window === 'undefined';
@@ -73,20 +72,20 @@ export class MarkdownConverter {
       this.turndownService = null;
       return;
     }
-    // Check if TurndownService is available (from imported library)
-    if (
-      typeof window === 'undefined' ||
-      (!window.TurndownService && !(globalThis as any).TurndownService)
-    ) {
+    
+    // Get TurndownService constructor from window or globalThis
+    const TurndownService = 
+      (typeof window !== 'undefined' && window.TurndownService) ||
+      (typeof globalThis !== 'undefined' && (globalThis as any).TurndownService);
+
+    // Check if TurndownService is available
+    if (!TurndownService) {
       console.warn('TurndownService not available, using enhanced fallback conversion');
       this.turndownService = null;
       return;
     }
 
     console.info('MarkdownConverter: Initializing TurndownService with enhanced rules');
-
-    // Use TurndownService from window or globalThis
-    const TurndownService = window.TurndownService || (globalThis as any).TurndownService;
 
     // Initialize Turndown service with enhanced custom rules
     this.turndownService = new TurndownService({

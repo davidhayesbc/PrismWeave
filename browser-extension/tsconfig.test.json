@@ -1,11 +1,10 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "types": ["jest", "@types/chrome"],
-    "noEmit": true
+    "types": ["jest", "@types/chrome", "node"],
+    "noEmit": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true
   },
-  "include": [
-    "src/**/*.test.ts",
-    "src/**/*.test.js"
-  ]
+  "include": ["src/**/*.test.ts", "src/**/*.test.js", "jest.setup.js"]
 }

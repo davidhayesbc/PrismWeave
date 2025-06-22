@@ -21,6 +21,65 @@ export class PrismWeaveOptions {
     this.setupEventListeners();
     console.log('PrismWeaveOptions: Event listeners setup complete');
   }
+  private getDefaultSettings(): Partial<ISettings> {
+    return {
+      // Core Extension Settings
+      enabled: true,
+      extractionRules: [],
+      apiEndpoint: '',
+
+      // Repository Settings
+      repositoryPath: '',
+      githubToken: '',
+      githubRepo: '',
+
+      // File Organization Settings
+      defaultFolder: 'auto',
+      customFolder: '',
+      fileNamingPattern: 'YYYY-MM-DD-domain-title',
+      customNamingPattern: '',
+      documentPath: '',
+      defaultTags: [],
+
+      // Automation Settings
+      quickCapture: false,
+      autoCapture: false,
+      autoCommit: true,
+      autoPush: false,
+
+      // Content Processing Settings
+      captureImages: true,
+      removeAds: true,
+      removeNavigation: true,
+      preserveFormatting: true,
+      preserveLinks: true,
+      customSelectors: '',
+      imageQuality: 85,
+      maxImageSize: 5,
+      markdownFormat: 'github' as const,
+      customMarkdownRules: {},
+
+      // Git & Repository Settings
+      commitMessageTemplate: 'Add: {domain} - {title}',
+
+      // Content Enhancement Settings
+      generateTags: true,
+      generateSummary: false,
+      enhanceMetadata: true,
+      aiProcessing: false,
+      aiModel: '',
+
+      // Performance & Debugging Settings
+      debugMode: false,
+      performanceMonitoring: false,
+      logLevel: 'info' as const,
+
+      // UI Preferences
+      showNotifications: true,
+      enableKeyboardShortcuts: true,
+      darkMode: false,
+    };
+  }
 
   private async loadSettings(): Promise<void> {
     try {
@@ -29,15 +88,17 @@ export class PrismWeaveOptions {
       console.log('PrismWeaveOptions: Received response:', response);
 
       if (response.success) {
-        this.settings = response.data as Partial<ISettings>;
+        // Merge received settings with defaults to ensure all fields have values
+        const defaultSettings = this.getDefaultSettings();
+        this.settings = { ...defaultSettings, ...(response.data as Partial<ISettings>) };
         console.log('PrismWeaveOptions: Settings updated:', this.settings);
       } else {
         console.warn('PrismWeaveOptions: Failed to load settings, using defaults');
-        this.settings = {};
+        this.settings = this.getDefaultSettings();
       }
     } catch (error) {
       console.error('PrismWeaveOptions: Failed to load settings:', error);
-      this.settings = {};
+      this.settings = this.getDefaultSettings();
     }
   }
   private populateForm(): void {

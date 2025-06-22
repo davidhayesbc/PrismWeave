@@ -27,6 +27,7 @@ describe('MarkdownConverter - TurndownService Integration', () => {
   let markdownConverter: MarkdownConverter;
   let originalWindow: any;
   let originalGlobalThis: any;
+
   beforeEach(() => {
     jest.clearAllMocks();
 
@@ -37,17 +38,11 @@ describe('MarkdownConverter - TurndownService Integration', () => {
     // Reset console spy
     jest.spyOn(console, 'warn').mockImplementation(() => {});
     jest.spyOn(console, 'info').mockImplementation(() => {});
-
-    // Reset TurndownService mock
-    mockTurndownService.turndown.mockClear();
-    mockTurndownService.addRule.mockClear();
-    mockTurndownService.remove.mockClear();
-    mockTurndownService.use.mockClear();
   });
 
   afterEach(() => {
     jest.restoreAllMocks();
-
+    
     // Restore original values
     (global as any).window = originalWindow;
     (global as any).globalThis = originalGlobalThis;
@@ -69,74 +64,35 @@ describe('MarkdownConverter - TurndownService Integration', () => {
       expect(console.warn).toHaveBeenCalledWith(
         'TurndownService not available, using enhanced fallback conversion'
       );
-    });    it('should initialize TurndownService when available in window', async () => {
+    });
+
+    it('should initialize TurndownService when available in window', async () => {
       // Setup: TurndownService available in window
-      const mockTurndownServiceConstructor = jest
-        .fn()
-        .mockImplementation(() => mockTurndownService);
-      
-      // Save original window
-      const originalWindow = global.window;
-      
-      // Create a new window object with TurndownService
-      const windowWithTurndown = {
-        ...originalWindow,
-        TurndownService: mockTurndownServiceConstructor,
+      (global as any).window = {
+        TurndownService: jest.fn().mockImplementation(() => mockTurndownService),
       };
-      
-      // Set the global window AND make sure it's accessible to the MarkdownConverter
-      (global as any).window = windowWithTurndown;
-      
-      // Also set global property for good measure
-      (global as any).TurndownService = mockTurndownServiceConstructor;
-      
-      // Ensure globalThis doesn't have TurndownService to test window fallback
-      (global as any).globalThis = { ...global.globalThis };
-      delete (global as any).globalThis.TurndownService;
 
       mockTurndownService.turndown.mockReturnValue(
         '# Test Title\n\nTest paragraph with **bold** text.'
       );
-
-      // Debug logging
-      console.log('Test setup:', {
-        windowHasTurndown: !!(global as any).window?.TurndownService,
-        globalThisHasTurndown: !!(global as any).globalThis?.TurndownService,
-        typeofWindow: typeof (global as any).window,
-        windowUndefined: typeof (global as any).window === 'undefined',
-        globalTurndown: !!(global as any).TurndownService
-      });
 
       markdownConverter = new MarkdownConverter();
       const testHtml = '<h1>Test Title</h1><p>Test paragraph with <strong>bold</strong> text.</p>';
       const testMetadata = createTestMetadata();
       const result = await markdownConverter.convertToMarkdown(testHtml, testMetadata);
 
-      // Debug the result instead of using expect for now
-      console.log('Mock was called?', mockTurndownServiceConstructor.mock.calls.length > 0);
-      console.log('AddRule was called?', mockTurndownService.addRule.mock.calls.length > 0);
-      
-      // Use traditional Jest assertions
-      if (mockTurndownServiceConstructor.mock.calls.length === 0) {
-        throw new Error('TurndownService constructor was not called');
-      }
-      
-      if (mockTurndownService.addRule.mock.calls.length === 0) {
-        throw new Error('TurndownService addRule was not called');
-      }
-      
-      // Restore original window
-      (global as any).window = originalWindow;      delete (global as any).TurndownService;
+      expect((global as any).window.TurndownService).toHaveBeenCalled();
+      expect(mockTurndownService.addRule).toHaveBeenCalled();
+      expect(console.info).toHaveBeenCalledWith(
+        'MarkdownConverter: Initializing TurndownService with enhanced rules'
+      );
     });
 
     it('should initialize TurndownService when available in globalThis', async () => {
       // Setup: TurndownService available in globalThis but not window
       (global as any).window = {};
-      const mockTurndownServiceConstructor = jest
-        .fn()
-        .mockImplementation(() => mockTurndownService);
       (global as any).globalThis = {
-        TurndownService: mockTurndownServiceConstructor,
+        TurndownService: jest.fn().mockImplementation(() => mockTurndownService),
       };
 
       mockTurndownService.turndown.mockReturnValue('# Test Title\n\nTest paragraph.');
@@ -146,11 +102,10 @@ describe('MarkdownConverter - TurndownService Integration', () => {
       const testMetadata = createTestMetadata();
       const result = await markdownConverter.convertToMarkdown(testHtml, testMetadata);
 
-      // Manual assertions to avoid Jest environment issues
-      if (!mockTurndownServiceConstructor.mock.calls.length) {
-        throw new Error('Expected TurndownService constructor to have been called');
-      }
-      console.log('✓ TurndownService constructor was called successfully');
+      expect((global as any).globalThis.TurndownService).toHaveBeenCalled();
+      expect(console.info).toHaveBeenCalledWith(
+        'MarkdownConverter: Initializing TurndownService with enhanced rules'
+      );
     });
   });
 
@@ -189,10 +144,9 @@ describe('MarkdownConverter - TurndownService Integration', () => {
         <p>Inline <code>code</code> example.</p>
       `;
 
-      const result = await markdownConverter.convertToMarkdown(testHtml, createTestMetadata()); // Fallback converter doesn't extract language from class, just uses basic ```
-      // Be flexible with whitespace and formatting
-      expect(result.markdown).toContain('```');
-      expect(result.markdown).toContain("console.log('Hello, World!');");
+      const result = await markdownConverter.convertToMarkdown(testHtml, createTestMetadata());
+
+      expect(result.markdown).toContain("```javascript\nconsole.log('Hello, World!');\n```");
       expect(result.markdown).toContain('`code`');
     });
 
@@ -202,8 +156,9 @@ describe('MarkdownConverter - TurndownService Integration', () => {
 
       const result = await markdownConverter.convertToMarkdown(testHtml, createTestMetadata());
 
-      // Fallback converter doesn't handle title attribute
-      expect(result.markdown).toContain('![Test Image](https://example.com/image.jpg)');
+      expect(result.markdown).toContain(
+        '![Test Image](https://example.com/image.jpg "Image Title")'
+      );
     });
 
     it('should handle tables with fallback converter', async () => {
@@ -226,11 +181,9 @@ describe('MarkdownConverter - TurndownService Integration', () => {
 
       const result = await markdownConverter.convertToMarkdown(testHtml, createTestMetadata());
 
-      // Fallback converter doesn't handle tables - just extracts text content
-      expect(result.markdown).toContain('Header 1');
-      expect(result.markdown).toContain('Header 2');
-      expect(result.markdown).toContain('Cell 1');
-      expect(result.markdown).toContain('Cell 2');
+      expect(result.markdown).toContain('| Header 1 | Header 2 |');
+      expect(result.markdown).toContain('|----------|----------|');
+      expect(result.markdown).toContain('| Cell 1 | Cell 2 |');
     });
   });
 
@@ -242,7 +195,7 @@ describe('MarkdownConverter - TurndownService Integration', () => {
       const malformedHtml =
         '<h1>Unclosed header<p>Missing closing tags<div>Nested improperly</h1></p>';
       const result = await markdownConverter.convertToMarkdown(malformedHtml, createTestMetadata());
-
+      
       expect(result.markdown).toBeDefined();
       expect(typeof result.markdown).toBe('string');
     });
@@ -253,7 +206,7 @@ describe('MarkdownConverter - TurndownService Integration', () => {
 
       const result1 = await markdownConverter.convertToMarkdown('', createTestMetadata());
       const result2 = await markdownConverter.convertToMarkdown('   ', createTestMetadata());
-
+      
       expect(result1.markdown).toBeDefined();
       expect(result2.markdown).toBeDefined();
     });
