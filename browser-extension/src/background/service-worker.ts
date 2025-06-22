@@ -281,8 +281,38 @@ async function handleMessage(
         timestamp: new Date().toISOString(),
       };
 
+    case 'GET_TURNDOWN_LIBRARY':
+      return await getTurndownLibrary();
+
     default:
       throw new Error(`Unknown message type: ${message.type}`);
+  }
+}
+
+// Get TurndownService library content for alternative loading
+async function getTurndownLibrary(): Promise<unknown> {
+  try {
+    swLogger.info('Fetching TurndownService library for content script...');
+    
+    const response = await fetch(chrome.runtime.getURL('libs/turndown.min.js'));
+    if (!response.ok) {
+      throw new Error(`Failed to fetch library: ${response.status}`);
+    }
+    
+    const content = await response.text();
+    
+    return {
+      success: true,
+      content: content,
+      timestamp: new Date().toISOString(),
+    };
+  } catch (error) {
+    swLogger.error('Failed to fetch TurndownService library:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+      timestamp: new Date().toISOString(),
+    };
   }
 }
 
