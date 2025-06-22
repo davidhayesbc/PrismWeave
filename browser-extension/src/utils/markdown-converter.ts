@@ -81,7 +81,50 @@ export class MarkdownConverter {
 
     // Check if TurndownService is available
     if (!TurndownService) {
-      console.warn('TurndownService not available, using enhanced fallback conversion');
+      console.warn('TurndownService not available, attempting to load library dynamically');
+      this.loadTurndownService()
+        .then(() => {
+          this.setupTurndownService();
+        })
+        .catch((error: Error) => {
+          console.warn('Failed to load TurndownService dynamically:', error);
+          this.turndownService = null;
+        });
+      return;
+    }
+
+    this.setupTurndownService();
+  }
+
+  private async loadTurndownService(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      // Check if already loaded
+      if (window.TurndownService) {
+        resolve();
+        return;
+      }
+
+      const script = document.createElement('script');
+      script.src = chrome.runtime.getURL('libs/turndown.min.js');
+      script.onload = () => {
+        if (window.TurndownService) {
+          console.info('TurndownService loaded successfully');
+          resolve();
+        } else {
+          reject(new Error('TurndownService not available after loading script'));
+        }
+      };
+      script.onerror = () => {
+        reject(new Error('Failed to load TurndownService script'));
+      };
+
+      document.head.appendChild(script);
+    });
+  }
+
+  private setupTurndownService(): void {
+    const TurndownService = window.TurndownService;
+    if (!TurndownService) {
       this.turndownService = null;
       return;
     }
@@ -106,10 +149,10 @@ export class MarkdownConverter {
       },
     });
 
-    this.addCustomRules();
+    this.addCustomTurndownRules();
   }
 
-  private addCustomRules(): void {
+  private addCustomTurndownRules(): void {
     if (!this.turndownService) return;
 
     // Enhanced table rule with better formatting
@@ -283,7 +326,6 @@ export class MarkdownConverter {
       replacement: (): string => '\n\n---\n\n',
     });
   }
-
   async convertToMarkdown(
     html: string,
     metadata: IDocumentMetadata,
@@ -292,14 +334,26 @@ export class MarkdownConverter {
     try {
       console.log('MarkdownConverter: Starting conversion');
 
+      // If TurndownService is not available, attempt to load it one more time
+      if (!this.turndownService && typeof window !== 'undefined') {
+        try {
+          await this.loadTurndownService();
+          this.setupTurndownService();
+        } catch (error) {
+          console.warn('Failed to load TurndownService on demand:', error);
+        }
+      }
+
       // Preprocess HTML for better conversion
       const preprocessedHtml = this.preprocessHtml(html, options);
 
       // Convert to markdown
       let markdown: string;
       if (this.turndownService) {
+        console.log('MarkdownConverter: Using TurndownService for conversion');
         markdown = this.turndownService.turndown(preprocessedHtml);
       } else {
+        console.log('MarkdownConverter: Using enhanced fallback conversion');
         markdown = this.fallbackConversion(preprocessedHtml);
       }
 
