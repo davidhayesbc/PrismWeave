@@ -48,6 +48,8 @@ declare global {
 export class MarkdownConverter {
   private turndownService: ITurndownService | null = null;
   private readonly semanticSelectors: ISemanticSelectors;
+  private _initializationPromise: Promise<void> | null = null;
+  private _isInitialized: boolean = false;
 
   constructor() {
     this.semanticSelectors = {
@@ -59,6 +61,7 @@ export class MarkdownConverter {
       codeElements: ['code', 'pre', '.code', '.highlight', '.syntax'],
     };
 
+    // Start initialization but don't wait for it in constructor
     this.initializeTurndown();
   }
   private initializeTurndown(): void {
@@ -71,6 +74,7 @@ export class MarkdownConverter {
         'MarkdownConverter: Running in service worker context, using enhanced fallback conversion'
       );
       this.turndownService = null;
+      this._isInitialized = true;
       return;
     }
 
@@ -82,18 +86,27 @@ export class MarkdownConverter {
     // Check if TurndownService is available
     if (!TurndownService) {
       console.warn('TurndownService not available, attempting to load library dynamically');
-      this.loadTurndownService()
-        .then(() => {
-          this.setupTurndownService();
-        })
-        .catch((error: Error) => {
-          console.warn('Failed to load TurndownService dynamically:', error);
-          this.turndownService = null;
-        });
+
+      // Store the initialization promise to avoid multiple concurrent loads
+      if (!this._initializationPromise) {
+        this._initializationPromise = this.loadTurndownService()
+          .then(() => {
+            this.setupTurndownService();
+            this._isInitialized = true;
+            console.info('MarkdownConverter: TurndownService initialization completed');
+          })
+          .catch((error: Error) => {
+            console.warn('Failed to load TurndownService dynamically:', error);
+            this.turndownService = null;
+            this._isInitialized = true; // Mark as initialized even with fallback
+          });
+      }
       return;
     }
 
+    // TurndownService is already available
     this.setupTurndownService();
+    this._isInitialized = true;
   }
 
   private async loadTurndownService(): Promise<void> {
@@ -312,9 +325,7 @@ export class MarkdownConverter {
 
         return markdown;
       },
-    });
-
-    // Line break rule
+    }); // Line break rule
     this.turndownService.addRule('lineBreak', {
       filter: 'br',
       replacement: (): string => '  \n',
@@ -326,6 +337,31 @@ export class MarkdownConverter {
       replacement: (): string => '\n\n---\n\n',
     });
   }
+
+  /**
+   * Ensures that the MarkdownConverter is fully initialized before proceeding with conversion
+   */
+  private async ensureInitialized(): Promise<void> {
+    if (this._isInitialized) {
+      return;
+    }
+
+    if (this._initializationPromise) {
+      await this._initializationPromise;
+      return;
+    }
+
+    // If no initialization promise exists and not initialized, something went wrong
+    console.warn(
+      'MarkdownConverter: Initialization was not properly started, attempting to initialize now'
+    );
+    this.initializeTurndown();
+
+    if (this._initializationPromise) {
+      await this._initializationPromise;
+    }
+  }
+
   async convertToMarkdown(
     html: string,
     metadata: IDocumentMetadata,
@@ -334,15 +370,8 @@ export class MarkdownConverter {
     try {
       console.log('MarkdownConverter: Starting conversion');
 
-      // If TurndownService is not available, attempt to load it one more time
-      if (!this.turndownService && typeof window !== 'undefined') {
-        try {
-          await this.loadTurndownService();
-          this.setupTurndownService();
-        } catch (error) {
-          console.warn('Failed to load TurndownService on demand:', error);
-        }
-      }
+      // Ensure initialization is complete before proceeding
+      await this.ensureInitialized();
 
       // Preprocess HTML for better conversion
       const preprocessedHtml = this.preprocessHtml(html, options);

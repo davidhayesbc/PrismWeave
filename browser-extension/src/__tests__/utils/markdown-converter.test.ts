@@ -63,11 +63,10 @@ describe('MarkdownConverter - TurndownService Integration', () => {
       const testHtml = '<h1>Test Title</h1><p>Test paragraph with <strong>bold</strong> text.</p>';
       const testMetadata = createTestMetadata();
       const result = await markdownConverter.convertToMarkdown(testHtml, testMetadata);
-
       expect(result.markdown).toContain('# Test Title');
       expect(result.markdown).toContain('**bold**');
       expect(console.warn).toHaveBeenCalledWith(
-        'TurndownService not available, using enhanced fallback conversion'
+        'TurndownService not available, attempting to load library dynamically'
       );
     });
     it('should initialize TurndownService when available in window', async () => {
