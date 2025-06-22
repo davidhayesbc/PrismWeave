@@ -216,6 +216,24 @@ class SharedUtils {
     const timestamp = new Date().toISOString();
     console.error(`[PrismWeave${context ? ' ' + context : ''}] ${timestamp}:`, error);
   }
+
+  static generateFilename(title: string, url: string, pattern: string = 'YYYY-MM-DD-domain-title'): string {
+    // Generate filename based on pattern
+    const date = this.formatDateForFilename();
+    const domain = this.sanitizeDomain(new URL(url).hostname);
+    const sanitizedTitle = this.sanitizeForFilename(title);
+
+    // Replace pattern placeholders
+    let filename = pattern
+      .replace(/YYYY-MM-DD/g, date)
+      .replace(/domain/g, domain)
+      .replace(/title/g, sanitizedTitle);
+
+    // Ensure valid filename
+    filename = this.sanitizeForFilename(filename, 100);
+    
+    return filename.endsWith('.md') ? filename : `${filename}.md`;
+  }
 }
 
 // Export to global scope using centralized approach

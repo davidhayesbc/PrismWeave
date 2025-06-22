@@ -14,7 +14,7 @@ This document outlines a focused testing strategy for the PrismWeave browser ext
 
 ## Test Status Summary
 
-### ✅ Implemented Tests (18 total)
+### ✅ Implemented Tests (21 total)
 
 #### A. Settings Management (11 tests) - `settings-manager.test.ts`
 - **A.1.1** ✅ Verify all schema fields have default values
@@ -38,6 +38,11 @@ This document outlines a focused testing strategy for the PrismWeave browser ext
 - **B.1.6** ✅ Should handle multiple missing settings
 - **B.1.7** ✅ Should handle null settings
 
+#### C. Content Extraction (3 tests) - `content-extractor.test.ts`
+- **C.1.1** ✅ Extract main content from article pages
+- **C.1.1a** ✅ Extract content from article with multiple content selectors  
+- **C.1.1b** ✅ Extract content with custom selectors
+
 ---
 
 ## Planned Test Suites
@@ -55,10 +60,10 @@ describe('ContentExtractor - Core Functionality', () => {
 **Test Cases Needed:**
 
 1. **Content Identification**
-   - **C.1.1** Extract main content from article pages
-   - **C.1.2** Extract content from blog posts
-   - **C.1.3** Handle pages with no clear main content
-   - **C.1.4** Process single-page applications
+   - **C.1.1** ✅ Extract main content from article pages
+   - **C.1.2** ⏳ Extract content from blog posts
+   - **C.1.3** ⏳ Handle pages with no clear main content
+   - **C.1.4** ⏳ Process single-page applications
 
 2. **Content Cleaning**
    - **C.2.1** Remove unwanted selectors (ads, navigation)
