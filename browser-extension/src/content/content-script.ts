@@ -454,6 +454,7 @@ export class PrismWeaveContent {
   private async extractAndConvertToMarkdown(data?: any): Promise<any> {
     try {
       console.log('Extracting content and converting to markdown for service worker');
+      console.log('Current URL:', window.location.href);
 
       // Validate that extractors are available
       if (!this.contentExtractor) {
@@ -463,8 +464,70 @@ export class PrismWeaveContent {
         throw new Error('MarkdownConverter not initialized');
       }
 
+      // Enhanced debugging for Docker blog
+      if (window.location.href.includes('docker.com')) {
+        console.log('Docker blog detected - debugging DOM structure...');
+        
+        // Check for various potential content containers
+        const potentialSelectors = [
+          'article',
+          'main',
+          '.content',
+          '.post-content',
+          '.entry-content',
+          '.article-content',
+          '.blog-content',
+          '.container',
+          '.single-post',
+          '.post',
+          '.blog-post',
+          'div[class*="content"]',
+          'div[class*="post"]',
+          'div[class*="article"]',
+          'div[class*="blog"]',
+          '[data-testid*="content"]',
+          '[data-testid*="post"]',
+          'section'
+        ];
+        
+        potentialSelectors.forEach(selector => {
+          const elements = document.querySelectorAll(selector);
+          if (elements.length > 0) {
+            console.log(`Found ${elements.length} elements for "${selector}"`);
+            elements.forEach((el, index) => {
+              if (index < 3) { // Only log first 3 to avoid spam
+                const textLength = el.textContent?.trim().length || 0;
+                console.log(`  - Element ${index}: ${el.tagName} with ${textLength} chars`);
+                if (textLength > 500) {
+                  console.log(`    - Likely content element:`, el.className, el.id);
+                }
+              }
+            });
+          }
+        });
+        
+        // Check for specific patterns that might indicate Docker blog content
+        const dockerSpecific = [
+          '.DockerBlogPost',
+          '.blog-article',
+          '.article-wrapper',
+          '.main-content',
+          '[role="main"]',
+          '.container .row',
+          '.content-area'
+        ];
+        
+        console.log('Checking Docker-specific selectors...');
+        dockerSpecific.forEach(selector => {
+          const elements = document.querySelectorAll(selector);
+          if (elements.length > 0) {
+            console.log(`Docker selector "${selector}": found ${elements.length} elements`);
+          }
+        });
+      }
+
       // Extract content using the existing extractor
-      const extractedContent = await this.contentExtractor.extractContent({
+      let extractedContent = await this.contentExtractor.extractContent({
         preserveFormatting: true,
         removeAds: true,
         removeNavigation: true,
@@ -477,9 +540,66 @@ export class PrismWeaveContent {
       });
 
       // Validate that we have content to convert
-      const htmlContent = extractedContent.content || extractedContent.cleanedContent || '';
+      let htmlContent = extractedContent.content || extractedContent.cleanedContent || '';
       if (!htmlContent || htmlContent.trim().length === 0) {
         throw new Error('No HTML content extracted from page');
+      }
+
+      // If we got very little content, wait a moment for dynamic content to load
+      if (htmlContent.length < 200 && window.location.href.includes('docker.com')) {
+        console.log('Docker blog: Content seems short, waiting for dynamic loading...');
+        await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds
+        
+        // Try extraction again
+        const retryContent = await this.contentExtractor.extractContent({
+          preserveFormatting: true,
+          removeAds: true,
+          removeNavigation: true,
+          ...data,
+        });
+        
+        const retryHtml = retryContent.content || retryContent.cleanedContent || '';
+        if (retryHtml.length > htmlContent.length) {
+          console.log('Docker blog: Retry extraction got more content:', retryHtml.length);
+          htmlContent = retryHtml;
+          extractedContent = retryContent;
+        }
+      }
+
+      // Special handling for Docker blog if standard extraction fails
+      if (htmlContent.length < 200 && window.location.href.includes('docker.com/blog')) {
+        console.log('Docker blog: Standard extraction yielded little content, trying direct approach...');
+        
+        // Try to get content more directly
+        const possibleContent = [
+          document.querySelector('.post-content')?.innerHTML,
+          document.querySelector('.entry-content')?.innerHTML,
+          document.querySelector('.content')?.innerHTML,
+          document.querySelector('main')?.innerHTML,
+          document.querySelector('article')?.innerHTML,
+          document.querySelector('.container')?.innerHTML,
+        ].find(content => content && content.length > 500);
+        
+        if (possibleContent) {
+          console.log('Docker blog: Found content via direct approach:', possibleContent.length);
+          htmlContent = possibleContent;
+          // Update extracted content as well
+          extractedContent = {
+            ...extractedContent,
+            content: possibleContent,
+            cleanedContent: possibleContent
+          };
+        } else {
+          console.log('Docker blog: No substantial content found via direct approach either');
+          // Log what we actually found
+          console.log('Available content containers:');
+          ['main', 'article', '.content', '.post-content', '.container'].forEach(sel => {
+            const el = document.querySelector(sel);
+            if (el) {
+              console.log(`${sel}: ${el.textContent?.length || 0} chars`);
+            }
+          });
+        }
       }
 
       // Convert to markdown using the existing converter

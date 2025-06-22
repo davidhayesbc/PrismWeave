@@ -60,12 +60,21 @@ export class ContentExtractor {
       '.single-post-content',
       '.content-wrapper',
       '.page-content',
-      '.entry-content-wrapper',
-      // Docker and tech blog specific
+      '.entry-content-wrapper',      // Docker and tech blog specific
       '.documentation-content',
       '.tutorial-content',
       '.guide-content',
       '.blog-article-content',
+      '.DockerBlogPost',
+      '.blog-article',
+      '.article-wrapper',
+      '.content-area',
+      '.container .row',
+      '.single-post',
+      '.blog-post',
+      'section[class*="content"]',
+      'section[class*="post"]',
+      'section[class*="article"]',
       // Fallback for broad content containers
       '[data-content]',
       '[data-article]',
@@ -179,6 +188,20 @@ export class ContentExtractor {
   async extractContent(options: IExtractorOptions = {}): Promise<IContentResult> {
     try {
       console.log('ContentExtractor: Starting content extraction');
+      
+      // For modern sites, wait a moment for dynamic content
+      if (document.readyState !== 'complete') {
+        console.log('ContentExtractor: Document not fully loaded, waiting...');
+        await new Promise(resolve => {
+          if (document.readyState === 'complete') {
+            resolve(void 0);
+          } else {
+            window.addEventListener('load', () => resolve(void 0), { once: true });
+            // Fallback timeout
+            setTimeout(() => resolve(void 0), 3000);
+          }
+        });
+      }
 
       const metadata = this.extractMetadata();
       console.log('ContentExtractor: Metadata extracted:', metadata);
