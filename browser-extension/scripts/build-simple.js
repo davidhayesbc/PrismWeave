@@ -32,8 +32,7 @@ async function buildExtension() {
 
   try {
     // Build all components with consistent IIFE format
-    const builds = [
-      {
+    const builds = [      {
         name: 'Service Worker',
         entryPoints: ['src/background/service-worker.ts'],
         outfile: 'dist/background/service-worker.js',

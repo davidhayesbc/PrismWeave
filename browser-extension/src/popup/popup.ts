@@ -232,12 +232,26 @@ export class PrismWeavePopup {
         warningContainer.style.display = 'block';
         // The warning content is already set in the HTML
       }
-    }
-  }private async capturePage(): Promise<void> {
+    }  }private async capturePage(): Promise<void> {
     if (this.isCapturing) return;
 
     try {
       this.isCapturing = true;
+
+      // First test connection to background service worker
+      this.updateCaptureStatus(
+        'Connecting...',
+        'Testing connection to background service',
+        'progress',
+        { showProgress: true, progressValue: 10 }
+      );
+
+      try {
+        const testResponse = await this.sendMessageToBackground('TEST');
+        logger.info('Background service worker connected:', testResponse);
+      } catch (error) {
+        throw new Error(`Failed to connect to background service worker: ${(error as Error).message}`);
+      }
 
       // Check if we have a current tab, and try to get it if not
       if (!this.currentTab?.id) {
@@ -257,7 +271,7 @@ export class PrismWeavePopup {
         this.updateCaptureStatus('Unable to identify current tab', 'error');
         setTimeout(() => this.resetCaptureStatus(), 3000);
         return;
-      }      // Validate crucial settings before proceeding
+      }// Validate crucial settings before proceeding
       const settingsValidation = this.validateCaptureSettings();
       if (!settingsValidation.isValid) {
         this.showMissingSettingsMessage(settingsValidation.message!, settingsValidation.missingSettings);
