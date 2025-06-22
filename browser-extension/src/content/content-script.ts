@@ -467,7 +467,7 @@ export class PrismWeaveContent {
       // Enhanced debugging for Docker blog
       if (window.location.href.includes('docker.com')) {
         console.log('Docker blog detected - debugging DOM structure...');
-        
+
         // Check for various potential content containers
         const potentialSelectors = [
           'article',
@@ -487,15 +487,16 @@ export class PrismWeaveContent {
           'div[class*="blog"]',
           '[data-testid*="content"]',
           '[data-testid*="post"]',
-          'section'
+          'section',
         ];
-        
+
         potentialSelectors.forEach(selector => {
           const elements = document.querySelectorAll(selector);
           if (elements.length > 0) {
             console.log(`Found ${elements.length} elements for "${selector}"`);
             elements.forEach((el, index) => {
-              if (index < 3) { // Only log first 3 to avoid spam
+              if (index < 3) {
+                // Only log first 3 to avoid spam
                 const textLength = el.textContent?.trim().length || 0;
                 console.log(`  - Element ${index}: ${el.tagName} with ${textLength} chars`);
                 if (textLength > 500) {
@@ -505,7 +506,7 @@ export class PrismWeaveContent {
             });
           }
         });
-        
+
         // Check for specific patterns that might indicate Docker blog content
         const dockerSpecific = [
           '.DockerBlogPost',
@@ -514,9 +515,9 @@ export class PrismWeaveContent {
           '.main-content',
           '[role="main"]',
           '.container .row',
-          '.content-area'
+          '.content-area',
         ];
-        
+
         console.log('Checking Docker-specific selectors...');
         dockerSpecific.forEach(selector => {
           const elements = document.querySelectorAll(selector);
@@ -549,7 +550,7 @@ export class PrismWeaveContent {
       if (htmlContent.length < 200 && window.location.href.includes('docker.com')) {
         console.log('Docker blog: Content seems short, waiting for dynamic loading...');
         await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds
-        
+
         // Try extraction again
         const retryContent = await this.contentExtractor.extractContent({
           preserveFormatting: true,
@@ -557,7 +558,7 @@ export class PrismWeaveContent {
           removeNavigation: true,
           ...data,
         });
-        
+
         const retryHtml = retryContent.content || retryContent.cleanedContent || '';
         if (retryHtml.length > htmlContent.length) {
           console.log('Docker blog: Retry extraction got more content:', retryHtml.length);
@@ -568,8 +569,10 @@ export class PrismWeaveContent {
 
       // Special handling for Docker blog if standard extraction fails
       if (htmlContent.length < 200 && window.location.href.includes('docker.com/blog')) {
-        console.log('Docker blog: Standard extraction yielded little content, trying direct approach...');
-        
+        console.log(
+          'Docker blog: Standard extraction yielded little content, trying direct approach...'
+        );
+
         // Try to get content more directly
         const possibleContent = [
           document.querySelector('.post-content')?.innerHTML,
@@ -579,7 +582,7 @@ export class PrismWeaveContent {
           document.querySelector('article')?.innerHTML,
           document.querySelector('.container')?.innerHTML,
         ].find(content => content && content.length > 500);
-        
+
         if (possibleContent) {
           console.log('Docker blog: Found content via direct approach:', possibleContent.length);
           htmlContent = possibleContent;
@@ -587,7 +590,7 @@ export class PrismWeaveContent {
           extractedContent = {
             ...extractedContent,
             content: possibleContent,
-            cleanedContent: possibleContent
+            cleanedContent: possibleContent,
           };
         } else {
           console.log('Docker blog: No substantial content found via direct approach either');

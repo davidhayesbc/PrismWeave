@@ -23,7 +23,7 @@ const selectors = [
   'div[class*="article"]',
   'section',
   '.row',
-  '[role="main"]'
+  '[role="main"]',
 ];
 
 console.log('\n=== Testing Content Selectors ===');
@@ -33,10 +33,13 @@ selectors.forEach(selector => {
     if (elements.length > 0) {
       console.log(`${selector}: Found ${elements.length} element(s)`);
       elements.forEach((el, i) => {
-        if (i < 2) { // Only show first 2
+        if (i < 2) {
+          // Only show first 2
           const textLen = el.textContent?.trim().length || 0;
           const htmlLen = el.innerHTML?.length || 0;
-          console.log(`  [${i}] ${el.tagName}.${el.className} - Text: ${textLen}, HTML: ${htmlLen}`);
+          console.log(
+            `  [${i}] ${el.tagName}.${el.className} - Text: ${textLen}, HTML: ${htmlLen}`
+          );
           if (textLen > 1000) {
             console.log(`    ✓ GOOD CANDIDATE - Has substantial text content`);
           }
@@ -86,7 +89,7 @@ const dockerSelectors = [
   '[data-testid*="content"]',
   '[data-testid*="post"]',
   'div[class*="blog"]',
-  'section[class*="content"]'
+  'section[class*="content"]',
 ];
 
 dockerSelectors.forEach(selector => {
@@ -103,7 +106,7 @@ const candidates = [
   document.querySelector('article'),
   document.querySelector('.content'),
   document.querySelector('.post-content'),
-  document.querySelector('.container')
+  document.querySelector('.container'),
 ].filter(Boolean);
 
 candidates.forEach((el, i) => {

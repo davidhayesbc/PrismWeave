@@ -325,7 +325,6 @@ export class MarkdownConverter {
       this._isInitialized = true;
     }
   }
-
   async convertToMarkdown(
     html: string,
     metadata: IDocumentMetadata,
@@ -333,12 +332,14 @@ export class MarkdownConverter {
   ): Promise<IConversionResult> {
     try {
       console.log('MarkdownConverter: Starting conversion');
+      console.log('MarkdownConverter: Input HTML length:', html.length);
 
       // Ensure initialization is complete before proceeding
       await this.ensureInitialized();
 
       // Preprocess HTML for better conversion
       const preprocessedHtml = this.preprocessHtml(html, options);
+      console.log('MarkdownConverter: Preprocessed HTML length:', preprocessedHtml.length);
 
       // Convert to markdown
       let markdown: string;
@@ -350,8 +351,11 @@ export class MarkdownConverter {
         markdown = this.fallbackConversion(preprocessedHtml);
       }
 
+      console.log('MarkdownConverter: Raw markdown length:', markdown.length);
+
       // Post-process markdown
       markdown = this.postprocessMarkdown(markdown, options);
+      console.log('MarkdownConverter: Final markdown length:', markdown.length);
 
       // Extract images
       const images = this.extractImages(html);

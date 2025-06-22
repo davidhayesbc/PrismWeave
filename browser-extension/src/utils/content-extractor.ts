@@ -27,25 +27,23 @@ export class ContentExtractor {
   private readonly navigationSelectors: string[];
   constructor() {
     this.readabilitySelectors = [
-      'article',
-      'main',
-      '[role="main"]',
-      '.content',
-      '.post-content',
+      // Prioritize specific content containers over generic ones
       '.entry-content',
+      '.post-content',
       '.article-content',
+      '.blog-content',
       '.article-body',
       '.post-body',
       '.entry-body',
       '.content-body',
+      'article',
       '.main-content',
       '.article-text',
       '.story-body',
       '.article-wrapper',
       '.post-text',
       '.content-area',
-      '.entry-text',
-      // Enhanced selectors for various blog platforms
+      '.entry-text', // Enhanced selectors for various blog platforms
       '.post__content',
       '.blog-content',
       '.article__content',
@@ -60,7 +58,11 @@ export class ContentExtractor {
       '.single-post-content',
       '.content-wrapper',
       '.page-content',
-      '.entry-content-wrapper',      // Docker and tech blog specific
+      // Fallback to broader selectors only if specific ones don't work
+      'main',
+      '[role="main"]',
+      '.content',
+      '.entry-content-wrapper', // Docker and tech blog specific
       '.documentation-content',
       '.tutorial-content',
       '.guide-content',
@@ -75,6 +77,19 @@ export class ContentExtractor {
       'section[class*="content"]',
       'section[class*="post"]',
       'section[class*="article"]',
+      // Additional Docker-specific patterns
+      '[data-testid="post-content"]',
+      '[data-testid="article-content"]',
+      '[data-testid="blog-content"]',
+      '.post-container',
+      '.article-container',
+      '.blog-container',
+      '.content-main',
+      '.main-article',
+      '.blog-article-body',
+      '.entry-content-wrap',
+      '[itemtype*="BlogPosting"]',
+      '[itemtype*="Article"]',
       // Fallback for broad content containers
       '[data-content]',
       '[data-article]',
@@ -184,11 +199,10 @@ export class ContentExtractor {
       '.bottom-bar',
     ];
   }
-
   async extractContent(options: IExtractorOptions = {}): Promise<IContentResult> {
     try {
       console.log('ContentExtractor: Starting content extraction');
-      
+
       // For modern sites, wait a moment for dynamic content
       if (document.readyState !== 'complete') {
         console.log('ContentExtractor: Document not fully loaded, waiting...');
@@ -201,6 +215,12 @@ export class ContentExtractor {
             setTimeout(() => resolve(void 0), 3000);
           }
         });
+      } // For dynamic sites (like Docker blog), wait additional time for content to load
+      const isDynamicSite = this.isDynamicSite();
+      if (isDynamicSite) {
+        console.log('ContentExtractor: Dynamic site detected, waiting for content to load...');
+        await this.waitForContentToLoad();
+        await this.waitForSpecificContent();
       }
 
       const metadata = this.extractMetadata();
@@ -425,15 +445,18 @@ export class ContentExtractor {
     const text = element.textContent?.trim() || '';
     const html = element.innerHTML || '';
 
-    // More lenient minimum content length
-    if (text.length < 50) {
+    // More lenient minimum content length for dynamic sites
+    const minLength = this.isDynamicSite() ? 30 : 50;
+    if (text.length < minLength) {
       console.log('ContentExtractor: Element rejected - too short:', text.length);
       return false;
     }
 
     // Check ratio of text to HTML (avoid heavily nested/formatted content)
+    // Be more lenient for dynamic sites
     const ratio = text.length / html.length;
-    if (ratio < 0.05) {
+    const minRatio = this.isDynamicSite() ? 0.02 : 0.05;
+    if (ratio < minRatio) {
       console.log('ContentExtractor: Element rejected - poor text/html ratio:', ratio);
       return false;
     }
@@ -441,15 +464,20 @@ export class ContentExtractor {
     // Check for too many links relative to content (likely navigation)
     const links = element.querySelectorAll('a').length;
     const paragraphs = element.querySelectorAll('p').length;
-    const textBlocks = element.querySelectorAll('p, div, span, section').length;
+    const textBlocks = element.querySelectorAll('p, div, span, section, article').length;
 
-    // More sophisticated link density check
-    if (links > 20 && links > textBlocks && paragraphs < 3) {
+    // More sophisticated link density check - be more lenient for tech blogs
+    const isDynamicSite = this.isDynamicSite();
+    const maxLinkRatio = isDynamicSite ? 0.7 : 0.5;
+
+    if (links > 20 && links > textBlocks * maxLinkRatio && paragraphs < 2) {
       console.log(
         'ContentExtractor: Element rejected - too many links:',
         links,
         'paragraphs:',
-        paragraphs
+        paragraphs,
+        'textBlocks:',
+        textBlocks
       );
       return false;
     }
@@ -458,25 +486,68 @@ export class ContentExtractor {
     const hasHeadings = element.querySelectorAll('h1, h2, h3, h4, h5, h6').length > 0;
     const hasParagraphs = paragraphs > 0;
     const hasCodeBlocks = element.querySelectorAll('pre, code').length > 0;
+    const hasListItems = element.querySelectorAll('li').length > 2;
+    const hasBlockquotes = element.querySelectorAll('blockquote').length > 0;
 
     // Content-related class/id names
     const className = element.className.toLowerCase();
     const id = element.id.toLowerCase();
-    const contentTerms = ['content', 'article', 'post', 'entry', 'body', 'text', 'prose'];
+    const contentTerms = [
+      'content',
+      'article',
+      'post',
+      'entry',
+      'body',
+      'text',
+      'prose',
+      'blog',
+      'main',
+    ];
     const hasContentClass = contentTerms.some(
       term => className.includes(term) || id.includes(term)
     );
 
-    // Navigation/non-content class/id names
-    const navTerms = ['nav', 'menu', 'sidebar', 'footer', 'header', 'ad', 'banner', 'widget'];
+    // Check for structured data indicators
+    const hasStructuredData = !!(
+      element.getAttribute('itemtype') ||
+      element.querySelector('[itemtype]') ||
+      element.getAttribute('data-testid') ||
+      element.querySelector('[data-testid]')
+    );
+
+    // Navigation/non-content class/id names - be more specific
+    const navTerms = [
+      'navigation',
+      'navbar',
+      'menu-',
+      'sidebar',
+      'footer',
+      'header',
+      'banner',
+      'widget',
+      '-ad-',
+      'advertisement',
+    ];
     const hasNavClass = navTerms.some(term => className.includes(term) || id.includes(term));
 
-    if (hasNavClass) {
-      console.log('ContentExtractor: Element rejected - navigation class detected');
+    if (hasNavClass && !hasContentClass) {
+      console.log(
+        'ContentExtractor: Element rejected - navigation class detected without content class'
+      );
       return false;
     }
 
-    const isLikelyContent = hasHeadings || hasParagraphs || hasCodeBlocks || hasContentClass;
+    const contentSignals = [
+      hasHeadings,
+      hasParagraphs,
+      hasCodeBlocks,
+      hasContentClass,
+      hasStructuredData,
+      hasListItems,
+      hasBlockquotes,
+    ];
+    const positiveSignals = contentSignals.filter(Boolean).length;
+    const isLikelyContent = positiveSignals >= 2 || (positiveSignals >= 1 && text.length > 200);
 
     console.log('ContentExtractor: Element assessment:', {
       textLength: text.length,
@@ -487,6 +558,10 @@ export class ContentExtractor {
       hasParagraphs,
       hasCodeBlocks,
       hasContentClass,
+      hasStructuredData,
+      hasListItems,
+      hasBlockquotes,
+      positiveSignals,
       isLikelyContent,
     });
 
@@ -753,17 +828,26 @@ export class ContentExtractor {
   private findLargestContentContainer(): Element | null {
     console.log('ContentExtractor: Searching for largest content container...');
 
-    // Find all potential content containers
-    const candidates = document.querySelectorAll('div, section, article, main');
+    // Find all potential content containers with broader selection
+    const candidates = document.querySelectorAll(
+      'div, section, article, main, aside, [role="main"], [role="article"]'
+    );
     let bestCandidate: Element | null = null;
     let bestScore = 0;
+
+    // Lower the minimum threshold for dynamic sites
+    const isDynamic = this.isDynamicSite();
+    const minScore = isDynamic ? 50 : 100;
 
     for (let i = 0; i < candidates.length; i++) {
       const candidate = candidates[i];
       const score = this.scoreContentElement(candidate);
 
-      if (score > bestScore && score > 100) {
-        // Minimum score threshold
+      console.log(
+        `ContentExtractor: Candidate ${i}: ${candidate.tagName}.${candidate.className} - Score: ${score}`
+      );
+
+      if (score > bestScore && score > minScore) {
         bestScore = score;
         bestCandidate = candidate;
       }
@@ -773,6 +857,27 @@ export class ContentExtractor {
       console.log('ContentExtractor: Found best content container with score:', bestScore);
       console.log('ContentExtractor: Element tag:', bestCandidate.tagName);
       console.log('ContentExtractor: Element class:', bestCandidate.className);
+      console.log('ContentExtractor: Element id:', bestCandidate.id);
+      console.log('ContentExtractor: Text length:', bestCandidate.textContent?.length || 0);
+    } else {
+      console.log('ContentExtractor: No suitable content container found, trying fallback...');
+
+      // Final fallback: try to find any element with substantial text content
+      const allElements = Array.from(document.querySelectorAll('*')).filter(el => {
+        const text = el.textContent?.trim() || '';
+        return text.length > 200 && el.children.length < 50; // Not too deeply nested
+      });
+
+      if (allElements.length > 0) {
+        // Sort by text length and take the largest
+        allElements.sort((a, b) => (b.textContent?.length || 0) - (a.textContent?.length || 0));
+        bestCandidate = allElements[0];
+        console.log(
+          'ContentExtractor: Using fallback element:',
+          bestCandidate.tagName,
+          bestCandidate.className
+        );
+      }
     }
 
     return bestCandidate;
@@ -824,5 +929,104 @@ export class ContentExtractor {
     });
 
     return Math.max(0, score);
+  }
+
+  private isDynamicSite(): boolean {
+    const url = window.location.href.toLowerCase();
+    const hostname = window.location.hostname.toLowerCase();
+
+    // Known dynamic sites that need extra loading time
+    const dynamicSites = [
+      'docker.com',
+      'medium.com',
+      'dev.to',
+      'hashnode.com',
+      'substack.com',
+      'wordpress.com',
+      'ghost.org',
+    ];
+
+    const isDynamic = dynamicSites.some(site => hostname.includes(site));
+    // Also check for React/Vue/Angular indicators
+    const hasModernFramework = !!(
+      document.querySelector('[data-reactroot]') ||
+      document.querySelector('[data-vue]') ||
+      document.querySelector('[ng-version]') ||
+      (window as any).React ||
+      (window as any).Vue ||
+      (window as any).angular
+    );
+
+    console.log('ContentExtractor: Dynamic site check:', {
+      hostname,
+      isDynamic,
+      hasModernFramework,
+      final: isDynamic || hasModernFramework,
+    });
+
+    return isDynamic || hasModernFramework;
+  }
+
+  private async waitForContentToLoad(): Promise<void> {
+    const maxWaitTime = 5000; // 5 seconds max
+    const checkInterval = 500; // Check every 500ms
+    const startTime = Date.now();
+
+    let previousContentLength = 0;
+
+    while (Date.now() - startTime < maxWaitTime) {
+      // Check if content has stabilized (stopped growing)
+      const currentContent = document.body.textContent?.length || 0;
+
+      if (currentContent > previousContentLength) {
+        console.log('ContentExtractor: Content still loading...', currentContent, 'chars');
+        previousContentLength = currentContent;
+        await new Promise(resolve => setTimeout(resolve, checkInterval));
+      } else if (previousContentLength > 1000) {
+        // Content has stabilized and we have enough content
+        console.log('ContentExtractor: Content appears to have finished loading');
+        break;
+      } else {
+        // Content is stable but might be too little, keep waiting
+        await new Promise(resolve => setTimeout(resolve, checkInterval));
+      }
+    }
+
+    console.log('ContentExtractor: Finished waiting for content load');
+  }
+  private async waitForSpecificContent(): Promise<void> {
+    const url = window.location.href.toLowerCase();
+
+    // Docker blog specific waiting logic
+    if (url.includes('docker.com/blog')) {
+      console.log('ContentExtractor: Waiting for Docker blog specific content...');
+
+      // Wait for any of these selectors to appear with substantial content
+      const dockerSelectors = [
+        '.post-content',
+        '.entry-content',
+        '.article-content',
+        '.blog-content',
+        'article',
+        '.content',
+        '[data-testid*="content"]',
+      ];
+
+      const maxWait = 5000; // 5 seconds
+      const startTime = Date.now();
+
+      while (Date.now() - startTime < maxWait) {
+        for (const selector of dockerSelectors) {
+          const element = document.querySelector(selector);
+          if (element && element.textContent && element.textContent.trim().length > 500) {
+            console.log(`ContentExtractor: Found Docker content via selector: ${selector}`);
+            return;
+          }
+        }
+        await new Promise(resolve => setTimeout(resolve, 200));
+      }
+
+      console.log('ContentExtractor: Docker blog content wait timeout');
+    }
   }
 }
