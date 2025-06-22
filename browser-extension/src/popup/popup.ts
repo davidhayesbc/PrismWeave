@@ -64,16 +64,22 @@ export class PrismWeavePopup {
       logger.groupEnd();
     }
   }
-
   private async getCurrentTab(): Promise<void> {
     return new Promise<void>((resolve, reject) => {
       chrome.tabs.query({ active: true, currentWindow: true }, (tabs: chrome.tabs.Tab[]) => {
         if (chrome.runtime.lastError) {
+          logger.error('Chrome tabs API error:', chrome.runtime.lastError.message);
           reject(new Error(chrome.runtime.lastError.message));
-        } else if (tabs.length > 0) {
+        } else if (tabs.length > 0 && tabs[0]) {
           this.currentTab = tabs[0];
+          logger.debug('Current tab found:', {
+            id: this.currentTab.id,
+            url: this.currentTab.url,
+            title: this.currentTab.title
+          });
           resolve();
         } else {
+          logger.warn('No active tab found in current window');
           reject(new Error('No active tab found'));
         }
       });
@@ -261,17 +267,43 @@ export class PrismWeavePopup {
         warningElement.style.display = 'block';
       }
     }
-  }
-  private async capturePage(): Promise<void> {
-    if (this.isCapturing || !this.currentTab?.id) return;
+  }  private async capturePage(): Promise<void> {
+    if (this.isCapturing) return;
 
     try {
       this.isCapturing = true;
+
+      // Check if we have a current tab, and try to get it if not
+      if (!this.currentTab?.id) {
+        logger.warn('No current tab available, attempting to refresh tab info');
+        try {
+          await this.getCurrentTab();
+        } catch (error) {
+          logger.error('Failed to get current tab:', error);
+          this.updateCaptureStatus('No active tab available for capture', 'error');
+          setTimeout(() => this.resetCaptureStatus(), 3000);
+          return;
+        }
+      }
+
+      // Double-check we now have a valid tab ID
+      if (!this.currentTab?.id) {
+        this.updateCaptureStatus('Unable to identify current tab', 'error');
+        setTimeout(() => this.resetCaptureStatus(), 3000);
+        return;
+      }
 
       // Validate crucial settings before proceeding
       const settingsValidation = this.validateCaptureSettings();
       if (!settingsValidation.isValid) {
         this.showMissingSettingsMessage(settingsValidation.message!);
+        return;
+      }
+
+      // Check if page is capturable
+      if (!this.isPageCapturable()) {
+        this.updateCaptureStatus('Cannot capture this type of page', 'error');
+        setTimeout(() => this.resetCaptureStatus(), 3000);
         return;
       }
 
@@ -281,10 +313,15 @@ export class PrismWeavePopup {
         type: 'CAPTURE_PAGE',
         data: { 
           tabId: this.currentTab.id,
+          tabInfo: {
+            url: this.currentTab.url,
+            title: this.currentTab.title
+          },
           settings: this.settings 
         }
       };
 
+      logger.debug('Sending capture message:', message);
       const response = await this.sendMessageToBackground(message.type, message.data);
       
       if (response.success) {
@@ -295,22 +332,58 @@ export class PrismWeavePopup {
       }
     } catch (error) {
       logger.error('Error capturing page:', error);
-      this.updateCaptureStatus('Capture failed', 'error');
+      this.updateCaptureStatus('Capture failed: ' + (error as Error).message, 'error');
       setTimeout(() => this.resetCaptureStatus(), 3000);
     } finally {
       this.isCapturing = false;
     }
   }
-  private async captureSelection(): Promise<void> {
-    if (this.isCapturing || !this.currentTab?.id) return;
+
+  private isPageCapturable(): boolean {
+    if (!this.currentTab?.url) return false;
+    
+    const url = this.currentTab.url;
+    return !url.startsWith('chrome://') && 
+           !url.startsWith('chrome-extension://') && 
+           !url.startsWith('edge://') &&
+           !url.startsWith('about:') &&
+           !url.startsWith('moz-extension://') &&
+           (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('file://'));
+  }  private async captureSelection(): Promise<void> {
+    if (this.isCapturing) return;
 
     try {
       this.isCapturing = true;
+
+      // Check if we have a current tab, and try to get it if not
+      if (!this.currentTab?.id) {
+        logger.warn('No current tab available, attempting to refresh tab info');
+        try {
+          await this.getCurrentTab();
+        } catch (error) {
+          logger.error('Failed to get current tab:', error);
+          this.updateCaptureStatus('No active tab available for capture', 'error');
+          setTimeout(() => this.resetCaptureStatus(), 3000);
+          return;
+        }
+      }
+
+      // Double-check we now have a valid tab ID
+      if (!this.currentTab?.id) {
+        this.updateCaptureStatus('Unable to identify current tab', 'error');
+        setTimeout(() => this.resetCaptureStatus(), 3000);
+        return;
+      }
 
       // Validate crucial settings before proceeding
       const settingsValidation = this.validateCaptureSettings();
       if (!settingsValidation.isValid) {
         this.showMissingSettingsMessage(settingsValidation.message!);
+        return;
+      }      // Check if page is capturable
+      if (!this.isPageCapturable()) {
+        this.updateCaptureStatus('Cannot capture this type of page', 'error');
+        setTimeout(() => this.resetCaptureStatus(), 3000);
         return;
       }
 
@@ -447,6 +520,40 @@ export class PrismWeavePopup {
         }
       });
     });
+  }
+  private async validateCurrentTab(): Promise<{ isValid: boolean; error?: string; tabInfo?: any }> {
+    try {
+      if (!this.currentTab?.id) {
+        return { 
+          isValid: false, 
+          error: 'No current tab ID available' 
+        };
+      }
+
+      const response = await this.sendMessageToBackground('VALIDATE_TAB', { 
+        tabId: this.currentTab.id 
+      });
+
+      if (response.success) {
+        const data = response.data as any;
+        return {
+          isValid: data.isValid,
+          error: data.isValid ? undefined : data.message,
+          tabInfo: data.tabInfo
+        };
+      } else {
+        return {
+          isValid: false,
+          error: response.error || 'Unknown validation error'
+        };
+      }
+    } catch (error) {
+      logger.error('Error validating current tab:', error);
+      return {
+        isValid: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
+    }
   }
 }
 

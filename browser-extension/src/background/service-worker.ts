@@ -142,6 +142,10 @@ class PrismWeaveBackground {
         return await this.commitFile(message.data);
       case 'PUSH_CHANGES':
         return await this.pushChanges();
+      case 'GET_TAB_INFO':
+        return await this.getTabInfoForMessage(message.data);
+      case 'VALIDATE_TAB':
+        return await this.validateTabForMessage(message.data);
       default:
         throw new Error(`Unknown message type: ${message.type}`);
     }
@@ -188,26 +192,130 @@ class PrismWeaveBackground {
       logger.error('Error validating settings:', error);
     }
   }
-
   private async capturePage(data: any, sender: chrome.runtime.MessageSender): Promise<any> {
     try {
-      logger.info('Capturing page for tab:', sender.tab?.id);
+      logger.info('Capturing page - sender tab ID:', sender.tab?.id, 'data tab ID:', data?.tabId);
       
-      if (!sender.tab?.id) {
-        throw new Error('No tab ID available for capture');
+      // Try to get tab ID from multiple sources
+      let tabId: number | undefined;
+      
+      // First, try from sender (when called from content script)
+      if (sender.tab?.id) {
+        tabId = sender.tab.id;
+        logger.debug('Using tab ID from sender:', tabId);
       }
+      // Second, try from message data (when called from popup)
+      else if (data?.tabId) {
+        tabId = data.tabId;
+        logger.debug('Using tab ID from message data:', tabId);
+      }
+      // Third, try to get current active tab
+      else {
+        logger.debug('No tab ID available, attempting to get current active tab');
+        tabId = await this.getCurrentActiveTabId();
+        logger.debug('Retrieved current active tab ID:', tabId);
+      }
+
+      if (!tabId) {
+        throw new Error('No tab ID available for capture - unable to determine target tab');
+      }
+
+      // Validate that the tab still exists and is accessible
+      const tabInfo = await this.getTabInfo(tabId);
+      if (!tabInfo) {
+        throw new Error(`Tab ${tabId} is no longer accessible or does not exist`);
+      }
+
+      // Validate that the tab can be captured (not a chrome:// or extension page)
+      const isTabValid = await this.validateTabAccess(tabId);
+      if (!isTabValid) {
+        throw new Error(`Tab ${tabId} is not a valid target for capture`);
+      }
+
+      logger.info('Starting page capture for tab:', tabId, 'URL:', tabInfo.url);
 
       // Implementation would go here
       // This is a placeholder for the actual capture logic
       return { 
         success: true, 
         message: 'Page capture initiated',
-        tabId: sender.tab.id 
+        tabId: tabId,
+        tabInfo: {
+          id: tabInfo.id,
+          url: tabInfo.url,
+          title: tabInfo.title
+        }
       };
     } catch (error) {
       logger.error('Error capturing page:', error);
       throw error;
     }
+  }
+
+  private async getCurrentActiveTabId(): Promise<number | undefined> {
+    return new Promise<number | undefined>((resolve) => {
+      chrome.tabs.query({ active: true, currentWindow: true }, (tabs: chrome.tabs.Tab[]) => {
+        if (chrome.runtime.lastError) {
+          logger.warn('Error querying current tab:', chrome.runtime.lastError.message);
+          resolve(undefined);
+        } else if (tabs.length > 0 && tabs[0].id) {
+          resolve(tabs[0].id);
+        } else {
+          logger.warn('No active tab found or tab has no ID');
+          resolve(undefined);
+        }
+      });
+    });
+  }
+
+  private async getTabInfo(tabId: number): Promise<chrome.tabs.Tab | null> {
+    return new Promise<chrome.tabs.Tab | null>((resolve) => {
+      chrome.tabs.get(tabId, (tab: chrome.tabs.Tab) => {
+        if (chrome.runtime.lastError) {
+          logger.warn('Error getting tab info for tab', tabId, ':', chrome.runtime.lastError.message);
+          resolve(null);
+        } else {
+          resolve(tab);
+        }
+      });
+    });
+  }
+
+  private async validateTabAccess(tabId: number): Promise<boolean> {
+    try {
+      const tab = await this.getTabInfo(tabId);
+      if (!tab) {
+        return false;
+      }
+
+      // Check if tab URL is capturable (not chrome:// or extension pages)
+      if (tab.url) {
+        const url = new URL(tab.url);
+        const isCapturableProtocol = ['http:', 'https:', 'file:'].includes(url.protocol);
+        const isNotExtensionPage = !url.pathname.includes('chrome-extension://');
+        const isNotSystemPage = !url.hostname.includes('chrome://') && !url.hostname.includes('edge://');
+        
+        return isCapturableProtocol && isNotExtensionPage && isNotSystemPage;
+      }
+      
+      return false;
+    } catch (error) {
+      logger.warn('Error validating tab access for tab', tabId, ':', error);
+      return false;
+    }
+  }
+
+  private async getAllActiveTabs(): Promise<chrome.tabs.Tab[]> {
+    return new Promise<chrome.tabs.Tab[]>((resolve) => {
+      chrome.tabs.query({}, (tabs: chrome.tabs.Tab[]) => {
+        if (chrome.runtime.lastError) {
+          logger.warn('Error querying all tabs:', chrome.runtime.lastError.message);
+          resolve([]);
+        } else {
+          resolve(tabs);
+        }
+      });
+    });
   }
 
   private async getSettings(): Promise<Partial<ISettings>> {
@@ -290,6 +398,80 @@ class PrismWeaveBackground {
     } catch (error) {
       logger.error('Error pushing changes:', error);
       throw error;
+    }
+  }
+
+  private async getTabInfoForMessage(data: any): Promise<any> {
+    try {
+      const tabId = data?.tabId;
+      if (!tabId) {
+        // Try to get current active tab if no tab ID provided
+        const currentTabId = await this.getCurrentActiveTabId();
+        if (currentTabId) {
+          const tabInfo = await this.getTabInfo(currentTabId);
+          return { 
+            success: true, 
+            tabId: currentTabId, 
+            tabInfo: tabInfo 
+          };
+        } else {
+          return { 
+            success: false, 
+            error: 'No tab ID provided and no active tab found' 
+          };
+        }
+      }
+
+      const tabInfo = await this.getTabInfo(tabId);
+      if (tabInfo) {
+        return { 
+          success: true, 
+          tabId: tabId, 
+          tabInfo: tabInfo 
+        };
+      } else {
+        return { 
+          success: false, 
+          error: `Tab ${tabId} not found or not accessible` 
+        };
+      }
+    } catch (error) {
+      logger.error('Error getting tab info:', error);
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Unknown error' 
+      };
+    }
+  }
+
+  private async validateTabForMessage(data: any): Promise<any> {
+    try {
+      const tabId = data?.tabId;
+      if (!tabId) {
+        return { 
+          success: false, 
+          isValid: false, 
+          error: 'No tab ID provided' 
+        };
+      }
+
+      const isAccessible = await this.validateTabAccess(tabId);
+      const tabInfo = isAccessible ? await this.getTabInfo(tabId) : null;
+
+      return {
+        success: true,
+        isValid: isAccessible,
+        tabId: tabId,
+        tabInfo: tabInfo,
+        message: isAccessible ? 'Tab is valid and accessible' : 'Tab is not accessible or not capturable'
+      };
+    } catch (error) {
+      logger.error('Error validating tab:', error);
+      return { 
+        success: false, 
+        isValid: false, 
+        error: error instanceof Error ? error.message : 'Unknown error' 
+      };
     }
   }
 }
