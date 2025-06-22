@@ -1309,6 +1309,67 @@ async function testMarkdownConversion(data: any): Promise<unknown> {
   }
 }
 
+// Remove line numbers from code blocks
+function removeLineNumbers(code: string): string {
+  if (!code) return code;
+  
+  const lines = code.split('\n');
+  const processedLines: string[] = [];
+
+  for (const line of lines) {
+    // Skip empty lines
+    if (line.trim() === '') {
+      processedLines.push(line);
+      continue;
+    }
+
+    // More sophisticated line number detection
+    // Pattern: optional whitespace + number + optional separator + content
+    const lineNumberPatterns = [
+      { pattern: /^(\s*)(\d{1,4})\s+(.+)$/, groups: [1, 3] },           // "  42 content"
+      { pattern: /^(\s*)(\d{1,4})\.(\s*)(.+)$/, groups: [1, 3, 4] },    // "  42. content" 
+      { pattern: /^(\s*)(\d{1,4}):(\s*)(.+)$/, groups: [1, 3, 4] },     // "  42: content"
+      { pattern: /^(\s*)(\d{1,4})\|(\s*)(.+)$/, groups: [1, 3, 4] },    // "  42| content"
+      { pattern: /^(\s*)(\d{1,4})\)(\s*)(.+)$/, groups: [1, 3, 4] }     // "  42) content"
+    ];
+
+    let processed = false;
+    for (const { pattern, groups } of lineNumberPatterns) {
+      const match = line.match(pattern);
+      if (match) {
+        const lineNumber = parseInt(match[2], 10);
+        
+        // Only treat as line number if reasonable range
+        if (lineNumber >= 1 && lineNumber <= 9999) {
+          const leadingWhitespace = match[groups[0]];
+          const content = match[groups[groups.length - 1]];
+          const contentStart = content.trim();
+          
+          // Don't remove if it looks like actual numbered content
+          if (contentStart.match(/^(Step|Chapter|Section|Part|Phase)/i) ||
+              contentStart.match(/^\w+\s+(files?|items?|times?|seconds?|minutes?)/i)) {
+            processedLines.push(line);
+            processed = true;
+            break;
+          }
+          
+          // Preserve indentation
+          const preservedIndent = leadingWhitespace + (groups.length > 2 ? match[groups[1]] || '  ' : '  ');
+          processedLines.push(preservedIndent + content);
+          processed = true;
+          break;
+        }
+      }
+    }
+
+    if (!processed) {
+      processedLines.push(line);
+    }
+  }
+
+  return processedLines.join('\n');
+}
+
 // Simple HTML to Markdown conversion without DOM (fallback for service worker)
 function createSimpleMarkdown(html: string, title: string, url: string): string {
   try {
@@ -1340,25 +1401,33 @@ function createSimpleMarkdown(html: string, title: string, url: string): string 
         /<pre[^>]*><code[^>]*class="[^"]*language-([^"]*)"[^>]*>([\s\S]*?)<\/code><\/pre>/gis,
         (match, language, code) => {
           // Decode HTML entities and preserve special characters in code
-          const cleanCode = code
+          let cleanCode = code
             .replace(/&lt;/g, '<')
             .replace(/&gt;/g, '>')
             .replace(/&amp;/g, '&')
             .replace(/&quot;/g, '"')
             .replace(/&#39;/g, "'")
             .replace(/&nbsp;/g, ' ');
+          
+          // Remove line numbers from code blocks
+          cleanCode = removeLineNumbers(cleanCode);
+          
           return `\`\`\`${language}\n${cleanCode}\n\`\`\`\n\n`;
         }
       )
       .replace(/<pre[^>]*><code[^>]*>([\s\S]*?)<\/code><\/pre>/gis, (match, code) => {
         // Handle code blocks without language specification
-        const cleanCode = code
+        let cleanCode = code
           .replace(/&lt;/g, '<')
           .replace(/&gt;/g, '>')
           .replace(/&amp;/g, '&')
           .replace(/&quot;/g, '"')
           .replace(/&#39;/g, "'")
           .replace(/&nbsp;/g, ' ');
+        
+        // Remove line numbers from code blocks
+        cleanCode = removeLineNumbers(cleanCode);
+        
         return `\`\`\`\n${cleanCode}\n\`\`\`\n\n`;
       })
       .replace(/<code[^>]*>(.*?)<\/code>/gi, (match, code) => {

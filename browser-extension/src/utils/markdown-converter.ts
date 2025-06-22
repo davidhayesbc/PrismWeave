@@ -4,6 +4,57 @@
 
 import { IDocumentMetadata, IImageAsset } from '../types/index.js';
 
+// Remove line numbers from code blocks
+function removeLineNumbers(code: string): string {
+  if (!code) return code;
+  
+  // Split into lines and process each line
+  const lines = code.split('\n');
+  const cleanLines = lines.map(line => {
+    // Remove leading whitespace temporarily to check for line numbers
+    const trimmed = line.trim();
+    
+    // Skip empty lines
+    if (!trimmed) return line;
+    
+    // Pattern 1: Simple number at start (1, 2, 3, etc.)
+    // Pattern 2: Padded numbers (01, 02, 03, etc.)  
+    // Pattern 3: Numbers with separators (1., 2., 3. or 1:, 2:, 3: or 1|, 2|, 3|)
+    // Pattern 4: Numbers in brackets ([1], [2], [3])
+    // Pattern 5: Numbers with spaces around them ( 1 , 2 , 3 )
+    const lineNumberPatterns = [
+      /^\s*\d+\s*[\.\:\|]\s*/,    // 1. or 1: or 1| followed by space
+      /^\s*\[\d+\]\s*/,           // [1] format
+      /^\s*\d{1,4}\s+/,           // Simple number followed by space(s) (limit to 4 digits)
+      /^\s*\d+\s*$/,              // Line with only a number (remove entirely)
+    ];
+    
+    // Check if this line starts with a line number pattern
+    for (const pattern of lineNumberPatterns) {
+      if (pattern.test(line)) {
+        // Remove the line number pattern
+        const cleanedLine = line.replace(pattern, '');
+        
+        // If the cleaned line is empty or only whitespace, and the original line had a number,
+        // it was probably just a line number - skip this line entirely
+        if (!cleanedLine.trim() && /^\s*\d+/.test(line)) {
+          return '';
+        }
+        
+        // Preserve the original indentation of the actual code content
+        return cleanedLine || line;
+      }
+    }
+    
+    return line;
+  });
+  
+  // Remove empty lines that were just line numbers
+  const filteredLines = cleanLines.filter(line => line !== '');
+  
+  return filteredLines.join('\n');
+}
+
 interface IConversionOptions {
   preserveFormatting?: boolean;
   includeMetadata?: boolean;
@@ -180,7 +231,7 @@ export class MarkdownConverter {
         const quotedLines = lines.map(line => '> ' + line);
         return '\n\n' + quotedLines.join('\n') + '\n\n';
       },
-    }); // Code block rule with language detection and improved content preservation
+    });    // Code block rule with language detection and improved content preservation
     this.turndownService.addRule('enhancedCodeBlock', {
       filter: (node: any): boolean => {
         return node.nodeName === 'PRE' && node.firstChild && node.firstChild.nodeName === 'CODE';
@@ -200,6 +251,9 @@ export class MarkdownConverter {
           .replace(/&quot;/g, '"')
           .replace(/&#39;/g, "'")
           .replace(/&nbsp;/g, ' ');
+
+        // Remove line numbers from code blocks
+        code = removeLineNumbers(code);
 
         return '\n\n```' + language + '\n' + code + '\n```\n\n';
       },
@@ -585,16 +639,17 @@ export class MarkdownConverter {
               codeContent = codeEl.textContent || '';
             } else {
               codeContent = el.textContent || '';
-            }
-
-            // Preserve special characters in code blocks
-            const preservedContent = codeContent
+            }            // Preserve special characters in code blocks
+            let preservedContent = codeContent
               .replace(/&lt;/g, '<')
               .replace(/&gt;/g, '>')
               .replace(/&amp;/g, '&')
               .replace(/&quot;/g, '"')
               .replace(/&#39;/g, "'")
               .replace(/&nbsp;/g, ' ');
+
+            // Remove line numbers from code blocks
+            preservedContent = removeLineNumbers(preservedContent);
 
             markdown += '\n\n```' + language + '\n' + preservedContent + '\n```\n\n';
             break;
