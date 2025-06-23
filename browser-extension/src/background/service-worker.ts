@@ -62,6 +62,7 @@ interface ICaptureResult {
     title?: string;
     url?: string;
     markdownLength: number;
+    markdown?: string;
     commitUrl?: string;
     status?: string;
     timestamp: string;
@@ -856,6 +857,7 @@ async function handleCapturePage(data?: Record<string, unknown>): Promise<ICaptu
             ...(title && { title }),
             ...(url && { url }),
             markdownLength: markdownContent.length,
+            markdown: markdownContent, // Include markdown content for preview
             ...(commitResult.data?.html_url && { commitUrl: commitResult.data.html_url }),
             timestamp: new Date().toISOString(),
           },
@@ -889,6 +891,7 @@ async function handleCapturePage(data?: Record<string, unknown>): Promise<ICaptu
         ...(title && { title }),
         ...(url && { url }),
         markdownLength: markdownContent.length,
+        markdown: markdownContent, // Include markdown content for preview
         status: 'pending_sync',
         timestamp: new Date().toISOString(),
       },

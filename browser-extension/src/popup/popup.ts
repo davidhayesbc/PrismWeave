@@ -24,6 +24,7 @@ export class PrismWeavePopup {
   private currentTab: chrome.tabs.Tab | null = null;
   private settings: Partial<ISettings> | null = null;
   private isCapturing: boolean = false;
+  private lastCapturedContent: string | null = null;
 
   constructor() {
     logger.info('PrismWeavePopup constructor called');
@@ -48,7 +49,6 @@ export class PrismWeavePopup {
       // Update UI
       logger.debug('Updating page info');
       this.updatePageInfo();
-
       logger.debug('Setting up event listeners');
       this.setupEventListeners();
 
@@ -113,9 +113,7 @@ export class PrismWeavePopup {
     const settingsBtn = document.getElementById('settings-btn');
     if (settingsBtn) {
       settingsBtn.addEventListener('click', () => this.openSettings());
-    }
-
-    // View repository button
+    } // View repository button
     const viewRepoBtn = document.getElementById('view-repo');
     if (viewRepoBtn) {
       viewRepoBtn.addEventListener('click', () => this.openRepository());
@@ -300,12 +298,23 @@ export class PrismWeavePopup {
         'progress',
         { showProgress: true, progressValue: 60 }
       );
-
       logger.debug('Sending capture message:', message);
       const response = await this.sendMessageToBackground(message.type, message.data);
       if (response.success) {
         const responseData = response.data as any;
         const saveResult = responseData?.saveResult;
+        logger.debug('CAPTURE responseData:', responseData);
+        // Try to extract markdown from the correct location
+        let markdownContent: string | null = null;
+        if (responseData?.markdown) {
+          markdownContent = responseData.markdown;
+        } else if (responseData?.data?.markdown) {
+          markdownContent = responseData.data.markdown;
+        } else if (responseData?.content) {
+          markdownContent = responseData.content;
+        }
+        this.lastCapturedContent = markdownContent;
+        logger.debug('Stored captured content for preview, length:', markdownContent?.length || 0);
 
         // Determine success message based on save result
         let statusTitle = 'Page Captured Successfully!';
@@ -349,10 +358,13 @@ export class PrismWeavePopup {
           });
         }
 
-        actions.push({
-          label: 'Capture Another',
-          action: () => this.resetCaptureStatus(),
-        });
+        // Replace "Capture Another" with "Preview Markdown" when content is available
+        if (this.lastCapturedContent) {
+          actions.push({
+            label: 'Preview Markdown',
+            action: () => this.showMarkdownPreview(),
+          });
+        }
 
         // Add retry action if save failed
         if (saveResult && !saveResult.success) {
@@ -679,6 +691,7 @@ export class PrismWeavePopup {
             ${
               missingSettings.length > 0
                 ? `
+
               <div class="missing-settings-text">
                 <strong>Missing settings:</strong> ${missingSettings.join(', ')}
               </div>
@@ -714,14 +727,14 @@ export class PrismWeavePopup {
     // Auto-hide after 12 seconds (longer for settings issues)
     setTimeout(() => this.resetCaptureStatus(), 12000);
   }
-
   private resetCaptureStatus(): void {
     const statusElement = document.getElementById('capture-status');
     if (statusElement) {
       statusElement.style.display = 'none';
       statusElement.textContent = '';
       statusElement.className = 'capture-status';
-    }
+    } // Clear the captured content when resetting
+    this.lastCapturedContent = null;
   }
 
   private openSettings(): void {
@@ -807,6 +820,81 @@ export class PrismWeavePopup {
         error: error instanceof Error ? error.message : 'Unknown error',
       };
     }
+  }
+
+  private showMarkdownPreview(): void {
+    if (!this.lastCapturedContent) {
+      this.showError('No markdown content available for preview');
+      return;
+    }
+
+    // Create preview modal
+    const modal = document.createElement('div');
+    modal.className = 'markdown-preview-modal';
+    modal.innerHTML = `
+      <div class="modal-backdrop"></div>
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Markdown Preview</h3>
+          <button class="modal-close" aria-label="Close">×</button>
+        </div>
+        <div class="modal-body">
+          <div class="preview-controls">
+            <button class="copy-button" title="Copy to clipboard">📋 Copy</button>
+            <span class="content-stats">${this.lastCapturedContent.length} characters</span>
+          </div>
+          <pre class="markdown-content">${this.escapeHtml(this.lastCapturedContent)}</pre>
+        </div>
+      </div>
+    `;
+
+    // Add modal to document
+    document.body.appendChild(modal);
+
+    // Setup event listeners
+    const closeBtn = modal.querySelector('.modal-close') as HTMLButtonElement;
+    const backdrop = modal.querySelector('.modal-backdrop') as HTMLDivElement;
+    const copyBtn = modal.querySelector('.copy-button') as HTMLButtonElement;
+
+    const closeModal = () => {
+      modal.remove();
+    };
+
+    closeBtn.addEventListener('click', closeModal);
+    backdrop.addEventListener('click', closeModal);
+
+    copyBtn.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(this.lastCapturedContent!);
+        copyBtn.textContent = '✅ Copied!';
+        setTimeout(() => {
+          copyBtn.textContent = '📋 Copy';
+        }, 2000);
+      } catch (error) {
+        logger.error('Failed to copy to clipboard:', error);
+        copyBtn.textContent = '❌ Failed';
+        setTimeout(() => {
+          copyBtn.textContent = '📋 Copy';
+        }, 2000);
+      }
+    });
+
+    // Close on Escape key
+    const handleKeydown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        closeModal();
+        document.removeEventListener('keydown', handleKeydown);
+      }
+    };
+    document.addEventListener('keydown', handleKeydown);
+  }
+  private escapeHtml(unsafe: string): string {
+    return unsafe
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
   }
 }
 
