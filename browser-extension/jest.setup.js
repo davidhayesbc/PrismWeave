@@ -1,5 +1,9 @@
 // Jest setup file to ensure proper initialization
 
+// Add polyfills for Node.js environment
+global.TextEncoder = require('util').TextEncoder;
+global.TextDecoder = require('util').TextDecoder;
+
 // Set up proper global environment for browser extension tests
 global.chrome = {
   storage: {

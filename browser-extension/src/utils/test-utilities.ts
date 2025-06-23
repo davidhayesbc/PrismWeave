@@ -200,6 +200,8 @@ export function simpleMarkdownConversion(
 ): { content: string; title: string; url: string } {
   let markdown = '';
 
+  // Check if DOMParser is available and log it
+  console.log('DOMParser available:', typeof DOMParser !== 'undefined');
   // Create a DOM parser for testing
   if (typeof DOMParser !== 'undefined') {
     const parser = new DOMParser();
@@ -207,8 +209,14 @@ export function simpleMarkdownConversion(
 
     // Process code blocks with improved extraction
     const codeBlocks = doc.querySelectorAll('pre code, pre, code');
-    codeBlocks.forEach(block => {
+    console.log('Found code blocks:', codeBlocks.length);
+
+    codeBlocks.forEach((block, index) => {
+      console.log(
+        `Block ${index}: tagName=${block.tagName}, parentTag=${block.parentElement?.tagName}`
+      );
       const isPreBlock = block.tagName === 'PRE' || block.parentElement?.tagName === 'PRE';
+      console.log(`Block ${index}: isPreBlock=${isPreBlock}`);
 
       if (isPreBlock) {
         // Handle code blocks
@@ -241,11 +249,11 @@ export function simpleMarkdownConversion(
     // Fallback for environments without DOMParser
     // Simple regex-based extraction for testing
     const codeBlockRegex =
-      /<pre[^>]*>[\s\S]*?<code[^>]*class="([^"]*)"[^>]*>([\s\S]*?)<\/code>[\s\S]*?<\/pre>/gi;
+      /<pre[^>]*>[\s\S]*?<code[^>]*(?:class="([^"]*)")?[^>]*>([\s\S]*?)<\/code>[\s\S]*?<\/pre>/gi;
 
     let match;
     while ((match = codeBlockRegex.exec(htmlContent)) !== null) {
-      const className = match[1];
+      const className = match[1] || '';
       let content = match[2];
 
       // Extract language and process content
