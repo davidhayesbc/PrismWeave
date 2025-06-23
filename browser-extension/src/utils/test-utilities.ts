@@ -2,72 +2,6 @@
 // Test utilities for markdown conversion functions
 // This file provides testable versions of service worker functions
 
-// Remove line numbers from code blocks
-export function removeLineNumbers(code: string): string {
-  if (!code) return code;
-
-  const lines = code.split('\n');
-  const processedLines: string[] = [];
-
-  for (const line of lines) {
-    // Skip empty lines
-    if (line.trim() === '') {
-      processedLines.push(line);
-      continue;
-    }
-
-    // More sophisticated line number detection
-    // Pattern: optional whitespace + number + optional separator + content
-    const lineNumberPatterns = [
-      { pattern: /^(\s*)(\d{1,4})\s+(.+)$/, groups: [1, 3] }, // "  42 content"
-      { pattern: /^(\s*)(\d{1,4})\.(\s*)(.+)$/, groups: [1, 3, 4] }, // "  42. content"
-      { pattern: /^(\s*)(\d{1,4}):(\s*)(.+)$/, groups: [1, 3, 4] }, // "  42: content"
-      { pattern: /^(\s*)(\d{1,4})\|(\s*)(.+)$/, groups: [1, 3, 4] }, // "  42| content"
-      { pattern: /^(\s*)(\d{1,4})\)(\s*)(.+)$/, groups: [1, 3, 4] }, // "  42) content"
-    ];
-
-    let processed = false;
-    for (const { pattern, groups } of lineNumberPatterns) {
-      const match = line.match(pattern);
-      if (match) {
-        const lineNumber = parseInt(match[2], 10);
-
-        // Only treat as line number if:
-        // 1. Number is reasonable for line numbers (1-9999)
-        // 2. Content doesn't look like actual numbered content
-        if (lineNumber >= 1 && lineNumber <= 9999) {
-          const leadingWhitespace = match[groups[0]];
-          const content = match[groups[groups.length - 1]];
-          const contentStart = content.trim();
-
-          // Don't remove if it looks like actual numbered content
-          if (
-            contentStart.match(/^(Step|Chapter|Section|Part|Phase)/i) ||
-            contentStart.match(/^\w+\s+(files?|items?|times?|seconds?|minutes?)/i)
-          ) {
-            processedLines.push(line);
-            processed = true;
-            break;
-          }
-
-          // Preserve indentation - use original leading whitespace + some space for readability
-          const preservedIndent =
-            leadingWhitespace + (groups.length > 2 ? match[groups[1]] || '  ' : '  ');
-          processedLines.push(preservedIndent + content);
-          processed = true;
-          break;
-        }
-      }
-    }
-
-    if (!processed) {
-      processedLines.push(line);
-    }
-  }
-
-  return processedLines.join('\n');
-}
-
 // Decode HTML entities
 export function decodeHtmlEntities(str: string): string {
   if (!str) return str;
@@ -225,12 +159,10 @@ export function simpleMarkdownConversion(
 
         // Extract language
         const className = actualCodeElement.className || '';
-        const language = extractLanguageFromClass(className);
-
-        // Get content and process it
+        const language = extractLanguageFromClass(className);        // Get content and process it
         let content = actualCodeElement.textContent || '';
         content = decodeHtmlEntities(content);
-        content = removeLineNumbers(content);
+        // Line numbers should be handled by HTML structure rules
 
         markdown += '\n```' + language + '\n' + content + '\n```\n\n';
       } else {
@@ -254,12 +186,10 @@ export function simpleMarkdownConversion(
     let match;
     while ((match = codeBlockRegex.exec(htmlContent)) !== null) {
       const className = match[1] || '';
-      let content = match[2];
-
-      // Extract language and process content
+      let content = match[2];      // Extract language and process content
       const language = extractLanguageFromClass(className);
       content = decodeHtmlEntities(content);
-      content = removeLineNumbers(content);
+      // Line numbers should be handled by HTML structure rules
 
       markdown += '\n```' + language + '\n' + content + '\n```\n\n';
     }

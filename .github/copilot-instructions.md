@@ -31,6 +31,7 @@ PrismWeave is a comprehensive document management and content creation system th
 - Implement all functionality directly in service worker files
 - Use inline type definitions and classes for Chrome extension compatibility
 - Avoid external dependencies in service workers to prevent loading issues
+- Use Turndown rules for consistent markdown conversion
 
 ### AI Integration Best Practices
 - Use local models (Ollama) for privacy and cost efficiency

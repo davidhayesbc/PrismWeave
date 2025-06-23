@@ -4,57 +4,6 @@
 
 import { IDocumentMetadata, IImageAsset } from '../types/index.js';
 
-// Remove line numbers from code blocks
-function removeLineNumbers(code: string): string {
-  if (!code) return code;
-
-  // Split into lines and process each line
-  const lines = code.split('\n');
-  const cleanLines = lines.map(line => {
-    // Remove leading whitespace temporarily to check for line numbers
-    const trimmed = line.trim();
-
-    // Skip empty lines
-    if (!trimmed) return line;
-
-    // Pattern 1: Simple number at start (1, 2, 3, etc.)
-    // Pattern 2: Padded numbers (01, 02, 03, etc.)
-    // Pattern 3: Numbers with separators (1., 2., 3. or 1:, 2:, 3: or 1|, 2|, 3|)
-    // Pattern 4: Numbers in brackets ([1], [2], [3])
-    // Pattern 5: Numbers with spaces around them ( 1 , 2 , 3 )
-    const lineNumberPatterns = [
-      /^\s*\d+\s*[\.\:\|]\s*/, // 1. or 1: or 1| followed by space
-      /^\s*\[\d+\]\s*/, // [1] format
-      /^\s*\d{1,4}\s+/, // Simple number followed by space(s) (limit to 4 digits)
-      /^\s*\d+\s*$/, // Line with only a number (remove entirely)
-    ];
-
-    // Check if this line starts with a line number pattern
-    for (const pattern of lineNumberPatterns) {
-      if (pattern.test(line)) {
-        // Remove the line number pattern
-        const cleanedLine = line.replace(pattern, '');
-
-        // If the cleaned line is empty or only whitespace, and the original line had a number,
-        // it was probably just a line number - skip this line entirely
-        if (!cleanedLine.trim() && /^\s*\d+/.test(line)) {
-          return '';
-        }
-
-        // Preserve the original indentation of the actual code content
-        return cleanedLine || line;
-      }
-    }
-
-    return line;
-  });
-
-  // Remove empty lines that were just line numbers
-  const filteredLines = cleanLines.filter(line => line !== '');
-
-  return filteredLines.join('\n');
-}
-
 interface IConversionOptions {
   preserveFormatting?: boolean;
   includeMetadata?: boolean;
@@ -182,6 +131,144 @@ export class MarkdownConverter {
   private addCustomTurndownRules(): void {
     if (!this.turndownService) return;
 
+    // Line number removal rule - handle HTML structures with line numbers
+    this.turndownService.addRule('removeLineNumbers', {
+      filter: (node: any): boolean => {
+        // Remove elements that are clearly line numbers
+        if (node.nodeType === 1) { // Element node
+          const className = (node.className || '').toLowerCase();
+          const id = (node.id || '').toLowerCase();
+          
+          // Common line number class patterns
+          const lineNumberPatterns = [
+            'line-number', 'linenumber', 'line-num', 'linenum',
+            'gutter', 'line-gutter', 'code-line-number',
+            'hljs-ln-numbers', 'hljs-ln-line', 'prism-line-number'
+          ];
+          
+          // Check if class name indicates line numbers
+          if (lineNumberPatterns.some(pattern => 
+            className.includes(pattern) || id.includes(pattern)
+          )) {
+            return true;
+          }
+          
+          // Check for table cells that contain only numbers (likely line numbers)
+          if (node.nodeName === 'TD' || node.nodeName === 'TH') {
+            const text = (node.textContent || '').trim();
+            // If cell contains only a number (1-4 digits), likely a line number
+            if (/^\d{1,4}$/.test(text)) {
+              return true;
+            }
+          }
+          
+          // Check for spans/divs that contain only sequential numbers
+          if (node.nodeName === 'SPAN' || node.nodeName === 'DIV') {
+            const text = (node.textContent || '').trim();
+            // Pattern for standalone line numbers
+            if (/^\d{1,4}$/.test(text)) {
+              // Additional check: if this element is in a code context
+              let parent = node.parentNode;
+              while (parent && parent.nodeType === 1) {
+                const parentTag = parent.nodeName.toLowerCase();
+                const parentClass = (parent.className || '').toLowerCase();
+                
+                if (parentTag === 'pre' || parentTag === 'code' || 
+                    parentClass.includes('code') || parentClass.includes('highlight')) {
+                  return true;
+                }
+                parent = parent.parentNode;
+              }
+            }
+          }
+        }
+        
+        return false;
+      },
+      replacement: (): string => {
+        // Remove line number elements entirely
+        return '';
+      },
+    });
+
+    // Code table rule - handle tables used for displaying code with line numbers
+    this.turndownService.addRule('codeTable', {
+      filter: (node: any): boolean => {
+        // Look for tables that seem to be used for code display
+        if (node.nodeName === 'TABLE') {
+          const className = (node.className || '').toLowerCase();
+          
+          // Common patterns for code tables
+          if (className.includes('code') || className.includes('highlight') || 
+              className.includes('hljs') || className.includes('prism')) {
+            return true;
+          }
+          
+          // Check if table has typical code table structure
+          const rows = node.querySelectorAll('tr');
+          if (rows.length > 0) {
+            const firstRow = rows[0];
+            const cells = firstRow.querySelectorAll('td, th');
+            
+            // If table has exactly 2 columns and first column looks like line numbers
+            if (cells.length === 2) {
+              const firstCellText = (cells[0].textContent || '').trim();
+              // Check if first cell contains a number (potential line number)
+              if (/^\d{1,4}$/.test(firstCellText)) {
+                return true;
+              }
+            }
+          }
+        }
+        
+        return false;
+      },
+      replacement: (content: string, node: any): string => {
+        // Extract only the code content from the second column
+        const rows = node.querySelectorAll('tr');
+        const codeLines: string[] = [];
+        
+        rows.forEach((row: any) => {
+          const cells = row.querySelectorAll('td, th');
+          if (cells.length >= 2) {
+            // Take content from second column (index 1), which should be the code
+            const codeCell = cells[1];
+            const codeLine = (codeCell.textContent || '').replace(/\n+$/, ''); // Remove trailing newlines
+            if (codeLine.trim()) {
+              codeLines.push(codeLine);
+            }
+          }
+        });
+        
+        if (codeLines.length > 0) {
+          // Try to detect language from class names
+          const className = (node.className || '').toLowerCase();
+          let language = '';
+          
+          // Simple language detection from class names
+          const langPatterns = {
+            'javascript': 'javascript', 'js': 'javascript',
+            'typescript': 'typescript', 'ts': 'typescript',
+            'python': 'python', 'py': 'python',
+            'bash': 'bash', 'shell': 'bash', 'sh': 'bash',
+            'html': 'html', 'css': 'css', 'json': 'json'
+          };
+          
+          for (const [pattern, lang] of Object.entries(langPatterns)) {
+            if (className.includes(pattern)) {
+              language = lang;
+              break;
+            }
+          }
+          
+          return '\n\n```' + language + '\n' + codeLines.join('\n') + '\n```\n\n';
+        }
+        
+        // Fallback to normal table processing
+        return '\n\n' + content + '\n\n';
+      },
+    });
+
     // Enhanced table rule with better formatting
     this.turndownService.addRule('enhancedTable', {
       filter: 'table',
@@ -238,9 +325,7 @@ export class MarkdownConverter {
         const language = this.extractLanguageFromClass(codeElement.className);
 
         // Get raw text content to preserve formatting and special characters
-        let code = codeElement.textContent || '';
-
-        // Preserve HTML entities that should be decoded in code blocks
+        let code = codeElement.textContent || '';        // Preserve HTML entities that should be decoded in code blocks
         code = code
           .replace(/&lt;/g, '<')
           .replace(/&gt;/g, '>')
@@ -249,8 +334,8 @@ export class MarkdownConverter {
           .replace(/&#39;/g, "'")
           .replace(/&nbsp;/g, ' ');
 
-        // Remove line numbers from code blocks
-        code = removeLineNumbers(code); // Determine appropriate number of backticks to escape the code block
+        // Line numbers should already be removed by HTML structure rules
+        // Determine appropriate number of backticks to escape the code block
         // Find the longest sequence of consecutive backticks in the code
         const backtickMatches = code.match(/`+/g) || [];
         const maxBackticks = backtickMatches.reduce(
