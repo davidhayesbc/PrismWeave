@@ -2,12 +2,10 @@
 // Test utilities for markdown conversion functions
 // This file provides testable versions of service worker functions
 
-import { MarkdownConverter } from './markdown-converter.js';
-
 // Remove line numbers from code blocks
 export function removeLineNumbers(code: string): string {
   if (!code) return code;
-  
+
   const lines = code.split('\n');
   const processedLines: string[] = [];
 
@@ -21,11 +19,11 @@ export function removeLineNumbers(code: string): string {
     // More sophisticated line number detection
     // Pattern: optional whitespace + number + optional separator + content
     const lineNumberPatterns = [
-      { pattern: /^(\s*)(\d{1,4})\s+(.+)$/, groups: [1, 3] },           // "  42 content"
-      { pattern: /^(\s*)(\d{1,4})\.(\s*)(.+)$/, groups: [1, 3, 4] },    // "  42. content" 
-      { pattern: /^(\s*)(\d{1,4}):(\s*)(.+)$/, groups: [1, 3, 4] },     // "  42: content"
-      { pattern: /^(\s*)(\d{1,4})\|(\s*)(.+)$/, groups: [1, 3, 4] },    // "  42| content"
-      { pattern: /^(\s*)(\d{1,4})\)(\s*)(.+)$/, groups: [1, 3, 4] }     // "  42) content"
+      { pattern: /^(\s*)(\d{1,4})\s+(.+)$/, groups: [1, 3] }, // "  42 content"
+      { pattern: /^(\s*)(\d{1,4})\.(\s*)(.+)$/, groups: [1, 3, 4] }, // "  42. content"
+      { pattern: /^(\s*)(\d{1,4}):(\s*)(.+)$/, groups: [1, 3, 4] }, // "  42: content"
+      { pattern: /^(\s*)(\d{1,4})\|(\s*)(.+)$/, groups: [1, 3, 4] }, // "  42| content"
+      { pattern: /^(\s*)(\d{1,4})\)(\s*)(.+)$/, groups: [1, 3, 4] }, // "  42) content"
     ];
 
     let processed = false;
@@ -33,7 +31,7 @@ export function removeLineNumbers(code: string): string {
       const match = line.match(pattern);
       if (match) {
         const lineNumber = parseInt(match[2], 10);
-        
+
         // Only treat as line number if:
         // 1. Number is reasonable for line numbers (1-9999)
         // 2. Content doesn't look like actual numbered content
@@ -41,17 +39,20 @@ export function removeLineNumbers(code: string): string {
           const leadingWhitespace = match[groups[0]];
           const content = match[groups[groups.length - 1]];
           const contentStart = content.trim();
-          
+
           // Don't remove if it looks like actual numbered content
-          if (contentStart.match(/^(Step|Chapter|Section|Part|Phase)/i) ||
-              contentStart.match(/^\w+\s+(files?|items?|times?|seconds?|minutes?)/i)) {
+          if (
+            contentStart.match(/^(Step|Chapter|Section|Part|Phase)/i) ||
+            contentStart.match(/^\w+\s+(files?|items?|times?|seconds?|minutes?)/i)
+          ) {
             processedLines.push(line);
             processed = true;
             break;
           }
-          
+
           // Preserve indentation - use original leading whitespace + some space for readability
-          const preservedIndent = leadingWhitespace + (groups.length > 2 ? match[groups[1]] || '  ' : '  ');
+          const preservedIndent =
+            leadingWhitespace + (groups.length > 2 ? match[groups[1]] || '  ' : '  ');
           processedLines.push(preservedIndent + content);
           processed = true;
           break;
@@ -70,7 +71,7 @@ export function removeLineNumbers(code: string): string {
 // Decode HTML entities
 export function decodeHtmlEntities(str: string): string {
   if (!str) return str;
-  
+
   return str
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')
@@ -85,140 +86,144 @@ export function decodeHtmlEntities(str: string): string {
 // Extract language from code element class
 export function extractLanguageFromClass(className: string): string {
   if (!className) return '';
-  
+
   // Check for common language class patterns
   const patterns = [
     /(?:language|lang)-([a-zA-Z0-9_+-]+)/i,
     /highlight-([a-zA-Z0-9_+-]+)/i,
     /code-([a-zA-Z0-9_+-]+)/i,
-    /([a-zA-Z0-9_+-]+)-code/i
+    /([a-zA-Z0-9_+-]+)-code/i,
   ];
-  
+
   for (const pattern of patterns) {
     const match = className.match(pattern);
     if (match) {
       return normalizeLanguage(match[1]);
     }
   }
-  
+
   return '';
 }
 
 // Normalize language names
 export function normalizeLanguage(lang: string): string {
   if (!lang) return '';
-  
+
   const normalized = lang.toLowerCase();
-  
+
   // Language mapping for common variations
   const languageMap: { [key: string]: string } = {
-    'js': 'javascript',
-    'ts': 'typescript',
-    'py': 'python',
-    'rb': 'ruby',
-    'sh': 'bash',
-    'shell': 'bash',
-    'zsh': 'bash',
-    'fish': 'bash',
-    'powershell': 'powershell',
-    'ps1': 'powershell',
-    'cmd': 'batch',
-    'bat': 'batch',
-    'dockerfile': 'docker',
-    'yml': 'yaml',
-    'xml': 'xml',
-    'html': 'html',
-    'css': 'css',
-    'scss': 'scss',
-    'sass': 'sass',
-    'less': 'less',
-    'json': 'json',
-    'yaml': 'yaml',
-    'toml': 'toml',
-    'ini': 'ini',
-    'cfg': 'ini',
-    'conf': 'ini',
-    'sql': 'sql',
-    'mysql': 'sql',
-    'postgresql': 'sql',
-    'sqlite': 'sql',
-    'markdown': 'markdown',
-    'md': 'markdown',
-    'tex': 'latex',
-    'latex': 'latex',
-    'r': 'r',
-    'matlab': 'matlab',
-    'octave': 'matlab',
-    'scala': 'scala',
-    'kotlin': 'kotlin',
-    'swift': 'swift',
-    'go': 'go',
-    'rust': 'rust',
-    'dart': 'dart',
-    'lua': 'lua',
-    'perl': 'perl',
-    'php': 'php',
-    'vim': 'vim',
-    'asm': 'assembly',
-    'assembly': 'assembly',
-    'c': 'c',
-    'cpp': 'cpp',
+    js: 'javascript',
+    ts: 'typescript',
+    py: 'python',
+    rb: 'ruby',
+    sh: 'bash',
+    shell: 'bash',
+    zsh: 'bash',
+    fish: 'bash',
+    powershell: 'powershell',
+    ps1: 'powershell',
+    cmd: 'batch',
+    bat: 'batch',
+    dockerfile: 'docker',
+    yml: 'yaml',
+    xml: 'xml',
+    html: 'html',
+    css: 'css',
+    scss: 'scss',
+    sass: 'sass',
+    less: 'less',
+    json: 'json',
+    yaml: 'yaml',
+    toml: 'toml',
+    ini: 'ini',
+    cfg: 'ini',
+    conf: 'ini',
+    sql: 'sql',
+    mysql: 'sql',
+    postgresql: 'sql',
+    sqlite: 'sql',
+    markdown: 'markdown',
+    md: 'markdown',
+    tex: 'latex',
+    latex: 'latex',
+    r: 'r',
+    matlab: 'matlab',
+    octave: 'matlab',
+    scala: 'scala',
+    kotlin: 'kotlin',
+    swift: 'swift',
+    go: 'go',
+    rust: 'rust',
+    dart: 'dart',
+    lua: 'lua',
+    perl: 'perl',
+    php: 'php',
+    vim: 'vim',
+    asm: 'assembly',
+    assembly: 'assembly',
+    c: 'c',
+    cpp: 'cpp',
     'c++': 'cpp',
-    'cxx': 'cpp',
-    'cc': 'cpp',
-    'java': 'java',
-    'cs': 'csharp',
-    'csharp': 'csharp',
-    'vb': 'vb',
-    'vbnet': 'vb',
-    'fsharp': 'fsharp',
-    'fs': 'fsharp',
-    'clojure': 'clojure',
-    'lisp': 'lisp',
-    'scheme': 'scheme',
-    'haskell': 'haskell',
-    'elm': 'elm',
-    'erlang': 'erlang',
-    'elixir': 'elixir',
-    'prolog': 'prolog',
-    'fortran': 'fortran',
-    'cobol': 'cobol',
-    'pascal': 'pascal',
-    'ada': 'ada',
-    'unison': 'unison'
+    cxx: 'cpp',
+    cc: 'cpp',
+    java: 'java',
+    cs: 'csharp',
+    csharp: 'csharp',
+    vb: 'vb',
+    vbnet: 'vb',
+    fsharp: 'fsharp',
+    fs: 'fsharp',
+    clojure: 'clojure',
+    lisp: 'lisp',
+    scheme: 'scheme',
+    haskell: 'haskell',
+    elm: 'elm',
+    erlang: 'erlang',
+    elixir: 'elixir',
+    prolog: 'prolog',
+    fortran: 'fortran',
+    cobol: 'cobol',
+    pascal: 'pascal',
+    ada: 'ada',
+    unison: 'unison',
   };
-  
+
   return languageMap[normalized] || normalized;
 }
 
 // Simplified markdown conversion for testing (mimics service worker logic)
-export function simpleMarkdownConversion(htmlContent: string, title: string, url: string): { content: string; title: string; url: string } {
+export function simpleMarkdownConversion(
+  htmlContent: string,
+  title: string,
+  url: string
+): { content: string; title: string; url: string } {
   let markdown = '';
-  
+
   // Create a DOM parser for testing
   if (typeof DOMParser !== 'undefined') {
     const parser = new DOMParser();
     const doc = parser.parseFromString(htmlContent, 'text/html');
-    
+
     // Process code blocks with improved extraction
     const codeBlocks = doc.querySelectorAll('pre code, pre, code');
     codeBlocks.forEach(block => {
       const isPreBlock = block.tagName === 'PRE' || block.parentElement?.tagName === 'PRE';
-      
+
       if (isPreBlock) {
         // Handle code blocks
         const codeElement = block.tagName === 'CODE' ? block : block.querySelector('code');
         const actualCodeElement = codeElement || block;
-        
+
         // Extract language
         const className = actualCodeElement.className || '';
         const language = extractLanguageFromClass(className);
-        
+
         // Get content and process it
         let content = actualCodeElement.textContent || '';
         content = decodeHtmlEntities(content);
         content = removeLineNumbers(content);
-        
+
         markdown += '\n```' + language + '\n' + content + '\n```\n\n';
       } else {
         // Handle inline code
@@ -227,7 +232,7 @@ export function simpleMarkdownConversion(htmlContent: string, title: string, url
         markdown += '`' + content.replace(/`/g, '\\`') + '`';
       }
     });
-    
+
     // Add basic text content if no code blocks found
     if (!codeBlocks.length) {
       markdown = doc.body?.textContent || htmlContent;
@@ -235,30 +240,34 @@ export function simpleMarkdownConversion(htmlContent: string, title: string, url
   } else {
     // Fallback for environments without DOMParser
     // Simple regex-based extraction for testing
-    const codeBlockRegex = /<pre[^>]*>[\s\S]*?<code[^>]*class="([^"]*)"[^>]*>([\s\S]*?)<\/code>[\s\S]*?<\/pre>/gi;
-    
+    const codeBlockRegex =
+      /<pre[^>]*>[\s\S]*?<code[^>]*class="([^"]*)"[^>]*>([\s\S]*?)<\/code>[\s\S]*?<\/pre>/gi;
+
     let match;
     while ((match = codeBlockRegex.exec(htmlContent)) !== null) {
       const className = match[1];
       let content = match[2];
-      
+
       // Extract language and process content
       const language = extractLanguageFromClass(className);
       content = decodeHtmlEntities(content);
       content = removeLineNumbers(content);
-      
+
       markdown += '\n```' + language + '\n' + content + '\n```\n\n';
     }
-    
+
     // Fallback text extraction
     if (!markdown.trim()) {
-      markdown = htmlContent.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+      markdown = htmlContent
+        .replace(/<[^>]+>/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
     }
   }
-  
+
   return {
     content: markdown.trim(),
     title: title,
-    url: url
+    url: url,
   };
 }

@@ -3,13 +3,12 @@
 // Tests for shell script code block issues and markdown conversion improvements
 
 import { describe, expect, jest, test } from '@jest/globals';
-import { MarkdownConverter } from '../../utils/markdown-converter.js';
 import { JSDOM } from 'jsdom';
 
 // Local helper functions (copied to avoid build issues during testing)
 function removeLineNumbers(code: string): string {
   if (!code) return code;
-  
+
   const lines = code.split('\n');
   const processedLines: string[] = [];
 
@@ -22,11 +21,11 @@ function removeLineNumbers(code: string): string {
 
     // More sophisticated line number detection
     const lineNumberPatterns = [
-      { pattern: /^(\s*)(\d{1,4})\s+(.+)$/, groups: [1, 3] },           // "  42 content"
-      { pattern: /^(\s*)(\d{1,4})\.(\s*)(.+)$/, groups: [1, 3, 4] },    // "  42. content" 
-      { pattern: /^(\s*)(\d{1,4}):(\s*)(.+)$/, groups: [1, 3, 4] },     // "  42: content"
-      { pattern: /^(\s*)(\d{1,4})\|(\s*)(.+)$/, groups: [1, 3, 4] },    // "  42| content"
-      { pattern: /^(\s*)(\d{1,4})\)(\s*)(.+)$/, groups: [1, 3, 4] }     // "  42) content"
+      { pattern: /^(\s*)(\d{1,4})\s+(.+)$/, groups: [1, 3] }, // "  42 content"
+      { pattern: /^(\s*)(\d{1,4})\.(\s*)(.+)$/, groups: [1, 3, 4] }, // "  42. content"
+      { pattern: /^(\s*)(\d{1,4}):(\s*)(.+)$/, groups: [1, 3, 4] }, // "  42: content"
+      { pattern: /^(\s*)(\d{1,4})\|(\s*)(.+)$/, groups: [1, 3, 4] }, // "  42| content"
+      { pattern: /^(\s*)(\d{1,4})\)(\s*)(.+)$/, groups: [1, 3, 4] }, // "  42) content"
     ];
 
     let processed = false;
@@ -34,23 +33,26 @@ function removeLineNumbers(code: string): string {
       const match = line.match(pattern);
       if (match) {
         const lineNumber = parseInt(match[2], 10);
-        
+
         // Only treat as line number if reasonable range
         if (lineNumber >= 1 && lineNumber <= 9999) {
           const leadingWhitespace = match[groups[0]];
           const content = match[groups[groups.length - 1]];
           const contentStart = content.trim();
-          
+
           // Don't remove if it looks like actual numbered content
-          if (contentStart.match(/^(Step|Chapter|Section|Part|Phase)/i) ||
-              contentStart.match(/^\w+\s+(files?|items?|times?|seconds?|minutes?)/i)) {
+          if (
+            contentStart.match(/^(Step|Chapter|Section|Part|Phase)/i) ||
+            contentStart.match(/^\w+\s+(files?|items?|times?|seconds?|minutes?)/i)
+          ) {
             processedLines.push(line);
             processed = true;
             break;
           }
-          
+
           // Preserve indentation
-          const preservedIndent = leadingWhitespace + (groups.length > 2 ? match[groups[1]] || '  ' : '  ');
+          const preservedIndent =
+            leadingWhitespace + (groups.length > 2 ? match[groups[1]] || '  ' : '  ');
           processedLines.push(preservedIndent + content);
           processed = true;
           break;
@@ -68,44 +70,44 @@ function removeLineNumbers(code: string): string {
 
 function extractLanguageFromClass(className: string): string {
   if (!className) return '';
-  
+
   const patterns = [
     /(?:language|lang)-([a-zA-Z0-9_+-]+)/i,
     /highlight-([a-zA-Z0-9_+-]+)/i,
     /code-([a-zA-Z0-9_+-]+)/i,
-    /([a-zA-Z0-9_+-]+)-code/i
+    /([a-zA-Z0-9_+-]+)-code/i,
   ];
-  
+
   for (const pattern of patterns) {
     const match = className.match(pattern);
     if (match) {
       return normalizeLanguage(match[1]);
     }
   }
-  
+
   return '';
 }
 
 function normalizeLanguage(lang: string): string {
   if (!lang) return '';
-  
+
   const normalized = lang.toLowerCase();
   const languageMap: { [key: string]: string } = {
-    'js': 'javascript',
-    'ts': 'typescript',
-    'sh': 'bash',
-    'shell': 'bash',
-    'zsh': 'bash',
-    'fish': 'bash',
-    'unison': 'unison'
+    js: 'javascript',
+    ts: 'typescript',
+    sh: 'bash',
+    shell: 'bash',
+    zsh: 'bash',
+    fish: 'bash',
+    unison: 'unison',
   };
-  
+
   return languageMap[normalized] || normalized;
 }
 
 function decodeHtmlEntities(str: string): string {
   if (!str) return str;
-  
+
   return str
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')
@@ -117,27 +119,31 @@ function decodeHtmlEntities(str: string): string {
     .replace(/&#x2F;/g, '/');
 }
 
-function simpleMarkdownConversion(htmlContent: string, title: string, url: string): { content: string; title: string; url: string } {
+function simpleMarkdownConversion(
+  htmlContent: string,
+  title: string,
+  url: string
+): { content: string; title: string; url: string } {
   let markdown = '';
-  
+
   const dom = new JSDOM(htmlContent);
   const doc = dom.window.document;
-  
+
   const codeBlocks = doc.querySelectorAll('pre code, pre, code');
   codeBlocks.forEach(block => {
     const isPreBlock = block.tagName === 'PRE' || block.parentElement?.tagName === 'PRE';
-    
+
     if (isPreBlock) {
       const codeElement = block.tagName === 'CODE' ? block : block.querySelector('code');
       const actualCodeElement = codeElement || block;
-      
+
       const className = actualCodeElement.className || '';
       const language = extractLanguageFromClass(className);
-      
+
       let content = actualCodeElement.textContent || '';
       content = decodeHtmlEntities(content);
       content = removeLineNumbers(content);
-      
+
       markdown += '\n```' + language + '\n' + content + '\n```\n\n';
     } else {
       let content = block.textContent || '';
@@ -145,15 +151,15 @@ function simpleMarkdownConversion(htmlContent: string, title: string, url: strin
       markdown += '`' + content.replace(/`/g, '\\`') + '`';
     }
   });
-  
+
   if (!codeBlocks.length) {
     markdown = doc.body?.textContent || htmlContent;
   }
-  
+
   return {
     content: markdown.trim(),
     title: title,
-    url: url
+    url: url,
   };
 }
 
@@ -176,16 +182,20 @@ function simpleMarkdownConversion(htmlContent: string, title: string, url: strin
   parseFromString(htmlString: string, mimeType: string) {
     return {
       body: {
-        textContent: htmlString.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim(),
+        textContent: htmlString
+          .replace(/<[^>]+>/g, '')
+          .replace(/\s+/g, ' ')
+          .trim(),
       },
       querySelectorAll: (selector: string) => {
         const elements: any[] = [];
-        
+
         // Mock pre code blocks
         if (selector === 'pre code, pre, code') {
-          const codeBlockRegex = /<pre[^>]*>[\s\S]*?<code[^>]*class="([^"]*)"[^>]*>([\s\S]*?)<\/code>[\s\S]*?<\/pre>/gi;
+          const codeBlockRegex =
+            /<pre[^>]*>[\s\S]*?<code[^>]*class="([^"]*)"[^>]*>([\s\S]*?)<\/code>[\s\S]*?<\/pre>/gi;
           const inlineCodeRegex = /<code[^>]*>([\s\S]*?)<\/code>/gi;
-          
+
           let match;
           while ((match = codeBlockRegex.exec(htmlString)) !== null) {
             elements.push({
@@ -195,7 +205,7 @@ function simpleMarkdownConversion(htmlContent: string, title: string, url: strin
               parentElement: { tagName: 'PRE' },
             });
           }
-          
+
           while ((match = inlineCodeRegex.exec(htmlString)) !== null) {
             // Only include if not already captured in pre blocks
             if (!htmlString.substring(0, match.index).includes('<pre')) {
@@ -208,7 +218,7 @@ function simpleMarkdownConversion(htmlContent: string, title: string, url: strin
             }
           }
         }
-        
+
         return elements;
       },
     };
@@ -399,7 +409,11 @@ RUN npm install</code></pre>
       `;
 
       // Act: Convert HTML to markdown
-      const result = simpleMarkdownConversion(htmlInput, 'Test Line Numbers', 'https://example.com');
+      const result = simpleMarkdownConversion(
+        htmlInput,
+        'Test Line Numbers',
+        'https://example.com'
+      );
 
       // Assert: Verify line numbers are removed but content is preserved
       expect(result.content).toContain('```bash');
@@ -507,9 +521,9 @@ echo "Found &gt; 5 matches"</code></pre>
       const codeWithNumbers = `1  #!/bin/bash
 2  echo "Hello"
 3  exit 0`;
-      
+
       const result = removeLineNumbers(codeWithNumbers);
-      
+
       expect(result).toBe(`#!/bin/bash
 echo "Hello"
 exit 0`);
@@ -523,7 +537,7 @@ exit 0`);
 3. exit`,
           expected: `echo "test"
 ls -la
-exit`
+exit`,
         },
         {
           input: `1: echo "test"
@@ -531,7 +545,7 @@ exit`
 3: exit`,
           expected: `echo "test"
 ls -la
-exit`
+exit`,
         },
         {
           input: `[1] echo "test"
@@ -539,8 +553,8 @@ exit`
 [3] exit`,
           expected: `echo "test"
 ls -la
-exit`
-        }
+exit`,
+        },
       ];
 
       testCases.forEach(({ input, expected }) => {
@@ -556,11 +570,11 @@ exit`
 4  
 5    # Comment line
 6    echo "Done"`;
-      
+
       const result = removeLineNumbers(codeWithNumbers);
-      
+
       expect(result).toContain('if [ -f file.txt ]; then');
-      expect(result).toContain('  echo "File exists"');  // Preserve indentation
+      expect(result).toContain('  echo "File exists"'); // Preserve indentation
       expect(result).toContain('fi');
       expect(result).toContain('# Comment line');
       expect(result).toContain('echo "Done"');

@@ -20,24 +20,24 @@ import { describe, expect, test } from '@jest/globals';
 // Simple line number removal function for testing
 function removeLineNumbers(code: string): string {
   if (!code) return code;
-  
+
   // Split into lines and process each line
   const lines = code.split('\n');
   const cleanLines = lines.map(line => {
     // Skip empty lines
     if (!line.trim()) return line;
-    
+
     // Pattern 1: Simple number followed by spaces at start (1  code, 2  code, etc.)
     // Pattern 2: Numbers with separators (1. code, 2: code, 3| code)
     // Pattern 3: Numbers in brackets ([1] code, [2] code)
     // Pattern 4: Line with only a number
     const lineNumberPatterns = [
-      /^(\s*)(\d{1,4})\s*[\.\:\|]\s+(.+)$/,     // 1. code or 1: code or 1| code
-      /^(\s*)\[\d+\]\s+(.+)$/,                  // [1] code
-      /^(\s*)(\d{1,4})\s{2,}(.+)$/,             // 1  code (at least 2 spaces after number)
-      /^(\s*)\d+\s*$/,                          // Line with only a number
+      /^(\s*)(\d{1,4})\s*[\.\:\|]\s+(.+)$/, // 1. code or 1: code or 1| code
+      /^(\s*)\[\d+\]\s+(.+)$/, // [1] code
+      /^(\s*)(\d{1,4})\s{2,}(.+)$/, // 1  code (at least 2 spaces after number)
+      /^(\s*)\d+\s*$/, // Line with only a number
     ];
-    
+
     // Check if this line starts with a line number pattern
     for (const pattern of lineNumberPatterns) {
       const match = line.match(pattern);
@@ -46,11 +46,11 @@ function removeLineNumbers(code: string): string {
         if (match[0].trim().match(/^\d+$/)) {
           return '';
         }
-        
+
         // Extract the indentation and content, preserving original spacing
         const indentation = match[1] || '';
         const content = match[3] || match[2] || '';
-        
+
         // Don't strip numbers that are clearly part of content like "Step 1:" or "3 files"
         if (content && !content.match(/^[a-zA-Z]/)) {
           // If content doesn't start with a letter, might be actual line number
@@ -58,17 +58,17 @@ function removeLineNumbers(code: string): string {
         } else if (content) {
           return indentation + content;
         }
-        
+
         return '';
       }
     }
-    
+
     return line;
   });
-  
+
   // Remove empty lines that were just line numbers
   const filteredLines = cleanLines.filter(line => line !== '');
-  
+
   return filteredLines.join('\n');
 }
 
@@ -77,9 +77,9 @@ describe('Line Number Removal', () => {
     const codeWithNumbers = `1  #!/bin/bash
 2  echo "Hello"
 3  exit 0`;
-    
+
     const result = removeLineNumbers(codeWithNumbers);
-    
+
     expect(result).toBe(`#!/bin/bash
 echo "Hello"
 exit 0`);
@@ -93,7 +93,7 @@ exit 0`);
 3. exit`,
         expected: `echo "test"
 ls -la
-exit`
+exit`,
       },
       {
         input: `1: echo "test"
@@ -101,7 +101,7 @@ exit`
 3: exit`,
         expected: `echo "test"
 ls -la
-exit`
+exit`,
       },
       {
         input: `[1] echo "test"
@@ -109,8 +109,8 @@ exit`
 [3] exit`,
         expected: `echo "test"
 ls -la
-exit`
-      }
+exit`,
+      },
     ];
 
     testCases.forEach(({ input, expected }) => {
@@ -125,11 +125,11 @@ exit`
 4  
 5    # Comment line
 6    echo "Done"`;
-    
+
     const result = removeLineNumbers(codeWithNumbers);
-    
+
     expect(result).toContain('if [ -f file.txt ]; then');
-    expect(result).toContain('echo "File exists"');  // Some indentation changes expected
+    expect(result).toContain('echo "File exists"'); // Some indentation changes expected
     expect(result).toContain('fi');
     expect(result).toContain('# Comment line');
     expect(result).toContain('echo "Done"');
@@ -146,9 +146,9 @@ exit`
 8  
 9  EXPOSE 3000
 10 CMD ["npm", "start"]`;
-    
+
     const result = removeLineNumbers(dockerCode);
-    
+
     expect(result).toContain('FROM node:16-alpine');
     expect(result).toContain('WORKDIR /app');
     expect(result).toContain('COPY package*.json ./');
@@ -156,7 +156,7 @@ exit`
     expect(result).toContain('# Copy source code');
     expect(result).toContain('COPY . .');
     expect(result).toContain('EXPOSE 3000');
-    expect(result).toContain('CMD ["npm", "start"]');    // Verify line numbers are removed
+    expect(result).toContain('CMD ["npm", "start"]'); // Verify line numbers are removed
     expect(result).not.toContain('1  FROM');
     expect(result).not.toContain('2  WORKDIR');
     // Note: "10 CMD" becomes "CMD" so we can't easily test this specific case
@@ -170,9 +170,9 @@ exit`
      echo "Loop iteration"
 3  done
 echo "Final line"`;
-    
+
     const result = removeLineNumbers(mixedCode);
-    
+
     expect(result).toContain('#!/bin/bash');
     expect(result).toContain('echo "This line has a number"');
     expect(result).toContain('echo "This line doesn\'t"');
@@ -193,9 +193,9 @@ echo "test"
 2
 3
 ls -la`;
-    
+
     const result = removeLineNumbers(numbersOnly);
-    
+
     expect(result).toBe(`echo "test"
 ls -la`);
   });
@@ -204,9 +204,9 @@ ls -la`);
 Step 2: Install dependencies
 3 files were created
 The script runs 5 times`;
-    
+
     const result = removeLineNumbers(actualNumbers);
-    
+
     // These should be preserved as they're not line numbers
     expect(result).toContain('Step 1: Initialize project');
     expect(result).toContain('Step 2: Install dependencies');

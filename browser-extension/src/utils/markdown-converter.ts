@@ -7,51 +7,51 @@ import { IDocumentMetadata, IImageAsset } from '../types/index.js';
 // Remove line numbers from code blocks
 function removeLineNumbers(code: string): string {
   if (!code) return code;
-  
+
   // Split into lines and process each line
   const lines = code.split('\n');
   const cleanLines = lines.map(line => {
     // Remove leading whitespace temporarily to check for line numbers
     const trimmed = line.trim();
-    
+
     // Skip empty lines
     if (!trimmed) return line;
-    
+
     // Pattern 1: Simple number at start (1, 2, 3, etc.)
-    // Pattern 2: Padded numbers (01, 02, 03, etc.)  
+    // Pattern 2: Padded numbers (01, 02, 03, etc.)
     // Pattern 3: Numbers with separators (1., 2., 3. or 1:, 2:, 3: or 1|, 2|, 3|)
     // Pattern 4: Numbers in brackets ([1], [2], [3])
     // Pattern 5: Numbers with spaces around them ( 1 , 2 , 3 )
     const lineNumberPatterns = [
-      /^\s*\d+\s*[\.\:\|]\s*/,    // 1. or 1: or 1| followed by space
-      /^\s*\[\d+\]\s*/,           // [1] format
-      /^\s*\d{1,4}\s+/,           // Simple number followed by space(s) (limit to 4 digits)
-      /^\s*\d+\s*$/,              // Line with only a number (remove entirely)
+      /^\s*\d+\s*[\.\:\|]\s*/, // 1. or 1: or 1| followed by space
+      /^\s*\[\d+\]\s*/, // [1] format
+      /^\s*\d{1,4}\s+/, // Simple number followed by space(s) (limit to 4 digits)
+      /^\s*\d+\s*$/, // Line with only a number (remove entirely)
     ];
-    
+
     // Check if this line starts with a line number pattern
     for (const pattern of lineNumberPatterns) {
       if (pattern.test(line)) {
         // Remove the line number pattern
         const cleanedLine = line.replace(pattern, '');
-        
+
         // If the cleaned line is empty or only whitespace, and the original line had a number,
         // it was probably just a line number - skip this line entirely
         if (!cleanedLine.trim() && /^\s*\d+/.test(line)) {
           return '';
         }
-        
+
         // Preserve the original indentation of the actual code content
         return cleanedLine || line;
       }
     }
-    
+
     return line;
   });
-  
+
   // Remove empty lines that were just line numbers
   const filteredLines = cleanLines.filter(line => line !== '');
-  
+
   return filteredLines.join('\n');
 }
 
@@ -231,7 +231,7 @@ export class MarkdownConverter {
         const quotedLines = lines.map(line => '> ' + line);
         return '\n\n' + quotedLines.join('\n') + '\n\n';
       },
-    });    // Code block rule with language detection and improved content preservation
+    }); // Code block rule with language detection and improved content preservation
     this.turndownService.addRule('enhancedCodeBlock', {
       filter: (node: any): boolean => {
         return node.nodeName === 'PRE' && node.firstChild && node.firstChild.nodeName === 'CODE';
@@ -416,16 +416,18 @@ export class MarkdownConverter {
 
       // Preprocess HTML for better conversion
       const preprocessedHtml = this.preprocessHtml(html, options);
-      console.log('MarkdownConverter: Preprocessed HTML length:', preprocessedHtml.length);
-
-      // Convert to markdown
+      console.log('MarkdownConverter: Preprocessed HTML length:', preprocessedHtml.length); // Convert to markdown using TurndownService
       let markdown: string;
       if (this.turndownService) {
         console.log('MarkdownConverter: Using TurndownService for conversion');
         markdown = this.turndownService.turndown(preprocessedHtml);
       } else {
-        console.log('MarkdownConverter: Using enhanced fallback conversion');
-        markdown = this.fallbackConversion(preprocessedHtml);
+        console.warn(
+          'MarkdownConverter: TurndownService not available - cannot convert HTML to markdown'
+        );
+        throw new Error(
+          'TurndownService not initialized - HTML to markdown conversion not available'
+        );
       }
 
       console.log('MarkdownConverter: Raw markdown length:', markdown.length);
@@ -564,152 +566,6 @@ export class MarkdownConverter {
     return processed;
   }
 
-  private fallbackConversion(html: string): string {
-    console.log('MarkdownConverter: Using fallback conversion');
-
-    const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = html;
-
-    return this.elementToMarkdown(tempDiv);
-  }
-
-  private elementToMarkdown(element: Element): string {
-    let markdown = '';
-
-    for (const child of Array.from(element.childNodes)) {
-      if (child.nodeType === Node.TEXT_NODE) {
-        const text = child.textContent?.trim();
-        if (text) {
-          markdown += text + ' ';
-        }
-      } else if (child.nodeType === Node.ELEMENT_NODE) {
-        const el = child as Element;
-        const tagName = el.tagName.toLowerCase();
-
-        switch (tagName) {
-          case 'h1':
-            markdown += '\n\n# ' + el.textContent + '\n\n';
-            break;
-          case 'h2':
-            markdown += '\n\n## ' + el.textContent + '\n\n';
-            break;
-          case 'h3':
-            markdown += '\n\n### ' + el.textContent + '\n\n';
-            break;
-          case 'h4':
-            markdown += '\n\n#### ' + el.textContent + '\n\n';
-            break;
-          case 'h5':
-            markdown += '\n\n##### ' + el.textContent + '\n\n';
-            break;
-          case 'h6':
-            markdown += '\n\n###### ' + el.textContent + '\n\n';
-            break;
-          case 'p':
-            markdown += '\n\n' + this.elementToMarkdown(el) + '\n\n';
-            break;
-          case 'br':
-            markdown += '  \n';
-            break;
-          case 'strong':
-          case 'b':
-            markdown += '**' + el.textContent + '**';
-            break;
-          case 'em':
-          case 'i':
-            markdown += '*' + el.textContent + '*';
-            break;
-          case 'code':
-            if (el.parentElement?.tagName.toLowerCase() === 'pre') {
-              markdown += el.textContent;
-            } else {
-              // Handle inline code with proper escaping for backticks
-              const codeContent = el.textContent || '';
-              const escapedContent = codeContent.replace(/`/g, '\\`');
-              markdown += '`' + escapedContent + '`';
-            }
-            break;
-          case 'pre':
-            const codeEl = el.querySelector('code');
-            let language = '';
-            let codeContent = '';
-
-            if (codeEl) {
-              language = this.extractLanguageFromClass(codeEl.className);
-              codeContent = codeEl.textContent || '';
-            } else {
-              codeContent = el.textContent || '';
-            }            // Preserve special characters in code blocks
-            let preservedContent = codeContent
-              .replace(/&lt;/g, '<')
-              .replace(/&gt;/g, '>')
-              .replace(/&amp;/g, '&')
-              .replace(/&quot;/g, '"')
-              .replace(/&#39;/g, "'")
-              .replace(/&nbsp;/g, ' ');
-
-            // Remove line numbers from code blocks
-            preservedContent = removeLineNumbers(preservedContent);
-
-            markdown += '\n\n```' + language + '\n' + preservedContent + '\n```\n\n';
-            break;
-          case 'blockquote':
-            const quotedLines = (el.textContent || '')
-              .split('\n')
-              .map(line => '> ' + line.trim())
-              .join('\n');
-            markdown += '\n\n' + quotedLines + '\n\n';
-            break;
-          case 'ul':
-          case 'ol':
-            markdown += '\n\n' + this.listToMarkdown(el) + '\n\n';
-            break;
-          case 'a':
-            const href = el.getAttribute('href');
-            if (href) {
-              markdown += '[' + el.textContent + '](' + href + ')';
-            } else {
-              markdown += el.textContent;
-            }
-            break;
-          case 'img':
-            const src = el.getAttribute('src');
-            const alt = el.getAttribute('alt') || '';
-            if (src) {
-              markdown += '![' + alt + '](' + src + ')';
-            }
-            break;
-          case 'hr':
-            markdown += '\n\n---\n\n';
-            break;
-          default:
-            markdown += this.elementToMarkdown(el);
-            break;
-        }
-      }
-    }
-
-    return markdown;
-  }
-
-  private listToMarkdown(listElement: Element): string {
-    const isOrdered = listElement.tagName.toLowerCase() === 'ol';
-    let markdown = '';
-    let counter = 1;
-
-    const items = listElement.querySelectorAll(':scope > li');
-
-    items.forEach(item => {
-      const prefix = isOrdered ? `${counter}. ` : '- ';
-      const content = this.elementToMarkdown(item).trim();
-
-      markdown += prefix + content + '\n';
-
-      if (isOrdered) counter++;
-    });
-
-    return markdown;
-  }
   private extractLanguageFromClass(className: string): string {
     if (!className) return '';
 
