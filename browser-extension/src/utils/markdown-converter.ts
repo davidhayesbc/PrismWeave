@@ -117,19 +117,18 @@ export class MarkdownConverter {
     // Service worker context check - TurndownService should never be loaded here
     const isServiceWorker =
       typeof (globalThis as any).importScripts === 'function' && typeof window === 'undefined';
-
     if (isServiceWorker) {
       console.info(
-        'MarkdownConverter: Running in service worker context, using enhanced fallback conversion'
+        'MarkdownConverter: Running in service worker context, TurndownService not available'
       );
       this.turndownService = null;
       this._isInitialized = true;
       return;
-    }
-
-    // Check if document is available (content script context)
+    } // Check if document is available (content script context)
     if (typeof document === 'undefined') {
-      console.warn('MarkdownConverter: Document not available, using fallback conversion');
+      console.warn(
+        'MarkdownConverter: Document not available, TurndownService cannot be initialized'
+      );
       this.turndownService = null;
       this._isInitialized = true;
       return;
@@ -138,11 +137,9 @@ export class MarkdownConverter {
     // Get TurndownService constructor from window or globalThis
     const TurndownService =
       (typeof window !== 'undefined' && window.TurndownService) ||
-      (typeof globalThis !== 'undefined' && (globalThis as any).TurndownService);
-
-    // Check if TurndownService is available
+      (typeof globalThis !== 'undefined' && (globalThis as any).TurndownService); // Check if TurndownService is available
     if (!TurndownService) {
-      console.warn('MarkdownConverter: TurndownService not available, using fallback conversion');
+      console.warn('MarkdownConverter: TurndownService not available, cannot initialize');
       this.turndownService = null;
       this._isInitialized = true;
       return;
@@ -253,9 +250,19 @@ export class MarkdownConverter {
           .replace(/&nbsp;/g, ' ');
 
         // Remove line numbers from code blocks
-        code = removeLineNumbers(code);
+        code = removeLineNumbers(code); // Determine appropriate number of backticks to escape the code block
+        // Find the longest sequence of consecutive backticks in the code
+        const backtickMatches = code.match(/`+/g) || [];
+        const maxBackticks = backtickMatches.reduce(
+          (max: number, match: string) => Math.max(max, match.length),
+          0
+        );
 
-        return '\n\n```' + language + '\n' + code + '\n```\n\n';
+        // Use at least 3 backticks, but if the code contains backticks, use one more than the longest sequence
+        const fenceLength = Math.max(3, maxBackticks + 1);
+        const fence = '`'.repeat(fenceLength);
+
+        return '\n\n' + fence + language + '\n' + code + '\n' + fence + '\n\n';
       },
     });
 
@@ -395,9 +402,10 @@ export class MarkdownConverter {
       console.warn('MarkdownConverter: Not initialized, attempting to initialize now');
       this.initializeTurndown();
     }
-
     if (!this._isInitialized) {
-      console.error('MarkdownConverter: Initialization failed - using fallback conversion');
+      console.error(
+        'MarkdownConverter: Initialization failed - TurndownService required for conversion'
+      );
       this.turndownService = null;
       this._isInitialized = true;
     }

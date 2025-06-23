@@ -169,37 +169,10 @@ this.turndownService.addRule('enhancedInlineCode', {
 });
 ```
 
-### 4. Improved Fallback Conversion
+### 4. ~~Improved Fallback Conversion~~ (REMOVED)
 
-**File**: `src/utils/markdown-converter.ts` (lines 540-570)
-
-**Enhanced Pre/Code Handling**:
-
-````typescript
-case 'pre':
-  const codeEl = el.querySelector('code');
-  let language = '';
-  let codeContent = '';
-
-  if (codeEl) {
-    language = this.extractLanguageFromClass(codeEl.className);
-    codeContent = codeEl.textContent || '';
-  } else {
-    codeContent = el.textContent || '';
-  }
-
-  // Preserve special characters in code blocks
-  const preservedContent = codeContent
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&amp;/g, '&')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&nbsp;/g, ' ');
-
-  markdown += '\n\n```' + language + '\n' + preservedContent + '\n```\n\n';
-  break;
-````
+> **Note**: The fallback conversion method has been removed from the codebase.
+> All markdown conversion now requires TurndownService to be available.
 
 ## Test Coverage
 

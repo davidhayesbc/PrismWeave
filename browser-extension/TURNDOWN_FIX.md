@@ -34,13 +34,13 @@ script injection:
   `tryAlternativeLoading`)
 - Simplified initialization to directly check for `window.TurndownService`
 - Removed `_initializationPromise` field and related async complexity
-- Added proper fallback when TurndownService is not available
+- Added proper error handling when TurndownService is not available
 
 ### 3. Key Changes Made
 
 1. **manifest.json**: Added `libs/turndown.min.js` to content script injection
 2. **markdown-converter.ts**: Simplified initialization logic
-3. **Error handling**: Better fallback to built-in conversion when library
+3. **Error handling**: Proper error reporting when TurndownService is
    unavailable
 
 ## Testing Results

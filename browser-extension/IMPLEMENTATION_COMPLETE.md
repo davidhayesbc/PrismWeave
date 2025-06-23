@@ -116,7 +116,7 @@ function removeLineNumbers(code: string): string {
 
 - **Location**: `src/utils/markdown-converter.ts`
 - **Integration**: TurndownService rules call `removeLineNumbers`
-- **Fallback**: Also applied in fallback conversion methods
+- **Coverage**: Applied to all code block processing
 - **Status**: Comprehensive coverage
 
 ### Test Utilities ✅

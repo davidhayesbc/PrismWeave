@@ -497,7 +497,7 @@ async function ensureContentScriptInjected(tabId: number): Promise<void> {
       swLogger.debug('TurndownService library injected successfully');
     } catch (libraryError) {
       swLogger.warn('Failed to inject TurndownService library:', libraryError);
-      // This is not fatal - content script has fallback conversion
+      // This is not fatal - markdown conversion will require TurndownService to work properly
     }
 
     // Inject content script if not available
