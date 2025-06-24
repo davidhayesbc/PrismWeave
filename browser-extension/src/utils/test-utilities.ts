@@ -159,7 +159,7 @@ export function simpleMarkdownConversion(
 
         // Extract language
         const className = actualCodeElement.className || '';
-        const language = extractLanguageFromClass(className);        // Get content and process it
+        const language = extractLanguageFromClass(className); // Get content and process it
         let content = actualCodeElement.textContent || '';
         content = decodeHtmlEntities(content);
         // Line numbers should be handled by HTML structure rules
@@ -186,7 +186,7 @@ export function simpleMarkdownConversion(
     let match;
     while ((match = codeBlockRegex.exec(htmlContent)) !== null) {
       const className = match[1] || '';
-      let content = match[2];      // Extract language and process content
+      let content = match[2]; // Extract language and process content
       const language = extractLanguageFromClass(className);
       content = decodeHtmlEntities(content);
       // Line numbers should be handled by HTML structure rules

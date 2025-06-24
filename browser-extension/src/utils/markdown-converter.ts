@@ -135,24 +135,32 @@ export class MarkdownConverter {
     this.turndownService.addRule('removeLineNumbers', {
       filter: (node: any): boolean => {
         // Remove elements that are clearly line numbers
-        if (node.nodeType === 1) { // Element node
+        if (node.nodeType === 1) {
+          // Element node
           const className = (node.className || '').toLowerCase();
           const id = (node.id || '').toLowerCase();
-          
+
           // Common line number class patterns
           const lineNumberPatterns = [
-            'line-number', 'linenumber', 'line-num', 'linenum',
-            'gutter', 'line-gutter', 'code-line-number',
-            'hljs-ln-numbers', 'hljs-ln-line', 'prism-line-number'
+            'line-number',
+            'linenumber',
+            'line-num',
+            'linenum',
+            'gutter',
+            'line-gutter',
+            'code-line-number',
+            'hljs-ln-numbers',
+            'hljs-ln-line',
+            'prism-line-number',
           ];
-          
+
           // Check if class name indicates line numbers
-          if (lineNumberPatterns.some(pattern => 
-            className.includes(pattern) || id.includes(pattern)
-          )) {
+          if (
+            lineNumberPatterns.some(pattern => className.includes(pattern) || id.includes(pattern))
+          ) {
             return true;
           }
-          
+
           // Check for table cells that contain only numbers (likely line numbers)
           if (node.nodeName === 'TD' || node.nodeName === 'TH') {
             const text = (node.textContent || '').trim();
@@ -161,7 +169,7 @@ export class MarkdownConverter {
               return true;
             }
           }
-          
+
           // Check for spans/divs that contain only sequential numbers
           if (node.nodeName === 'SPAN' || node.nodeName === 'DIV') {
             const text = (node.textContent || '').trim();
@@ -172,9 +180,13 @@ export class MarkdownConverter {
               while (parent && parent.nodeType === 1) {
                 const parentTag = parent.nodeName.toLowerCase();
                 const parentClass = (parent.className || '').toLowerCase();
-                
-                if (parentTag === 'pre' || parentTag === 'code' || 
-                    parentClass.includes('code') || parentClass.includes('highlight')) {
+
+                if (
+                  parentTag === 'pre' ||
+                  parentTag === 'code' ||
+                  parentClass.includes('code') ||
+                  parentClass.includes('highlight')
+                ) {
                   return true;
                 }
                 parent = parent.parentNode;
@@ -182,7 +194,7 @@ export class MarkdownConverter {
             }
           }
         }
-        
+
         return false;
       },
       replacement: (): string => {
@@ -197,19 +209,23 @@ export class MarkdownConverter {
         // Look for tables that seem to be used for code display
         if (node.nodeName === 'TABLE') {
           const className = (node.className || '').toLowerCase();
-          
+
           // Common patterns for code tables
-          if (className.includes('code') || className.includes('highlight') || 
-              className.includes('hljs') || className.includes('prism')) {
+          if (
+            className.includes('code') ||
+            className.includes('highlight') ||
+            className.includes('hljs') ||
+            className.includes('prism')
+          ) {
             return true;
           }
-          
+
           // Check if table has typical code table structure
           const rows = node.querySelectorAll('tr');
           if (rows.length > 0) {
             const firstRow = rows[0];
             const cells = firstRow.querySelectorAll('td, th');
-            
+
             // If table has exactly 2 columns and first column looks like line numbers
             if (cells.length === 2) {
               const firstCellText = (cells[0].textContent || '').trim();
@@ -220,14 +236,14 @@ export class MarkdownConverter {
             }
           }
         }
-        
+
         return false;
       },
       replacement: (content: string, node: any): string => {
         // Extract only the code content from the second column
         const rows = node.querySelectorAll('tr');
         const codeLines: string[] = [];
-        
+
         rows.forEach((row: any) => {
           const cells = row.querySelectorAll('td, th');
           if (cells.length >= 2) {
@@ -239,31 +255,38 @@ export class MarkdownConverter {
             }
           }
         });
-        
+
         if (codeLines.length > 0) {
           // Try to detect language from class names
           const className = (node.className || '').toLowerCase();
           let language = '';
-          
+
           // Simple language detection from class names
           const langPatterns = {
-            'javascript': 'javascript', 'js': 'javascript',
-            'typescript': 'typescript', 'ts': 'typescript',
-            'python': 'python', 'py': 'python',
-            'bash': 'bash', 'shell': 'bash', 'sh': 'bash',
-            'html': 'html', 'css': 'css', 'json': 'json'
+            javascript: 'javascript',
+            js: 'javascript',
+            typescript: 'typescript',
+            ts: 'typescript',
+            python: 'python',
+            py: 'python',
+            bash: 'bash',
+            shell: 'bash',
+            sh: 'bash',
+            html: 'html',
+            css: 'css',
+            json: 'json',
           };
-          
+
           for (const [pattern, lang] of Object.entries(langPatterns)) {
             if (className.includes(pattern)) {
               language = lang;
               break;
             }
           }
-          
+
           return '\n\n```' + language + '\n' + codeLines.join('\n') + '\n```\n\n';
         }
-        
+
         // Fallback to normal table processing
         return '\n\n' + content + '\n\n';
       },
@@ -325,7 +348,7 @@ export class MarkdownConverter {
         const language = this.extractLanguageFromClass(codeElement.className);
 
         // Get raw text content to preserve formatting and special characters
-        let code = codeElement.textContent || '';        // Preserve HTML entities that should be decoded in code blocks
+        let code = codeElement.textContent || ''; // Preserve HTML entities that should be decoded in code blocks
         code = code
           .replace(/&lt;/g, '<')
           .replace(/&gt;/g, '>')
