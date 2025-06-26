@@ -292,7 +292,7 @@ async function main() {
     const tester = new UrlTester(argv.output);
 
     const options: ITestOptions = {
-      url: argv.url,
+      url: argv.url as string,
       output: argv.output,
       format: argv.format as any,
       includeMetadata: argv.metadata,
@@ -313,7 +313,5 @@ async function main() {
 // Export for programmatic use
 export { ITestOptions, ITestResult, UrlTester };
 
-// Run if called directly
-if (import.meta.url === `file://${process.argv[1]}`) {
-  main();
-}
+// Run main function
+main().catch(console.error);

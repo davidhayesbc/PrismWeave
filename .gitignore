@@ -53,6 +53,7 @@ logs/
 # Coverage and testing
 coverage/
 test-results/
+test-outputs/
 .nyc_output/
 
 # Cache directories
