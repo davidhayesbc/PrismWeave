@@ -86,463 +86,95 @@ export class MarkdownConverterCore {
   private addAllCustomRules(): void {
     if (!this.turndownService) return;
 
-    // Line number removal rule
-    this.turndownService.addRule('removeLineNumbers', {
+    // Remove unwanted elements - single comprehensive rule
+    this.turndownService.addRule('removeUnwanted', {
       filter: (node: any) => {
-        if (node.nodeType === 1) {
-          const className = (node.className || '').toLowerCase();
-          const id = (node.id || '').toLowerCase();
-          const lineNumberPatterns = [
-            'line-number',
-            'linenumber',
-            'line-num',
-            'linenum',
-            'gutter',
-            'line-gutter',
-            'hljs-ln-numbers',
-            'hljs-ln-line',
-            'code-line-number',
-          ];
-          return lineNumberPatterns.some(
-            pattern => className.includes(pattern) || id.includes(pattern)
-          );
-        }
-        return false;
+        if (node.nodeType !== 1) return false;
+
+        const className = (node.className || '').toLowerCase();
+        const id = (node.id || '').toLowerCase();
+        const text = (node.textContent || '').toLowerCase().trim();
+
+        // Line numbers, copy buttons, navigation, ads, social media
+        const unwantedPatterns = [
+          'line-number',
+          'linenumber',
+          'gutter',
+          'hljs-ln',
+          'copy',
+          'clipboard',
+          'nav',
+          'navbar',
+          'navigation',
+          'menu',
+          'header',
+          'footer',
+          'sidebar',
+          'ad',
+          'advertisement',
+          'promo',
+          'sponsor',
+          'banner',
+          'social',
+          'share',
+          'twitter',
+          'facebook',
+          'linkedin',
+          'pinterest',
+        ];
+
+        const isUnwanted = unwantedPatterns.some(
+          pattern => className.includes(pattern) || id.includes(pattern)
+        );
+
+        // Copy buttons specifically
+        const isCopyButton =
+          (text === 'copy' || text === 'clipboard') &&
+          (node.tagName === 'BUTTON' || className.includes('button') || className.includes('btn'));
+
+        return isUnwanted || isCopyButton;
       },
       replacement: () => '',
     });
 
-    // Copy button removal rule
-    this.turndownService.addRule('removeCopyButtons', {
-      filter: (node: any) => {
-        if (node.nodeType === 1) {
-          const className = (node.className || '').toLowerCase();
-          const id = (node.id || '').toLowerCase();
-          const text = (node.textContent || '').toLowerCase().trim();
-          const copyButtonPatterns = ['copy', 'clipboard'];
-
-          return (
-            copyButtonPatterns.some(
-              pattern => className.includes(pattern) || id.includes(pattern) || text === pattern
-            ) &&
-            (node.tagName === 'BUTTON' || className.includes('button') || className.includes('btn'))
-          );
-        }
-        return false;
-      },
-      replacement: () => '',
-    });
-
-    // Navigation and UI element removal
-    this.turndownService.addRule('removeNavigation', {
-      filter: ['nav', '.nav', '.navbar', '.navigation', '.menu', '.header', '.footer', '.sidebar'],
-      replacement: () => '',
-    });
-
-    // Advertisement removal
-    this.turndownService.addRule('removeAds', {
-      filter: (node: any) => {
-        if (node.nodeType === 1) {
-          const className = (node.className || '').toLowerCase();
-          const id = (node.id || '').toLowerCase();
-          const adPatterns = ['ad', 'advertisement', 'promo', 'sponsor', 'banner'];
-          return adPatterns.some(pattern => className.includes(pattern) || id.includes(pattern));
-        }
-        return false;
-      },
-      replacement: () => '',
-    });
-
-    // Social media elements removal
-    this.turndownService.addRule('removeSocial', {
-      filter: (node: any) => {
-        if (node.nodeType === 1) {
-          const className = (node.className || '').toLowerCase();
-          const id = (node.id || '').toLowerCase();
-          const socialPatterns = [
-            'social',
-            'share',
-            'twitter',
-            'facebook',
-            'linkedin',
-            'pinterest',
-          ];
-          return socialPatterns.some(
-            pattern => className.includes(pattern) || id.includes(pattern)
-          );
-        }
-        return false;
-      },
-      replacement: () => '',
-    });
-
-    // SIMPLE RULE: Handle ALL PRE blocks uniformly with exact content preservation
-    this.turndownService.addRule('allPreBlocks', {
-      filter: (node: any) => {
-        return node.nodeName === 'PRE';
-      },
+    // PRE blocks - simplified handling
+    this.turndownService.addRule('preBlocks', {
+      filter: 'pre',
       replacement: (content: string, node: any) => {
-        // Get text content - this should preserve newlines if they exist in the DOM
         let text = node.textContent || '';
 
-        // If textContent doesn't have newlines but innerHTML might, try innerHTML
-        if (!text.includes('\n') && node.innerHTML) {
-          let htmlText = node.innerHTML;
-          // Only convert <br> tags to newlines, remove other HTML tags
-          htmlText = htmlText
-            .replace(/<br\s*\/?>/gi, '\n')
-            .replace(/<[^>]*>/g, '')
-            .replace(/&lt;/g, '<')
-            .replace(/&gt;/g, '>')
-            .replace(/&amp;/g, '&')
-            .replace(/&quot;/g, '"')
-            .replace(/&#39;/g, "'")
-            .replace(/&nbsp;/g, ' ');
-
-          // Use innerHTML result if it has more newlines
-          if (htmlText.split('\n').length > text.split('\n').length) {
-            text = htmlText;
-          }
-        }
-
-        // If still collapsed and contains tree characters, manually split on tree symbols
+        // Handle collapsed tree structures
         if (!text.includes('\n') && (text.includes('├──') || text.includes('└──'))) {
-          console.log('Manually splitting collapsed tree content');
           text = text.replace(/(├──|└──)/g, '\n$1').replace(/^\n/, '');
         }
 
         if (!text.trim()) return '';
 
-        // Simple language detection
-        let language = '';
-        if (text.includes('git ') || text.includes('docker ') || text.includes('npm ')) {
-          language = 'bash';
-        } else if (text.includes('├──') || text.includes('└──')) {
-          language = 'bash';
-        }
-
+        // Basic language detection
+        const language = this.detectLanguage(text);
         return `\n\`\`\`${language}\n${text}\n\`\`\`\n`;
       },
     });
 
-    // Enhanced inline code handling
-    this.turndownService.addRule('enhancedInlineCode', {
-      filter: (node: any) => {
-        return node.nodeName === 'CODE' && !node.closest('pre');
-      },
-      replacement: (content: string) => {
-        return `\`${content.trim()}\``;
-      },
-    });
-
-    // Image handling with alt text preservation
-    this.turndownService.addRule('enhancedImages', {
-      filter: 'img',
-      replacement: (content: string, node: any) => {
-        const alt = node.getAttribute('alt') || '';
-        const src = node.getAttribute('src') || '';
-        const title = node.getAttribute('title') || '';
-
-        if (!src) return '';
-
-        // Handle relative URLs
-        const absoluteSrc = this.makeAbsoluteUrl(src);
-
-        if (title) {
-          return `![${alt}](${absoluteSrc} "${title}")`;
-        }
-        return `![${alt}](${absoluteSrc})`;
-      },
-    });
-
-    // Table handling with proper formatting
-    this.turndownService.addRule('enhancedTables', {
-      filter: 'table',
-      replacement: (content: string, node: any) => {
-        const rows = Array.from(node.querySelectorAll('tr'));
-        if (rows.length === 0) return '';
-
-        let markdown = '\n';
-        let hasHeader = false;
-
-        rows.forEach((row: any, index: number) => {
-          const cells = Array.from(row.querySelectorAll('td, th'));
-          if (cells.length === 0) return;
-
-          // Check if this row contains header cells
-          const isHeaderRow = cells.some((cell: any) => cell.tagName === 'TH');
-          if (isHeaderRow && !hasHeader) {
-            hasHeader = true;
-          }
-
-          // Build row
-          const cellContents = cells.map((cell: any) => {
-            return (cell.textContent || '').trim().replace(/\|/g, '\\|');
-          });
-
-          markdown += `| ${cellContents.join(' | ')} |\n`;
-
-          // Add separator row after header
-          if (isHeaderRow && !hasHeader) {
-            const separatorCells = cells.map(() => '---');
-            markdown += `| ${separatorCells.join(' | ')} |\n`;
-            hasHeader = true;
-          }
-        });
-
-        return markdown + '\n';
-      },
-    });
-
-    // List handling improvements
-    this.turndownService.addRule('enhancedLists', {
-      filter: ['ul', 'ol'],
-      replacement: (content: string, node: any) => {
-        const isOrdered = node.tagName === 'OL';
-        const items = Array.from(node.children).filter((child: any) => child.tagName === 'LI');
-
-        if (items.length === 0) return '';
-
-        let markdown = '\n';
-        items.forEach((item: any, index: number) => {
-          const prefix = isOrdered ? `${index + 1}. ` : '- ';
-          const itemContent = this.getListItemContent(item);
-          markdown += `${prefix}${itemContent}\n`;
-        });
-
-        return markdown + '\n';
-      },
-    });
-
-    // Blockquote handling
-    this.turndownService.addRule('enhancedBlockquotes', {
-      filter: 'blockquote',
-      replacement: (content: string) => {
-        const lines = content.trim().split('\n');
-        const quotedLines = lines.map(line => `> ${line}`);
-        return `\n${quotedLines.join('\n')}\n\n`;
-      },
-    });
-
-    // Heading handling with ID preservation
-    this.turndownService.addRule('enhancedHeadings', {
-      filter: ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'],
-      replacement: (content: string, node: any) => {
-        const level = parseInt(node.tagName.charAt(1));
-        const hashes = '#'.repeat(level);
-        const id = node.getAttribute('id');
-
-        let heading = `\n${hashes} ${content.trim()}\n\n`;
-
-        // Add ID as anchor if present
-        if (id) {
-          heading = `\n${hashes} ${content.trim()} {#${id}}\n\n`;
-        }
-
-        return heading;
-      },
-    });
-
-    // Link handling with title preservation
-    this.turndownService.addRule('enhancedLinks', {
-      filter: 'a',
-      replacement: (content: string, node: any) => {
-        const href = node.getAttribute('href');
-        const title = node.getAttribute('title');
-
-        if (!href) return content;
-
-        const absoluteHref = this.makeAbsoluteUrl(href);
-
-        if (title) {
-          return `[${content}](${absoluteHref} "${title}")`;
-        }
-        return `[${content}](${absoluteHref})`;
-      },
-    });
-
-    // Semantic content preservation
-    this.turndownService.addRule('semanticContent', {
-      filter: (node: any) => {
-        if (node.nodeType !== 1) return false;
-
-        const className = (node.className || '').toLowerCase();
-        const semanticClasses = [
-          'article',
-          'main',
-          'content',
-          'post',
-          'entry',
-          'callout',
-          'note',
-          'warning',
-          'info',
-          'alert',
-          'highlight',
-          'important',
-          'featured',
-        ];
-
-        return semanticClasses.some(cls => className.includes(cls));
-      },
-      replacement: (content: string, node: any) => {
-        // Preserve semantic content but clean up extra whitespace
-        return content.replace(/\n\s*\n\s*\n/g, '\n\n');
-      },
+    // Inline code
+    this.turndownService.addRule('inlineCode', {
+      filter: (node: any) => node.nodeName === 'CODE' && !node.closest('pre'),
+      replacement: (content: string) => `\`${content.trim()}\``,
     });
   }
 
-  private cleanCodeContent(content: string): string {
-    if (!content) return '';
-
-    // Split into lines and clean each line
-    const lines = content.split('\n');
-    const cleanedLines = lines.map(line => {
-      // Remove line numbers at the beginning of lines
-      return line.replace(/^\s*\d+\s*/, '').replace(/^\s*\|\s*/, '');
-    });
-
-    // Remove empty lines at the beginning and end
-    while (cleanedLines.length > 0 && cleanedLines[0].trim() === '') {
-      cleanedLines.shift();
-    }
-    while (cleanedLines.length > 0 && cleanedLines[cleanedLines.length - 1].trim() === '') {
-      cleanedLines.pop();
-    }
-
-    return cleanedLines.join('\n');
-  }
-
-  private isTreeStructure(text: string): boolean {
-    if (!text || text.trim().length === 0) return false;
-
-    // Check for tree structure patterns
-    return text.includes('├──') || text.includes('└──') || text.includes('│');
-  }
-
-  private isCodeLikeContent(text: string): boolean {
-    if (!text || text.trim().length === 0) return false;
-
-    // For content in <pre> tags, be more permissive
-    // Most content in <pre> is intended to be formatted as code
-
-    // Check for tree structure patterns (always code)
-    if (text.includes('├──') || text.includes('└──') || text.includes('│')) {
-      return true;
-    }
-
-    // Check for command patterns (always code)
-    const commandPatterns = [
-      /^git\s+/m, // Git commands
-      /^docker\s+/m, // Docker commands
-      /^npm\s+/m, // NPM commands
-      /^yarn\s+/m, // Yarn commands
-      /^cd\s+/m, // Change directory
-      /^\$\s+/m, // Shell prompt
-      /&&|\|\|/, // Command chaining
-    ];
-
-    if (commandPatterns.some(pattern => pattern.test(text))) {
-      return true;
-    }
-
-    // Check for common code patterns
-    const codePatterns = [
-      /function\s+\w+\s*\(/, // JavaScript/TypeScript functions
-      /const\s+\w+\s*=/, // Variable declarations
-      /let\s+\w+\s*=/, // Variable declarations
-      /var\s+\w+\s*=/, // Variable declarations
-      /import\s+.*from/, // Import statements
-      /export\s+/, // Export statements
-      /class\s+\w+/, // Class definitions
-      /interface\s+\w+/, // Interface definitions
-      /\w+\s*:\s*\w+/, // Type annotations
-      /\{[\s\S]*\}/, // Object/block patterns
-      /\[[\s\S]*\]/, // Array patterns
-      /\/\*[\s\S]*\*\//, // Block comments
-      /\/\/.*$/m, // Line comments
-      /console\.log\(/, // Console statements
-      /\.then\(/, // Promise chains
-      /await\s+/, // Async/await
-      /=>\s*{/, // Arrow functions
-      /^\s*[<>]/m, // HTML/XML tags
-      /\w+\(\s*\)/, // Function calls
-      /\.\w+\(/, // Method calls
-      /;\s*$/m, // Statement endings
-      /\w+\s*{[\s\S]*}/, // Code blocks
-    ];
-
-    if (codePatterns.some(pattern => pattern.test(text))) {
-      return true;
-    }
-
-    // Check for multiple lines with structured indentation (often indicates code)
-    const lines = text.split('\n');
-    const hasStructuredIndentation =
-      lines.filter(line => line.match(/^\s{2,}/) && line.trim().length > 0).length > 1;
-
-    // Check for brackets/braces balance (indicates structured code)
-    const hasBrackets = text.includes('{') || text.includes('[') || text.includes('(');
-
-    // For <pre> content, if it has any of these characteristics, treat as code
-    return hasStructuredIndentation || hasBrackets || lines.length > 1;
-  }
-
-  private detectLanguageFromContent(text: string): string {
+  private detectLanguage(text: string): string {
     if (!text) return '';
 
-    // JavaScript/TypeScript patterns
-    if (text.match(/(?:function|const|let|var|=>|\.then|async|await|import.*from|export)/)) {
-      if (text.match(/interface|type\s+\w+|:\s*\w+\[\]|<\w+>/)) {
-        return 'typescript';
-      }
-      return 'javascript';
-    }
+    // Simple pattern matching for common languages
+    if (text.match(/^(git|docker|npm|yarn|cd|mkdir)\s+/m) || text.match(/^\$\s+/m)) return 'bash';
+    if (text.includes('├──') || text.includes('└──')) return 'bash';
+    if (text.match(/function|const|let|var|=>|import.*from/)) return 'javascript';
+    if (text.match(/def\s+\w+|import\s+\w+|print\(/)) return 'python';
+    if (text.match(/func\s+\w+|package\s+\w+/)) return 'go';
+    if (text.match(/<\/?[a-zA-Z][^>]*>/)) return 'html';
+    if (text.match(/^\s*\{[\s\S]*\}\s*$/) && text.includes('"')) return 'json';
 
-    // Shell/Bash patterns
-    if (
-      text.match(/^(?:git|docker|npm|yarn|cd|mkdir|cp|mv|curl|wget)\s+/m) ||
-      text.match(/^\$\s+/m)
-    ) {
-      return 'bash';
-    }
-
-    // Python patterns
-    if (text.match(/(?:def\s+\w+|import\s+\w+|from\s+\w+\s+import|if\s+__name__|print\()/)) {
-      return 'python';
-    }
-
-    // Go patterns
-    if (text.match(/(?:func\s+\w+|package\s+\w+|import\s+"|var\s+\w+\s+\w+|:=)/)) {
-      return 'go';
-    }
-
-    // CSS patterns
-    if (text.match(/\{\s*[\w-]+\s*:\s*[\w#-]+/)) {
-      return 'css';
-    }
-
-    // HTML patterns
-    if (text.match(/<\/?[a-zA-Z][^>]*>/)) {
-      return 'html';
-    }
-
-    // JSON patterns
-    if (text.match(/^\s*\{[\s\S]*\}\s*$/) && text.includes('"')) {
-      return 'json';
-    }
-
-    // YAML patterns
-    if (text.match(/^\s*\w+:\s*[\w\s]+$/m) && !text.includes(';') && !text.includes('{')) {
-      return 'yaml';
-    }
-
-    // Dockerfile patterns
-    if (text.match(/^(?:FROM|RUN|COPY|ADD|WORKDIR|ENV|EXPOSE)\s+/m)) {
-      return 'dockerfile';
-    }
-
-    // Default to empty string (no language specified)
     return '';
   }
 
@@ -567,35 +199,6 @@ export class MarkdownConverterCore {
     }
 
     return url;
-  }
-
-  private getListItemContent(item: any): string {
-    if (!item) return '';
-
-    // Get text content and clean up
-    let content = '';
-    for (const child of item.childNodes) {
-      if (child.nodeType === 3) {
-        // Text node
-        content += child.textContent;
-      } else if (child.nodeType === 1) {
-        // Element node
-        if (child.tagName === 'UL' || child.tagName === 'OL') {
-          // Nested list - handle recursively
-          const nestedList = this.turndownService?.turndown(child.outerHTML) || '';
-          content +=
-            '\n' +
-            nestedList
-              .split('\n')
-              .map(line => `  ${line}`)
-              .join('\n');
-        } else {
-          content += child.textContent;
-        }
-      }
-    }
-
-    return content.trim();
   }
 
   public convertToMarkdown(html: string, options: IConversionOptions = {}): IConversionResult {
