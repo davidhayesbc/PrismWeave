@@ -176,138 +176,52 @@ export class MarkdownConverterCore {
       replacement: () => '',
     });
 
-    // Tree structure and command-line output preservation
-    this.turndownService.addRule('preserveTreeStructures', {
+    // SIMPLE RULE: Handle ALL PRE blocks uniformly with exact content preservation
+    this.turndownService.addRule('allPreBlocks', {
       filter: (node: any) => {
-        // Check if this element contains tree-like structure
-        if (node.nodeType === 1) {
-          const text = (node.textContent || '').trim();
-          const isTreeLike =
-            text.includes('├──') ||
-            text.includes('└──') ||
-            text.includes('│') ||
-            (text.includes('tree -L') && text.includes('├──')) ||
-            text.match(/^[.\s]*├──.*$/m) ||
-            text.match(/^[.\s]*└──.*$/m);
+        return node.nodeName === 'PRE';
+      },
+      replacement: (content: string, node: any) => {
+        // Get text content - this should preserve newlines if they exist in the DOM
+        let text = node.textContent || '';
 
-          if (isTreeLike) {
-            return true;
+        // If textContent doesn't have newlines but innerHTML might, try innerHTML
+        if (!text.includes('\n') && node.innerHTML) {
+          let htmlText = node.innerHTML;
+          // Only convert <br> tags to newlines, remove other HTML tags
+          htmlText = htmlText
+            .replace(/<br\s*\/?>/gi, '\n')
+            .replace(/<[^>]*>/g, '')
+            .replace(/&lt;/g, '<')
+            .replace(/&gt;/g, '>')
+            .replace(/&amp;/g, '&')
+            .replace(/&quot;/g, '"')
+            .replace(/&#39;/g, "'")
+            .replace(/&nbsp;/g, ' ');
+
+          // Use innerHTML result if it has more newlines
+          if (htmlText.split('\n').length > text.split('\n').length) {
+            text = htmlText;
           }
         }
-        return false;
-      },
-      replacement: (content: string, node: any) => {
-        // Preserve the tree structure as a code block
-        const text = (node.textContent || '').trim();
-        return `\n\`\`\`\n${text}\n\`\`\`\n`;
-      },
-    });
 
-    // Enhanced code block handling for PRE + CODE combinations
-    this.turndownService.addRule('enhancedCodeBlocks', {
-      filter: (node: any) => {
-        return node.nodeName === 'PRE' && node.querySelector('code');
-      },
-      replacement: (content: string, node: any) => {
-        const codeElement = node.querySelector('code');
-        if (!codeElement) return `\n\`\`\`\n${content}\n\`\`\`\n`;
+        // If still collapsed and contains tree characters, manually split on tree symbols
+        if (!text.includes('\n') && (text.includes('├──') || text.includes('└──'))) {
+          console.log('Manually splitting collapsed tree content');
+          text = text.replace(/(├──|└──)/g, '\n$1').replace(/^\n/, '');
+        }
 
-        // Extract language from class
+        if (!text.trim()) return '';
+
+        // Simple language detection
         let language = '';
-        const classNames = codeElement.className || '';
-        const langMatch = classNames.match(/(?:language-|lang-)([a-zA-Z0-9-_]+)/);
-        if (langMatch) {
-          language = langMatch[1];
+        if (text.includes('git ') || text.includes('docker ') || text.includes('npm ')) {
+          language = 'bash';
+        } else if (text.includes('├──') || text.includes('└──')) {
+          language = 'bash';
         }
 
-        // Clean content - remove line numbers and copy buttons
-        const cleanContent = this.cleanCodeContent(codeElement.textContent || content);
-
-        return `\n\`\`\`${language}\n${cleanContent}\n\`\`\`\n`;
-      },
-    });
-
-    // Handle standalone PRE elements (most common pattern for this blog)
-    // BUT exclude tree structures which should be handled by preserveTreeStructures rule
-    this.turndownService.addRule('standalonePreBlocks', {
-      filter: (node: any) => {
-        if (node.nodeName !== 'PRE') return false;
-
-        const text = (node.textContent || '').trim();
-        if (!text) return false;
-
-        // Skip tree structures - let preserveTreeStructures rule handle them
-        const isTreeStructure = this.isTreeStructure(text);
-        if (isTreeStructure) return false;
-
-        return true;
-      },
-      replacement: (content: string, node: any) => {
-        const text = (node.textContent || '').trim();
-
-        if (!text) return '';
-
-        // Detect if this looks like code (contains common code patterns)
-        const isCodeLike = this.isCodeLikeContent(text);
-
-        if (isCodeLike) {
-          // Try to detect language from content patterns
-          const language = this.detectLanguageFromContent(text);
-          return `\n\`\`\`${language}\n${text}\n\`\`\`\n`;
-        }
-
-        // Fallback to code block without language specification
-        return `\n\`\`\`\n${text}\n\`\`\`\n`;
-      },
-    });
-
-    // Handle command-line snippets in various containers
-    this.turndownService.addRule('commandLineSnippets', {
-      filter: (node: any) => {
-        if (node.nodeType !== 1) return false;
-
-        const text = (node.textContent || '').trim();
-
-        // Check for command-line patterns
-        const isCommand =
-          text.startsWith('git ') ||
-          text.startsWith('docker ') ||
-          text.startsWith('npm ') ||
-          text.startsWith('yarn ') ||
-          text.startsWith('cd ') ||
-          text.startsWith('mkdir ') ||
-          text.startsWith('cp ') ||
-          text.startsWith('mv ') ||
-          text.startsWith('curl ') ||
-          text.startsWith('wget ') ||
-          text.match(/^[a-zA-Z0-9_-]+\s+[a-zA-Z0-9_-]+/) || // command pattern
-          text.includes(' && ') || // chained commands
-          text.includes(' || ') || // conditional commands
-          text.match(/^\$\s+/); // shell prompt
-
-        // Only apply to certain container types
-        const containerClasses = (node.className || '').toLowerCase();
-        const isInCodeContainer =
-          containerClasses.includes('command') ||
-          containerClasses.includes('snippet') ||
-          containerClasses.includes('code') ||
-          containerClasses.includes('terminal') ||
-          containerClasses.includes('shell') ||
-          node.closest('.highlight, .code-block, .command-line, .terminal');
-
-        return isCommand && (isInCodeContainer || node.nodeName === 'CODE' || node.closest('pre'));
-      },
-      replacement: (content: string, node: any) => {
-        const text = (node.textContent || '').trim();
-
-        // Determine if this should be a code block or inline code
-        const isMultiLine = text.includes('\n') || text.length > 50;
-
-        if (isMultiLine) {
-          return `\n\`\`\`bash\n${text}\n\`\`\`\n`;
-        } else {
-          return `\`${text}\``;
-        }
+        return `\n\`\`\`${language}\n${text}\n\`\`\`\n`;
       },
     });
 
