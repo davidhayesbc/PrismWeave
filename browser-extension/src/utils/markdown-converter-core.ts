@@ -176,7 +176,34 @@ export class MarkdownConverterCore {
       replacement: () => '',
     });
 
-    // Enhanced code block handling
+    // Tree structure and command-line output preservation
+    this.turndownService.addRule('preserveTreeStructures', {
+      filter: (node: any) => {
+        // Check if this element contains tree-like structure
+        if (node.nodeType === 1) {
+          const text = (node.textContent || '').trim();
+          const isTreeLike =
+            text.includes('├──') ||
+            text.includes('└──') ||
+            text.includes('│') ||
+            (text.includes('tree -L') && text.includes('├──')) ||
+            text.match(/^[.\s]*├──.*$/m) ||
+            text.match(/^[.\s]*└──.*$/m);
+
+          if (isTreeLike) {
+            return true;
+          }
+        }
+        return false;
+      },
+      replacement: (content: string, node: any) => {
+        // Preserve the tree structure as a code block
+        const text = (node.textContent || '').trim();
+        return `\n\`\`\`\n${text}\n\`\`\`\n`;
+      },
+    });
+
+    // Enhanced code block handling for PRE + CODE combinations
     this.turndownService.addRule('enhancedCodeBlocks', {
       filter: (node: any) => {
         return node.nodeName === 'PRE' && node.querySelector('code');
@@ -197,6 +224,80 @@ export class MarkdownConverterCore {
         const cleanContent = this.cleanCodeContent(codeElement.textContent || content);
 
         return `\n\`\`\`${language}\n${cleanContent}\n\`\`\`\n`;
+      },
+    });
+
+    // Handle standalone PRE elements (most common pattern for this blog)
+    this.turndownService.addRule('standalonePreBlocks', {
+      filter: (node: any) => {
+        return node.nodeName === 'PRE';
+      },
+      replacement: (content: string, node: any) => {
+        const text = (node.textContent || '').trim();
+
+        if (!text) return '';
+
+        // Detect if this looks like code (contains common code patterns)
+        const isCodeLike = this.isCodeLikeContent(text);
+
+        if (isCodeLike) {
+          // Try to detect language from content patterns
+          const language = this.detectLanguageFromContent(text);
+          return `\n\`\`\`${language}\n${text}\n\`\`\`\n`;
+        }
+
+        // Fallback to code block without language specification
+        return `\n\`\`\`\n${text}\n\`\`\`\n`;
+      },
+    });
+
+    // Handle command-line snippets in various containers
+    this.turndownService.addRule('commandLineSnippets', {
+      filter: (node: any) => {
+        if (node.nodeType !== 1) return false;
+
+        const text = (node.textContent || '').trim();
+
+        // Check for command-line patterns
+        const isCommand =
+          text.startsWith('git ') ||
+          text.startsWith('docker ') ||
+          text.startsWith('npm ') ||
+          text.startsWith('yarn ') ||
+          text.startsWith('cd ') ||
+          text.startsWith('mkdir ') ||
+          text.startsWith('cp ') ||
+          text.startsWith('mv ') ||
+          text.startsWith('curl ') ||
+          text.startsWith('wget ') ||
+          text.match(/^[a-zA-Z0-9_-]+\s+[a-zA-Z0-9_-]+/) || // command pattern
+          text.includes(' && ') || // chained commands
+          text.includes(' || ') || // conditional commands
+          text.match(/^\$\s+/); // shell prompt
+
+        // Only apply to certain container types
+        const containerClasses = (node.className || '').toLowerCase();
+        const isInCodeContainer =
+          containerClasses.includes('command') ||
+          containerClasses.includes('snippet') ||
+          containerClasses.includes('code') ||
+          containerClasses.includes('terminal') ||
+          containerClasses.includes('shell') ||
+          node.closest('.highlight, .code-block, .command-line, .terminal');
+
+        return isCommand && (isInCodeContainer || node.nodeName === 'CODE' || node.closest('pre'));
+      },
+      replacement: (content: string, node: any) => {
+        const text = (node.textContent || '').trim();
+
+        // Determine if this should be a code block or inline code
+        const isMultiLine = text.includes('\n') || text.length > 50;
+
+        if (isMultiLine) {
+          return `\n\`\`\`bash\n${text}\n\`\`\`\n`;
+        } else {
+          return `\`${text}\``;
+        }
       },
     });
 
@@ -388,6 +489,132 @@ export class MarkdownConverterCore {
     return cleanedLines.join('\n');
   }
 
+  private isCodeLikeContent(text: string): boolean {
+    if (!text || text.trim().length === 0) return false;
+
+    // For content in <pre> tags, be more permissive
+    // Most content in <pre> is intended to be formatted as code
+
+    // Check for tree structure patterns (always code)
+    if (text.includes('├──') || text.includes('└──') || text.includes('│')) {
+      return true;
+    }
+
+    // Check for command patterns (always code)
+    const commandPatterns = [
+      /^git\s+/m, // Git commands
+      /^docker\s+/m, // Docker commands
+      /^npm\s+/m, // NPM commands
+      /^yarn\s+/m, // Yarn commands
+      /^cd\s+/m, // Change directory
+      /^\$\s+/m, // Shell prompt
+      /&&|\|\|/, // Command chaining
+    ];
+
+    if (commandPatterns.some(pattern => pattern.test(text))) {
+      return true;
+    }
+
+    // Check for common code patterns
+    const codePatterns = [
+      /function\s+\w+\s*\(/, // JavaScript/TypeScript functions
+      /const\s+\w+\s*=/, // Variable declarations
+      /let\s+\w+\s*=/, // Variable declarations
+      /var\s+\w+\s*=/, // Variable declarations
+      /import\s+.*from/, // Import statements
+      /export\s+/, // Export statements
+      /class\s+\w+/, // Class definitions
+      /interface\s+\w+/, // Interface definitions
+      /\w+\s*:\s*\w+/, // Type annotations
+      /\{[\s\S]*\}/, // Object/block patterns
+      /\[[\s\S]*\]/, // Array patterns
+      /\/\*[\s\S]*\*\//, // Block comments
+      /\/\/.*$/m, // Line comments
+      /console\.log\(/, // Console statements
+      /\.then\(/, // Promise chains
+      /await\s+/, // Async/await
+      /=>\s*{/, // Arrow functions
+      /^\s*[<>]/m, // HTML/XML tags
+      /\w+\(\s*\)/, // Function calls
+      /\.\w+\(/, // Method calls
+      /;\s*$/m, // Statement endings
+      /\w+\s*{[\s\S]*}/, // Code blocks
+    ];
+
+    if (codePatterns.some(pattern => pattern.test(text))) {
+      return true;
+    }
+
+    // Check for multiple lines with structured indentation (often indicates code)
+    const lines = text.split('\n');
+    const hasStructuredIndentation =
+      lines.filter(line => line.match(/^\s{2,}/) && line.trim().length > 0).length > 1;
+
+    // Check for brackets/braces balance (indicates structured code)
+    const hasBrackets = text.includes('{') || text.includes('[') || text.includes('(');
+
+    // For <pre> content, if it has any of these characteristics, treat as code
+    return hasStructuredIndentation || hasBrackets || lines.length > 1;
+  }
+
+  private detectLanguageFromContent(text: string): string {
+    if (!text) return '';
+
+    // JavaScript/TypeScript patterns
+    if (text.match(/(?:function|const|let|var|=>|\.then|async|await|import.*from|export)/)) {
+      if (text.match(/interface|type\s+\w+|:\s*\w+\[\]|<\w+>/)) {
+        return 'typescript';
+      }
+      return 'javascript';
+    }
+
+    // Shell/Bash patterns
+    if (
+      text.match(/^(?:git|docker|npm|yarn|cd|mkdir|cp|mv|curl|wget)\s+/m) ||
+      text.match(/^\$\s+/m)
+    ) {
+      return 'bash';
+    }
+
+    // Python patterns
+    if (text.match(/(?:def\s+\w+|import\s+\w+|from\s+\w+\s+import|if\s+__name__|print\()/)) {
+      return 'python';
+    }
+
+    // Go patterns
+    if (text.match(/(?:func\s+\w+|package\s+\w+|import\s+"|var\s+\w+\s+\w+|:=)/)) {
+      return 'go';
+    }
+
+    // CSS patterns
+    if (text.match(/\{\s*[\w-]+\s*:\s*[\w#-]+/)) {
+      return 'css';
+    }
+
+    // HTML patterns
+    if (text.match(/<\/?[a-zA-Z][^>]*>/)) {
+      return 'html';
+    }
+
+    // JSON patterns
+    if (text.match(/^\s*\{[\s\S]*\}\s*$/) && text.includes('"')) {
+      return 'json';
+    }
+
+    // YAML patterns
+    if (text.match(/^\s*\w+:\s*[\w\s]+$/m) && !text.includes(';') && !text.includes('{')) {
+      return 'yaml';
+    }
+
+    // Dockerfile patterns
+    if (text.match(/^(?:FROM|RUN|COPY|ADD|WORKDIR|ENV|EXPOSE)\s+/m)) {
+      return 'dockerfile';
+    }
+
+    // Default to empty string (no language specified)
+    return '';
+  }
+
   private makeAbsoluteUrl(url: string): string {
     if (!url) return '';
 
@@ -453,27 +680,25 @@ export class MarkdownConverterCore {
       const markdown = this.turndownService.turndown(cleanedHtml);
 
       // Post-process markdown
-      const processedMarkdown = this.postprocessMarkdown(markdown);
+      const cleanedMarkdown = this.postprocessMarkdown(markdown);
 
-      // Extract metadata
-      const metadata = this.extractMetadata(html);
-
-      // Generate frontmatter if requested
-      const frontmatter = options.generateFrontmatter ? this.generateFrontmatter(metadata) : '';
-
-      // Extract images
-      const images = this.extractImages(html);
-
-      // Calculate word count
-      const wordCount = this.calculateWordCount(processedMarkdown);
-
-      return {
-        markdown: processedMarkdown,
-        frontmatter,
-        metadata,
-        images,
-        wordCount,
+      const result: IConversionResult = {
+        markdown: cleanedMarkdown,
+        frontmatter: '',
+        metadata: {
+          title: '',
+          url: typeof window !== 'undefined' ? window.location.href : '',
+          captureDate: new Date().toISOString(),
+          tags: [],
+          author: '',
+          wordCount: cleanedMarkdown.split(/\s+/).length,
+          estimatedReadingTime: Math.ceil(cleanedMarkdown.split(/\s+/).length / 200), // Average reading speed
+        },
+        images: [],
+        wordCount: cleanedMarkdown.split(/\s+/).length,
       };
+
+      return result;
     } catch (error) {
       console.error('MarkdownConverter: Conversion failed:', error);
       throw error;
@@ -481,118 +706,30 @@ export class MarkdownConverterCore {
   }
 
   private preprocessHtml(html: string): string {
-    // Create a temporary DOM for processing
-    let doc: Document;
+    if (!html) return '';
 
-    if (typeof document !== 'undefined') {
-      // Browser environment
-      const parser = new DOMParser();
-      doc = parser.parseFromString(html, 'text/html');
-    } else {
-      // Node.js environment - this should be handled by the wrapper
-      throw new Error('Document parsing not available in this environment');
-    }
+    // Remove script and style tags
+    let cleaned = html.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '');
+    cleaned = cleaned.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
 
-    // Remove unwanted elements
-    const unwantedSelectors = [
-      'script',
-      'style',
-      'noscript',
-      'iframe',
-      '.advertisement',
-      '.ad',
-      '.promo',
-      '.sponsor',
-      '.social-share',
-      '.social-buttons',
-      '.share-buttons',
-      '.newsletter-signup',
-      '.popup',
-      '.modal',
-      '.cookie-notice',
-      '.gdpr-notice',
-      '.line-numbers',
-      '.line-number',
-      '.gutter',
-      'button[class*="copy"]',
-      'button[class*="clipboard"]',
-    ];
+    // Remove comments
+    cleaned = cleaned.replace(/<!--[\s\S]*?-->/g, '');
 
-    unwantedSelectors.forEach(selector => {
-      const elements = doc.querySelectorAll(selector);
-      elements.forEach(el => el.remove());
-    });
+    // Clean up whitespace
+    cleaned = cleaned.replace(/\s+/g, ' ').trim();
 
-    return doc.body.innerHTML;
+    return cleaned;
   }
 
   private postprocessMarkdown(markdown: string): string {
-    // Clean up excessive whitespace
-    let processed = markdown
-      .replace(/\n\s*\n\s*\n/g, '\n\n') // Remove triple+ newlines
-      .replace(/^\s+|\s+$/g, '') // Trim start/end
-      .replace(/\t/g, '    '); // Convert tabs to spaces
+    if (!markdown) return '';
 
-    // Fix common formatting issues
-    processed = processed
-      .replace(/\*\*\s+/g, '**') // Fix bold formatting
-      .replace(/\s+\*\*/g, '**')
-      .replace(/\*\s+/g, '*') // Fix italic formatting
-      .replace(/\s+\*/g, '*')
-      .replace(/`\s+/g, '`') // Fix inline code formatting
-      .replace(/\s+`/g, '`');
+    // Clean up extra whitespace
+    let cleaned = markdown.replace(/\n\s*\n\s*\n/g, '\n\n');
 
-    return processed;
-  }
+    // Remove leading/trailing whitespace
+    cleaned = cleaned.trim();
 
-  private extractMetadata(html: string): IDocumentMetadata {
-    // This would need document parsing - should be implemented in wrapper
-    return {
-      title: '',
-      url: '',
-      captureDate: new Date().toISOString(),
-      tags: [],
-      author: '',
-      wordCount: 0,
-      estimatedReadingTime: 0,
-    };
-  }
-
-  private generateFrontmatter(metadata: IDocumentMetadata): string {
-    const entries = Object.entries(metadata)
-      .filter(([, value]) => value && value !== '')
-      .map(([key, value]) => {
-        if (Array.isArray(value)) {
-          return `${key}: [${value.map(v => `"${v}"`).join(', ')}]`;
-        }
-        return `${key}: "${value}"`;
-      });
-
-    if (entries.length === 0) return '';
-
-    return `---\n${entries.join('\n')}\n---\n\n`;
-  }
-
-  private extractImages(html: string): IImageAsset[] {
-    // This would need document parsing - should be implemented in wrapper
-    return [];
-  }
-
-  private calculateWordCount(markdown: string): number {
-    // Remove markdown syntax and count words
-    const plainText = markdown
-      .replace(/```[\s\S]*?```/g, '') // Remove code blocks
-      .replace(/`[^`]*`/g, '') // Remove inline code
-      .replace(/[#*`_~\[\]()]/g, '') // Remove markdown syntax
-      .replace(/\s+/g, ' ') // Normalize whitespace
-      .trim();
-
-    return plainText ? plainText.split(' ').length : 0;
-  }
-
-  get isInitialized(): boolean {
-    return this._isInitialized;
+    return cleaned;
   }
 }
-
-export { IConversionOptions, IConversionResult };
