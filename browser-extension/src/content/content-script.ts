@@ -146,7 +146,6 @@ export class PrismWeaveContent {
       }); // Convert to markdown
       const conversionResult = await this.markdownConverter.convertToMarkdown(
         extractedContent.content,
-        extractedContent.metadata,
         {
           preserveFormatting: true,
           includeMetadata: true,
@@ -209,14 +208,10 @@ export class PrismWeaveContent {
         estimatedReadingTime: Math.ceil(selectedHtml.split(/\s+/).length / 200),
       };
 
-      const conversionResult = await this.markdownConverter.convertToMarkdown(
-        selectedHtml,
-        metadata,
-        {
-          preserveFormatting: true,
-          includeMetadata: false,
-        }
-      );
+      const conversionResult = await this.markdownConverter.convertToMarkdown(selectedHtml, {
+        preserveFormatting: true,
+        includeMetadata: false,
+      });
 
       const result = {
         markdown: conversionResult.markdown,
@@ -617,16 +612,12 @@ export class PrismWeaveContent {
         metadata: metadata,
       });
 
-      const conversionResult = await this.markdownConverter.convertToMarkdown(
-        htmlContent,
-        metadata,
-        {
-          preserveFormatting: true,
-          includeMetadata: true,
-          generateFrontmatter: true,
-          ...data?.conversionOptions, // Include any conversion options
-        }
-      );
+      const conversionResult = await this.markdownConverter.convertToMarkdown(htmlContent, {
+        preserveFormatting: true,
+        includeMetadata: true,
+        generateFrontmatter: true,
+        ...data?.conversionOptions, // Include any conversion options
+      });
 
       console.log('Markdown conversion completed:', {
         hasMarkdown: !!conversionResult.markdown,

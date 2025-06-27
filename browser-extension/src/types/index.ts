@@ -121,7 +121,7 @@ export interface IStorageData {
 }
 
 export interface IElementAttributes {
-  [key: string]: string | Record<string, string>;
+  [key: string]: string | Record<string, string> | undefined;
   className?: string;
   style?: Record<string, string>;
 }

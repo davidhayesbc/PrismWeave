@@ -4,7 +4,7 @@
 
 import { IDocumentMetadata, IImageAsset } from '../types/index.js';
 
-interface IConversionOptions {
+export interface IConversionOptions {
   preserveFormatting?: boolean;
   includeMetadata?: boolean;
   generateFrontmatter?: boolean;
@@ -15,7 +15,7 @@ interface IConversionOptions {
   linkStyle?: 'inlined' | 'referenced';
 }
 
-interface IConversionResult {
+export interface IConversionResult {
   markdown: string;
   frontmatter: string;
   metadata: IDocumentMetadata;
@@ -228,9 +228,19 @@ export class MarkdownConverterCore {
     });
 
     // Handle standalone PRE elements (most common pattern for this blog)
+    // BUT exclude tree structures which should be handled by preserveTreeStructures rule
     this.turndownService.addRule('standalonePreBlocks', {
       filter: (node: any) => {
-        return node.nodeName === 'PRE';
+        if (node.nodeName !== 'PRE') return false;
+
+        const text = (node.textContent || '').trim();
+        if (!text) return false;
+
+        // Skip tree structures - let preserveTreeStructures rule handle them
+        const isTreeStructure = this.isTreeStructure(text);
+        if (isTreeStructure) return false;
+
+        return true;
       },
       replacement: (content: string, node: any) => {
         const text = (node.textContent || '').trim();
@@ -487,6 +497,13 @@ export class MarkdownConverterCore {
     }
 
     return cleanedLines.join('\n');
+  }
+
+  private isTreeStructure(text: string): boolean {
+    if (!text || text.trim().length === 0) return false;
+
+    // Check for tree structure patterns
+    return text.includes('├──') || text.includes('└──') || text.includes('│');
   }
 
   private isCodeLikeContent(text: string): boolean {

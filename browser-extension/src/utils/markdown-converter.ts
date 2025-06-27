@@ -72,4 +72,4 @@ export class MarkdownConverter extends MarkdownConverterCore {
 }
 
 // Re-export the interfaces for backward compatibility
-export { IConversionOptions, IConversionResult };
+export type { IConversionOptions, IConversionResult };

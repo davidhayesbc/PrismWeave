@@ -36,12 +36,16 @@ export class NodeMarkdownConverter {
   }
 
   private async initializeForNode(): Promise<void> {
+    console.log('Initializing for Node...');
     try {
+      console.log('About to import MarkdownConverterCore...');
       // Dynamic import of the core class and content extractor from browser extension
-      const { MarkdownConverterCore } = await import(
-        '@browser-extension/utils/markdown-converter-core.js'
-      );
-      const { ContentExtractor } = await import('@browser-extension/utils/content-extractor.js');
+      const { MarkdownConverterCore } = await import('../src/utils/markdown-converter-core.ts');
+      console.log('MarkdownConverterCore imported successfully');
+
+      console.log('About to import ContentExtractor...');
+      const { ContentExtractor } = await import('../src/utils/content-extractor.ts');
+      console.log('ContentExtractor imported successfully');
 
       // Create instances
       this.core = new MarkdownConverterCore();
@@ -201,3 +205,61 @@ export class NodeMarkdownConverter {
 }
 
 export type { IConversionOptions, IConversionResult };
+
+// CLI execution
+import { mkdir, writeFile } from 'fs/promises';
+
+async function main() {
+  console.log('Starting main function...');
+  try {
+    const url = process.argv[2];
+    if (!url) {
+      console.error('Usage: node markdown-converter-node.js <url>');
+      process.exit(1);
+    }
+
+    console.log('Converting URL:', url);
+
+    const converter = new NodeMarkdownConverter();
+    console.log('Converter created, calling convertHtmlWithDOM...');
+
+    const result = await converter.convertHtmlWithDOM(url, {
+      preserveFormatting: true,
+      includeMetadata: true,
+      generateFrontmatter: true,
+    });
+
+    console.log('Conversion completed. Result length:', result.markdown.length);
+
+    // Ensure test-outputs directory exists
+    await mkdir('test-outputs', { recursive: true });
+
+    // Generate filename based on URL
+    const urlObj = new URL(url);
+    const pathParts = urlObj.pathname.split('/').filter(Boolean);
+    const lastPart = pathParts[pathParts.length - 1] || 'page';
+    const filename = `test-outputs/${lastPart}-${Date.now()}.md`;
+
+    console.log('Writing to file:', filename);
+
+    // Write the markdown file
+    await writeFile(filename, result.markdown);
+
+    console.log(`✅ Conversion completed successfully!`);
+    console.log(`📄 File saved as: ${filename}`);
+    console.log(`📊 Lines: ${result.markdown.split('\n').length}`);
+    console.log(`📊 Characters: ${result.markdown.length}`);
+    console.log(`📊 Word count: ${result.wordCount}`);
+  } catch (error) {
+    console.error('❌ Conversion failed:', error);
+    if (error instanceof Error) {
+      console.error('Stack trace:', error.stack);
+    }
+    process.exit(1);
+  }
+}
+
+// Only run main if this file is executed directly
+if (import.meta.url === `file://${process.argv[1]}`) {
+  main();
+}
