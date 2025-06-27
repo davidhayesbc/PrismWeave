@@ -7,15 +7,28 @@
 import chalk from 'chalk';
 import fs from 'fs-extra';
 import path from 'path';
-import { NodeMarkdownConverter } from './src/node-markdown-converter.js';
+import { NodeMarkdownConverter } from './markdown-converter-node.ts';
+
+// Use the same interface as NodeMarkdownConverter
+interface IConversionResult {
+  markdown: string;
+  frontmatter: string;
+  metadata: any;
+  images: any[];
+  wordCount: number;
+  originalHtml?: string; // Optional for compatibility
+}
 
 class SimpleUrlTester {
+  private converter: NodeMarkdownConverter;
+  private outputDir: string;
+
   constructor(outputDir = './test-outputs') {
     this.outputDir = path.resolve(outputDir);
     this.converter = new NodeMarkdownConverter();
   }
 
-  async testUrl(url, options = {}) {
+  async testUrl(url: string, options: Record<string, unknown> = {}): Promise<IConversionResult> {
     const startTime = Date.now();
 
     try {
@@ -34,13 +47,15 @@ class SimpleUrlTester {
 
       const conversionTime = Date.now() - startTime;
 
-      // Generate filename
+      // Generate filename using kebab-case convention
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
       const urlSlug = url
+        .replace(/https?:\/\//, '')
         .replace(/[^a-zA-Z0-9]/g, '-')
         .replace(/-+/g, '-')
+        .toLowerCase()
         .slice(0, 50);
-      const baseFilename = `${urlSlug}--${timestamp}`;
+      const baseFilename = `${urlSlug}-${timestamp}`;
 
       // Save results
       await this.saveResults(result, baseFilename, url, conversionTime);
@@ -52,16 +67,24 @@ class SimpleUrlTester {
 
       return result;
     } catch (error) {
-      console.error(chalk.red('❌ Conversion failed:'), error.message);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error(chalk.red('❌ Conversion failed:'), errorMessage);
       throw error;
     }
   }
 
-  async saveResults(result, baseFilename, url, conversionTime) {
-    // Save HTML
-    const htmlPath = path.join(this.outputDir, `${baseFilename}.html`);
-    await fs.writeFile(htmlPath, result.originalHtml, 'utf8');
-    console.log(chalk.gray(`💾 Saved HTML: ${htmlPath}`));
+  async saveResults(
+    result: IConversionResult,
+    baseFilename: string,
+    url: string,
+    conversionTime: number
+  ): Promise<void> {
+    // Save HTML (if available)
+    if (result.originalHtml) {
+      const htmlPath = path.join(this.outputDir, `${baseFilename}.html`);
+      await fs.writeFile(htmlPath, result.originalHtml, 'utf8');
+      console.log(chalk.gray(`💾 Saved HTML: ${htmlPath}`));
+    }
 
     // Save Markdown
     const mdPath = path.join(this.outputDir, `${baseFilename}.md`);
@@ -79,7 +102,7 @@ class SimpleUrlTester {
       images: result.images,
       stats: {
         wordCount: result.wordCount,
-        htmlLength: result.originalHtml.length,
+        htmlLength: result.originalHtml?.length || 0,
         markdownLength: result.markdown.length,
       },
     };
@@ -102,7 +125,8 @@ async function main() {
     const tester = new SimpleUrlTester();
     await tester.testUrl(url);
   } catch (error) {
-    console.error(chalk.red('❌ Test failed:'), error.message);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error(chalk.red('❌ Test failed:'), errorMessage);
     process.exit(1);
   }
 }

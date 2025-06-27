@@ -1,8 +1,8 @@
 # PrismWeave Markdown Converter Development Tools
 
-Fast development and testing environment for the PrismWeave markdown conversion
-engine. This toolkit allows you to rapidly test and iterate on the markdown
-conversion logic used in the browser extension.
+Development tools for testing PrismWeave markdown conversion using the exact
+same core logic as the browser extension. This toolkit allows you to rapidly
+test URL conversion and debug markdown output.
 
 ## 🚀 Quick Start
 
@@ -19,16 +19,19 @@ npm install
 # Test a URL and save HTML + Markdown for comparison
 npm run test-url "https://example.com/article"
 
-# With custom options
-npm run test-url "https://github.com/microsoft/TypeScript" --format=markdown --verbose
+# The tool will save three files in ./test-outputs/:
+# - [url-slug]-[timestamp].html (original HTML)
+# - [url-slug]-[timestamp].md (converted markdown with frontmatter)
+# - [url-slug]-[timestamp].json (metadata and stats)
 ```
 
-### Test Local HTML File
+## 📁 Core Files
 
-```bash
-# Test a local HTML file
-npm run dev test ./sample.html
-```
+- `url-test-cli.ts` - Main CLI tool for testing URL conversions
+- `markdown-converter-node.ts` - Node.js wrapper for browser extension core
+- `package.json` - Dependencies and scripts
+- `tsconfig.json` - TypeScript configuration
+- `test-outputs/` - Generated test results
 
 ### Compare Results
 

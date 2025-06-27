@@ -4,10 +4,9 @@
   "description": "Development tools for testing PrismWeave markdown conversion - uses exact browser extension code",
   "type": "module",
   "scripts": {
-    "test-url": "tsx simple-url-test.ts",
-    "test-url-direct": "tsx simple-url-test-tsx.ts",
+    "test-url": "tsx url-test-cli.ts",
     "build": "tsc --build",
-    "clean": "rm -rf node_modules package-lock.json dist"
+    "clean": "rm -rf node_modules package-lock.json"
   },
   "dependencies": {
     "chalk": "^5.3.0",
