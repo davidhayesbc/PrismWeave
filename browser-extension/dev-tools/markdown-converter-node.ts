@@ -28,6 +28,7 @@ interface IConversionResult {
 
 export class NodeMarkdownConverter {
   private core: any = null;
+  private contentExtractor: any = null;
   private _isInitialized: boolean = false;
 
   constructor() {
@@ -36,11 +37,15 @@ export class NodeMarkdownConverter {
 
   private async initializeForNode(): Promise<void> {
     try {
-      // Dynamic import of the core class from browser extension
-      const { MarkdownConverterCore } = await import('../src/utils/markdown-converter-core.js');
+      // Dynamic import of the core class and content extractor from browser extension
+      const { MarkdownConverterCore } = await import(
+        '@browser-extension/utils/markdown-converter-core.js'
+      );
+      const { ContentExtractor } = await import('@browser-extension/utils/content-extractor.js');
 
-      // Create instance of the core
+      // Create instances
       this.core = new MarkdownConverterCore();
+      this.contentExtractor = new ContentExtractor();
 
       // Initialize TurndownService for Node.js environment
       this.core.turndownService = new TurndownService() as any;
@@ -48,9 +53,10 @@ export class NodeMarkdownConverter {
       // Call the protected setup method from the core
       this.core.setupTurndownService();
       this.core._isInitialized = true;
+
       this._isInitialized = true;
 
-      console.info('NodeMarkdownConverter: Initialized successfully');
+      console.info('NodeMarkdownConverter: Initialized successfully with content extraction');
     } catch (error) {
       console.error('NodeMarkdownConverter: Failed to initialize:', error);
       this._isInitialized = false;
@@ -99,7 +105,7 @@ export class NodeMarkdownConverter {
   ): Promise<IConversionResult> {
     await this.ensureInitialized();
 
-    if (!this._isInitialized || !this.core) {
+    if (!this._isInitialized || !this.core || !this.contentExtractor) {
       throw new Error('NodeMarkdownConverter not properly initialized');
     }
 
@@ -125,8 +131,39 @@ export class NodeMarkdownConverter {
       global.Element = dom.window.Element;
       global.DOMParser = dom.window.DOMParser;
 
-      // Now call the core conversion method with DOM globals set up
-      const result = this.core.convertToMarkdown(html, options);
+      // CRITICAL FIX: Extract content first, just like the browser extension
+      console.log('Extracting main content from HTML...');
+      const extractedContent = await this.contentExtractor.extractContent({
+        preserveFormatting: options.preserveFormatting || true,
+        removeAds: true,
+        removeNavigation: true,
+      });
+
+      // Use the extracted content, not the full HTML
+      const htmlContent = extractedContent.content || extractedContent.cleanedContent || html;
+      console.log(`Content extraction completed: ${htmlContent.length} chars`);
+
+      // Build metadata from both extraction and document
+      const pageMetadata = {
+        title: dom.window.document.title || 'Untitled',
+        url: 'extracted-content',
+        ...extractedContent.metadata,
+      };
+
+      // Now call the core conversion method with extracted content
+      const result = this.core.convertToMarkdown(htmlContent, {
+        ...options,
+        generateFrontmatter: true,
+        includeMetadata: true,
+      });
+
+      // Enhance the result with extracted metadata
+      result.metadata = {
+        ...result.metadata,
+        ...pageMetadata,
+        extractedAt: new Date().toISOString(),
+        extractionMethod: 'node-content-extractor',
+      };
 
       return result;
     } catch (error) {
