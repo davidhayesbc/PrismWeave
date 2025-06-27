@@ -30,7 +30,7 @@ describe('Line Number Removal in HTML to Markdown Conversion', () => {
     `;
 
     const result = simpleMarkdownConversion(htmlWithLineNumbers, 'Test', 'http://test.com');
-    
+
     // The markdown should contain the code without line numbers
     expect(result.content).toContain('#!/bin/bash');
     expect(result.content).toContain('echo "Hello"');
@@ -53,14 +53,14 @@ describe('Line Number Removal in HTML to Markdown Conversion', () => {
     `;
 
     const result = simpleMarkdownConversion(htmlWithDifferentFormats, 'Test', 'http://test.com');
-    
+
     // Should contain the actual code content
     expect(result.content).toContain('echo "test"');
     expect(result.content).toContain('ls -la');
     expect(result.content).toContain('FROM node:16-alpine');
     expect(result.content).toContain('WORKDIR /app');
     expect(result.content).toContain('COPY package*.json');
-    
+
     // Should detect languages
     expect(result.content).toContain('```bash');
     expect(result.content).toContain('```docker');
@@ -77,7 +77,7 @@ describe('Line Number Removal in HTML to Markdown Conversion', () => {
     `;
 
     const result = simpleMarkdownConversion(htmlWithIndentation, 'Test', 'http://test.com');
-    
+
     // Should preserve the logical structure even if spacing changes
     expect(result.content).toContain('if [ -f file.txt ]; then');
     expect(result.content).toContain('echo "File exists"');
@@ -102,7 +102,7 @@ echo "Final line"</code></pre>
     `;
 
     const result = simpleMarkdownConversion(htmlMixed, 'Test', 'http://test.com');
-    
+
     // Should extract all the meaningful code content
     expect(result.content).toContain('#!/bin/bash');
     expect(result.content).toContain('echo "This line has a number"');
@@ -119,7 +119,7 @@ echo "Final line"</code></pre>
     `;
 
     const result = simpleMarkdownConversion(htmlInline, 'Test', 'http://test.com');
-    
+
     // Should handle inline code properly
     expect(result.content).toContain('`npm install`');
     expect(result.content).toContain('`npm start`');
@@ -140,7 +140,7 @@ echo "Final line"</code></pre>
     `;
 
     const result = simpleMarkdownConversion(dockerHtml, 'Docker Example', 'http://test.com');
-    
+
     // Should extract clean Dockerfile content
     expect(result.content).toContain('FROM node:16-alpine');
     expect(result.content).toContain('WORKDIR /app');
@@ -150,7 +150,7 @@ echo "Final line"</code></pre>
     expect(result.content).toContain('COPY . .');
     expect(result.content).toContain('EXPOSE 3000');
     expect(result.content).toContain('CMD ["npm", "start"]');
-    
+
     // Should properly format as docker (language-dockerfile becomes docker)
     expect(result.content).toContain('```docker');
   });
@@ -167,7 +167,7 @@ echo "Final line"</code></pre>
     `;
 
     const result = simpleMarkdownConversion(emptyCodeHtml, 'Empty', 'http://test.com');
-    
+
     // Should handle empty blocks gracefully without errors
     expect(result.content).toBeDefined();
     expect(result.title).toBe('Empty');

@@ -209,5 +209,3 @@ export function simpleMarkdownConversion(
     url: url,
   };
 }
-
-
