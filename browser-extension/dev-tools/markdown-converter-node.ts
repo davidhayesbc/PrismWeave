@@ -31,13 +31,13 @@ export class NodeMarkdownConverter {
   private _isInitialized: boolean = false;
 
   constructor() {
-    this.initializeForNode();
+    // Don't initialize in constructor - make it lazy
   }
 
   private async initializeForNode(): Promise<void> {
     try {
-      // Dynamic import of the core class
-      const { MarkdownConverterCore } = await import('../src/utils/markdown-converter-core.ts');
+      // Dynamic import of the core class from browser extension
+      const { MarkdownConverterCore } = await import('../src/utils/markdown-converter-core.js');
 
       // Create instance of the core
       this.core = new MarkdownConverterCore();

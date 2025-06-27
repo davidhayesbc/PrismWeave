@@ -131,7 +131,5 @@ async function main() {
   }
 }
 
-// Run if this file is executed directly
-if (import.meta.url === `file://${process.argv[1]}`) {
-  main();
-}
+// Run the CLI
+main().catch(console.error);
