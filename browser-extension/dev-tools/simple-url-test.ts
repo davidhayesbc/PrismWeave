@@ -10,6 +10,8 @@ import path from 'path';
 import { NodeMarkdownConverter } from './node-markdown-converter.ts';
 
 class SimpleUrlTester {
+  private converter: NodeMarkdownConverter;
+
   constructor(outputDir = './test-outputs') {
     this.outputDir = path.resolve(outputDir);
     this.converter = new NodeMarkdownConverter();
