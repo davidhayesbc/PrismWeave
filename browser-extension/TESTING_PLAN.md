@@ -11,13 +11,13 @@ worker operations.
 
 - **Framework**: Jest with TypeScript support
 - **Coverage Target**: 70% for critical modules
-- **Current Status**: 24 tests passing, 3 test suites implemented
+- **Current Status**: 33 tests passing, 5 test suites implemented
 
 ---
 
 ## Test Status Summary
 
-### ✅ Implemented Tests (24 total)
+### ✅ Implemented Tests (33 total)
 
 #### A. Settings Management (11 tests) - `settings-manager.test.ts`
 
@@ -54,6 +54,18 @@ worker operations.
 - **C.1.3** ✅ Handle pages with no clear main content
 - **C.1.4** ✅ Process single-page applications
 
+#### D. Content Cleaning (9 tests) - `content-extractor-cleaning.test.ts`
+
+- **C.2.1** ✅ Remove unwanted selectors (ads, navigation)
+- **C.2.1b** ✅ Remove navigation elements specifically
+- **C.2.2** ✅ Preserve formatting elements
+- **C.2.3** ✅ Handle custom selectors for removal
+- **C.2.4** ✅ Clean malformed HTML
+- **D.1.1** ✅ Handle content with mixed wanted and unwanted elements
+- **D.1.2** ✅ Preserve content when cleaning options are disabled
+- **D.1.3** ✅ Handle deeply nested empty elements
+- **D.1.4** ✅ Test individual cleaning method execution
+
 ---
 
 ## Planned Test Suites
@@ -79,10 +91,10 @@ describe('ContentExtractor - Core Functionality', () => {
 
 2. **Content Cleaning**
 
-   - **C.2.1** Remove unwanted selectors (ads, navigation)
-   - **C.2.2** Preserve formatting elements
-   - **C.2.3** Handle custom selectors for removal
-   - **C.2.4** Clean malformed HTML
+   - **C.2.1** ✅ Remove unwanted selectors (ads, navigation)
+   - **C.2.2** ✅ Preserve formatting elements
+   - **C.2.3** ✅ Handle custom selectors for removal
+   - **C.2.4** ✅ Clean malformed HTML
 
 3. **Metadata Extraction**
 
