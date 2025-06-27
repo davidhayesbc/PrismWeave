@@ -7,7 +7,7 @@
 import chalk from 'chalk';
 import fs from 'fs-extra';
 import path from 'path';
-import { NodeMarkdownConverter } from './src/node-markdown-converter.ts';
+import { NodeMarkdownConverter } from './src/node-markdown-converter.js';
 
 class SimpleUrlTester {
   constructor(outputDir = './test-outputs') {
