@@ -107,8 +107,9 @@ export class NodeMarkdownConverter {
     const dom = new JSDOM(html, {
       url: 'http://localhost',
       contentType: 'text/html',
-      pretendToBeVisual: true,
-      resources: 'usable',
+      pretendToBeVisual: false,
+      resources: undefined, // Don't load external resources (CSS, images, etc.)
+      runScripts: 'outside-only', // Only run scripts we inject, not page scripts
     });
 
     // Set up global DOM environment for the core converter
