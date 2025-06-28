@@ -352,10 +352,17 @@ class SettingsManager {
   private async getFromStorage<T = ISettingsManagerStorageData>(
     keys: SettingsManagerStorageKeys
   ): SettingsManagerStorageResult<T> {
+    // Access chrome from global scope for test compatibility
+    const chromeAPI =
+      (global as any).chrome || (typeof chrome !== 'undefined' ? chrome : undefined);
+    if (!chromeAPI || !chromeAPI.storage) {
+      throw new Error('Chrome storage API not available');
+    }
+
     return new Promise<T>((resolve, reject) => {
-      chrome.storage.sync.get(keys as any, (result: T) => {
-        if (chrome.runtime.lastError) {
-          reject(new Error(chrome.runtime.lastError.message));
+      chromeAPI.storage.sync.get(keys as any, (result: T) => {
+        if (chromeAPI.runtime.lastError) {
+          reject(new Error(chromeAPI.runtime.lastError.message));
         } else {
           resolve(result);
         }
@@ -364,10 +371,17 @@ class SettingsManager {
   }
 
   private async setToStorage(data: ISettingsManagerStorageData): Promise<void> {
+    // Access chrome from global scope for test compatibility
+    const chromeAPI =
+      (global as any).chrome || (typeof chrome !== 'undefined' ? chrome : undefined);
+    if (!chromeAPI || !chromeAPI.storage) {
+      throw new Error('Chrome storage API not available');
+    }
+
     return new Promise<void>((resolve, reject) => {
-      chrome.storage.sync.set(data, () => {
-        if (chrome.runtime.lastError) {
-          reject(new Error(chrome.runtime.lastError.message));
+      chromeAPI.storage.sync.set(data, () => {
+        if (chromeAPI.runtime.lastError) {
+          reject(new Error(chromeAPI.runtime.lastError.message));
         } else {
           resolve();
         }

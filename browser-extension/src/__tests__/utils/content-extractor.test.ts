@@ -2,61 +2,19 @@
 // Content Extractor Tests - Simplified JSDOM-based approach
 
 import { ContentExtractor } from '../../utils/content-extractor';
-
-// Helper function to set up JSDOM with real HTML
-const setupDOM = (html: string) => {
-  // Set up the document with the provided HTML
-  document.documentElement.innerHTML = html;
-  
-  // Mock window.location for consistent URL handling
-  Object.defineProperty(window, 'location', {
-    value: {
-      href: 'https://example.com/test-article',
-      hostname: 'example.com',
-      pathname: '/test-article'
-    },
-    writable: true
-  });
-
-  // Ensure document.readyState is set
-  Object.defineProperty(document, 'readyState', {
-    value: 'complete',
-    writable: true
-  });
-};
+import { setupDOM, createTestHTML, cleanupTest } from '../test-helpers';
 
 describe('ContentExtractor - Core Functionality', () => {
   let extractor: ContentExtractor;
 
   beforeEach(() => {
     extractor = new ContentExtractor();
-    // Reset document content
-    document.documentElement.innerHTML = '';
-    jest.clearAllMocks();
+    cleanupTest();
   });
 
   describe('Content Identification', () => {
     test('C.1.1 - Extract main content from article pages', async () => {
-      const articleHtml = `
-        <head>
-          <title>Test Article</title>
-          <meta property="og:title" content="Test Article">
-          <meta name="author" content="Test Author">
-          <meta name="keywords" content="test, article, content">
-        </head>
-        <body>
-          <nav>Navigation content</nav>
-          <aside>Sidebar ads</aside>
-          <article class="article-content" id="main-article">
-            <h1>Main Article Title</h1>
-            <p>This is the main article content that should be extracted.</p>
-            <p>Another paragraph with valuable content.</p>
-          </article>
-          <footer>Footer content</footer>
-        </body>
-      `;
-
-      setupDOM(articleHtml);
+      setupDOM(createTestHTML('article'));
 
       const result = await extractor.extractContent();
 
@@ -64,35 +22,13 @@ describe('ContentExtractor - Core Functionality', () => {
       expect(result.content).toContain('Main Article Title');
       expect(result.content).toContain('main article content');
       expect(result.metadata).toBeDefined();
-      expect(result.metadata.title).toBe('Test Article');
+      expect(result.metadata.title).toBe('OpenGraph Title'); // Prefers og:title
       expect(result.metadata.author).toBe('Test Author');
       expect(result.wordCount).toBeGreaterThan(5);
     });
 
     test('C.1.2 - Extract content from blog posts', async () => {
-      const blogHtml = `
-        <head>
-          <title>Blog Post Title</title>
-        </head>
-        <body>
-          <header>Blog Header</header>
-          <main>
-            <div class="blog-content">
-              <h1>How to Build Amazing Apps</h1>
-              <div class="post-meta">By John Doe, Published: 2024-01-15</div>
-              <p>Building amazing applications requires careful planning and execution.</p>
-              <h2>Key Principles</h2>
-              <ul>
-                <li>User-centered design</li>
-                <li>Performance optimization</li>
-                <li>Scalable architecture</li>
-              </ul>
-            </div>
-          </main>
-        </body>
-      `;
-
-      setupDOM(blogHtml);
+      setupDOM(createTestHTML('blog'));
 
       const result = await extractor.extractContent();
 
@@ -104,19 +40,7 @@ describe('ContentExtractor - Core Functionality', () => {
     });
 
     test('C.1.3 - Handle pages with no clear main content', async () => {
-      const genericHtml = `
-        <head><title>Generic Page</title></head>
-        <body>
-          <div>
-            <p>Some scattered content here with enough text to make it meaningful and pass minimum requirements.</p>
-          </div>
-          <div>
-            <p>More scattered content there with additional meaningful text for testing purposes.</p>
-          </div>
-        </body>
-      `;
-
-      setupDOM(genericHtml);
+      setupDOM(createTestHTML('generic'));
 
       const result = await extractor.extractContent();
 
@@ -148,7 +72,10 @@ describe('ContentExtractor - Core Functionality', () => {
 
     test('C.4.2 - Estimate reading time', async () => {
       // Create content with approximately 300 words
-      const longContent = 'This is a comprehensive article with substantial content that demonstrates proper reading time estimation. '.repeat(30);
+      const longContent =
+        'This is a comprehensive article with substantial content that demonstrates proper reading time estimation. '.repeat(
+          30
+        );
       const contentHtml = `
         <head><title>Reading Time Test</title></head>
         <body>
@@ -258,12 +185,12 @@ describe('ContentExtractor - Core Functionality', () => {
       expect(images[0]).toEqual({
         src: 'https://example.com/image1.jpg',
         alt: 'Test Image 1',
-        title: 'Image Title'
+        title: 'Image Title',
       });
       expect(images[1]).toEqual({
         src: 'https://example.com/image2.png',
         alt: 'Test Image 2',
-        title: ''
+        title: '',
       });
     });
 
@@ -284,12 +211,12 @@ describe('ContentExtractor - Core Functionality', () => {
       expect(links[0]).toEqual({
         href: 'https://example.com/link1',
         text: 'Link Text 1',
-        title: 'Link Title'
+        title: 'Link Title',
       });
       expect(links[1]).toEqual({
         href: 'https://example.com/link2',
         text: 'Link Text 2',
-        title: ''
+        title: '',
       });
     });
 
@@ -358,17 +285,7 @@ describe('ContentExtractor - Core Functionality', () => {
     });
 
     test('E.1.2 - Handle malformed HTML', async () => {
-      const malformedHtml = `
-        <body>
-          <div>
-            <p>Content with unclosed tags and sufficient text for meaningful content extraction
-            <span>Nested content without proper closing tags
-            <p>More content without proper structural organization but enough text for testing</p>
-          </div>
-        </body>
-      `;
-
-      setupDOM(malformedHtml);
+      setupDOM(createTestHTML('malformed'));
 
       const result = await extractor.extractContent();
 

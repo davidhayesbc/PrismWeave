@@ -9,6 +9,7 @@ applyTo: '**/*.{js,ts}'
 - **Test Structure**: Organized in `src/__tests__/` directory
 - **Coverage Target**: 80%+ for critical modules
 - **File Naming**: `*.test.js` pattern
+- Use JSDOM for browser tests
 
 ## Test File Organization
 ```

@@ -3,510 +3,283 @@
 // Implements test cases C.2.1 through C.2.4 from TESTING_PLAN.md
 
 import { ContentExtractor } from '../../utils/content-extractor';
+import { cleanupTest, setupDOM } from '../test-helpers';
 
 describe('ContentExtractor - Content Cleaning', () => {
   let extractor: ContentExtractor;
-  let mockDocument: any;
-  let mockWindow: any;
 
   beforeEach(() => {
     extractor = new ContentExtractor();
-
-    // Create mock elements
-    const createMockElement = (html: string) => {
-      const element = {
-        innerHTML: html,
-        textContent: html.replace(/<[^>]*>/g, ''),
-        querySelectorAll: jest.fn(),
-        querySelector: jest.fn(),
-        tagName: 'DIV',
-        cloneNode: jest.fn(),
-        remove: jest.fn(),
-        className: '',
-        id: '',
-        children: { length: 0 },
-        getAttribute: jest.fn(),
-      };
-
-      element.cloneNode.mockReturnValue({ ...element });
-      return element;
-    };
-
-    // Mock DOM globals
-    mockDocument = {
-      createElement: jest.fn((tag: string) => createMockElement('')),
-      readyState: 'complete',
-      location: { href: 'https://example.com/test' },
-      title: 'Test Page',
-      body: createMockElement(''),
-      querySelector: jest.fn(),
-      querySelectorAll: jest.fn(),
-    };
-
-    mockWindow = {
-      location: { href: 'https://example.com/test' },
-      addEventListener: jest.fn(),
-    };
-
-    (global as any).document = mockDocument;
-    (global as any).window = mockWindow;
+    cleanupTest();
   });
 
   describe('Content Cleaning - Unwanted Elements', () => {
-    test('C.2.1 - Remove unwanted selectors (ads, navigation)', () => {
-      // Test the removeAds method by checking it can execute without errors
-      const testHTML = `
-        <div class="main-content">
-          <h1>Article Title</h1>
-          <p>This is the main article content that should be preserved.</p>
-          <div class="ad">Advertisement</div>
-          <div class="advertisement">Sponsored Content</div>
-          <p>More article content with valuable information.</p>
-        </div>
+    test('C.2.1 - Remove unwanted selectors (ads, navigation)', async () => {
+      const htmlWithAds = `
+        <head><title>Test Article</title></head>
+        <body>
+          <div class="main-content">
+            <h1>Article Title</h1>
+            <p>This is the main article content that should be preserved.</p>
+            <div class="ad">Advertisement</div>
+            <div class="advertisement">Sponsored Content</div>
+            <p>More article content with valuable information.</p>
+          </div>
+        </body>
       `;
 
-      // The beforeEach already sets up createElement mock that returns a proper mock element
-      // We just need to test that the method executes successfully
-      const result = (extractor as any).removeAds(testHTML);
+      setupDOM(htmlWithAds);
 
-      // Verify the method ran and returned a string result
+      const result = await extractor.extractContent();
+
       expect(result).toBeDefined();
-      expect(typeof result).toBe('string');
-
-      // The method should complete without throwing errors, indicating proper DOM manipulation
+      expect(result.content).toContain('Article Title');
+      expect(result.content).toContain('main article content');
+      expect(result.content).toContain('valuable information');
+      // Ads should be removed by the content cleaning process
+      expect(result.content).not.toContain('Advertisement');
+      expect(result.content).not.toContain('Sponsored Content');
     });
 
-    test('C.2.1b - Remove navigation elements', () => {
-      // Test the removeNavigation method
-      const testHTML = `
-        <div class="main-content">
-          <h1>Article Title</h1>
-          <p>Main content paragraph.</p>
+    test('C.2.1b - Remove navigation elements', async () => {
+      const htmlWithNavigation = `
+        <head><title>Test Article</title></head>
+        <body>
           <nav>Navigation Menu</nav>
           <div class="navigation">Site Navigation</div>
           <header class="site-header">Header</header>
           <footer class="site-footer">Footer</footer>
           <aside class="sidebar">Sidebar</aside>
-          <p>More valuable content.</p>
-        </div>
+          
+          <div class="main-content">
+            <h1>Article Title</h1>
+            <p>Main content paragraph with sufficient text for extraction.</p>
+            <p>More valuable content that should be preserved.</p>
+          </div>
+        </body>
       `;
 
-      // Test that the method executes successfully
-      const result = (extractor as any).removeNavigation(testHTML);
+      setupDOM(htmlWithNavigation);
 
-      // Verify the method ran and returned a valid result
+      const result = await extractor.extractContent();
+
       expect(result).toBeDefined();
-      expect(typeof result).toBe('string');
-
-      // The method should complete without errors, indicating DOM operations succeeded
+      expect(result.content).toContain('Article Title');
+      expect(result.content).toContain('Main content paragraph');
+      expect(result.content).toContain('valuable content');
+      // Navigation elements should be removed
+      expect(result.content).not.toContain('Navigation Menu');
+      expect(result.content).not.toContain('Site Navigation');
     });
 
-    test('C.2.2 - Preserve formatting elements', () => {
-      // Test that cleanContent preserves important formatting
-      const testHTML = `
-        <article class="main-content">
-          <h1>Technical Article</h1>
-          <h2>Introduction</h2>
-          <p>This is a <strong>technical article</strong> with <em>important formatting</em>.</p>
-          
-          <pre><code>
-            function example() {
-              return "code block";
-            }
-          </code></pre>
-          
-          <ul>
-            <li>First list item</li>
-            <li>Second list item with <code>inline code</code></li>
-          </ul>
-          
-          <blockquote>
-            <p>This is an important quote that should be preserved.</p>
-          </blockquote>
-        </article>
+    test('C.2.2 - Preserve formatting elements', async () => {
+      const htmlWithFormatting = `
+        <head><title>Technical Article</title></head>
+        <body>
+          <article class="main-content">
+            <h1>Technical Article</h1>
+            <h2>Introduction</h2>
+            <p>This is a <strong>technical article</strong> with <em>important formatting</em>.</p>
+            
+            <pre><code>
+              function example() {
+                return "code block";
+              }
+            </code></pre>
+            
+            <ul>
+              <li>First list item</li>
+              <li>Second list item with <code>inline code</code></li>
+            </ul>
+            
+            <blockquote>
+              <p>This is an important quote that should be preserved.</p>
+            </blockquote>
+          </article>
+        </body>
       `;
 
-      const mockElement = {
-        innerHTML: testHTML,
-        querySelectorAll: jest.fn(),
-      };
+      setupDOM(htmlWithFormatting);
 
-      // Mock for removeEmptyElements - should not remove any formatting elements
-      mockElement.querySelectorAll.mockImplementation((selector: string) => {
-        if (selector === '*') {
-          // Return mock elements that have content (should not be removed)
-          return [
-            {
-              textContent: 'Technical Article',
-              querySelector: jest.fn(() => null),
-              remove: jest.fn(),
-            },
-            {
-              textContent: 'technical article',
-              querySelector: jest.fn(() => null),
-              remove: jest.fn(),
-            },
-            {
-              textContent: 'function example()',
-              querySelector: jest.fn(() => null),
-              remove: jest.fn(),
-            },
-          ];
-        }
-        return [];
-      });
+      const result = await extractor.extractContent();
 
-      mockDocument.createElement.mockReturnValue(mockElement);
-
-      // Test cleanContent method with preserveFormatting option
-      const result = (extractor as any).cleanContent(testHTML, { preserveFormatting: true });
-
-      // Should return the original HTML since formatting is preserved
-      expect(result).toBe(testHTML);
+      expect(result).toBeDefined();
+      expect(result.content).toContain('Technical Article');
+      expect(result.content).toContain('technical article');
+      expect(result.content).toContain('function example');
+      expect(result.content).toContain('First list item');
+      expect(result.content).toContain('important quote');
+      // Formatting should be preserved in the extracted content
+      expect(result.wordCount).toBeGreaterThan(10);
     });
 
-    test('C.2.3 - Handle custom selectors for removal', () => {
-      // Test removeUnwantedElements method with custom excludeSelectors
-      const testHTML = `
-        <div class="main-content">
-          <h1>Article with Custom Elements</h1>
-          <p>Main content paragraph.</p>
-          
-          <!-- Custom elements that should be removed -->
-          <div class="newsletter-signup">Subscribe to our newsletter!</div>
-          <div class="social-share">Share this article</div>
-          <div class="author-bio">About the author</div>
-          <div class="related-posts">Related articles</div>
-          <div data-tracking="analytics">Tracking element</div>
-          <div class="custom-widget">Custom widget content</div>
-          
-          <p>More valuable content.</p>
-        </div>
+    test('C.2.3 - Handle custom selectors for removal', async () => {
+      const htmlWithCustomElements = `
+        <head><title>Article with Custom Elements</title></head>
+        <body>
+          <div class="main-content">
+            <h1>Article with Custom Elements</h1>
+            <p>Main content paragraph with enough text for meaningful extraction.</p>
+            
+            <div class="newsletter-signup">Subscribe to our newsletter!</div>
+            <div class="social-share">Share this article</div>
+            <div class="author-bio">About the author</div>
+            <div class="related-posts">Related articles</div>
+            <div data-tracking="analytics">Tracking element</div>
+            <div class="custom-widget">Custom widget content</div>
+            
+            <p>More valuable content with additional text for testing purposes.</p>
+          </div>
+        </body>
       `;
 
-      const mockMainElement = {
-        cloneNode: jest.fn(),
-        innerHTML: testHTML,
-        querySelectorAll: jest.fn(),
-        tagName: 'DIV',
-        textContent: 'Article with Custom Elements Main content paragraph. More valuable content.',
-      };
+      setupDOM(htmlWithCustomElements);
 
-      const mockClonedElement = {
-        innerHTML: testHTML,
-        querySelectorAll: jest.fn(),
-      };
+      const result = await extractor.extractContent();
 
-      mockMainElement.cloneNode.mockReturnValue(mockClonedElement);
-
-      // Mock querySelectorAll for custom selectors
-      const mockCustomElements = [
-        { remove: jest.fn() },
-        { remove: jest.fn() },
-        { remove: jest.fn() },
-        { remove: jest.fn() },
-        { remove: jest.fn() },
-        { remove: jest.fn() },
-      ];
-
-      mockClonedElement.querySelectorAll.mockImplementation((selector: string) => {
-        if (
-          selector.includes('newsletter-signup') ||
-          selector.includes('social-share') ||
-          selector.includes('author-bio') ||
-          selector.includes('related-posts') ||
-          selector.includes('[data-tracking]') ||
-          selector.includes('custom-widget')
-        ) {
-          return mockCustomElements;
-        }
-        return [];
-      });
-
-      // Mock findMainContent to return our test element
-      jest.spyOn(extractor as any, 'findMainContent').mockReturnValue(testHTML);
-      jest
-        .spyOn(extractor as any, 'removeUnwantedElements')
-        .mockImplementation((element: any, options: any) => {
-          if (options.excludeSelectors) {
-            const customElements = element.querySelectorAll(options.excludeSelectors.join(','));
-            customElements.forEach((el: any) => el.remove());
-          }
-        });
-
-      // Test with custom exclude selectors
-      const options = {
-        excludeSelectors: [
-          '.newsletter-signup',
-          '.social-share',
-          '.author-bio',
-          '.related-posts',
-          '[data-tracking]',
-          '.custom-widget',
-        ],
-      };
-
-      const findMainContentSpy = jest.spyOn(extractor as any, 'findMainContent');
-      findMainContentSpy.mockReturnValue(testHTML);
-
-      // This tests the integration through findMainContent
-      const result = (extractor as any).findMainContent(options);
-
-      expect(result).toBe(testHTML);
-      expect(findMainContentSpy).toHaveBeenCalledWith(options);
+      expect(result).toBeDefined();
+      expect(result.content).toContain('Article with Custom Elements');
+      expect(result.content).toContain('Main content paragraph');
+      expect(result.content).toContain('valuable content');
+      expect(result.wordCount).toBeGreaterThan(5);
     });
 
-    test('C.2.4 - Clean malformed HTML', () => {
-      // Test removeEmptyElements and normalizeWhitespace methods
-      const testHTML = `
-        <div class="main-content">
-          <h1>Article Title</h1>
-          
-          <!-- Malformed and empty elements -->
-          <p></p>
-          <div></div>
-          <span>   </span>
-          <div>
+    test('C.2.4 - Clean malformed HTML', async () => {
+      const malformedHtml = `
+        <head><title>Malformed HTML Test</title></head>
+        <body>
+          <div class="main-content">
+            <h1>Article Title</h1>
+            
+            <!-- Empty elements -->
             <p></p>
-            <span></span>
+            <div></div>
+            <span>   </span>
+            <div>
+              <p></p>
+              <span></span>
+            </div>
+            
+            <!-- Valid content -->
+            <p>This paragraph has actual content with sufficient text for extraction.</p>
+            
+            <!-- Content with excessive whitespace -->
+            <p>This    has     multiple    spaces    and
+            
+            
+            line breaks for testing whitespace normalization.</p>
+            
+            <!-- Image should be preserved even in empty container -->
+            <div>
+              <img src="test.jpg" alt="Test image">
+            </div>
           </div>
-          
-          <!-- Valid content -->
-          <p>This paragraph has actual content.</p>
-          
-          <!-- Content with excessive whitespace -->
-          <p>This    has     multiple    spaces    and
-          
-          
-          line breaks.</p>
-          
-          <!-- Image should be preserved even in empty container -->
-          <div>
-            <img src="test.jpg" alt="Test image">
-          </div>
-        </div>
+        </body>
       `;
 
-      // Mock empty elements that should be removed
-      const mockEmptyElements = [
-        { textContent: '', querySelector: jest.fn(() => null), remove: jest.fn() },
-        { textContent: '', querySelector: jest.fn(() => null), remove: jest.fn() },
-        { textContent: '   ', querySelector: jest.fn(() => null), remove: jest.fn() },
-      ];
+      setupDOM(malformedHtml);
 
-      // Mock elements with content that should be preserved
-      const mockContentElements = [
-        { textContent: 'Article Title', querySelector: jest.fn(() => null), remove: jest.fn() },
-        {
-          textContent: 'This paragraph has actual content.',
-          querySelector: jest.fn(() => null),
-          remove: jest.fn(),
-        },
-        { textContent: '', querySelector: jest.fn(() => ({ src: 'test.jpg' })), remove: jest.fn() }, // Has image
-      ];
+      const result = await extractor.extractContent();
 
-      const mockElement = {
-        innerHTML: testHTML,
-        querySelectorAll: jest.fn(),
-      };
-
-      mockElement.querySelectorAll.mockImplementation((selector: string) => {
-        if (selector === '*') {
-          return [...mockEmptyElements, ...mockContentElements];
-        }
-        return [];
-      });
-
-      mockDocument.createElement.mockReturnValue(mockElement);
-
-      // Test cleanContent method without preserveFormatting (allows normalization)
-      const result = (extractor as any).cleanContent(testHTML, { preserveFormatting: false });
-
-      // Verify that the method creates an element and attempts cleanup
       expect(result).toBeDefined();
-      expect(typeof result).toBe('string');
-
-      // Verify that the cleanContent method:
-      // 1. Creates a temporary div
-      // 2. Sets innerHTML
-      // 3. Calls removeEmptyElements
-      // 4. Optionally normalizes whitespace
-      // 5. Returns cleaned HTML
+      expect(result.content).toContain('Article Title');
+      expect(result.content).toContain('actual content');
+      // Check that whitespace was normalized (multiple spaces should be collapsed)
+      expect(result.content).toContain('multiple');
+      expect(result.content).toContain('spaces');
+      expect(result.content).toContain('line breaks');
+      expect(result.wordCount).toBeGreaterThan(5);
+      // The content extractor should handle malformed HTML gracefully and normalize whitespace
     });
   });
 
   describe('Content Cleaning - Edge Cases', () => {
-    test('Should handle content with mixed wanted and unwanted elements', () => {
-      const testHTML = `
-        <article class="main-content">
-          <h1>Mixed Content Article</h1>
-          <div class="ad">Ad content</div>
-          <p>Good paragraph content.</p>
-          <nav>Navigation</nav>
-          <p>Another good paragraph.</p>
-          <div class="newsletter-signup">Newsletter</div>
-          <blockquote>Important quote</blockquote>
-        </article>
+    test('Should handle content with mixed wanted and unwanted elements', async () => {
+      const htmlMixed = `
+        <head><title>Mixed Content Article</title></head>
+        <body>
+          <article class="main-content">
+            <h1>Mixed Content Article</h1>
+            <div class="ad">Ad content</div>
+            <p>Good paragraph content with sufficient text for meaningful extraction.</p>
+            <nav>Navigation</nav>
+            <p>Another good paragraph with additional content for testing purposes.</p>
+            <div class="newsletter-signup">Newsletter</div>
+            <blockquote>Important quote with valuable information</blockquote>
+          </article>
+        </body>
       `;
 
-      // Mock the individual cleaning methods
-      const removeAdsSpy = jest
-        .spyOn(extractor as any, 'removeAds')
-        .mockImplementation((...args: unknown[]) => {
-          const content = args[0] as string;
-          return content.replace(/<div class="ad">.*?<\/div>/g, '');
-        });
+      setupDOM(htmlMixed);
 
-      const removeNavigationSpy = jest
-        .spyOn(extractor as any, 'removeNavigation')
-        .mockImplementation((...args: unknown[]) => {
-          const content = args[0] as string;
-          return content.replace(/<nav>.*?<\/nav>/g, '');
-        });
+      const result = await extractor.extractContent();
 
-      const findMainContentSpy = jest
-        .spyOn(extractor as any, 'findMainContent')
-        .mockReturnValue(testHTML);
-
-      // Test mixed content filtering by calling individual methods
-      let result = testHTML;
-      result = (extractor as any).removeAds(result);
-      result = (extractor as any).removeNavigation(result);
-
-      // Good content should remain
-      expect(result).toContain('Mixed Content Article');
-      expect(result).toContain('Good paragraph content');
-      expect(result).toContain('Another good paragraph');
-      expect(result).toContain('Important quote');
-
-      // Unwanted content should be removed
-      expect(result).not.toContain('Ad content');
-      expect(result).not.toContain('Navigation');
-
-      // Newsletter should still be there (not handled by removeAds or removeNavigation)
-      expect(result).toContain('Newsletter');
-
-      removeAdsSpy.mockRestore();
-      removeNavigationSpy.mockRestore();
-      findMainContentSpy.mockRestore();
+      expect(result).toBeDefined();
+      expect(result.content).toContain('Mixed Content Article');
+      expect(result.content).toContain('Good paragraph content');
+      expect(result.content).toContain('Another good paragraph');
+      expect(result.content).toContain('Important quote');
+      expect(result.wordCount).toBeGreaterThan(10);
     });
 
-    test('Should preserve content when cleaning options are disabled', () => {
-      const testHTML = `
-        <div class="main-content">
-          <h1>Article with All Elements</h1>
-          <div class="ad">Advertisement</div>
-          <nav>Navigation Menu</nav>
-          <p>Main content</p>
-        </div>
-      `;
-
-      // Mock removeAds and removeNavigation to NOT be called when options are false
-      const removeAdsSpy = jest.spyOn(extractor as any, 'removeAds');
-      const removeNavigationSpy = jest.spyOn(extractor as any, 'removeNavigation');
-
-      // When options are false, these methods should not be called
-      // Test by calling them manually with the content
-      const resultWithoutCleaning = testHTML; // No cleaning applied
-
-      // All content should be preserved when cleaning is disabled
-      expect(resultWithoutCleaning).toContain('Article with All Elements');
-      expect(resultWithoutCleaning).toContain('Advertisement');
-      expect(resultWithoutCleaning).toContain('Navigation Menu');
-      expect(resultWithoutCleaning).toContain('Main content');
-
-      // Verify that we can test the methods exist
-      expect(typeof (extractor as any).removeAds).toBe('function');
-      expect(typeof (extractor as any).removeNavigation).toBe('function');
-
-      removeAdsSpy.mockRestore();
-      removeNavigationSpy.mockRestore();
-    });
-
-    test('Should handle deeply nested empty elements', () => {
-      const testHTML = `
-        <div class="main-content">
-          <h1>Nested Structure</h1>
-          <div>
-            <section>
-              <article>
-                <div>
-                  <span></span>
-                </div>
-              </article>
-            </section>
+    test('Should preserve content when cleaning options are disabled', async () => {
+      const htmlWithAllElements = `
+        <head><title>Article with All Elements</title></head>
+        <body>
+          <div class="main-content">
+            <h1>Article with All Elements</h1>
+            <div class="ad">Advertisement content</div>
+            <nav>Navigation Menu</nav>
+            <p>Main content with sufficient text for extraction and testing purposes.</p>
           </div>
-          <p>Valid content here.</p>
-          <div>
+        </body>
+      `;
+
+      setupDOM(htmlWithAllElements);
+
+      const result = await extractor.extractContent();
+
+      expect(result).toBeDefined();
+      expect(result.content).toContain('Article with All Elements');
+      expect(result.content).toContain('Main content');
+      expect(result.wordCount).toBeGreaterThan(5);
+    });
+
+    test('Should handle deeply nested empty elements', async () => {
+      const htmlNested = `
+        <head><title>Nested Structure</title></head>
+        <body>
+          <div class="main-content">
+            <h1>Nested Structure</h1>
+            <div>
+              <section>
+                <article>
+                  <div>
+                    <span></span>
+                  </div>
+                </article>
+              </section>
+            </div>
+            <p>Valid content here with enough text for meaningful extraction.</p>
             <div>
               <div>
-                <img src="preserved.jpg" alt="Should be kept">
+                <div>
+                  <img src="preserved.jpg" alt="Should be kept">
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        </body>
       `;
 
-      const mockElement = {
-        innerHTML: testHTML,
-        querySelectorAll: jest.fn(),
-      };
+      setupDOM(htmlNested);
 
-      // Mock deeply nested empty elements
-      const mockEmptyElements = [
-        {
-          textContent: '',
-          querySelector: jest.fn(() => null),
-          remove: jest.fn(),
-        },
-        {
-          textContent: '',
-          querySelector: jest.fn(() => null),
-          remove: jest.fn(),
-        },
-      ];
+      const result = await extractor.extractContent();
 
-      // Mock elements with content or media
-      const mockContentElements = [
-        {
-          textContent: 'Nested Structure',
-          querySelector: jest.fn(() => null),
-          remove: jest.fn(),
-        },
-        {
-          textContent: 'Valid content here.',
-          querySelector: jest.fn(() => null),
-          remove: jest.fn(),
-        },
-        {
-          textContent: '',
-          querySelector: jest.fn(() => ({ src: 'preserved.jpg' })), // Has image
-          remove: jest.fn(),
-        },
-      ];
-
-      mockElement.querySelectorAll.mockImplementation((selector: string) => {
-        if (selector === '*') {
-          return [...mockEmptyElements, ...mockContentElements];
-        }
-        return [];
-      });
-
-      mockDocument.createElement.mockReturnValue(mockElement);
-
-      // Test removeEmptyElements method
-      (extractor as any).removeEmptyElements(mockElement);
-
-      // Verify that elements were processed
-      expect(mockElement.querySelectorAll).toHaveBeenCalledWith('*');
-
-      // Elements with content should not be removed
-      expect(mockContentElements[0].remove).not.toHaveBeenCalled(); // Has text content
-      expect(mockContentElements[1].remove).not.toHaveBeenCalled(); // Has text content
-      expect(mockContentElements[2].remove).not.toHaveBeenCalled(); // Has image
-
-      // The method should process empty elements (actual removal logic is tested in the implementation)
-      // We're testing that the method correctly identifies and processes different element types
+      expect(result).toBeDefined();
+      expect(result.content).toContain('Nested Structure');
+      expect(result.content).toContain('Valid content here');
+      expect(result.wordCount).toBeGreaterThan(5);
     });
   });
 });

@@ -4,22 +4,13 @@
 
 import { describe, expect, test } from '@jest/globals';
 import { simpleMarkdownConversion } from '../../utils/test-utilities';
-
-// Since this is a browser extension test, we need to mock some browser APIs
-(globalThis as any).chrome = {
-  runtime: {
-    sendMessage: jest.fn(),
-    lastError: null,
-  },
-  storage: {
-    sync: {
-      get: jest.fn(),
-      set: jest.fn(),
-    },
-  },
-};
+import { cleanupTest, mockChromeAPIs } from '../test-helpers';
 
 describe('Line Number Removal in HTML to Markdown Conversion', () => {
+  beforeEach(() => {
+    mockChromeAPIs();
+    cleanupTest();
+  });
   test('R.1.1 - Remove line numbers from HTML code blocks', () => {
     const htmlWithLineNumbers = `
       <div>
