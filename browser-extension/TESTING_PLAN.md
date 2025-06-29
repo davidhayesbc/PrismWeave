@@ -134,38 +134,18 @@ worker operations.
 
 ## Planned Test Suites (To Improve Coverage)
 
-### F. Service Worker Communication - `service-worker.test.ts` (Priority: High)
+### F. Service Worker Communication - `service-worker.test.ts` ✅ **COMPLETED**
 
-**Test Suite**: `ServiceWorker - Message Handling`
+**Test Suite**: `ServiceWorker - Message Handling` - **15 tests implemented**
 
-```typescript
-describe('ServiceWorker - Message Handling', () => {
-  // Service worker tests for 0% → 60% coverage
-});
-```
+All test cases from F.1.1 to F.1.6 plus additional storage and lifecycle tests
+have been successfully implemented and are passing. Service worker testing is
+now complete with comprehensive coverage of:
 
-**Test Cases Needed:**
-
-1. **Message Processing**
-
-   - **F.1.1** Handle GET_SETTINGS message
-   - **F.1.2** Handle UPDATE_SETTINGS message
-   - **F.1.3** Handle CAPTURE_PAGE message
-   - **F.1.4** Handle TEST_GITHUB_CONNECTION message
-   - **F.1.5** Return proper error responses
-   - **F.1.6** Handle invalid message types
-
-2. **Storage Operations**
-
-   - **F.2.1** Read settings from chrome.storage
-   - **F.2.2** Write settings to chrome.storage
-   - **F.2.3** Handle storage quota errors
-   - **F.2.4** Fallback when storage unavailable
-
-3. **Extension Lifecycle**
-   - **F.3.1** Initialize on installation
-   - **F.3.2** Handle runtime startup
-   - **F.3.3** Process extension updates
+- Message processing and response handling
+- Chrome storage operations with error handling
+- Extension lifecycle management
+- Async message communication patterns
 
 ### G. Error Handling - `error-handler.test.ts` (Priority: High)
 

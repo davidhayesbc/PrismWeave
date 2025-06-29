@@ -76,23 +76,29 @@ class MockServiceWorkerSettingsManager {
   private static readonly SETTINGS_KEY = 'prismweave_settings';
 
   async getSettings(): Promise<ISettingsData> {
-    const result = await new Promise<Record<string, unknown>>((resolve) => {
+    const result = await new Promise<Record<string, unknown>>(resolve => {
       mockChrome.storage.sync.get(MockServiceWorkerSettingsManager.SETTINGS_KEY, (result: any) => {
         resolve(result);
       });
     });
-    
-    return result[MockServiceWorkerSettingsManager.SETTINGS_KEY] as ISettingsData || this.getDefaultSettings();
+
+    return (
+      (result[MockServiceWorkerSettingsManager.SETTINGS_KEY] as ISettingsData) ||
+      this.getDefaultSettings()
+    );
   }
 
   async updateSettings(updates: Record<string, unknown>): Promise<void> {
     const currentSettings = await this.getSettings();
     const newSettings = { ...currentSettings, ...updates };
 
-    await new Promise<void>((resolve) => {
-      mockChrome.storage.sync.set({
-        [MockServiceWorkerSettingsManager.SETTINGS_KEY]: newSettings,
-      }, () => resolve());
+    await new Promise<void>(resolve => {
+      mockChrome.storage.sync.set(
+        {
+          [MockServiceWorkerSettingsManager.SETTINGS_KEY]: newSettings,
+        },
+        () => resolve()
+      );
     });
   }
 
@@ -100,7 +106,11 @@ class MockServiceWorkerSettingsManager {
     const settings = await this.getSettings();
     const errors: string[] = [];
 
-    if (!settings.githubToken || typeof settings.githubToken !== 'string' || settings.githubToken.trim() === '') {
+    if (
+      !settings.githubToken ||
+      typeof settings.githubToken !== 'string' ||
+      settings.githubToken.trim() === ''
+    ) {
       errors.push('GitHub token is required');
     }
 
@@ -241,7 +251,7 @@ describe('ServiceWorker - Message Handling', () => {
     // Reset Chrome API mocks
     jest.clearAllMocks();
     mockChrome.runtime.lastError = null;
-    
+
     // Reset settings manager
     mockSettingsManager = new MockServiceWorkerSettingsManager();
   });
@@ -249,13 +259,13 @@ describe('ServiceWorker - Message Handling', () => {
   describe('Message Processing', () => {
     test('F.1.1 - Handle GET_SETTINGS message', async () => {
       // Arrange: Mock storage with test settings
-      const mockSettings = { 
-        githubToken: 'test-token', 
+      const mockSettings = {
+        githubToken: 'test-token',
         githubRepo: 'user/repo',
         autoCommit: true,
-        defaultFolder: 'tech'
+        defaultFolder: 'tech',
       };
-      
+
       mockChrome.storage.sync.get.mockImplementation((keys, callback) => {
         (callback as any)({ prismweave_settings: mockSettings });
       });
@@ -267,12 +277,14 @@ describe('ServiceWorker - Message Handling', () => {
       const result = await mockHandleMessage(message, sender);
 
       // Assert: Verify settings are returned correctly
-      expect(result).toEqual(expect.objectContaining({
-        githubToken: 'test-token',
-        githubRepo: 'user/repo',
-        autoCommit: true,
-        defaultFolder: 'tech'
-      }));
+      expect(result).toEqual(
+        expect.objectContaining({
+          githubToken: 'test-token',
+          githubRepo: 'user/repo',
+          autoCommit: true,
+          defaultFolder: 'tech',
+        })
+      );
       expect(mockChrome.storage.sync.get).toHaveBeenCalledWith(
         'prismweave_settings',
         expect.any(Function)
@@ -283,7 +295,7 @@ describe('ServiceWorker - Message Handling', () => {
       // Arrange: Mock storage with existing settings
       const existingSettings = { githubToken: 'old-token', githubRepo: 'old/repo' };
       const updates = { githubToken: 'new-token', autoCommit: false };
-      
+
       mockChrome.storage.sync.get.mockImplementation((keys, callback) => {
         (callback as any)({ prismweave_settings: existingSettings });
       });
@@ -291,10 +303,10 @@ describe('ServiceWorker - Message Handling', () => {
         callback && (callback as any)();
       });
 
-      const message: IMessageData = { 
-        type: 'UPDATE_SETTINGS', 
+      const message: IMessageData = {
+        type: 'UPDATE_SETTINGS',
         data: updates,
-        timestamp: Date.now() 
+        timestamp: Date.now(),
       };
       const sender = {} as chrome.runtime.MessageSender;
 
@@ -308,8 +320,8 @@ describe('ServiceWorker - Message Handling', () => {
           prismweave_settings: expect.objectContaining({
             githubToken: 'new-token',
             githubRepo: 'old/repo', // Preserved
-            autoCommit: false // Updated
-          })
+            autoCommit: false, // Updated
+          }),
         },
         expect.any(Function)
       );
@@ -317,19 +329,19 @@ describe('ServiceWorker - Message Handling', () => {
 
     test('F.1.3 - Handle CAPTURE_PAGE message', async () => {
       // Arrange: Mock valid settings
-      const validSettings = { 
-        githubToken: 'valid-token', 
-        githubRepo: 'user/repo' 
+      const validSettings = {
+        githubToken: 'valid-token',
+        githubRepo: 'user/repo',
       };
-      
+
       mockChrome.storage.sync.get.mockImplementation((keys, callback) => {
         (callback as any)({ prismweave_settings: validSettings });
       });
 
-      const message: IMessageData = { 
-        type: 'CAPTURE_PAGE', 
+      const message: IMessageData = {
+        type: 'CAPTURE_PAGE',
         data: { url: 'https://example.com' },
-        timestamp: Date.now() 
+        timestamp: Date.now(),
       };
       const sender = {} as chrome.runtime.MessageSender;
 
@@ -346,25 +358,25 @@ describe('ServiceWorker - Message Handling', () => {
           title: expect.any(String),
           url: expect.any(String),
           markdownLength: expect.any(Number),
-          timestamp: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/)
-        })
+          timestamp: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/),
+        }),
       });
     });
 
     test('F.1.4 - Handle TEST_GITHUB_CONNECTION message', async () => {
       // Arrange: Mock valid GitHub settings
-      const validSettings = { 
-        githubToken: 'ghp_validtoken123', 
-        githubRepo: 'testuser/testrepo' 
+      const validSettings = {
+        githubToken: 'ghp_validtoken123',
+        githubRepo: 'testuser/testrepo',
       };
-      
+
       mockChrome.storage.sync.get.mockImplementation((keys, callback) => {
         (callback as any)({ prismweave_settings: validSettings });
       });
 
-      const message: IMessageData = { 
+      const message: IMessageData = {
         type: 'TEST_GITHUB_CONNECTION',
-        timestamp: Date.now() 
+        timestamp: Date.now(),
       };
       const sender = {} as chrome.runtime.MessageSender;
 
@@ -372,12 +384,14 @@ describe('ServiceWorker - Message Handling', () => {
       const result = await mockHandleMessage(message, sender);
 
       // Assert: Verify connection test response
-      expect(result).toEqual(expect.objectContaining({
-        success: true,
-        status: 'connected',
-        message: 'GitHub connection test successful',
-        timestamp: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/)
-      }));
+      expect(result).toEqual(
+        expect.objectContaining({
+          success: true,
+          status: 'connected',
+          message: 'GitHub connection test successful',
+          timestamp: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/),
+        })
+      );
     });
 
     test('F.1.5 - Return proper error responses', async () => {
@@ -391,12 +405,12 @@ describe('ServiceWorker - Message Handling', () => {
       }
 
       // Test Case 2: Missing required data for UPDATE_SETTINGS
-      const invalidUpdateMessage: IMessageData = { 
+      const invalidUpdateMessage: IMessageData = {
         type: 'UPDATE_SETTINGS',
         // Missing data field
-        timestamp: Date.now() 
+        timestamp: Date.now(),
       };
-      
+
       try {
         await mockHandleMessage(invalidUpdateMessage, {} as chrome.runtime.MessageSender);
         fail('Should have thrown an error for missing data');
@@ -406,12 +420,12 @@ describe('ServiceWorker - Message Handling', () => {
       }
 
       // Test Case 3: Invalid data type for UPDATE_SETTINGS
-      const invalidDataMessage: IMessageData = { 
+      const invalidDataMessage: IMessageData = {
         type: 'UPDATE_SETTINGS',
         data: 'invalid-string-data' as any, // Should be object
-        timestamp: Date.now() 
+        timestamp: Date.now(),
       };
-      
+
       try {
         await mockHandleMessage(invalidDataMessage, {} as chrome.runtime.MessageSender);
         fail('Should have thrown an error for invalid data type');
@@ -423,9 +437,9 @@ describe('ServiceWorker - Message Handling', () => {
 
     test('F.1.6 - Handle invalid message types', async () => {
       // Arrange: Test unknown message type
-      const invalidMessage: IMessageData = { 
+      const invalidMessage: IMessageData = {
         type: 'UNKNOWN_MESSAGE_TYPE',
-        timestamp: Date.now() 
+        timestamp: Date.now(),
       };
       const sender = {} as chrome.runtime.MessageSender;
 
@@ -440,10 +454,10 @@ describe('ServiceWorker - Message Handling', () => {
 
       // Test additional invalid message types
       const invalidTypes = ['', 'INVALID', 'NOT_SUPPORTED', '12345'];
-      
+
       for (const invalidType of invalidTypes) {
         const message: IMessageData = { type: invalidType, timestamp: Date.now() };
-        
+
         try {
           await mockHandleMessage(message, sender);
           fail(`Should have thrown an error for invalid message type: ${invalidType}`);
@@ -462,9 +476,9 @@ describe('ServiceWorker - Message Handling', () => {
         githubToken: 'test-token-123',
         githubRepo: 'testorg/testrepo',
         autoCommit: false,
-        defaultFolder: 'business'
+        defaultFolder: 'business',
       };
-      
+
       mockChrome.storage.sync.get.mockImplementation((keys, callback) => {
         (callback as any)({ prismweave_settings: testSettings });
       });
@@ -484,7 +498,7 @@ describe('ServiceWorker - Message Handling', () => {
       // Arrange: Mock storage operations
       const existingSettings = { githubToken: 'old-token' };
       const updates = { githubRepo: 'new/repo', autoCommit: true };
-      
+
       mockChrome.storage.sync.get.mockImplementation((keys, callback) => {
         (callback as any)({ prismweave_settings: existingSettings });
       });
@@ -500,9 +514,9 @@ describe('ServiceWorker - Message Handling', () => {
         {
           prismweave_settings: {
             githubToken: 'old-token', // Preserved
-            githubRepo: 'new/repo',   // Updated
-            autoCommit: true          // Added
-          }
+            githubRepo: 'new/repo', // Updated
+            autoCommit: true, // Added
+          },
         },
         expect.any(Function)
       );
@@ -554,7 +568,7 @@ describe('ServiceWorker - Message Handling', () => {
       const installDetails: chrome.runtime.InstalledDetails = {
         reason: 'install',
         previousVersion: undefined,
-        id: 'test-extension-id'
+        id: 'test-extension-id',
       };
 
       // Mock storage for successful initialization
@@ -575,7 +589,7 @@ describe('ServiceWorker - Message Handling', () => {
             githubToken: '',
             githubRepo: '',
             autoCommit: true,
-            defaultFolder: 'auto'
+            defaultFolder: 'auto',
           });
         }
       });
@@ -607,7 +621,7 @@ describe('ServiceWorker - Message Handling', () => {
       const updateDetails: chrome.runtime.InstalledDetails = {
         reason: 'update',
         previousVersion: '0.9.0',
-        id: 'test-extension-id'
+        id: 'test-extension-id',
       };
 
       // Mock storage for successful update
@@ -632,14 +646,14 @@ describe('ServiceWorker - Message Handling', () => {
       expect(mockUpdateHandler).toHaveBeenCalledWith(updateDetails);
       expect(result).toEqual({
         updated: true,
-        previousVersion: '0.9.0'
+        previousVersion: '0.9.0',
       });
       expect(mockChrome.storage.sync.get).toHaveBeenCalled();
     });
   });
 
   describe('Message Response Integration', () => {
-    test('Should handle async message responses correctly', async () => {
+    test('F.4.1 - Should handle async message responses correctly', async () => {
       // Test the actual message response pattern used in service worker
       const mockSendResponse = jest.fn();
       const message: IMessageData = { type: 'GET_SETTINGS', timestamp: Date.now() };
@@ -655,9 +669,9 @@ describe('ServiceWorker - Message Handling', () => {
           const result = await mockHandleMessage(msg, sndr);
           sendResponse({ success: true, data: result });
         } catch (error) {
-          sendResponse({ 
-            success: false, 
-            error: (error as Error).message 
+          sendResponse({
+            success: false,
+            error: (error as Error).message,
           });
         }
       };
@@ -674,12 +688,12 @@ describe('ServiceWorker - Message Handling', () => {
       expect(mockSendResponse).toHaveBeenCalledWith({
         success: true,
         data: expect.objectContaining({
-          githubToken: 'test'
-        })
+          githubToken: 'test',
+        }),
       });
     });
 
-    test('Should handle error responses correctly', async () => {
+    test('F.4.2 - Should handle error responses correctly', async () => {
       const mockSendResponse = jest.fn();
       const invalidMessage: IMessageData = { type: 'INVALID_TYPE', timestamp: Date.now() };
       const sender = {} as chrome.runtime.MessageSender;
@@ -694,9 +708,9 @@ describe('ServiceWorker - Message Handling', () => {
           const result = await mockHandleMessage(msg, sndr);
           sendResponse({ success: true, data: result });
         } catch (error) {
-          sendResponse({ 
-            success: false, 
-            error: (error as Error).message 
+          sendResponse({
+            success: false,
+            error: (error as Error).message,
           });
         }
       };
@@ -707,7 +721,7 @@ describe('ServiceWorker - Message Handling', () => {
       // Assert: Verify error response format
       expect(mockSendResponse).toHaveBeenCalledWith({
         success: false,
-        error: 'Unknown message type: INVALID_TYPE'
+        error: 'Unknown message type: INVALID_TYPE',
       });
     });
   });
