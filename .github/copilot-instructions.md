@@ -149,8 +149,11 @@ When generating articles or blog posts:
 - Handle multilingual content appropriately
 
 ## Specialized Instructions
-- **Testing**: Use `.github/instructions/copilot-instructions-testing.md` for Jest test creation
-- **Browser Extension**: Use `browser-extension/copilot-instructions.md` for extension-specific code
+- **Testing**: Use `.github/instructions/copilot-instructions-testing.md` for Jest test creation and coverage improvement
+- **Browser Extension**: Use `.github/instructions/copilot-instructions-browser-extension.md` for extension-specific code patterns
+- **Service Worker**: Use `.github/instructions/copilot-instructions-service-worker.md` for self-contained service worker development
+- **Content Scripts**: Use `.github/instructions/copilot-instructions-content-script.md` for content extraction and DOM manipulation
+- **TypeScript**: Use `.github/instructions/copilot-instructions-typescript.md` for type-safe development patterns
 - **AI Processing**: Use `ai-processing/copilot-instructions.md` for AI/ML related code
 - **VS Code Extension**: Use `vscode-extension/copilot-instructions.md` for VS Code API code
 

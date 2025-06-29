@@ -5,11 +5,13 @@ applyTo: '**/*.{js,ts}'
 # Copilot Instructions for Jest Test Case Creation - PrismWeave Project
 
 ## Testing Framework Overview
-- **Primary Framework**: Jest with jsdom environment
+- **Primary Framework**: Jest with jsdom environment  
 - **Test Structure**: Organized in `src/__tests__/` directory
-- **Coverage Target**: 80%+ for critical modules
-- **File Naming**: `*.test.js` pattern
-- Use JSDOM for browser tests
+- **Coverage Target**: 60%+ overall, 80%+ for critical modules
+- **Current Status**: 48 tests passing, 5 test suites implemented
+- **Priority**: Service worker, error handling, and markdown conversion need tests
+- **File Naming**: `*.test.ts` pattern (TypeScript)
+- Use JSDOM for browser DOM simulation
 
 ## Test File Organization
 ```

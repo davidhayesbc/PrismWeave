@@ -10,7 +10,19 @@
   ],
   "github.copilot.chat.codeGeneration.instructions": [
     {
+      "file": ".github/copilot-instructions.md"
+    },
+    {
       "file": ".github/instructions/copilot-instructions-browser-extension.md"
+    },
+    {
+      "file": ".github/instructions/copilot-instructions-service-worker.md"
+    },
+    {
+      "file": ".github/instructions/copilot-instructions-content-script.md"
+    },
+    {
+      "file": ".github/instructions/copilot-instructions-typescript.md"
     }
   ],
   
