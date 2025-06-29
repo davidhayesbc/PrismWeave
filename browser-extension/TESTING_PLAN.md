@@ -17,7 +17,7 @@ worker operations.
 
 ## Test Status Summary
 
-### ✅ Implemented Tests (48 total)
+### ✅ Implemented Tests (63 total)
 
 #### A. Settings Management (11 tests) - `settings-manager.test.ts`
 
@@ -98,6 +98,37 @@ worker operations.
 - **R.1.5** ✅ Handle inline code elements (no line numbers expected)
 - **R.1.6** ✅ Process real-world Docker example
 - **R.1.7** ✅ Handle empty or malformed code blocks
+
+#### F. Service Worker Communication (15 tests) - `service-worker.test.ts` ✅ **NEWLY IMPLEMENTED**
+
+**Test Suite**: `ServiceWorker - Message Handling`
+
+**Message Processing:**
+
+- **F.1.1** ✅ Handle GET_SETTINGS message
+- **F.1.2** ✅ Handle UPDATE_SETTINGS message
+- **F.1.3** ✅ Handle CAPTURE_PAGE message
+- **F.1.4** ✅ Handle TEST_GITHUB_CONNECTION message
+- **F.1.5** ✅ Return proper error responses
+- **F.1.6** ✅ Handle invalid message types
+
+**Storage Operations:**
+
+- **F.2.1** ✅ Read settings from chrome.storage
+- **F.2.2** ✅ Write settings to chrome.storage
+- **F.2.3** ✅ Handle storage quota errors
+- **F.2.4** ✅ Fallback when storage unavailable
+
+**Extension Lifecycle:**
+
+- **F.3.1** ✅ Initialize on installation
+- **F.3.2** ✅ Handle runtime startup
+- **F.3.3** ✅ Process extension updates
+
+**Message Response Integration:**
+
+- **F.4.1** ✅ Should handle async message responses correctly
+- **F.4.2** ✅ Should handle error responses correctly
 
 ---
 
