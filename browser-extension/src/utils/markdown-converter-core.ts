@@ -2,7 +2,7 @@
 // PrismWeave Markdown Converter Core - Shared conversion logic
 // Environment-agnostic core that can be used in both browser and Node.js
 
-import { IDocumentMetadata, IImageAsset } from '../types/index.js';
+import { IDocumentMetadata, IImageAsset } from '../types/index';
 
 export interface IConversionOptions {
   preserveFormatting?: boolean;

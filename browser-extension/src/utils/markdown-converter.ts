@@ -6,7 +6,7 @@ import {
   IConversionOptions,
   IConversionResult,
   MarkdownConverterCore,
-} from './markdown-converter-core.js';
+} from './markdown-converter-core';
 
 interface ITurndownService {
   turndown(html: string): string;
