@@ -2,6 +2,10 @@
 // Test utilities for markdown conversion functions
 // This file provides testable versions of service worker functions
 
+import { createLogger } from './logger';
+
+const logger = createLogger('TestUtilities');
+
 // Decode HTML entities
 export function decodeHtmlEntities(str: string): string {
   if (!str) return str;
@@ -135,7 +139,7 @@ export function simpleMarkdownConversion(
   let markdown = '';
 
   // Check if DOMParser is available and log it
-  console.log('DOMParser available:', typeof DOMParser !== 'undefined');
+  logger.debug('DOMParser available:', typeof DOMParser !== 'undefined');
   // Create a DOM parser for testing
   if (typeof DOMParser !== 'undefined') {
     const parser = new DOMParser();
@@ -143,14 +147,14 @@ export function simpleMarkdownConversion(
 
     // Process code blocks with improved extraction
     const codeBlocks = doc.querySelectorAll('pre code, pre, code');
-    console.log('Found code blocks:', codeBlocks.length);
+    logger.debug('Found code blocks:', codeBlocks.length);
 
     codeBlocks.forEach((block, index) => {
-      console.log(
+      logger.debug(
         `Block ${index}: tagName=${block.tagName}, parentTag=${block.parentElement?.tagName}`
       );
       const isPreBlock = block.tagName === 'PRE' || block.parentElement?.tagName === 'PRE';
-      console.log(`Block ${index}: isPreBlock=${isPreBlock}`);
+      logger.debug(`Block ${index}: isPreBlock=${isPreBlock}`);
 
       if (isPreBlock) {
         // Handle code blocks

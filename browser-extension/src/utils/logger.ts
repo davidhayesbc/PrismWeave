@@ -32,8 +32,9 @@ class Logger {
 
   constructor(component: string = 'PrismWeave') {
     this.component = component;
-    this.enabled = true; // Set to false to disable all logging
-    this.level = Logger.LEVELS.DEBUG; // Minimum level to log
+    // Automatically disable verbose logging during tests
+    this.enabled = !this._isTestEnvironment(); 
+    this.level = this._isTestEnvironment() ? Logger.LEVELS.ERROR : Logger.LEVELS.DEBUG;
     this.styles = {
       error: 'color: #ff4444; font-weight: bold;',
       warn: 'color: #ffaa00; font-weight: bold;',
@@ -45,6 +46,13 @@ class Logger {
 
   private _shouldLog(level: LogLevel): boolean {
     return this.enabled && level <= this.level;
+  }
+
+  private _isTestEnvironment(): boolean {
+    return (
+      typeof process !== 'undefined' &&
+      (process.env.NODE_ENV === 'test' || process.env.JEST_WORKER_ID !== undefined)
+    );
   }
 
   private _formatMessage(level: LogLevel, message: unknown, ...args: unknown[]): unknown[] {

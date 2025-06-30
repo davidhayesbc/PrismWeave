@@ -3,6 +3,7 @@
 // Enhanced content extraction and cleaning utilities
 
 import { IDocumentMetadata } from '../types/index.js';
+import { createLogger } from './logger';
 
 interface IContentResult {
   content: string;
@@ -25,6 +26,8 @@ export class ContentExtractor {
   private readonly unwantedSelectors: string[];
   private readonly adSelectors: string[];
   private readonly navigationSelectors: string[];
+  private readonly logger = createLogger('ContentExtractor');
+  
   constructor() {
     this.readabilitySelectors = [
       // Prioritize specific content containers over generic ones
@@ -201,11 +204,11 @@ export class ContentExtractor {
   }
   async extractContent(options: IExtractorOptions = {}): Promise<IContentResult> {
     try {
-      console.log('ContentExtractor: Starting content extraction');
+      this.logger.debug('Starting content extraction');
 
       // For modern sites, wait a moment for dynamic content
       if (document.readyState !== 'complete') {
-        console.log('ContentExtractor: Document not fully loaded, waiting...');
+        this.logger.debug('Document not fully loaded, waiting...');
         await new Promise(resolve => {
           if (document.readyState === 'complete') {
             resolve(void 0);
@@ -218,32 +221,32 @@ export class ContentExtractor {
       } // For dynamic sites (like Docker blog), wait additional time for content to load
       const isDynamicSite = this.isDynamicSite();
       if (isDynamicSite) {
-        console.log('ContentExtractor: Dynamic site detected, waiting for content to load...');
+        this.logger.debug('Dynamic site detected, waiting for content to load...');
         await this.waitForContentToLoad();
         await this.waitForSpecificContent();
       }
 
       const metadata = this.extractMetadata();
-      console.log('ContentExtractor: Metadata extracted:', metadata);
+      this.logger.debug('Metadata extracted:', metadata);
 
       let content = this.findMainContent(options);
-      console.log('ContentExtractor: Main content found, length:', content.length);
+      this.logger.debug('Main content found, length:', content.length);
 
       if (options.removeAds !== false) {
         content = this.removeAds(content);
-        console.log('ContentExtractor: Ads removed');
+        this.logger.debug('Ads removed');
       }
 
       if (options.removeNavigation !== false) {
         content = this.removeNavigation(content);
-        console.log('ContentExtractor: Navigation removed');
+        this.logger.debug('Navigation removed');
       }
 
       const cleanedContent = this.cleanContent(content, options);
       const wordCount = this.countWords(cleanedContent);
       const readingTime = this.estimateReadingTime(wordCount);
 
-      console.log('ContentExtractor: Content extraction complete');
+      this.logger.debug('Content extraction complete');
 
       return {
         content,
@@ -361,7 +364,7 @@ export class ContentExtractor {
     return Array.from(tags).slice(0, 10); // Limit to 10 tags
   }
   private findMainContent(options: IExtractorOptions): string {
-    console.log('ContentExtractor: Starting main content search...');
+    this.logger.debug('Starting main content search...');
 
     // Try to find the main content using various selectors
     let mainElement: Element | null = null;
@@ -369,13 +372,13 @@ export class ContentExtractor {
 
     // First try custom selectors if provided
     if (options.customSelectors?.length) {
-      console.log('ContentExtractor: Trying custom selectors:', options.customSelectors);
+      this.logger.debug('Trying custom selectors:', options.customSelectors);
       for (const selector of options.customSelectors) {
         try {
           mainElement = document.querySelector(selector);
           if (mainElement && this.isContentElement(mainElement)) {
             selectedSelector = selector;
-            console.log('ContentExtractor: Found content with custom selector:', selector);
+            this.logger.debug('Found content with custom selector:', selector);
             break;
           }
         } catch (error) {
@@ -387,19 +390,19 @@ export class ContentExtractor {
 
     // Then try readability selectors
     if (!mainElement) {
-      console.log('ContentExtractor: Trying readability selectors...');
+      this.logger.debug('Trying readability selectors...');
       for (const selector of this.readabilitySelectors) {
         try {
           const elements = document.querySelectorAll(selector);
-          console.log(
-            `ContentExtractor: Found ${elements.length} elements for selector "${selector}"`
+          this.logger.debug(
+            `Found ${elements.length} elements for selector "${selector}"`
           );
           for (let i = 0; i < elements.length; i++) {
             const element = elements[i];
             if (this.isContentElement(element)) {
               mainElement = element;
               selectedSelector = selector;
-              console.log('ContentExtractor: Found content with selector:', selector);
+              this.logger.debug('Found content with selector:', selector);
               break;
             }
           }
@@ -412,8 +415,8 @@ export class ContentExtractor {
 
     // Enhanced fallback: Try to find largest content container
     if (!mainElement) {
-      console.log(
-        'ContentExtractor: No specific content selector worked, trying enhanced fallback...'
+      this.logger.debug(
+        'No specific content selector worked, trying enhanced fallback...'
       );
       mainElement = this.findLargestContentContainer();
       selectedSelector = 'enhanced-fallback';
@@ -421,14 +424,14 @@ export class ContentExtractor {
 
     // Final fallback to body if nothing found
     if (!mainElement) {
-      console.log('ContentExtractor: Using body as final fallback');
+      this.logger.debug('Using body as final fallback');
       mainElement = document.body;
       selectedSelector = 'body-fallback';
     }
 
-    console.log('ContentExtractor: Selected element with selector:', selectedSelector);
-    console.log('ContentExtractor: Element tag:', mainElement.tagName);
-    console.log('ContentExtractor: Element text length:', mainElement.textContent?.length || 0);
+    this.logger.debug('Selected element with selector:', selectedSelector);
+    this.logger.debug('Element tag:', mainElement.tagName);
+    this.logger.debug('Element text length:', mainElement.textContent?.length || 0);
 
     // Clone the element to avoid modifying the original DOM
     const cloned = mainElement.cloneNode(true) as Element;
@@ -437,7 +440,7 @@ export class ContentExtractor {
     this.removeUnwantedElements(cloned, options);
 
     const finalContent = cloned.innerHTML || '';
-    console.log('ContentExtractor: Final content length after cleanup:', finalContent.length);
+    this.logger.debug('Final content length after cleanup:', finalContent.length);
 
     return finalContent;
   }
@@ -448,7 +451,7 @@ export class ContentExtractor {
     // More lenient minimum content length for dynamic sites
     const minLength = this.isDynamicSite() ? 30 : 50;
     if (text.length < minLength) {
-      console.log('ContentExtractor: Element rejected - too short:', text.length);
+      this.logger.debug('Element rejected - too short:', text.length);
       return false;
     }
 
@@ -457,7 +460,7 @@ export class ContentExtractor {
     const ratio = text.length / html.length;
     const minRatio = this.isDynamicSite() ? 0.02 : 0.05;
     if (ratio < minRatio) {
-      console.log('ContentExtractor: Element rejected - poor text/html ratio:', ratio);
+      this.logger.debug('Element rejected - poor text/html ratio:', ratio);
       return false;
     }
 
@@ -471,8 +474,8 @@ export class ContentExtractor {
     const maxLinkRatio = isDynamicSite ? 0.7 : 0.5;
 
     if (links > 20 && links > textBlocks * maxLinkRatio && paragraphs < 2) {
-      console.log(
-        'ContentExtractor: Element rejected - too many links:',
+      this.logger.debug(
+        'Element rejected - too many links:',
         links,
         'paragraphs:',
         paragraphs,
@@ -531,8 +534,8 @@ export class ContentExtractor {
     const hasNavClass = navTerms.some(term => className.includes(term) || id.includes(term));
 
     if (hasNavClass && !hasContentClass) {
-      console.log(
-        'ContentExtractor: Element rejected - navigation class detected without content class'
+      this.logger.debug(
+        'Element rejected - navigation class detected without content class'
       );
       return false;
     }
@@ -549,7 +552,7 @@ export class ContentExtractor {
     const positiveSignals = contentSignals.filter(Boolean).length;
     const isLikelyContent = positiveSignals >= 2 || (positiveSignals >= 1 && text.length > 200);
 
-    console.log('ContentExtractor: Element assessment:', {
+    this.logger.debug('Element assessment:', {
       textLength: text.length,
       ratio: ratio.toFixed(3),
       links,
@@ -568,23 +571,23 @@ export class ContentExtractor {
     return isLikelyContent;
   }
   private removeUnwantedElements(element: Element, options: IExtractorOptions): void {
-    console.log('ContentExtractor: Removing unwanted elements...');
+    this.logger.debug('Removing unwanted elements...');
 
     // Remove script, style, and other unwanted elements
     const unwanted = element.querySelectorAll(this.unwantedSelectors.join(','));
-    console.log('ContentExtractor: Removing', unwanted.length, 'unwanted elements');
+    this.logger.debug('Removing', unwanted.length, 'unwanted elements');
     unwanted.forEach(el => el.remove());
 
     // Remove excluded selectors if specified
     if (options.excludeSelectors?.length) {
       const excluded = element.querySelectorAll(options.excludeSelectors.join(','));
-      console.log('ContentExtractor: Removing', excluded.length, 'excluded elements');
+      this.logger.debug('Removing', excluded.length, 'excluded elements');
       excluded.forEach(el => el.remove());
     }
 
     // Remove empty elements that might remain
     const emptyElements = element.querySelectorAll('div:empty, span:empty, p:empty, section:empty');
-    console.log('ContentExtractor: Removing', emptyElements.length, 'empty elements');
+    this.logger.debug('Removing', emptyElements.length, 'empty elements');
     emptyElements.forEach(el => el.remove());
 
     // Remove elements with only whitespace
@@ -597,7 +600,7 @@ export class ContentExtractor {
         removedWhitespace++;
       }
     }
-    console.log('ContentExtractor: Removed', removedWhitespace, 'whitespace-only elements');
+    this.logger.debug('Removed', removedWhitespace, 'whitespace-only elements');
 
     // Remove elements that are likely ads by content
     const suspiciousElements = element.querySelectorAll('div, span, section, aside');
@@ -613,7 +616,7 @@ export class ContentExtractor {
         removedAds++;
       }
     }
-    console.log('ContentExtractor: Removed', removedAds, 'ad-like elements');
+    this.logger.debug('Removed', removedAds, 'ad-like elements');
   }
 
   private removeAds(content: string): string {
@@ -826,7 +829,7 @@ export class ContentExtractor {
     return Math.min(score, 100);
   }
   private findLargestContentContainer(): Element | null {
-    console.log('ContentExtractor: Searching for largest content container...');
+    this.logger.debug('Searching for largest content container...');
 
     // Find all potential content containers with broader selection
     const candidates = document.querySelectorAll(
@@ -843,8 +846,8 @@ export class ContentExtractor {
       const candidate = candidates[i];
       const score = this.scoreContentElement(candidate);
 
-      console.log(
-        `ContentExtractor: Candidate ${i}: ${candidate.tagName}.${candidate.className} - Score: ${score}`
+      this.logger.debug(
+        `Candidate ${i}: ${candidate.tagName}.${candidate.className} - Score: ${score}`
       );
 
       if (score > bestScore && score > minScore) {
@@ -854,13 +857,13 @@ export class ContentExtractor {
     }
 
     if (bestCandidate) {
-      console.log('ContentExtractor: Found best content container with score:', bestScore);
-      console.log('ContentExtractor: Element tag:', bestCandidate.tagName);
-      console.log('ContentExtractor: Element class:', bestCandidate.className);
-      console.log('ContentExtractor: Element id:', bestCandidate.id);
-      console.log('ContentExtractor: Text length:', bestCandidate.textContent?.length || 0);
+      this.logger.debug('Found best content container with score:', bestScore);
+      this.logger.debug('Element tag:', bestCandidate.tagName);
+      this.logger.debug('Element class:', bestCandidate.className);
+      this.logger.debug('Element id:', bestCandidate.id);
+      this.logger.debug('Text length:', bestCandidate.textContent?.length || 0);
     } else {
-      console.log('ContentExtractor: No suitable content container found, trying fallback...');
+      this.logger.debug('No suitable content container found, trying fallback...');
 
       // Final fallback: try to find any element with substantial text content
       const allElements = Array.from(document.querySelectorAll('*')).filter(el => {
@@ -872,8 +875,8 @@ export class ContentExtractor {
         // Sort by text length and take the largest
         allElements.sort((a, b) => (b.textContent?.length || 0) - (a.textContent?.length || 0));
         bestCandidate = allElements[0];
-        console.log(
-          'ContentExtractor: Using fallback element:',
+        this.logger.debug(
+          'Using fallback element:',
           bestCandidate.tagName,
           bestCandidate.className
         );
@@ -957,7 +960,7 @@ export class ContentExtractor {
       (window as any).angular
     );
 
-    console.log('ContentExtractor: Dynamic site check:', {
+    this.logger.debug('Dynamic site check:', {
       hostname,
       isDynamic,
       hasModernFramework,
@@ -979,12 +982,12 @@ export class ContentExtractor {
       const currentContent = document.body.textContent?.length || 0;
 
       if (currentContent > previousContentLength) {
-        console.log('ContentExtractor: Content still loading...', currentContent, 'chars');
+        this.logger.debug('Content still loading...', currentContent, 'chars');
         previousContentLength = currentContent;
         await new Promise(resolve => setTimeout(resolve, checkInterval));
       } else if (previousContentLength > 1000) {
         // Content has stabilized and we have enough content
-        console.log('ContentExtractor: Content appears to have finished loading');
+        this.logger.debug('Content appears to have finished loading');
         break;
       } else {
         // Content is stable but might be too little, keep waiting
@@ -992,14 +995,14 @@ export class ContentExtractor {
       }
     }
 
-    console.log('ContentExtractor: Finished waiting for content load');
+    this.logger.debug('Finished waiting for content load');
   }
   private async waitForSpecificContent(): Promise<void> {
     const url = window.location.href.toLowerCase();
 
     // Docker blog specific waiting logic
     if (url.includes('docker.com/blog')) {
-      console.log('ContentExtractor: Waiting for Docker blog specific content...');
+      this.logger.debug('Waiting for Docker blog specific content...');
 
       // Wait for any of these selectors to appear with substantial content
       const dockerSelectors = [
@@ -1019,14 +1022,14 @@ export class ContentExtractor {
         for (const selector of dockerSelectors) {
           const element = document.querySelector(selector);
           if (element && element.textContent && element.textContent.trim().length > 500) {
-            console.log(`ContentExtractor: Found Docker content via selector: ${selector}`);
+            this.logger.debug(`Found Docker content via selector: ${selector}`);
             return;
           }
         }
         await new Promise(resolve => setTimeout(resolve, 200));
       }
 
-      console.log('ContentExtractor: Docker blog content wait timeout');
+      this.logger.debug('Docker blog content wait timeout');
     }
   }
 }

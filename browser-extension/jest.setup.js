@@ -4,6 +4,9 @@
 global.TextEncoder = require('util').TextEncoder;
 global.TextDecoder = require('util').TextDecoder;
 
+// Set test environment flag to reduce console output
+process.env.NODE_ENV = 'test';
+
 // Set up proper global environment for browser extension tests
 global.chrome = {
   storage: {

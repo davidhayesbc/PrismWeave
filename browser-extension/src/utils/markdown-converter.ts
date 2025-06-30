@@ -32,9 +32,11 @@ export class MarkdownConverter extends MarkdownConverterCore {
     const isServiceWorker =
       typeof (globalThis as any).importScripts === 'function' && typeof window === 'undefined';
     if (isServiceWorker) {
-      console.info(
-        'MarkdownConverter: Running in service worker context, TurndownService not available'
-      );
+      if (process.env.NODE_ENV !== 'test') {
+        console.info(
+          'MarkdownConverter: Running in service worker context, TurndownService not available'
+        );
+      }
       this.turndownService = null;
       this._isInitialized = true;
       return;
@@ -42,9 +44,11 @@ export class MarkdownConverter extends MarkdownConverterCore {
 
     // Check if document is available (content script context)
     if (typeof document === 'undefined') {
-      console.warn(
-        'MarkdownConverter: Document not available, TurndownService cannot be initialized'
-      );
+      if (process.env.NODE_ENV !== 'test') {
+        console.warn(
+          'MarkdownConverter: Document not available, TurndownService cannot be initialized'
+        );
+      }
       this.turndownService = null;
       this._isInitialized = true;
       return;
@@ -57,7 +61,9 @@ export class MarkdownConverter extends MarkdownConverterCore {
 
     // Check if TurndownService is available
     if (!TurndownService) {
-      console.warn('MarkdownConverter: TurndownService not available, cannot initialize');
+      if (process.env.NODE_ENV !== 'test') {
+        console.warn('MarkdownConverter: TurndownService not available, cannot initialize');
+      }
       this.turndownService = null;
       this._isInitialized = true;
       return;
@@ -68,7 +74,9 @@ export class MarkdownConverter extends MarkdownConverterCore {
     this.turndownService = new TurndownService(options);
     this.setupTurndownService();
     this._isInitialized = true;
-    console.info('MarkdownConverter: TurndownService initialized successfully');
+    if (process.env.NODE_ENV !== 'test') {
+      console.info('MarkdownConverter: TurndownService initialized successfully');
+    }
   }
 }
 
