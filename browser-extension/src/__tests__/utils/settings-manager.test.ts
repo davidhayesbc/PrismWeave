@@ -4,7 +4,7 @@
 // Removes duplicates and improves test organization
 
 import { SettingsManager } from '../../utils/settings-manager';
-import { cleanupTest, createTestSettings, mockChromeAPIs } from '../test-helpers';
+import { cleanupTest, mockChromeAPIs } from '../test-helpers';
 
 describe('SettingsManager - Comprehensive Functionality', () => {
   let manager: SettingsManager;
@@ -23,12 +23,30 @@ describe('SettingsManager - Comprehensive Functionality', () => {
   describe('Schema and Defaults', () => {
     test('Should have default values for all schema fields', async () => {
       const defaults = await manager.getDefaults();
-      const expectedDefaults = createTestSettings();
 
-      expect(defaults).toMatchObject(expectedDefaults);
-      Object.keys(expectedDefaults).forEach(key => {
-        expect(defaults).toHaveProperty(key, (expectedDefaults as any)[key]);
+      // Verify the actual schema-based defaults
+      expect(defaults).toEqual({
+        githubToken: '',
+        githubRepo: '',
+        defaultFolder: 'unsorted',
+        customFolder: '',
+        fileNamingPattern: 'YYYY-MM-DD-domain-title',
+        autoCommit: true,
+        captureImages: true,
+        removeAds: true,
+        removeNavigation: true,
+        customSelectors: '',
+        commitMessageTemplate: 'Add: {domain} - {title}',
+        debugMode: false,
+        showNotifications: true,
+        enableKeyboardShortcuts: true,
       });
+
+      // Verify all required fields are present
+      expect(defaults).toHaveProperty('githubToken');
+      expect(defaults).toHaveProperty('githubRepo');
+      expect(defaults).toHaveProperty('defaultFolder');
+      expect(defaults).toHaveProperty('autoCommit');
     });
 
     test('Should get setting definition by key', () => {
@@ -127,17 +145,20 @@ describe('SettingsManager - Comprehensive Functionality', () => {
 
     test('Should save valid settings successfully', async () => {
       mockChrome.storage.sync.get.mockImplementation((keys: any, callback: any) => {
-        callback({}); // Return empty settings for current state
+        callback({});
       });
       mockChrome.storage.sync.set.mockImplementation((data: any, callback: any) => {
         callback();
       });
 
-      const testSettings = createTestSettings({
+      // Use only valid schema fields
+      const testSettings = {
         autoCommit: false,
         defaultFolder: 'tech',
         captureImages: false,
-      });
+        githubRepo: 'user/repo',
+        debugMode: true,
+      };
 
       const result = await manager.updateSettings(testSettings);
       expect(result).toBe(true);
@@ -165,11 +186,15 @@ describe('SettingsManager - Comprehensive Functionality', () => {
 
   describe('Settings Validation', () => {
     test('Should validate settings with correct types', () => {
-      const validSettings = createTestSettings({
+      // Use only valid schema fields
+      const validSettings = {
         autoCommit: true,
         defaultFolder: 'tech',
         githubRepo: 'owner/repo',
-      });
+        captureImages: false,
+        debugMode: true,
+        githubToken: 'valid-token',
+      };
 
       const validation = manager.validateSettings(validSettings);
       expect(validation.isValid).toBe(true);
@@ -319,13 +344,18 @@ describe('SettingsManager - Comprehensive Functionality', () => {
 
   describe('Import/Export Operations', () => {
     test('Should export settings with sensitive data sanitized', async () => {
+      // Use valid schema fields
+      const testSettings = {
+        githubToken: 'secret-token',
+        autoCommit: true,
+        defaultFolder: 'tech',
+        captureImages: false,
+        debugMode: true,
+      };
+
       mockChrome.storage.sync.get.mockImplementation((keys: any, callback: any) => {
         callback({
-          prismWeaveSettings: createTestSettings({
-            githubToken: 'secret-token',
-            autoCommit: true,
-            defaultFolder: 'tech',
-          }),
+          prismWeaveSettings: testSettings,
         });
       });
 
@@ -345,12 +375,16 @@ describe('SettingsManager - Comprehensive Functionality', () => {
         callback();
       });
 
-      const importData = JSON.stringify(
-        createTestSettings({
-          autoCommit: false,
-          defaultFolder: 'business',
-        })
-      );
+      // Use valid schema fields
+      const importSettings = {
+        autoCommit: false,
+        defaultFolder: 'business',
+        captureImages: true,
+        githubRepo: 'user/repo',
+        debugMode: false,
+      };
+
+      const importData = JSON.stringify(importSettings);
 
       const result = await manager.importSettings(importData);
       expect(result).toBe(true);
@@ -451,6 +485,9 @@ describe('SettingsManager - Comprehensive Functionality', () => {
         customSelectors: 'selector1,'.repeat(50) + 'selector2',
         commitMessageTemplate: 'X'.repeat(100),
         githubRepo: 'user/repository-with-very-long-name',
+        defaultFolder: 'tech',
+        autoCommit: true,
+        captureImages: false,
       };
 
       mockChrome.storage.sync.get.mockImplementation((keys: any, callback: any) => {
@@ -521,6 +558,7 @@ describe('SettingsManager - Comprehensive Functionality', () => {
         githubToken: 'valid-token', // Valid
         githubRepo: 'invalid format', // Invalid pattern
         autoCommit: true, // Valid
+        defaultFolder: 'invalid-folder', // Invalid enum value
       };
 
       const result = await manager.updateSettings(mixedSettings);
