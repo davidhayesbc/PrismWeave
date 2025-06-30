@@ -18,7 +18,7 @@ class ErrorHandler {
     PERMISSION: 'permission',
     CONTENT: 'content',
     STORAGE: 'storage',
-    GITHUB: 'github'
+    GITHUB: 'github',
   } as const;
 
   private static _isTestEnvironment(): boolean {
@@ -28,100 +28,110 @@ class ErrorHandler {
     );
   }
 
-  static createUserFriendlyError(error: Error, context: string = ''): IErrorHandlerInfo & { type: string; solution: string } {
+  static createUserFriendlyError(
+    error: Error,
+    context: string = ''
+  ): IErrorHandlerInfo & { type: string; solution: string } {
     const errorInfo = this.categorizeError(error);
-      return {
+    return {
       message: errorInfo.userMessage,
       stack: error.stack || '',
       context,
       timestamp: new Date().toISOString(),
       url: typeof window !== 'undefined' ? window.location?.href || 'Unknown' : 'Unknown',
       type: errorInfo.type,
-      solution: errorInfo.solution
+      solution: errorInfo.solution,
     };
   }
 
   static categorizeError(error: Error): { type: string; userMessage: string; solution: string } {
     const message = error.message.toLowerCase();
-    
+
     if (message.includes('token') || message.includes('unauthorized') || message.includes('401')) {
       return {
         type: this.ERROR_TYPES.AUTH,
         userMessage: 'Authentication failed. Please check your GitHub token.',
-        solution: 'Go to Settings and verify your GitHub token is valid and has the necessary permissions.'
+        solution:
+          'Go to Settings and verify your GitHub token is valid and has the necessary permissions.',
       };
     }
-    
+
     if (message.includes('repository') || message.includes('repo')) {
       return {
         type: this.ERROR_TYPES.GITHUB,
         userMessage: 'Repository access failed.',
-        solution: 'Verify the repository exists and you have write access. Check the repository name format (owner/repo).'
+        solution:
+          'Verify the repository exists and you have write access. Check the repository name format (owner/repo).',
       };
     }
-    
+
     if (message.includes('network') || message.includes('fetch') || message.includes('cors')) {
       return {
         type: this.ERROR_TYPES.NETWORK,
         userMessage: 'Network connection failed.',
-        solution: 'Check your internet connection and try again.'
+        solution: 'Check your internet connection and try again.',
       };
     }
-    
+
     if (message.includes('permission') || message.includes('blocked')) {
       return {
         type: this.ERROR_TYPES.PERMISSION,
         userMessage: 'Permission denied.',
-        solution: 'Check browser permissions for the PrismWeave extension.'
+        solution: 'Check browser permissions for the PrismWeave extension.',
       };
     }
-    
+
     if (message.includes('storage') || message.includes('quota')) {
       return {
         type: this.ERROR_TYPES.STORAGE,
         userMessage: 'Storage operation failed.',
-        solution: 'Check available storage space and try again.'
+        solution: 'Check available storage space and try again.',
       };
     }
-    
+
     if (message.includes('content') || message.includes('parse') || message.includes('extract')) {
       return {
         type: this.ERROR_TYPES.CONTENT,
         userMessage: 'Content processing failed.',
-        solution: 'Try refreshing the page and capturing again.'
+        solution: 'Try refreshing the page and capturing again.',
       };
     }
-    
+
     return {
       type: 'unknown',
       userMessage: 'An unexpected error occurred.',
-      solution: 'Please try again or contact support if the problem persists.'
+      solution: 'Please try again or contact support if the problem persists.',
     };
   }
 
-  static handle(error: Error, context: string = 'Unknown'): IErrorHandlerInfo & { type: string; solution: string } {
+  static handle(
+    error: Error,
+    context: string = 'Unknown'
+  ): IErrorHandlerInfo & { type: string; solution: string } {
     const errorInfo = this.createUserFriendlyError(error, context);
 
     // Only log to console if not in test environment
     if (!this._isTestEnvironment()) {
       console.error(`${context}:`, errorInfo);
     }
-    
+
     // Optionally send to background for logging
     if (typeof chrome !== 'undefined' && chrome.runtime) {
-      chrome.runtime.sendMessage({
-        type: 'LOG_ERROR',
-        data: errorInfo
-      }).catch(() => {
-        // Ignore messaging errors to prevent recursive issues
-      });
+      chrome.runtime
+        .sendMessage({
+          type: 'LOG_ERROR',
+          data: errorInfo,
+        })
+        .catch(() => {
+          // Ignore messaging errors to prevent recursive issues
+        });
     }
 
     return errorInfo;
   }
 
   static async withErrorHandling<T>(
-    asyncFn: () => Promise<T>, 
+    asyncFn: () => Promise<T>,
     context: string = 'Unknown'
   ): Promise<T> {
     try {
@@ -132,14 +142,11 @@ class ErrorHandler {
     }
   }
 
-  static wrapFunction<T extends (...args: any[]) => any>(
-    fn: T, 
-    context: string = 'Unknown'
-  ): T {
+  static wrapFunction<T extends (...args: any[]) => any>(fn: T, context: string = 'Unknown'): T {
     return ((...args: Parameters<T>) => {
       try {
         const result = fn(...args);
-        
+
         // Handle async functions
         if (result instanceof Promise) {
           return result.catch((error: Error) => {
@@ -147,7 +154,7 @@ class ErrorHandler {
             throw error;
           });
         }
-        
+
         return result;
       } catch (error) {
         this.handle(error as Error, context);
@@ -156,7 +163,10 @@ class ErrorHandler {
     }) as T;
   }
 
-  static showUserNotification(error: IErrorHandlerInfo & { type: string; solution: string }, duration: number = 5000): void {
+  static showUserNotification(
+    error: IErrorHandlerInfo & { type: string; solution: string },
+    duration: number = 5000
+  ): void {
     // This would integrate with the UI notification system
     // Only log to console if not in test environment
     if (!this._isTestEnvironment()) {

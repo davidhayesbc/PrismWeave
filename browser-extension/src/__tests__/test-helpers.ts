@@ -2,15 +2,18 @@
 // Shared test utilities and setup for PrismWeave browser extension tests
 
 // Common JSDOM setup function for content extraction tests
-export const setupDOM = (html: string, options: { 
-  url?: string; 
-  hostname?: string; 
-  pathname?: string; 
-} = {}) => {
+export const setupDOM = (
+  html: string,
+  options: {
+    url?: string;
+    hostname?: string;
+    pathname?: string;
+  } = {}
+) => {
   const {
     url = 'https://example.com/test-article',
     hostname = 'example.com',
-    pathname = '/test-article'
+    pathname = '/test-article',
   } = options;
 
   // Set up the document with the provided HTML
@@ -40,7 +43,7 @@ export const mockChromeAPIs = () => {
       local: {
         get: jest.fn(),
         set: jest.fn(),
-      }
+      },
     },
     runtime: {
       sendMessage: jest.fn((message, callback) => {
@@ -51,8 +54,8 @@ export const mockChromeAPIs = () => {
             data: {
               githubToken: '',
               githubRepo: '',
-              autoCommit: true
-            }
+              autoCommit: true,
+            },
           };
           callback(mockResponse);
         } else {
@@ -69,7 +72,7 @@ export const mockChromeAPIs = () => {
           id: 1,
           url: 'https://example.com/test-page',
           title: 'Test Page',
-          active: true
+          active: true,
         };
         callback([mockTab]);
       }),
@@ -80,21 +83,23 @@ export const mockChromeAPIs = () => {
 };
 
 // Create mock DOM element with common properties
-export const createMockElement = (properties: {
-  innerHTML?: string;
-  textContent?: string;
-  className?: string;
-  id?: string;
-  tagName?: string;
-  attributes?: Record<string, string>;
-} = {}) => {
+export const createMockElement = (
+  properties: {
+    innerHTML?: string;
+    textContent?: string;
+    className?: string;
+    id?: string;
+    tagName?: string;
+    attributes?: Record<string, string>;
+  } = {}
+) => {
   const {
     innerHTML = '',
     textContent = innerHTML.replace(/<[^>]*>/g, ''),
     className = '',
     id = '',
     tagName = 'DIV',
-    attributes = {}
+    attributes = {},
   } = properties;
 
   return {
@@ -130,7 +135,7 @@ export const createTestSettings = (overrides: Record<string, any> = {}) => ({
   debugMode: false,
   showNotifications: true,
   enableKeyboardShortcuts: true,
-  ...overrides
+  ...overrides,
 });
 
 // Factory for creating test HTML content
@@ -194,7 +199,7 @@ export const createTestHTML = (type: 'article' | 'blog' | 'generic' | 'malformed
           <p>More content without proper structural organization but enough text for comprehensive testing</p>
         </div>
       </body>
-    `
+    `,
   };
   return templates[type];
 };
@@ -204,7 +209,7 @@ export const createValidationResult = (isValid: boolean, errors: string[] = []) 
   isValid,
   errors,
   missingSettings: errors,
-  message: errors.length > 0 ? `Missing required settings: ${errors.join(', ')}` : 'Settings valid'
+  message: errors.length > 0 ? `Missing required settings: ${errors.join(', ')}` : 'Settings valid',
 });
 
 // Clean up function for tests
