@@ -27,7 +27,7 @@ export class ContentExtractor {
   private readonly adSelectors: string[];
   private readonly navigationSelectors: string[];
   private readonly logger = createLogger('ContentExtractor');
-  
+
   constructor() {
     this.readabilitySelectors = [
       // Prioritize specific content containers over generic ones
@@ -394,9 +394,7 @@ export class ContentExtractor {
       for (const selector of this.readabilitySelectors) {
         try {
           const elements = document.querySelectorAll(selector);
-          this.logger.debug(
-            `Found ${elements.length} elements for selector "${selector}"`
-          );
+          this.logger.debug(`Found ${elements.length} elements for selector "${selector}"`);
           for (let i = 0; i < elements.length; i++) {
             const element = elements[i];
             if (this.isContentElement(element)) {
@@ -415,9 +413,7 @@ export class ContentExtractor {
 
     // Enhanced fallback: Try to find largest content container
     if (!mainElement) {
-      this.logger.debug(
-        'No specific content selector worked, trying enhanced fallback...'
-      );
+      this.logger.debug('No specific content selector worked, trying enhanced fallback...');
       mainElement = this.findLargestContentContainer();
       selectedSelector = 'enhanced-fallback';
     }
@@ -534,9 +530,7 @@ export class ContentExtractor {
     const hasNavClass = navTerms.some(term => className.includes(term) || id.includes(term));
 
     if (hasNavClass && !hasContentClass) {
-      this.logger.debug(
-        'Element rejected - navigation class detected without content class'
-      );
+      this.logger.debug('Element rejected - navigation class detected without content class');
       return false;
     }
 
