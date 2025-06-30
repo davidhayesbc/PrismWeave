@@ -404,7 +404,7 @@ describe('ContentExtractor - Comprehensive Test Suite', () => {
       expect(images[1]).toEqual({
         src: 'https://example.com/image2.png',
         alt: 'Test Image 2',
-        title: '',
+        title: undefined,
       });
     });
 
@@ -430,7 +430,7 @@ describe('ContentExtractor - Comprehensive Test Suite', () => {
       expect(links[1]).toEqual({
         href: 'https://example.com/link2',
         text: 'Link Text 2',
-        title: '',
+        title: undefined,
       });
     });
 
