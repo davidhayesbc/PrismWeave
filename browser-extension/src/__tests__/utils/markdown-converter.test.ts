@@ -359,9 +359,9 @@ console.log(x);</code></pre>
 
       const result = converter.convertToMarkdown(html);
 
-      expect(result.markdown).toContain('- First item');
-      expect(result.markdown).toContain('- Second item');
-      expect(result.markdown).toContain('- Third item');
+      expect(result.markdown).toContain('-   First item');
+      expect(result.markdown).toContain('-   Second item');
+      expect(result.markdown).toContain('-   Third item');
     });
 
     test('should convert ordered lists to markdown', () => {
@@ -375,9 +375,9 @@ console.log(x);</code></pre>
 
       const result = converter.convertToMarkdown(html);
 
-      expect(result.markdown).toContain('1. First step');
-      expect(result.markdown).toContain('2. Second step');
-      expect(result.markdown).toContain('3. Third step');
+      expect(result.markdown).toContain('1.  First step');
+      expect(result.markdown).toContain('2.  Second step');
+      expect(result.markdown).toContain('3.  Third step');
     });
 
     test('should handle nested unordered lists', () => {
@@ -395,10 +395,10 @@ console.log(x);</code></pre>
 
       const result = converter.convertToMarkdown(html);
 
-      expect(result.markdown).toContain('- Parent item 1');
-      expect(result.markdown).toContain('- Child item 1.1');
-      expect(result.markdown).toContain('- Child item 1.2');
-      expect(result.markdown).toContain('- Parent item 2');
+      expect(result.markdown).toContain('-   Parent item 1');
+      expect(result.markdown).toContain('-   Child item 1.1');
+      expect(result.markdown).toContain('-   Child item 1.2');
+      expect(result.markdown).toContain('-   Parent item 2');
     });
 
     test('should handle nested ordered lists', () => {
@@ -416,10 +416,10 @@ console.log(x);</code></pre>
 
       const result = converter.convertToMarkdown(html);
 
-      expect(result.markdown).toContain('1. Main step 1');
-      expect(result.markdown).toContain('1. Sub-step 1.1');
-      expect(result.markdown).toContain('2. Sub-step 1.2');
-      expect(result.markdown).toContain('2. Main step 2');
+      expect(result.markdown).toContain('1.  Main step 1');
+      expect(result.markdown).toContain('1.  Sub-step 1.1');
+      expect(result.markdown).toContain('2.  Sub-step 1.2');
+      expect(result.markdown).toContain('2.  Main step 2');
     });
 
     test('should handle mixed nested lists', () => {
@@ -444,12 +444,12 @@ console.log(x);</code></pre>
 
       const result = converter.convertToMarkdown(html);
 
-      expect(result.markdown).toContain('- Unordered parent');
-      expect(result.markdown).toContain('1. Ordered child 1');
-      expect(result.markdown).toContain('2. Ordered child 2');
-      expect(result.markdown).toContain('1. Ordered parent');
-      expect(result.markdown).toContain('- Unordered child 1');
-      expect(result.markdown).toContain('- Unordered child 2');
+      expect(result.markdown).toContain('-   Unordered parent');
+      expect(result.markdown).toContain('1.  Ordered child 1');
+      expect(result.markdown).toContain('2.  Ordered child 2');
+      expect(result.markdown).toContain('1.  Ordered parent');
+      expect(result.markdown).toContain('-   Unordered child 1');
+      expect(result.markdown).toContain('-   Unordered child 2');
     });
 
     test('should handle lists with complex content', () => {
@@ -464,10 +464,10 @@ console.log(x);</code></pre>
 
       const result = converter.convertToMarkdown(html);
 
-      expect(result.markdown).toContain('- Item with **bold** text');
-      expect(result.markdown).toContain('- Item with [link](https://example.com)');
-      expect(result.markdown).toContain('- Item with `inline code`');
-      expect(result.markdown).toContain('- Item with multiple *formatting* **types**');
+      expect(result.markdown).toContain('-   Item with **bold** text');
+      expect(result.markdown).toContain('-   Item with [link](https://example.com)');
+      expect(result.markdown).toContain('-   Item with `inline code`');
+      expect(result.markdown).toContain('-   Item with multiple *formatting* **types**');
     });
   });
 
