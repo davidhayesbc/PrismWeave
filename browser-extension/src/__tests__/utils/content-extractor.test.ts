@@ -20,11 +20,11 @@ describe('ContentExtractor - Comprehensive Test Suite', () => {
       const result = await extractor.extractContent();
 
       expect(result).toBeDefined();
-      expect(result.content).toContain('Main Article Title');
-      expect(result.content).toContain('main article content');
+      expect(result.content).toContain('Understanding Modern Web Development');
+      expect(result.content).toContain('Modern web development has evolved');
       expect(result.metadata).toBeDefined();
-      expect(result.metadata.title).toBe('OpenGraph Title'); // Prefers og:title
-      expect(result.metadata.author).toBe('Test Author');
+      expect(result.metadata.title).toBe('Understanding Modern Web Development - Complete Guide'); // Prefers og:title
+      expect(result.metadata.author).toBe('Jane Developer');
       expect(result.wordCount).toBeGreaterThan(5);
     });
 
@@ -34,8 +34,8 @@ describe('ContentExtractor - Comprehensive Test Suite', () => {
       const result = await extractor.extractContent();
 
       expect(result).toBeDefined();
-      expect(result.content).toContain('Build Amazing Apps');
-      expect(result.content).toContain('careful planning');
+      expect(result.content).toContain('10 Tips for Better Code Reviews');
+      expect(result.content).toContain('Code reviews are an essential part');
       expect(result.wordCount).toBeGreaterThan(10);
       expect(result.readingTime).toBeGreaterThan(0);
     });
