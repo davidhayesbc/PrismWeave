@@ -13,13 +13,13 @@ reliability
 
 ### Settings Manager Test Consolidation
 
-- [ ] **Merge settings manager test files**
-  - [ ] Combine `settings-manager.test.ts` and
+- [x] **Merge settings manager test files**
+  - [x] Combine `settings-manager.test.ts` and
         `settings-manager-extended.test.ts`
-  - [ ] Remove duplicate test cases (schema validation, load/save operations)
-  - [ ] Keep only comprehensive tests for each feature
-  - [ ] Consolidate mock setup into single beforeEach block
-  - **Impact**: Reduce ~20 duplicate tests, improve maintainability
+  - [x] Remove duplicate test cases (schema validation, load/save operations)
+  - [x] Keep only comprehensive tests for each feature
+  - [x] Consolidate mock setup into single beforeEach block
+  - **Impact**: Reduced ~28 duplicate tests, improved maintainability
 
 ### Content Extractor Test Consolidation
 
