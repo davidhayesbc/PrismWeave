@@ -717,7 +717,7 @@ export class ContentExtractor {
   private cleanText(text: string): string {
     return text
       .replace(/\s+/g, ' ')
-      .replace(/[\u2000-\u206F\u2E00-\u2E7F\\'!"#$%&()*+,\-.\/:;<=>?@\[\]^_`{|}~]/g, '')
+      .replace(/[\u2000-\u206F\u2E00-\u2E7F\\'"#$%&()*+,\/:;<=>?@\[\]^_`{|}~]/g, '')
       .trim();
   }
 

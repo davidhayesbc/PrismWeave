@@ -23,7 +23,7 @@ describe('ContentExtractor - Comprehensive Test Suite', () => {
       expect(result.content).toContain('Understanding Modern Web Development');
       expect(result.content).toContain('Modern web development has evolved');
       expect(result.metadata).toBeDefined();
-      expect(result.metadata.title).toBe('Understanding Modern Web Development  Complete Guide'); // cleanText removes hyphens
+      expect(result.metadata.title).toBe('Understanding Modern Web Development - Complete Guide'); // Prefers og:title
       expect(result.metadata.author).toBe('Jane Developer');
       expect(result.wordCount).toBeGreaterThan(5);
     });
