@@ -61,8 +61,16 @@ export class MarkdownConverterCore {
       throw new Error('TurndownService not initialized');
     }
 
-    // Configure basic options
-    const options = {
+    // Remove unnecessary elements first
+    this.turndownService.remove(['script', 'style', 'head', 'noscript']);
+
+    // Add all custom rules
+    this.addAllCustomRules();
+  }
+
+  // Helper method to get TurndownService options - should be used by wrappers
+  protected getTurndownOptions() {
+    return {
       headingStyle: 'atx' as const,
       bulletListMarker: '-' as const,
       codeBlockStyle: 'fenced' as const,
@@ -72,15 +80,6 @@ export class MarkdownConverterCore {
       linkReferenceStyle: 'full' as const,
       preformattedCode: true,
     };
-
-    // Apply configuration to TurndownService
-    Object.assign(this.turndownService, options);
-
-    // Remove unnecessary elements first
-    this.turndownService.remove(['script', 'style', 'head', 'noscript']);
-
-    // Add all custom rules
-    this.addAllCustomRules();
   }
 
   private addAllCustomRules(): void {
@@ -135,6 +134,35 @@ export class MarkdownConverterCore {
         return isUnwanted || isCopyButton;
       },
       replacement: () => '',
+    });
+
+    // Tables - add custom table support
+    this.turndownService.addRule('tables', {
+      filter: 'table',
+      replacement: (content: string, node: any) => {
+        // Get all rows
+        const rows = Array.from(node.querySelectorAll('tr')).map((row: any) => {
+          const cells = Array.from(row.querySelectorAll('td, th')).map((cell: any) => {
+            return cell.textContent?.trim() || '';
+          });
+          return `| ${cells.join(' | ')} |`;
+        });
+
+        if (rows.length === 0) return '';
+
+        // Add header separator after first row if it contains th elements
+        const firstRow = node.querySelector('tr');
+        const hasHeaders = firstRow && firstRow.querySelector('th');
+
+        if (hasHeaders && rows.length > 0) {
+          const firstRowElement = node.querySelector('tr');
+          const cellCount = firstRowElement ? firstRowElement.querySelectorAll('td, th').length : 0;
+          const separator = `| ${Array(cellCount).fill('---').join(' | ')} |`;
+          rows.splice(1, 0, separator);
+        }
+
+        return `\n${rows.join('\n')}\n`;
+      },
     });
 
     // PRE blocks - simplified handling

@@ -64,7 +64,8 @@ export class MarkdownConverter extends MarkdownConverterCore {
     }
 
     // TurndownService is available - initialize it
-    this.turndownService = new TurndownService();
+    const options = this.getTurndownOptions();
+    this.turndownService = new TurndownService(options);
     this.setupTurndownService();
     this._isInitialized = true;
     console.info('MarkdownConverter: TurndownService initialized successfully');
