@@ -10,6 +10,11 @@ describe('PrismWeavePopup - Settings Validation', () => {
 
   beforeEach(() => {
     chrome = mockChromeAPIs();
+    
+    // Also assign to window for completeness
+    (global as any).chrome = chrome;
+    (window as any).chrome = chrome;
+    
     cleanupTest();
 
     // Mock DOM elements
@@ -25,7 +30,7 @@ describe('PrismWeavePopup - Settings Validation', () => {
       getElementById: jest.fn(() => mockElement),
     };
 
-    popup = new PrismWeavePopup();
+    popup = new PrismWeavePopup(true); // Skip initialization during tests
   });
 
   describe('validateCaptureSettings', () => {

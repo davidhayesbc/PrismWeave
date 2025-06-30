@@ -33,8 +33,9 @@ class Logger {
   constructor(component: string = 'PrismWeave') {
     this.component = component;
     // Automatically disable verbose logging during tests
-    this.enabled = !this._isTestEnvironment();
-    this.level = this._isTestEnvironment() ? Logger.LEVELS.ERROR : Logger.LEVELS.DEBUG;
+    const isTest = this._isTestEnvironment();
+    this.enabled = !isTest;
+    this.level = isTest ? Logger.LEVELS.ERROR : Logger.LEVELS.DEBUG;
     this.styles = {
       error: 'color: #ff4444; font-weight: bold;',
       warn: 'color: #ffaa00; font-weight: bold;',

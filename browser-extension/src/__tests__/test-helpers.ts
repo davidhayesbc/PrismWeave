@@ -43,12 +43,36 @@ export const mockChromeAPIs = () => {
       }
     },
     runtime: {
-      sendMessage: jest.fn(),
+      sendMessage: jest.fn((message, callback) => {
+        // Mock response for GET_SETTINGS
+        if (message.type === 'GET_SETTINGS') {
+          const mockResponse = {
+            success: true,
+            data: {
+              githubToken: '',
+              githubRepo: '',
+              autoCommit: true
+            }
+          };
+          callback(mockResponse);
+        } else {
+          callback({ success: true, data: {} });
+        }
+      }),
       openOptionsPage: jest.fn(),
       lastError: undefined,
     },
     tabs: {
-      query: jest.fn(),
+      query: jest.fn((queryInfo, callback) => {
+        // Simulate active tab for testing
+        const mockTab = {
+          id: 1,
+          url: 'https://example.com/test-page',
+          title: 'Test Page',
+          active: true
+        };
+        callback([mockTab]);
+      }),
       create: jest.fn(),
     },
   };

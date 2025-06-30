@@ -26,9 +26,12 @@ export class PrismWeavePopup {
   private isCapturing: boolean = false;
   private lastCapturedContent: string | null = null;
 
-  constructor() {
-    logger.info('PrismWeavePopup constructor called');
-    this.initializePopup();
+  constructor(skipInitialization: boolean = false) {
+    // Only log during normal operation, not tests
+    if (!skipInitialization) {
+      logger.debug('PrismWeavePopup constructor called');
+      this.initializePopup();
+    }
   }
 
   // ...existing code...

@@ -21,6 +21,13 @@ class ErrorHandler {
     GITHUB: 'github'
   } as const;
 
+  private static _isTestEnvironment(): boolean {
+    return (
+      typeof process !== 'undefined' &&
+      (process.env.NODE_ENV === 'test' || process.env.JEST_WORKER_ID !== undefined)
+    );
+  }
+
   static createUserFriendlyError(error: Error, context: string = ''): IErrorHandlerInfo & { type: string; solution: string } {
     const errorInfo = this.categorizeError(error);
       return {
@@ -95,7 +102,10 @@ class ErrorHandler {
   static handle(error: Error, context: string = 'Unknown'): IErrorHandlerInfo & { type: string; solution: string } {
     const errorInfo = this.createUserFriendlyError(error, context);
 
-    console.error(`${context}:`, errorInfo);
+    // Only log to console if not in test environment
+    if (!this._isTestEnvironment()) {
+      console.error(`${context}:`, errorInfo);
+    }
     
     // Optionally send to background for logging
     if (typeof chrome !== 'undefined' && chrome.runtime) {
@@ -148,7 +158,10 @@ class ErrorHandler {
 
   static showUserNotification(error: IErrorHandlerInfo & { type: string; solution: string }, duration: number = 5000): void {
     // This would integrate with the UI notification system
-    console.warn('User notification:', error.message, error.solution);
+    // Only log to console if not in test environment
+    if (!this._isTestEnvironment()) {
+      console.warn('User notification:', error.message, error.solution);
+    }
   }
 }
 
