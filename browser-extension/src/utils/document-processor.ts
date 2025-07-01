@@ -3,8 +3,8 @@
 // Extracted from service worker for better testability and reusability
 
 import { IDocumentMetadata, ISettings } from '../types/index.js';
-import SharedUtils from './shared-utils.js';
 import { createLogger } from './logger.js';
+import SharedUtils from './shared-utils.js';
 
 const logger = createLogger('DocumentProcessor');
 
@@ -25,46 +25,136 @@ export interface IDocumentProcessingOptions {
 export class DocumentProcessor {
   private static readonly DEFAULT_FOLDER = 'unsorted';
   private static readonly DEFAULT_FILENAME_PATTERN = 'YYYY-MM-DD-domain-title';
-  
+
   // Folder classification mapping
   private static readonly FOLDER_MAPPING: Record<string, string[]> = {
     tech: [
-      'programming', 'software', 'coding', 'development', 'technology', 'tech',
-      'javascript', 'python', 'react', 'node', 'github', 'stackoverflow',
-      'dev.to', 'css', 'html', 'typescript', 'api', 'framework', 'library',
+      'programming',
+      'software',
+      'coding',
+      'development',
+      'technology',
+      'tech',
+      'javascript',
+      'python',
+      'react',
+      'node',
+      'github',
+      'stackoverflow',
+      'dev.to',
+      'css',
+      'html',
+      'typescript',
+      'api',
+      'framework',
+      'library',
     ],
     business: [
-      'business', 'marketing', 'finance', 'startup', 'entrepreneur', 'sales',
-      'management', 'strategy', 'linkedin', 'enterprise', 'corporate',
-      'economics', 'market', 'revenue', 'profit',
+      'business',
+      'marketing',
+      'finance',
+      'startup',
+      'entrepreneur',
+      'sales',
+      'management',
+      'strategy',
+      'linkedin',
+      'enterprise',
+      'corporate',
+      'economics',
+      'market',
+      'revenue',
+      'profit',
     ],
     tutorial: [
-      'tutorial', 'guide', 'how-to', 'learn', 'course', 'lesson',
-      'walkthrough', 'step-by-step', 'instructions', 'tips', 'howto', 'example',
+      'tutorial',
+      'guide',
+      'how-to',
+      'learn',
+      'course',
+      'lesson',
+      'walkthrough',
+      'step-by-step',
+      'instructions',
+      'tips',
+      'howto',
+      'example',
     ],
     news: [
-      'news', 'article', 'blog', 'opinion', 'analysis', 'update',
-      'announcement', 'breaking', 'report', 'current', 'events',
+      'news',
+      'article',
+      'blog',
+      'opinion',
+      'analysis',
+      'update',
+      'announcement',
+      'breaking',
+      'report',
+      'current',
+      'events',
     ],
     research: [
-      'research', 'study', 'paper', 'academic', 'journal', 'thesis',
-      'analysis', 'data', 'science', 'experiment', 'findings', 'methodology',
+      'research',
+      'study',
+      'paper',
+      'academic',
+      'journal',
+      'thesis',
+      'analysis',
+      'data',
+      'science',
+      'experiment',
+      'findings',
+      'methodology',
     ],
     design: [
-      'design', 'ui', 'ux', 'css', 'figma', 'adobe', 'creative',
-      'visual', 'art', 'layout', 'typography', 'color', 'interface',
+      'design',
+      'ui',
+      'ux',
+      'css',
+      'figma',
+      'adobe',
+      'creative',
+      'visual',
+      'art',
+      'layout',
+      'typography',
+      'color',
+      'interface',
     ],
     tools: [
-      'tool', 'utility', 'software', 'app', 'service', 'platform',
-      'extension', 'plugin', 'resource', 'toolkit',
+      'tool',
+      'utility',
+      'software',
+      'app',
+      'service',
+      'platform',
+      'extension',
+      'plugin',
+      'resource',
+      'toolkit',
     ],
     personal: [
-      'personal', 'diary', 'journal', 'thoughts', 'reflection',
-      'life', 'experience', 'blog', 'opinion',
+      'personal',
+      'diary',
+      'journal',
+      'thoughts',
+      'reflection',
+      'life',
+      'experience',
+      'blog',
+      'opinion',
     ],
     reference: [
-      'reference', 'documentation', 'manual', 'spec', 'api',
-      'docs', 'wiki', 'handbook', 'guide',
+      'reference',
+      'documentation',
+      'manual',
+      'spec',
+      'api',
+      'docs',
+      'wiki',
+      'handbook',
+      'guide',
     ],
   };
 
@@ -204,7 +294,7 @@ export class DocumentProcessor {
     // Auto-detect folder based on content
     const detected = this.autoDetectFolder(metadata);
     const final = detected || DocumentProcessor.DEFAULT_FOLDER;
-    
+
     logger.debug('Auto-detected folder:', { detected, final });
     return final;
   }
@@ -238,8 +328,7 @@ export class DocumentProcessor {
     });
 
     // Return folder with highest score
-    const bestFolder = Object.entries(folderScores)
-      .sort(([, a], [, b]) => b - a)[0];
+    const bestFolder = Object.entries(folderScores).sort(([, a], [, b]) => b - a)[0];
 
     return bestFolder ? bestFolder[0] : null;
   }

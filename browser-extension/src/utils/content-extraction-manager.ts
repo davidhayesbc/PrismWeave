@@ -2,7 +2,7 @@
 // Content Extraction Manager - Handles content extraction workflows with fallback strategies
 // Extracted from service worker for better testability and reusability
 
-import { IContentExtractionData, IContentExtractionResult } from '../types/index.js';
+import { IContentExtractionResult } from '../types/index.js';
 import { createLogger } from './logger.js';
 
 const logger = createLogger('ContentExtractionManager');
@@ -51,7 +51,7 @@ export class ContentExtractionManager {
    */
   private async validateTab(tabId: number): Promise<void> {
     const tab = await chrome.tabs.get(tabId);
-    
+
     if (!tab.url || this.isSpecialPage(tab.url)) {
       throw new Error('Cannot extract content from special pages');
     }
@@ -67,9 +67,9 @@ export class ContentExtractionManager {
       'moz-extension://',
       'edge://',
       'about:',
-      'file://'
+      'file://',
     ];
-    
+
     return specialPrefixes.some(prefix => url.startsWith(prefix));
   }
 
@@ -102,7 +102,10 @@ export class ContentExtractionManager {
       chrome.tabs.sendMessage(tabId, { type: 'PING' }, response => {
         clearTimeout(timeout);
         if (chrome.runtime.lastError) {
-          logger.debug('Ping failed (expected if script not injected):', chrome.runtime.lastError.message);
+          logger.debug(
+            'Ping failed (expected if script not injected):',
+            chrome.runtime.lastError.message
+          );
           resolve(false);
         } else {
           resolve(!!response);
@@ -116,7 +119,7 @@ export class ContentExtractionManager {
    */
   private async injectTurndownLibrary(tabId: number): Promise<void> {
     logger.debug('Injecting TurndownService library...');
-    
+
     try {
       await chrome.scripting.executeScript({
         target: { tabId },
@@ -134,7 +137,7 @@ export class ContentExtractionManager {
    */
   private async injectContentScript(tabId: number): Promise<void> {
     logger.debug('Injecting content script...');
-    
+
     try {
       await chrome.scripting.executeScript({
         target: { tabId },
@@ -294,7 +297,7 @@ export class ContentExtractionManager {
    */
   private async extractBasicContent(tabId: number): Promise<IContentExtractionResult> {
     logger.warn('Using basic content extraction fallback');
-    
+
     const tab = await chrome.tabs.get(tabId);
     const basicContent = `# ${tab.title || 'Untitled'}\n\nContent extraction failed. Only basic page information is available.\n\n**URL:** ${tab.url || 'Unknown'}\n**Captured:** ${new Date().toISOString()}`;
 

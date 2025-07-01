@@ -6,8 +6,8 @@ import { ICaptureResult, ISettings } from '../types/index.js';
 import { ContentExtractionManager } from './content-extraction-manager.js';
 import { DocumentProcessor } from './document-processor.js';
 import { GitHubFileManager, IGitHubCommitParams } from './github-file-manager.js';
-import { SettingsManager } from './settings-manager.js';
 import { createLogger } from './logger.js';
+import { SettingsManager } from './settings-manager.js';
 
 const logger = createLogger('PageCaptureManager');
 
@@ -84,7 +84,8 @@ export class PageCaptureManager {
       });
 
       // Step 6: Handle GitHub commit if enabled
-      const shouldCommit = options.forceGitHubCommit || 
+      const shouldCommit =
+        options.forceGitHubCommit ||
         (settings.autoCommit && settings.githubToken && settings.githubRepo);
 
       if (shouldCommit) {
@@ -95,7 +96,9 @@ export class PageCaptureManager {
           return this.createSuccessResult(processedDoc, {
             message: 'Page captured and committed to repository',
             ...(commitResult.data?.html_url && { commitUrl: commitResult.data.html_url }),
-            ...(options.includeMarkdown !== undefined && { includeMarkdown: options.includeMarkdown }),
+            ...(options.includeMarkdown !== undefined && {
+              includeMarkdown: options.includeMarkdown,
+            }),
           });
         } else {
           logger.warn('GitHub commit failed, falling back to local storage:', commitResult.error);
@@ -110,7 +113,6 @@ export class PageCaptureManager {
         status: 'pending_sync',
         ...(options.includeMarkdown !== undefined && { includeMarkdown: options.includeMarkdown }),
       });
-
     } catch (error) {
       logger.error('Error in page capture workflow:', error);
       return {
@@ -177,7 +179,7 @@ export class PageCaptureManager {
    */
   private async getActiveTab(): Promise<chrome.tabs.Tab> {
     const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-    
+
     if (!tabs.length || !tabs[0].id) {
       throw new Error('No active tab found');
     }
@@ -211,7 +213,7 @@ export class PageCaptureManager {
     processedDoc: ReturnType<DocumentProcessor['processDocument']>
   ): Promise<void> {
     const storageKey = `pending_capture_${Date.now()}`;
-    
+
     await chrome.storage.local.set({
       [storageKey]: {
         filePath: processedDoc.filePath,

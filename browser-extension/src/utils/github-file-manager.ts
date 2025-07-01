@@ -3,7 +3,6 @@
 // Extracted from service worker for better testability and reusability
 
 import { createLogger } from './logger.js';
-import SharedUtils from './shared-utils.js';
 
 const logger = createLogger('GitHubFileManager');
 
@@ -94,7 +93,10 @@ export class GitHubFileManager {
   /**
    * Test GitHub connection and permissions
    */
-  async testConnection(token: string, repo: string): Promise<{
+  async testConnection(
+    token: string,
+    repo: string
+  ): Promise<{
     success: boolean;
     status: string;
     message?: string;
@@ -208,7 +210,7 @@ export class GitHubFileManager {
       }
 
       const data = (await response.json()) as IGitHubFileInfo;
-      
+
       if (!data.sha) {
         throw new Error('Invalid file info from GitHub: missing SHA');
       }
@@ -278,7 +280,7 @@ export class GitHubFileManager {
    */
   private async validateToken(token: string): Promise<any> {
     logger.debug('Validating GitHub token...');
-    
+
     const response = await fetch(`${GitHubFileManager.API_BASE}/user`, {
       headers: this.getAuthHeaders(token),
     });
@@ -297,7 +299,7 @@ export class GitHubFileManager {
    */
   private async validateRepository(token: string, repoInfo: IRepositoryInfo): Promise<any> {
     logger.debug('Validating repository access...');
-    
+
     const response = await fetch(
       `${GitHubFileManager.API_BASE}/repos/${repoInfo.owner}/${repoInfo.repo}`,
       {
@@ -323,7 +325,7 @@ export class GitHubFileManager {
    */
   private async checkWritePermissions(token: string, repoInfo: IRepositoryInfo): Promise<boolean> {
     logger.debug('Testing write permissions...');
-    
+
     try {
       const response = await fetch(
         `${GitHubFileManager.API_BASE}/repos/${repoInfo.owner}/${repoInfo.repo}/contents`,

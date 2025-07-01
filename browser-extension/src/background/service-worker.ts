@@ -2,10 +2,10 @@
 // Service worker for PrismWeave browser extension with ES module support
 // Refactored to use common utilities for better testability and maintainability
 
-import { IMessageData, IMessageResponse } from '../types/index.js';
-import { createLogger } from '../utils/logger.js';
-import { SettingsManager } from '../utils/settings-manager.js';
-import { PageCaptureManager } from '../utils/page-capture-manager.js';
+import { IMessageData, IMessageResponse } from '../types/index';
+import { createLogger } from '../utils/logger';
+import { PageCaptureManager } from '../utils/page-capture-manager';
+import { SettingsManager } from '../utils/settings-manager';
 
 console.log('Service Worker starting...');
 
