@@ -246,7 +246,7 @@ async function mockTestGitHubConnection(): Promise<unknown> {
   };
 }
 
-describe('ServiceWorker - Message Handling', () => {
+describe('VI. ServiceWorker - Message Handling', () => {
   beforeEach(() => {
     // Reset Chrome API mocks
     jest.clearAllMocks();
@@ -256,8 +256,8 @@ describe('ServiceWorker - Message Handling', () => {
     mockSettingsManager = new MockServiceWorkerSettingsManager();
   });
 
-  describe('Message Processing', () => {
-    test('F.1.1 - Handle GET_SETTINGS message', async () => {
+  describe('VI.1 Message Processing', () => {
+    test('VI.1.1 - Handle GET_SETTINGS message', async () => {
       // Arrange: Mock storage with test settings
       const mockSettings = {
         githubToken: 'test-token',
@@ -291,7 +291,7 @@ describe('ServiceWorker - Message Handling', () => {
       );
     });
 
-    test('F.1.2 - Handle UPDATE_SETTINGS message', async () => {
+    test('VI.1.2 - Handle UPDATE_SETTINGS message', async () => {
       // Arrange: Mock storage with existing settings
       const existingSettings = { githubToken: 'old-token', githubRepo: 'old/repo' };
       const updates = { githubToken: 'new-token', autoCommit: false };
@@ -327,7 +327,7 @@ describe('ServiceWorker - Message Handling', () => {
       );
     });
 
-    test('F.1.3 - Handle CAPTURE_PAGE message', async () => {
+    test('VI.1.3 - Handle CAPTURE_PAGE message', async () => {
       // Arrange: Mock valid settings
       const validSettings = {
         githubToken: 'valid-token',
@@ -363,7 +363,7 @@ describe('ServiceWorker - Message Handling', () => {
       });
     });
 
-    test('F.1.4 - Handle TEST_GITHUB_CONNECTION message', async () => {
+    test('VI.1.4 - Handle TEST_GITHUB_CONNECTION message', async () => {
       // Arrange: Mock valid GitHub settings
       const validSettings = {
         githubToken: 'ghp_validtoken123',
@@ -394,7 +394,7 @@ describe('ServiceWorker - Message Handling', () => {
       );
     });
 
-    test('F.1.5 - Return proper error responses', async () => {
+    test('VI.1.5 - Return proper error responses', async () => {
       // Test Case 1: Invalid message format
       try {
         await mockHandleMessage(null as any, {} as chrome.runtime.MessageSender);
@@ -435,7 +435,7 @@ describe('ServiceWorker - Message Handling', () => {
       }
     });
 
-    test('F.1.6 - Handle invalid message types', async () => {
+    test('VI.1.6 - Handle invalid message types', async () => {
       // Arrange: Test unknown message type
       const invalidMessage: IMessageData = {
         type: 'UNKNOWN_MESSAGE_TYPE',
@@ -469,8 +469,8 @@ describe('ServiceWorker - Message Handling', () => {
     });
   });
 
-  describe('Storage Operations', () => {
-    test('F.2.1 - Read settings from chrome.storage', async () => {
+  describe('VI.2 Storage Operations', () => {
+    test('VI.2.1 - Read settings from chrome.storage', async () => {
       // Arrange: Mock storage with test data
       const testSettings = {
         githubToken: 'test-token-123',
@@ -494,7 +494,7 @@ describe('ServiceWorker - Message Handling', () => {
       expect(settings).toEqual(testSettings);
     });
 
-    test('F.2.2 - Write settings to chrome.storage', async () => {
+    test('VI.2.2 - Write settings to chrome.storage', async () => {
       // Arrange: Mock storage operations
       const existingSettings = { githubToken: 'old-token' };
       const updates = { githubRepo: 'new/repo', autoCommit: true };
@@ -522,7 +522,7 @@ describe('ServiceWorker - Message Handling', () => {
       );
     });
 
-    test('F.2.3 - Handle storage quota errors', async () => {
+    test('VI.2.3 - Handle storage quota errors', async () => {
       // Arrange: Mock storage quota exceeded error
       mockChrome.runtime.lastError = { message: 'Quota exceeded' } as chrome.runtime.LastError;
       mockChrome.storage.sync.set.mockImplementation((data, callback) => {
@@ -540,7 +540,7 @@ describe('ServiceWorker - Message Handling', () => {
       expect(mockChrome.storage.sync.set).toHaveBeenCalled();
     });
 
-    test('F.2.4 - Fallback when storage unavailable', async () => {
+    test('VI.2.4 - Fallback when storage unavailable', async () => {
       // Arrange: Mock storage error
       mockChrome.storage.sync.get.mockImplementation((keys, callback) => {
         // Simulate storage error by not calling callback
@@ -562,8 +562,8 @@ describe('ServiceWorker - Message Handling', () => {
     });
   });
 
-  describe('Extension Lifecycle', () => {
-    test('F.3.1 - Initialize on installation', async () => {
+  describe('VI.3 Extension Lifecycle', () => {
+    test('VI.3.1 - Initialize on installation', async () => {
       // Arrange: Mock installation details and proper storage
       const installDetails: chrome.runtime.InstalledDetails = {
         reason: 'install',
@@ -601,7 +601,7 @@ describe('ServiceWorker - Message Handling', () => {
       expect(mockChrome.storage.sync.set).toHaveBeenCalled();
     });
 
-    test('F.3.2 - Handle runtime startup', async () => {
+    test('VI.3.2 - Handle runtime startup', async () => {
       // Arrange: Mock runtime startup
       const mockStartupHandler = jest.fn(() => {
         // Verify settings manager is initialized
@@ -616,7 +616,7 @@ describe('ServiceWorker - Message Handling', () => {
       expect(isInitialized).toBe(true);
     });
 
-    test('F.3.3 - Process extension updates', async () => {
+    test('VI.3.3 - Process extension updates', async () => {
       // Arrange: Mock update details and proper storage
       const updateDetails: chrome.runtime.InstalledDetails = {
         reason: 'update',
@@ -652,8 +652,8 @@ describe('ServiceWorker - Message Handling', () => {
     });
   });
 
-  describe('Message Response Integration', () => {
-    test('F.4.1 - Should handle async message responses correctly', async () => {
+  describe('VI.4 Message Response Integration', () => {
+    test('VI.4.1 - Should handle async message responses correctly', async () => {
       // Test the actual message response pattern used in service worker
       const mockSendResponse = jest.fn();
       const message: IMessageData = { type: 'GET_SETTINGS', timestamp: Date.now() };
@@ -693,7 +693,7 @@ describe('ServiceWorker - Message Handling', () => {
       });
     });
 
-    test('F.4.2 - Should handle error responses correctly', async () => {
+    test('VI.4.2 - Should handle error responses correctly', async () => {
       const mockSendResponse = jest.fn();
       const invalidMessage: IMessageData = { type: 'INVALID_TYPE', timestamp: Date.now() };
       const sender = {} as chrome.runtime.MessageSender;

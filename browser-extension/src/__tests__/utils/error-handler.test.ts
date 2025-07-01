@@ -33,7 +33,7 @@ const mockWindow = {
   },
 };
 
-describe('ErrorHandler - Error Processing', () => {
+describe('IV. - ErrorHandler - Error Processing', () => {
   beforeEach(() => {
     // Reset Chrome API mocks
     jest.clearAllMocks();
@@ -63,8 +63,8 @@ describe('ErrorHandler - Error Processing', () => {
     delete (global as any).window;
   });
 
-  describe('Error Categorization', () => {
-    test('G.1.1 - Categorize Chrome API errors', () => {
+  describe('IV.1 - Error Categorization', () => {
+    test('IV.1.1 - Categorize Chrome API errors', () => {
       // Test Case 1: Extension context invalidated
       const chromeError = new Error('Extension context invalidated');
       const categorized = ErrorHandler.categorizeError(chromeError);
@@ -90,7 +90,7 @@ describe('ErrorHandler - Error Processing', () => {
       expect(storageCategorized.solution).toContain('storage space');
     });
 
-    test('G.1.2 - Categorize network errors', () => {
+    test('IV.1.2 - Categorize network errors', () => {
       // Test Case 1: Basic network error
       const networkError = new Error('Failed to fetch');
       const categorized = ErrorHandler.categorizeError(networkError);
@@ -116,7 +116,7 @@ describe('ErrorHandler - Error Processing', () => {
       expect(timeoutCategorized.solution).toContain('internet connection');
     });
 
-    test('G.1.3 - Categorize validation errors', () => {
+    test('IV.1.3 - Categorize validation errors', () => {
       // Test Case 1: Content parsing error
       const parseError = new Error('Failed to parse HTML content');
       const categorized = ErrorHandler.categorizeError(parseError);
@@ -142,7 +142,7 @@ describe('ErrorHandler - Error Processing', () => {
       expect(repoCategorized.solution).toContain('repository name format');
     });
 
-    test('G.1.4 - Handle unknown errors', () => {
+    test('IV.1.4 - Handle unknown errors', () => {
       // Test Case 1: Completely unknown error
       const unknownError = new Error('Something completely unexpected happened');
       const categorized = ErrorHandler.categorizeError(unknownError);
@@ -167,7 +167,7 @@ describe('ErrorHandler - Error Processing', () => {
       expect(nullCategorized.userMessage).toBe('An unexpected error occurred.');
     });
 
-    test('G.1.5 - Process timeout errors', () => {
+    test('IV.1.5 - Process timeout errors', () => {
       // Test Case 1: Generic timeout
       const timeoutError = new Error('Operation timed out after 30 seconds');
       const categorized = ErrorHandler.categorizeError(timeoutError);
@@ -192,8 +192,8 @@ describe('ErrorHandler - Error Processing', () => {
     });
   });
 
-  describe('Error Reporting', () => {
-    test('G.2.1 - Log errors with context', () => {
+  describe('IV.2 - Error Reporting', () => {
+    test('IV.2.1 - Log errors with context', () => {
       // Test Case 1: Basic error logging
       const error = new Error('Test error for logging');
       const context = 'content-extraction';
@@ -242,7 +242,7 @@ describe('ErrorHandler - Error Processing', () => {
       expect(serviceWorkerResult.url).toBe('Unknown');
     });
 
-    test('G.2.2 - Send errors to background script', async () => {
+    test('IV.2.2 - Send errors to background script', async () => {
       // Test Case 1: Successful message sending
       mockChrome.runtime.sendMessage.mockResolvedValue({ success: true });
 
@@ -294,7 +294,7 @@ describe('ErrorHandler - Error Processing', () => {
       (global as any).chrome = mockChrome;
     });
 
-    test('G.2.3 - Include stack traces', () => {
+    test('IV.2.3 - Include stack traces', () => {
       // Test Case 1: Error with stack trace
       const errorWithStack = new Error('Error with stack trace');
       errorWithStack.stack =
@@ -322,7 +322,7 @@ describe('ErrorHandler - Error Processing', () => {
       );
     });
 
-    test('G.2.4 - Sanitize sensitive data', () => {
+    test('IV.2.4 - Sanitize sensitive data', () => {
       // Note: Current implementation doesn't have explicit data sanitization
       // This test verifies that sensitive data isn't accidentally logged
 
@@ -352,7 +352,7 @@ describe('ErrorHandler - Error Processing', () => {
       expect(authResult.solution).not.toContain('ghp_secret123');
     });
 
-    test('G.2.5 - Handle error logging failures', () => {
+    test('IV.2.5 - Handle error logging failures', () => {
       // Test Case 1: Console.error throwing (ErrorHandler doesn't currently handle this)
       const originalError = consoleSpy.error;
       consoleSpy.error.mockImplementation(() => {
@@ -415,8 +415,8 @@ describe('ErrorHandler - Error Processing', () => {
     });
   });
 
-  describe('Additional Error Handler Functionality', () => {
-    test('Should create user-friendly error info', () => {
+  describe('IV.3 - Additional Error Handler Functionality', () => {
+    test('IV.3.1 - Should create user-friendly error info', () => {
       const error = new Error('GitHub repository not found');
       const context = 'repository-validation';
 
@@ -435,7 +435,7 @@ describe('ErrorHandler - Error Processing', () => {
       );
     });
 
-    test('Should handle async functions with error wrapping', async () => {
+    test('IV.3.2 - Should handle async functions with error wrapping', async () => {
       // Test Case 1: Successful async operation
       const successfulAsyncFn = async () => {
         return 'success result';
@@ -458,7 +458,7 @@ describe('ErrorHandler - Error Processing', () => {
       expect(consoleSpy.error).not.toHaveBeenCalled();
     });
 
-    test('Should wrap functions with error handling', () => {
+    test('IV.3.3 - Should wrap functions with error handling', () => {
       // Test Case 1: Successful function
       const successfulFn = (x: number, y: number) => x + y;
       const wrappedFn = ErrorHandler.wrapFunction(successfulFn, 'math-operation');
@@ -488,7 +488,7 @@ describe('ErrorHandler - Error Processing', () => {
       expect(wrappedAsyncFn()).rejects.toThrow('Async wrapped function failed');
     });
 
-    test('Should show user notifications', () => {
+    test('IV.3.4 - Should show user notifications', () => {
       const error = {
         message: 'User-friendly error message',
         stack: '',
@@ -507,8 +507,8 @@ describe('ErrorHandler - Error Processing', () => {
     });
   });
 
-  describe('Error Handler Types and Constants', () => {
-    test('Should define error type constants', () => {
+  describe('IV.4 - Error Handler Types and Constants', () => {
+    test('IV.4.1 - Should define error type constants', () => {
       expect(ErrorHandler.ERROR_TYPES).toEqual({
         NETWORK: 'network',
         AUTH: 'auth',
@@ -519,7 +519,7 @@ describe('ErrorHandler - Error Processing', () => {
       });
     });
 
-    test('Should handle authentication errors correctly', () => {
+    test('IV.4.2 - Should handle authentication errors correctly', () => {
       const tokenError = new Error('Invalid token provided');
       const authError = new Error('401 Unauthorized access');
       const unauthorizedError = new Error('Unauthorized request to API');

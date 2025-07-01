@@ -6,7 +6,7 @@
 import { SettingsManager } from '../../utils/settings-manager';
 import { cleanupTest, mockChromeAPIs } from '../test-helpers';
 
-describe('SettingsManager - Comprehensive Functionality', () => {
+describe('III. - SettingsManager - Comprehensive Functionality', () => {
   let manager: SettingsManager;
   let mockChrome: any;
 
@@ -20,8 +20,8 @@ describe('SettingsManager - Comprehensive Functionality', () => {
     cleanupTest();
   });
 
-  describe('Schema and Defaults', () => {
-    test('Should have default values for all schema fields', async () => {
+  describe('III.1 - Schema and Defaults', () => {
+    test('III.1.1 - Should have default values for all schema fields', async () => {
       const defaults = await manager.getDefaults();
 
       // Verify the actual schema-based defaults
@@ -49,7 +49,7 @@ describe('SettingsManager - Comprehensive Functionality', () => {
       expect(defaults).toHaveProperty('autoCommit');
     });
 
-    test('Should get setting definition by key', () => {
+    test('III.1.2 - Should get setting definition by key', () => {
       const githubTokenDef = manager.getSettingDefinition('githubToken');
       expect(githubTokenDef).toBeDefined();
       expect(githubTokenDef?.type).toBe('string');
@@ -68,7 +68,7 @@ describe('SettingsManager - Comprehensive Functionality', () => {
       expect(nonExistent).toBeNull();
     });
 
-    test('Should get all setting definitions', () => {
+    test('III.1.3 - Should get all setting definitions', () => {
       const allDefinitions = manager.getAllSettingDefinitions();
 
       // Verify structure
@@ -107,7 +107,7 @@ describe('SettingsManager - Comprehensive Functionality', () => {
       expect(Object.keys(newDefinitions).length).toBe(originalCount);
     });
 
-    test('Should check required dependencies', async () => {
+    test('III.1.4 - Should check required dependencies', async () => {
       // Test settings without dependencies
       const simpleSettings = {
         githubToken: 'test-token',
@@ -129,8 +129,8 @@ describe('SettingsManager - Comprehensive Functionality', () => {
     });
   });
 
-  describe('Settings Load/Save Operations', () => {
-    test('Should load settings when storage is empty', async () => {
+  describe('III.2 - Settings Load/Save Operations', () => {
+    test('III.2.1 - Should load settings when storage is empty', async () => {
       mockChrome.storage.sync.get.mockImplementation((keys: any, callback: any) => {
         callback({});
       });
@@ -143,7 +143,7 @@ describe('SettingsManager - Comprehensive Functionality', () => {
       );
     });
 
-    test('Should save valid settings successfully', async () => {
+    test('III.2.2 - Should save valid settings successfully', async () => {
       mockChrome.storage.sync.get.mockImplementation((keys: any, callback: any) => {
         callback({});
       });
@@ -168,7 +168,7 @@ describe('SettingsManager - Comprehensive Functionality', () => {
       );
     });
 
-    test('Should reset settings to defaults', async () => {
+    test('III.2.3 - Should reset settings to defaults', async () => {
       mockChrome.storage.sync.set.mockImplementation((data: any, callback: any) => {
         callback();
       });
@@ -184,8 +184,8 @@ describe('SettingsManager - Comprehensive Functionality', () => {
     });
   });
 
-  describe('Settings Validation', () => {
-    test('Should validate settings with correct types', () => {
+  describe('III.3 - Settings Validation', () => {
+    test('III.3.1 - Should validate settings with correct types', () => {
       // Use only valid schema fields
       const validSettings = {
         autoCommit: true,
@@ -201,7 +201,7 @@ describe('SettingsManager - Comprehensive Functionality', () => {
       expect(validation.errors).toEqual([]);
     });
 
-    test('Should validate settings with incorrect types', () => {
+    test('III.3.2 - Should validate settings with incorrect types', () => {
       const invalidSettings = {
         autoCommit: 'yes', // should be boolean
         githubRepo: 'invalid-format', // should match pattern
@@ -212,7 +212,7 @@ describe('SettingsManager - Comprehensive Functionality', () => {
       expect(validation.errors.length).toBeGreaterThan(0);
     });
 
-    test('Should validate GitHub repository pattern', () => {
+    test('III.3.3 - Should validate GitHub repository pattern', () => {
       // Test valid repository patterns
       const validRepoSettings = {
         githubRepo: 'user/repository-name',
@@ -242,7 +242,7 @@ describe('SettingsManager - Comprehensive Functionality', () => {
       expect(emptyResult.isValid).toBe(true);
     });
 
-    test('Should validate enum options correctly', () => {
+    test('III.3.4 - Should validate enum options correctly', () => {
       // Test valid defaultFolder options
       const validFolderOptions = [
         'tech',
@@ -274,7 +274,7 @@ describe('SettingsManager - Comprehensive Functionality', () => {
       });
     });
 
-    test('Should perform cross-field validation', () => {
+    test('III.3.5 - Should perform cross-field validation', () => {
       // Test multiple field validation simultaneously
       const multiFieldSettings = {
         githubToken: 'valid-token',
@@ -308,7 +308,7 @@ describe('SettingsManager - Comprehensive Functionality', () => {
       expect(errorString).toContain('must be one of');
     });
 
-    test('Should validate on load and warn about invalid data', async () => {
+    test('III.3.6 - Should validate on load and warn about invalid data', async () => {
       mockChrome.storage.sync.get.mockImplementation((keys: any, callback: any) => {
         callback({
           prismWeaveSettings: {
@@ -342,8 +342,8 @@ describe('SettingsManager - Comprehensive Functionality', () => {
     });
   });
 
-  describe('Import/Export Operations', () => {
-    test('Should export settings with sensitive data sanitized', async () => {
+  describe('III.4 - Import/Export Operations', () => {
+    test('III.4.1 - Should export settings with sensitive data sanitized', async () => {
       // Use valid schema fields
       const testSettings = {
         githubToken: 'secret-token',
@@ -367,7 +367,7 @@ describe('SettingsManager - Comprehensive Functionality', () => {
       expect(parsed.defaultFolder).toBe('tech');
     });
 
-    test('Should import settings successfully', async () => {
+    test('III.4.2 - Should import settings successfully', async () => {
       mockChrome.storage.sync.get.mockImplementation((keys: any, callback: any) => {
         callback({}); // Return empty settings for current state
       });
@@ -390,7 +390,7 @@ describe('SettingsManager - Comprehensive Functionality', () => {
       expect(result).toBe(true);
     });
 
-    test('Should handle invalid JSON import gracefully', async () => {
+    test('III.4.3 - Should handle invalid JSON import gracefully', async () => {
       const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
 
       const invalidJson = '{ invalid json }';
@@ -407,8 +407,8 @@ describe('SettingsManager - Comprehensive Functionality', () => {
     });
   });
 
-  describe('Error Handling and Edge Cases', () => {
-    test('Should handle storage errors gracefully', async () => {
+  describe('III.5 - Error Handling and Edge Cases', () => {
+    test('III.5.1 - Should handle storage errors gracefully', async () => {
       const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
 
       mockChrome.runtime.lastError = { message: 'Storage quota exceeded' };
@@ -428,7 +428,7 @@ describe('SettingsManager - Comprehensive Functionality', () => {
       mockChrome.runtime.lastError = null;
     });
 
-    test('Should handle Chrome storage unavailable', async () => {
+    test('III.5.2 - Should handle Chrome storage unavailable', async () => {
       // Simulate Chrome storage API not available
       (global as any).chrome = undefined;
 
@@ -447,7 +447,7 @@ describe('SettingsManager - Comprehensive Functionality', () => {
       expect(partialSettings).toEqual({});
     });
 
-    test('Should handle storage corruption', async () => {
+    test('III.5.3 - Should handle storage corruption', async () => {
       // Test invalid JSON structure in storage
       mockChrome.storage.sync.get.mockImplementation((keys: any, callback: any) => {
         callback({
@@ -478,7 +478,7 @@ describe('SettingsManager - Comprehensive Functionality', () => {
       mockChrome.runtime.lastError = null;
     });
 
-    test('Should handle large data storage', async () => {
+    test('III.5.4 - Should handle large data storage', async () => {
       // Create large settings object to test storage limits
       const largeSettings = {
         githubToken: 'a'.repeat(100),
@@ -514,7 +514,7 @@ describe('SettingsManager - Comprehensive Functionality', () => {
       mockChrome.runtime.lastError = null;
     });
 
-    test('Should handle malformed data gracefully', () => {
+    test('III.5.5 - Should handle malformed data gracefully', () => {
       // Test validation with unusual data types
       const edgeCaseSettings: any = {
         githubToken: null,
@@ -529,7 +529,7 @@ describe('SettingsManager - Comprehensive Functionality', () => {
       expect(result.errors.length).toBeGreaterThan(0);
     });
 
-    test('Should handle concurrent storage operations', async () => {
+    test('III.5.6 - Should handle concurrent storage operations', async () => {
       mockChrome.storage.sync.get.mockImplementation((keys: any, callback: any) => {
         callback({ prismWeaveSettings: {} });
       });
@@ -552,7 +552,7 @@ describe('SettingsManager - Comprehensive Functionality', () => {
       expect(callCount).toBe(3);
     });
 
-    test('Should preserve data integrity during partial failures', async () => {
+    test('III.5.7 - Should preserve data integrity during partial failures', async () => {
       // Test update with some valid and some invalid fields
       const mixedSettings: any = {
         githubToken: 'valid-token', // Valid

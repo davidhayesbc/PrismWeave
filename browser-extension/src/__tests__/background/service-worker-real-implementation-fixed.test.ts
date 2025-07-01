@@ -10,7 +10,7 @@ import {
   setupChromeEnvironment,
 } from '../test-helpers';
 
-describe('ServiceWorker - Real Implementation Testing (Simplified)', () => {
+describe('X. ServiceWorker - Real Implementation Testing (Simplified)', () => {
   let chromeMock: any;
   let serviceWorkerAPI: any;
 
@@ -34,8 +34,8 @@ describe('ServiceWorker - Real Implementation Testing (Simplified)', () => {
     jest.clearAllMocks();
   });
 
-  describe('Settings Management', () => {
-    test('SW.1 - Should return default settings when storage is empty', async () => {
+  describe('X.1 Settings Management', () => {
+    test('X.1.1 - Should return default settings when storage is empty', async () => {
       const message = { type: 'GET_SETTINGS', timestamp: Date.now() };
       const result = await serviceWorkerAPI.handleMessage(message, {});
 

@@ -5,7 +5,7 @@
 import { ContentExtractor } from '../../utils/content-extractor';
 import { cleanupTest, createTestHTML, setupDOM } from '../test-helpers';
 
-describe('ContentExtractor - Comprehensive Test Suite', () => {
+describe('VIII. ContentExtractor - Consolidated Test Suite', () => {
   let extractor: ContentExtractor;
 
   beforeEach(() => {
@@ -13,8 +13,8 @@ describe('ContentExtractor - Comprehensive Test Suite', () => {
     cleanupTest();
   });
 
-  describe('Core Content Extraction', () => {
-    test('C.1.1 - Extract main content from article pages', async () => {
+  describe('VIII.1 Core Content Extraction', () => {
+    test('VIII.1.1 - Extract main content from article pages', async () => {
       setupDOM(createTestHTML('article'));
 
       const result = await extractor.extractContent();

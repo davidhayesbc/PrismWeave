@@ -4,7 +4,7 @@
 import { PrismWeavePopup } from '../../popup/popup';
 import { cleanupTest, createTestSettings, mockChromeAPIs } from '../test-helpers';
 
-describe('PrismWeavePopup - Settings Validation', () => {
+describe('IX. PrismWeavePopup - Settings Validation', () => {
   let popup: PrismWeavePopup;
   let chrome: any;
 
@@ -33,8 +33,8 @@ describe('PrismWeavePopup - Settings Validation', () => {
     popup = new PrismWeavePopup(true); // Skip initialization during tests
   });
 
-  describe('validateCaptureSettings', () => {
-    test('B.1.1 - should return valid when all required settings are present', () => {
+  describe('IX.1 validateCaptureSettings', () => {
+    test('IX.1.1 - should return valid when all required settings are present', () => {
       (popup as any).settings = createTestSettings({
         githubToken: 'test-token',
         githubRepo: 'user/repo',
@@ -45,7 +45,7 @@ describe('PrismWeavePopup - Settings Validation', () => {
       expect(result.missingSettings).toHaveLength(0);
     });
 
-    test('B.1.2 - should return invalid when GitHub token is missing', () => {
+    test('IX.1.2 - should return invalid when GitHub token is missing', () => {
       (popup as any).settings = createTestSettings({
         githubToken: '',
         githubRepo: 'user/repo',
@@ -57,7 +57,7 @@ describe('PrismWeavePopup - Settings Validation', () => {
       expect(result.message).toContain('Missing required setting: GitHub Token');
     });
 
-    test('B.1.3 - should return invalid when GitHub repo is missing', () => {
+    test('IX.1.3 - should return invalid when GitHub repo is missing', () => {
       (popup as any).settings = createTestSettings({
         githubToken: 'test-token',
         githubRepo: '',
@@ -69,7 +69,7 @@ describe('PrismWeavePopup - Settings Validation', () => {
       expect(result.message).toContain('Missing required setting: GitHub Repository');
     });
 
-    test('B.1.4 - should return valid when both GitHub token and repository are present', () => {
+    test('IX.1.4 - should return valid when both GitHub token and repository are present', () => {
       (popup as any).settings = createTestSettings({
         githubToken: 'test-token',
         githubRepo: 'user/repo',

@@ -348,7 +348,7 @@ console.log(x);</code></pre>
   });
 
   describe('I.1.5 - Handle lists (ordered, unordered, nested)', () => {
-    test('should convert unordered lists to markdown', () => {
+    test('I.1.5.1 - should convert unordered lists to markdown', () => {
       const html = `
         <ul>
           <li>First item</li>
@@ -364,7 +364,7 @@ console.log(x);</code></pre>
       expect(result.markdown).toContain('-   Third item');
     });
 
-    test('should convert ordered lists to markdown', () => {
+    test('I.1.5.2 - should convert ordered lists to markdown', () => {
       const html = `
         <ol>
           <li>First step</li>
@@ -380,7 +380,7 @@ console.log(x);</code></pre>
       expect(result.markdown).toContain('3.  Third step');
     });
 
-    test('should handle nested unordered lists', () => {
+    test('I.1.5.3 - should handle nested unordered lists', () => {
       const html = `
         <ul>
           <li>Parent item 1
@@ -401,7 +401,7 @@ console.log(x);</code></pre>
       expect(result.markdown).toContain('-   Parent item 2');
     });
 
-    test('should handle nested ordered lists', () => {
+    test('I.1.5.4 - should handle nested ordered lists', () => {
       const html = `
         <ol>
           <li>Main step 1
@@ -422,7 +422,7 @@ console.log(x);</code></pre>
       expect(result.markdown).toContain('2.  Main step 2');
     });
 
-    test('should handle mixed nested lists', () => {
+    test('I.1.5.5 - should handle mixed nested lists', () => {
       const html = `
         <ul>
           <li>Unordered parent
@@ -452,7 +452,7 @@ console.log(x);</code></pre>
       expect(result.markdown).toContain('-   Unordered child 2');
     });
 
-    test('should handle lists with complex content', () => {
+    test('I.1.5.6 - should handle lists with complex content', () => {
       const html = `
         <ul>
           <li>Item with <strong>bold</strong> text</li>
@@ -472,7 +472,7 @@ console.log(x);</code></pre>
   });
 
   describe('I.1.6 - Convert tables to markdown', () => {
-    test('should convert simple tables to markdown', () => {
+    test('I.1.6.1 - should convert simple tables to markdown', () => {
       const html = `
         <table>
           <tr>
@@ -501,7 +501,7 @@ console.log(x);</code></pre>
       expect(result.markdown).toMatch(/\|.*-.*\|.*-.*\|.*-.*\|/); // Header separator
     });
 
-    test('should handle tables with thead and tbody', () => {
+    test('I.1.6.2 - should handle tables with thead and tbody', () => {
       const html = `
         <table>
           <thead>
@@ -533,7 +533,7 @@ console.log(x);</code></pre>
       expect(result.markdown).toContain('| Jane | 30 | London |');
     });
 
-    test('should handle tables with complex cell content', () => {
+    test('I.1.6.3 - should handle tables with complex cell content', () => {
       const html = `
         <table>
           <tr>
@@ -560,7 +560,7 @@ console.log(x);</code></pre>
       expect(result.markdown).toContain('link'); // Link text gets stripped in table cells
     });
 
-    test('should handle empty table cells', () => {
+    test('I.1.6.4 - should handle empty table cells', () => {
       const html = `
         <table>
           <tr>
@@ -590,7 +590,7 @@ console.log(x);</code></pre>
   });
 
   describe('I.1.7 - Handle blockquotes and emphasis', () => {
-    test('should convert blockquotes to markdown', () => {
+    test('I.1.7.1 - should convert blockquotes to markdown', () => {
       const html = `
         <blockquote>
           <p>This is a quoted paragraph.</p>
@@ -604,7 +604,7 @@ console.log(x);</code></pre>
       expect(result.markdown).toContain('> This is another quoted paragraph.');
     });
 
-    test('should convert nested blockquotes', () => {
+    test('I.1.7.2 - should convert nested blockquotes', () => {
       const html = `
         <blockquote>
           <p>Outer quote</p>
@@ -622,7 +622,7 @@ console.log(x);</code></pre>
       expect(result.markdown).toContain('> Back to outer quote');
     });
 
-    test('should convert emphasis elements correctly', () => {
+    test('I.1.7.3 - should convert emphasis elements correctly', () => {
       const html = `
         <p>This text has <em>emphasis</em> and <i>italic</i> formatting.</p>
         <p>This text has <strong>strong</strong> and <b>bold</b> formatting.</p>
@@ -638,7 +638,7 @@ console.log(x);</code></pre>
       expect(result.markdown).toContain('***strong emphasis***');
     });
 
-    test('should handle blockquotes with formatted content', () => {
+    test('I.1.7.4 - should handle blockquotes with formatted content', () => {
       const html = `
         <blockquote>
           <p>Quote with <strong>bold</strong> and <em>italic</em> text.</p>
@@ -652,7 +652,7 @@ console.log(x);</code></pre>
       expect(result.markdown).toContain('> Quote with [link](https://example.com) and `code`.');
     });
 
-    test('should handle emphasis in various contexts', () => {
+    test('I.1.7.5 - should handle emphasis in various contexts', () => {
       const html = `
         <h2>Header with <em>emphasis</em></h2>
         <ul>
@@ -676,7 +676,7 @@ console.log(x);</code></pre>
       expect(result.markdown).toContain('Italic cell'); // TurndownService strips formatting in table cells
     });
 
-    test('should handle multiple levels of emphasis correctly', () => {
+    test('I.1.7.6 - should handle multiple levels of emphasis correctly', () => {
       const html = `
         <p><strong><em><u>Triple formatting</u></em></strong></p>
         <p><em>Italic with <strong>bold inside</strong></em></p>
@@ -691,8 +691,8 @@ console.log(x);</code></pre>
     });
   });
 
-  describe('Conversion Result Properties', () => {
-    test('should return complete conversion result object', () => {
+  describe('I.2 - Conversion Result Properties', () => {
+    test('I.2.1 - should return complete conversion result object', () => {
       const html = '<h1>Test Title</h1><p>Test content with some words.</p>';
 
       const result = converter.convertToMarkdown(html);
@@ -710,7 +710,7 @@ console.log(x);</code></pre>
       expect(typeof result.wordCount).toBe('number');
     });
 
-    test('should calculate word count correctly', () => {
+    test('I.2.2 - should calculate word count correctly', () => {
       const html = '<p>This is a test paragraph with exactly ten words here.</p>';
 
       const result = converter.convertToMarkdown(html);
@@ -719,7 +719,7 @@ console.log(x);</code></pre>
       expect(result.metadata.wordCount).toBe(result.wordCount);
     });
 
-    test('should include metadata in result', () => {
+    test('I.2.3 - should include metadata in result', () => {
       const html = '<h1>Test</h1><p>Content</p>';
 
       const result = converter.convertToMarkdown(html);
@@ -733,8 +733,8 @@ console.log(x);</code></pre>
     });
   });
 
-  describe('Error Handling', () => {
-    test('should throw error when not initialized', () => {
+  describe('I.3 - Error Handling', () => {
+    test('I.3.1 - should throw error when not initialized', () => {
       // Create converter without proper initialization
       const uninitializedConverter = Object.create(MarkdownConverter.prototype);
       uninitializedConverter._isInitialized = false;
@@ -744,14 +744,14 @@ console.log(x);</code></pre>
       }).toThrow('MarkdownConverter not properly initialized');
     });
 
-    test('should handle empty HTML input', () => {
+    test('I.3.2 - should handle empty HTML input', () => {
       const result = converter.convertToMarkdown('');
 
       expect(result.markdown).toBe('');
-      expect(result.wordCount).toBe(1); // Empty string splits to array with one empty element
+      expect(result.wordCount).toBe(0); // Empty string splits to array with one empty element
     });
 
-    test('should handle malformed HTML gracefully', () => {
+    test('I.3.3 - should handle malformed HTML gracefully', () => {
       const malformedHtml = '<p>Unclosed paragraph<div>Nested <span>without closing';
 
       const result = converter.convertToMarkdown(malformedHtml);
@@ -761,8 +761,8 @@ console.log(x);</code></pre>
     });
   });
 
-  describe('Service Worker Context', () => {
-    test('should handle service worker context gracefully', () => {
+  describe('I.4 - Service Worker Context', () => {
+    test('I.4.1 - should handle service worker context gracefully', () => {
       // Mock service worker environment
       delete (global as any).window;
       delete (global as any).document;
@@ -776,8 +776,8 @@ console.log(x);</code></pre>
     });
   });
 
-  describe('Options Handling', () => {
-    test('should accept conversion options', () => {
+  describe('I.5 - Options Handling', () => {
+    test('I.5.1 - should accept conversion options', () => {
       const html = '<h1>Test</h1>';
       const options: IConversionOptions = {
         preserveFormatting: true,
@@ -791,7 +791,7 @@ console.log(x);</code></pre>
       expect(result.markdown).toContain('# Test');
     });
 
-    test('should handle conversion options with custom rules', () => {
+    test('I.5.2 - should handle conversion options with custom rules', () => {
       const html = '<p>Test content</p>';
       const options: IConversionOptions = {
         customRules: { 'test-rule': 'test-value' },

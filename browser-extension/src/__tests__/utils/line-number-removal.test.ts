@@ -6,12 +6,12 @@ import { describe, expect, test } from '@jest/globals';
 import { simpleMarkdownConversion } from '../../utils/test-utilities';
 import { cleanupTest, mockChromeAPIs } from '../test-helpers';
 
-describe('Line Number Removal in HTML to Markdown Conversion', () => {
+describe('V. - Line Number Removal in HTML to Markdown Conversion', () => {
   beforeEach(() => {
     mockChromeAPIs();
     cleanupTest();
   });
-  test('R.1.1 - Remove line numbers from HTML code blocks', () => {
+  test('V.1.1 - Remove line numbers from HTML code blocks', () => {
     const htmlWithLineNumbers = `
       <div>
         <pre><code>1  #!/bin/bash
@@ -30,7 +30,7 @@ describe('Line Number Removal in HTML to Markdown Conversion', () => {
     expect(result.content).toMatch(/```[\s\S]*#!/); // Should start code block properly
   });
 
-  test('R.1.2 - Handle code blocks with various line number formats', () => {
+  test('V.1.2 - Handle code blocks with various line number formats', () => {
     const htmlWithDifferentFormats = `
       <div>
         <pre><code class="language-bash">1. echo "test"
@@ -57,7 +57,7 @@ describe('Line Number Removal in HTML to Markdown Conversion', () => {
     expect(result.content).toContain('```docker');
   });
 
-  test('R.1.3 - Preserve formatting and indentation in code blocks', () => {
+  test('V.1.3 - Preserve formatting and indentation in code blocks', () => {
     const htmlWithIndentation = `
       <pre><code class="language-bash">1    if [ -f file.txt ]; then
 2      echo "File exists"
@@ -77,7 +77,7 @@ describe('Line Number Removal in HTML to Markdown Conversion', () => {
     expect(result.content).toContain('echo "Done"');
   });
 
-  test('R.1.4 - Handle mixed content with and without line numbers', () => {
+  test('V.1.4 - Handle mixed content with and without line numbers', () => {
     const htmlMixed = `
       <div>
         <p>Some text content</p>
@@ -103,7 +103,7 @@ echo "Final line"</code></pre>
     expect(result.content).toContain('echo "Final line"');
   });
 
-  test('R.1.5 - Handle inline code elements (no line numbers expected)', () => {
+  test('V.1.5 - Handle inline code elements (no line numbers expected)', () => {
     const htmlInline = `
       <p>Use the command <code>npm install</code> to install dependencies.</p>
       <p>Then run <code>npm start</code> to start the server.</p>
@@ -116,7 +116,7 @@ echo "Final line"</code></pre>
     expect(result.content).toContain('`npm start`');
   });
 
-  test('R.1.6 - Process real-world Docker example', () => {
+  test('V.1.6 - Process real-world Docker example', () => {
     const dockerHtml = `
       <pre><code class="language-dockerfile">1  FROM node:16-alpine
 2  WORKDIR /app
@@ -146,7 +146,7 @@ echo "Final line"</code></pre>
     expect(result.content).toContain('```docker');
   });
 
-  test('R.1.7 - Handle empty or malformed code blocks', () => {
+  test('V.1.7 - Handle empty or malformed code blocks', () => {
     const emptyCodeHtml = `
       <div>
         <pre><code></code></pre>

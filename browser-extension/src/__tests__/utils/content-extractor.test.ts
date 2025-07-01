@@ -5,7 +5,7 @@
 import { ContentExtractor } from '../../utils/content-extractor';
 import { cleanupTest, createTestHTML, setupDOM } from '../test-helpers';
 
-describe('ContentExtractor - Comprehensive Test Suite', () => {
+describe('VII. ContentExtractor - Comprehensive Test Suite', () => {
   let extractor: ContentExtractor;
 
   beforeEach(() => {
@@ -13,8 +13,8 @@ describe('ContentExtractor - Comprehensive Test Suite', () => {
     cleanupTest();
   });
 
-  describe('Core Content Extraction', () => {
-    test('C.1.1 - Extract main content from article pages', async () => {
+  describe('VII.1 Core Content Extraction', () => {
+    test('VII.1.1 - Extract main content from article pages', async () => {
       setupDOM(createTestHTML('article'));
 
       const result = await extractor.extractContent();
@@ -28,7 +28,7 @@ describe('ContentExtractor - Comprehensive Test Suite', () => {
       expect(result.wordCount).toBeGreaterThan(5);
     });
 
-    test('C.1.2 - Extract content from blog posts', async () => {
+    test('VII.1.2 - Extract content from blog posts', async () => {
       setupDOM(createTestHTML('blog'));
 
       const result = await extractor.extractContent();
@@ -40,7 +40,7 @@ describe('ContentExtractor - Comprehensive Test Suite', () => {
       expect(result.readingTime).toBeGreaterThan(0);
     });
 
-    test('C.1.3 - Handle pages with no clear main content', async () => {
+    test('VII.1.3 - Handle pages with no clear main content', async () => {
       setupDOM(createTestHTML('generic'));
 
       const result = await extractor.extractContent();
@@ -51,7 +51,7 @@ describe('ContentExtractor - Comprehensive Test Suite', () => {
       expect(result.wordCount).toBeGreaterThan(0);
     });
 
-    test('C.1.4 - Handle malformed HTML gracefully', async () => {
+    test('VII.1.4 - Handle malformed HTML gracefully', async () => {
       setupDOM(createTestHTML('malformed'));
 
       const result = await extractor.extractContent();
@@ -62,8 +62,8 @@ describe('ContentExtractor - Comprehensive Test Suite', () => {
     });
   });
 
-  describe('Content Cleaning and Filtering', () => {
-    test('C.2.1 - Remove unwanted selectors (ads, navigation)', async () => {
+  describe('VII.2 Content Cleaning and Filtering', () => {
+    test('VII.2.1 - Remove unwanted selectors (ads, navigation)', async () => {
       const htmlWithAds = `
         <head><title>Test Article</title></head>
         <body>
@@ -90,7 +90,7 @@ describe('ContentExtractor - Comprehensive Test Suite', () => {
       expect(result.content).not.toContain('Sponsored Content');
     });
 
-    test('C.2.2 - Remove navigation elements while preserving content', async () => {
+    test('VII.2.2 - Remove navigation elements while preserving content', async () => {
       const htmlWithNavigation = `
         <head><title>Test Article</title></head>
         <body>
@@ -121,7 +121,7 @@ describe('ContentExtractor - Comprehensive Test Suite', () => {
       expect(result.content).not.toContain('Site Navigation');
     });
 
-    test('C.2.3 - Preserve formatting elements', async () => {
+    test('VII.2.3 - Preserve formatting elements', async () => {
       const htmlWithFormatting = `
         <head><title>Technical Article</title></head>
         <body>
@@ -161,7 +161,7 @@ describe('ContentExtractor - Comprehensive Test Suite', () => {
       expect(result.wordCount).toBeGreaterThan(10);
     });
 
-    test('C.2.4 - Handle custom selectors for removal', async () => {
+    test('VII.2.4 - Handle custom selectors for removal', async () => {
       const htmlWithCustomElements = `
         <head><title>Article with Custom Elements</title></head>
         <body>
@@ -192,7 +192,7 @@ describe('ContentExtractor - Comprehensive Test Suite', () => {
       expect(result.wordCount).toBeGreaterThan(5);
     });
 
-    test('C.2.5 - Clean malformed HTML and normalize whitespace', async () => {
+    test('VII.2.5 - Clean malformed HTML and normalize whitespace', async () => {
       const malformedHtml = `
         <head><title>Malformed HTML Test</title></head>
         <body>
@@ -239,8 +239,8 @@ describe('ContentExtractor - Comprehensive Test Suite', () => {
     });
   });
 
-  describe('Content Quality Assessment', () => {
-    test('C.4.1 - Calculate word count accurately', async () => {
+  describe('VII.3 Content Quality Assessment', () => {
+    test('VII.3.1 - Calculate word count accurately', async () => {
       const contentHtml = `
         <head><title>Word Count Test</title></head>
         <body>
@@ -258,7 +258,7 @@ describe('ContentExtractor - Comprehensive Test Suite', () => {
       expect(typeof result.wordCount).toBe('number');
     });
 
-    test('C.4.2 - Estimate reading time based on word count', async () => {
+    test('VII.3.2 - Estimate reading time based on word count', async () => {
       // Create content with approximately 300 words
       const longContent =
         'This is a comprehensive article with substantial content that demonstrates proper reading time estimation. '.repeat(
@@ -282,7 +282,7 @@ describe('ContentExtractor - Comprehensive Test Suite', () => {
       expect(typeof result.readingTime).toBe('number');
     });
 
-    test('C.4.3 - Calculate content quality score', () => {
+    test('VII.3.3 - Calculate content quality score', () => {
       const qualityHtml = `
         <body>
           <article>
