@@ -80,7 +80,7 @@ describe('IX. PrismWeavePopup - Settings Validation', () => {
       expect(result.missingSettings).toHaveLength(0);
     });
 
-    test('B.1.5 - should return valid when optional settings are also present', () => {
+    test('IX.1.5 - should return valid when optional settings are also present', () => {
       (popup as any).settings = createTestSettings({
         githubToken: 'test-token',
         githubRepo: 'user/repo',
@@ -92,7 +92,7 @@ describe('IX. PrismWeavePopup - Settings Validation', () => {
       expect(result.missingSettings).toHaveLength(0);
     });
 
-    test('B.1.6 - should handle multiple missing settings', () => {
+    test('IX.1.6 - should handle multiple missing settings', () => {
       (popup as any).settings = createTestSettings({
         githubToken: '',
         githubRepo: '',
@@ -106,7 +106,7 @@ describe('IX. PrismWeavePopup - Settings Validation', () => {
       expect(result.message).toContain('Missing required settings:');
     });
 
-    test('B.1.7 - should handle null settings', () => {
+    test('IX.1.7 - should handle null settings', () => {
       (popup as any).settings = null;
 
       const result = (popup as any).validateCaptureSettings();

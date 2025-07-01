@@ -58,7 +58,7 @@ describe('X. ServiceWorker - Real Implementation Testing (Simplified)', () => {
       });
     });
 
-    test('SW.2 - Should update settings properly', async () => {
+    test('X.2 - Should update settings properly', async () => {
       // Update some settings
       const updateMessage = {
         type: 'UPDATE_SETTINGS',
@@ -81,7 +81,7 @@ describe('X. ServiceWorker - Real Implementation Testing (Simplified)', () => {
       expect(getResult.autoCommit).toBe(true); // Default preserved
     });
 
-    test('SW.3 - Should validate settings correctly', async () => {
+    test('X.3 - Should validate settings correctly', async () => {
       // Test validation with empty settings (invalid)
       const validateMessage = { type: 'VALIDATE_SETTINGS', timestamp: Date.now() };
       const invalidResult = await serviceWorkerAPI.handleMessage(validateMessage, {});
@@ -111,7 +111,7 @@ describe('X. ServiceWorker - Real Implementation Testing (Simplified)', () => {
       });
     });
 
-    test('SW.4 - Should reject invalid UPDATE_SETTINGS data', async () => {
+    test('X.4 - Should reject invalid UPDATE_SETTINGS data', async () => {
       // Test cases that should fail validation
       const invalidMessages = [
         { type: 'UPDATE_SETTINGS' }, // No data
@@ -129,7 +129,7 @@ describe('X. ServiceWorker - Real Implementation Testing (Simplified)', () => {
   });
 
   describe('GitHub Connection Testing', () => {
-    test('SW.5 - Should fail GitHub connection test with empty settings', async () => {
+    test('X.5 - Should fail GitHub connection test with empty settings', async () => {
       const message = { type: 'TEST_CONNECTION', timestamp: Date.now() };
       const result = await serviceWorkerAPI.handleMessage(message, {});
 
@@ -141,7 +141,7 @@ describe('X. ServiceWorker - Real Implementation Testing (Simplified)', () => {
       });
     });
 
-    test('SW.6 - Should test GitHub connection with valid settings', async () => {
+    test('X.6 - Should test GitHub connection with valid settings', async () => {
       // Set up valid settings first
       await serviceWorkerAPI.handleMessage(
         {
@@ -200,7 +200,7 @@ describe('X. ServiceWorker - Real Implementation Testing (Simplified)', () => {
       expect(mockFetch).toHaveBeenCalledTimes(3);
     });
 
-    test('SW.7 - Should handle GitHub API authentication errors', async () => {
+    test('X.7 - Should handle GitHub API authentication errors', async () => {
       // Set up settings with invalid token
       await serviceWorkerAPI.handleMessage(
         {
@@ -233,7 +233,7 @@ describe('X. ServiceWorker - Real Implementation Testing (Simplified)', () => {
   });
 
   describe('Library and Status Operations', () => {
-    test('SW.8 - Should fetch TurndownService library successfully', async () => {
+    test('X.8 - Should fetch TurndownService library successfully', async () => {
       const libraryContent =
         '// TurndownService library content\nvar TurndownService = function() {};';
 
@@ -253,7 +253,7 @@ describe('X. ServiceWorker - Real Implementation Testing (Simplified)', () => {
       });
     });
 
-    test('SW.9 - Should return extension status', async () => {
+    test('X.9 - Should return extension status', async () => {
       const message = { type: 'GET_STATUS', timestamp: Date.now() };
       const result = await serviceWorkerAPI.handleMessage(message, {});
 
@@ -264,7 +264,7 @@ describe('X. ServiceWorker - Real Implementation Testing (Simplified)', () => {
       });
     });
 
-    test('SW.10 - Should handle TEST message', async () => {
+    test('X.10 - Should handle TEST message', async () => {
       const message = { type: 'TEST', timestamp: Date.now() };
       const result = await serviceWorkerAPI.handleMessage(message, {});
 
@@ -277,7 +277,7 @@ describe('X. ServiceWorker - Real Implementation Testing (Simplified)', () => {
   });
 
   describe('Error Handling', () => {
-    test('SW.11 - Should handle invalid message formats', async () => {
+    test('X.11 - Should handle invalid message formats', async () => {
       const invalidMessages = [null, undefined, {}, { data: 'no type field' }, { type: 123 }];
 
       for (const invalidMessage of invalidMessages) {
@@ -287,7 +287,7 @@ describe('X. ServiceWorker - Real Implementation Testing (Simplified)', () => {
       }
     });
 
-    test('SW.12 - Should handle unknown message types', async () => {
+    test('X.12 - Should handle unknown message types', async () => {
       const unknownMessage = { type: 'UNKNOWN_TYPE', timestamp: Date.now() };
 
       await expect(serviceWorkerAPI.handleMessage(unknownMessage, {})).rejects.toThrow(
@@ -295,7 +295,7 @@ describe('X. ServiceWorker - Real Implementation Testing (Simplified)', () => {
       );
     });
 
-    test('SW.13 - Should handle empty message type', async () => {
+    test('X.13 - Should handle empty message type', async () => {
       const emptyTypeMessage = { type: '', timestamp: Date.now() };
 
       await expect(serviceWorkerAPI.handleMessage(emptyTypeMessage, {})).rejects.toThrow(
@@ -305,7 +305,7 @@ describe('X. ServiceWorker - Real Implementation Testing (Simplified)', () => {
   });
 
   describe('Performance and Concurrency', () => {
-    test('SW.14 - Should handle concurrent requests', async () => {
+    test('X.14 - Should handle concurrent requests', async () => {
       const messages = [
         { type: 'GET_SETTINGS' },
         { type: 'GET_STATUS' },
@@ -322,7 +322,7 @@ describe('X. ServiceWorker - Real Implementation Testing (Simplified)', () => {
       expect(results[2]).toHaveProperty('valid', false);
     });
 
-    test('SW.15 - Should maintain state consistency', async () => {
+    test('X.15 - Should maintain state consistency', async () => {
       // Initial state
       const initial = await serviceWorkerAPI.handleMessage({ type: 'GET_SETTINGS' }, {});
       expect(initial.debugMode).toBe(false);

@@ -28,7 +28,7 @@ describe('VIII. ContentExtractor - Consolidated Test Suite', () => {
       expect(result.wordCount).toBeGreaterThan(5);
     });
 
-    test('C.1.2 - Extract content from blog posts', async () => {
+    test('VIII.1.2 - Extract content from blog posts', async () => {
       setupDOM(createTestHTML('blog'));
 
       const result = await extractor.extractContent();
@@ -40,7 +40,7 @@ describe('VIII. ContentExtractor - Consolidated Test Suite', () => {
       expect(result.readingTime).toBeGreaterThan(0);
     });
 
-    test('C.1.3 - Handle pages with no clear main content', async () => {
+    test('VIII.1.3 - Handle pages with no clear main content', async () => {
       setupDOM(createTestHTML('generic'));
 
       const result = await extractor.extractContent();
@@ -51,7 +51,7 @@ describe('VIII. ContentExtractor - Consolidated Test Suite', () => {
       expect(result.wordCount).toBeGreaterThan(0);
     });
 
-    test('C.1.4 - Handle malformed HTML gracefully', async () => {
+    test('VIII.1.4 - Handle malformed HTML gracefully', async () => {
       setupDOM(createTestHTML('malformed'));
 
       const result = await extractor.extractContent();
@@ -62,8 +62,8 @@ describe('VIII. ContentExtractor - Consolidated Test Suite', () => {
     });
   });
 
-  describe('Content Cleaning and Filtering', () => {
-    test('C.2.1 - Remove unwanted selectors (ads, navigation)', async () => {
+  describe('VIII.2 Content Cleaning and Filtering', () => {
+    test('VIII.2.1 - Remove unwanted selectors (ads, navigation)', async () => {
       const htmlWithAds = `
         <head><title>Test Article</title></head>
         <body>
@@ -90,7 +90,7 @@ describe('VIII. ContentExtractor - Consolidated Test Suite', () => {
       expect(result.content).not.toContain('Sponsored Content');
     });
 
-    test('C.2.2 - Remove navigation elements while preserving content', async () => {
+    test('VIII.2.2 - Remove navigation elements while preserving content', async () => {
       const htmlWithNavigation = `
         <head><title>Test Article</title></head>
         <body>
@@ -121,7 +121,7 @@ describe('VIII. ContentExtractor - Consolidated Test Suite', () => {
       expect(result.content).not.toContain('Site Navigation');
     });
 
-    test('C.2.3 - Preserve formatting elements', async () => {
+    test('VIII.2.3 - Preserve formatting elements', async () => {
       const htmlWithFormatting = `
         <head><title>Technical Article</title></head>
         <body>
@@ -161,7 +161,7 @@ describe('VIII. ContentExtractor - Consolidated Test Suite', () => {
       expect(result.wordCount).toBeGreaterThan(10);
     });
 
-    test('C.2.4 - Handle custom selectors for removal', async () => {
+    test('VIII.2.4 - Handle custom selectors for removal', async () => {
       const htmlWithCustomElements = `
         <head><title>Article with Custom Elements</title></head>
         <body>
@@ -192,7 +192,7 @@ describe('VIII. ContentExtractor - Consolidated Test Suite', () => {
       expect(result.wordCount).toBeGreaterThan(5);
     });
 
-    test('C.2.5 - Clean malformed HTML and normalize whitespace', async () => {
+    test('VIII.2.5 - Clean malformed HTML and normalize whitespace', async () => {
       const malformedHtml = `
         <head><title>Malformed HTML Test</title></head>
         <body>
@@ -239,8 +239,8 @@ describe('VIII. ContentExtractor - Consolidated Test Suite', () => {
     });
   });
 
-  describe('Content Quality Assessment', () => {
-    test('C.4.1 - Calculate word count accurately', async () => {
+  describe('VIII.3 Content Quality Assessment', () => {
+    test('VIII.3.1 - Calculate word count accurately', async () => {
       const contentHtml = `
         <head><title>Word Count Test</title></head>
         <body>
@@ -258,7 +258,7 @@ describe('VIII. ContentExtractor - Consolidated Test Suite', () => {
       expect(typeof result.wordCount).toBe('number');
     });
 
-    test('C.4.2 - Estimate reading time based on word count', async () => {
+    test('VIII.3.2 - Estimate reading time based on word count', async () => {
       // Create content with approximately 300 words
       const longContent =
         'This is a comprehensive article with substantial content that demonstrates proper reading time estimation. '.repeat(
@@ -282,7 +282,7 @@ describe('VIII. ContentExtractor - Consolidated Test Suite', () => {
       expect(typeof result.readingTime).toBe('number');
     });
 
-    test('C.4.3 - Calculate content quality score', () => {
+    test('VIII.3.3 - Calculate content quality score', () => {
       const qualityHtml = `
         <body>
           <article>
@@ -309,8 +309,8 @@ describe('VIII. ContentExtractor - Consolidated Test Suite', () => {
     });
   });
 
-  describe('Metadata Extraction', () => {
-    test('M.1.1 - Extract title from various sources with priority', async () => {
+  describe('VIII.4 Metadata Extraction', () => {
+    test('VIII.4.1 - Extract title from various sources with priority', async () => {
       const htmlWithMetadata = `
         <head>
           <title>Document Title</title>
@@ -335,7 +335,7 @@ describe('VIII. ContentExtractor - Consolidated Test Suite', () => {
       expect(result.metadata.captureDate).toBeDefined();
     });
 
-    test('M.1.2 - Extract author information from multiple sources', async () => {
+    test('VIII.4.2 - Extract author information from multiple sources', async () => {
       const htmlWithAuthor = `
         <head>
           <meta name="author" content="Jane Smith">
@@ -355,7 +355,7 @@ describe('VIII. ContentExtractor - Consolidated Test Suite', () => {
       expect(result.metadata.author).toBe('Jane Smith');
     });
 
-    test('M.1.3 - Extract and process tags from keywords and elements', async () => {
+    test('VIII.4.3 - Extract and process tags from keywords and elements', async () => {
       const htmlWithTags = `
         <head>
           <meta name="keywords" content="javascript, typescript, testing">
@@ -381,8 +381,8 @@ describe('VIII. ContentExtractor - Consolidated Test Suite', () => {
     });
   });
 
-  describe('Utility Methods', () => {
-    test('U.1.1 - Extract images with complete metadata', () => {
+  describe('VIII.5 Utility Methods', () => {
+    test('VIII.5.1 - Extract images with complete metadata', () => {
       const htmlWithImages = `
         <body>
           <img src="https://example.com/image1.jpg" alt="Test Image 1" title="Image Title">
@@ -408,7 +408,7 @@ describe('VIII. ContentExtractor - Consolidated Test Suite', () => {
       });
     });
 
-    test('U.1.2 - Extract links with proper filtering', () => {
+    test('VIII.5.2 - Extract links with proper filtering', () => {
       const htmlWithLinks = `
         <body>
           <a href="https://example.com/link1" title="Link Title">Link Text 1</a>
@@ -434,7 +434,7 @@ describe('VIII. ContentExtractor - Consolidated Test Suite', () => {
       });
     });
 
-    test('U.1.3 - Analyze page structure comprehensively', () => {
+    test('VIII.5.3 - Analyze page structure comprehensively', () => {
       const htmlWithStructure = `
         <body>
           <h1>Main Heading</h1>
@@ -460,8 +460,8 @@ describe('VIII. ContentExtractor - Consolidated Test Suite', () => {
     });
   });
 
-  describe('Edge Cases and Error Handling', () => {
-    test('E.1.1 - Handle empty document gracefully', async () => {
+  describe('VIII.6 Edge Cases and Error Handling', () => {
+    test('VIII.6.1 - Handle empty document gracefully', async () => {
       setupDOM('<body></body>');
 
       const result = await extractor.extractContent();
@@ -472,7 +472,7 @@ describe('VIII. ContentExtractor - Consolidated Test Suite', () => {
       expect(result.readingTime).toBe(0);
     });
 
-    test('E.1.2 - Handle content with only whitespace', async () => {
+    test('VIII.6.2 - Handle content with only whitespace', async () => {
       const whitespaceHtml = `
         <body>
           <div class="content">
@@ -493,7 +493,7 @@ describe('VIII. ContentExtractor - Consolidated Test Suite', () => {
       expect(result.wordCount).toBe(0);
     });
 
-    test('E.1.3 - Handle mixed wanted and unwanted elements', async () => {
+    test('VIII.6.3 - Handle mixed wanted and unwanted elements', async () => {
       const htmlMixed = `
         <head><title>Mixed Content Article</title></head>
         <body>
@@ -521,7 +521,7 @@ describe('VIII. ContentExtractor - Consolidated Test Suite', () => {
       expect(result.wordCount).toBeGreaterThan(10);
     });
 
-    test('E.1.4 - Handle deeply nested empty elements', async () => {
+    test('VIII.6.4 - Handle deeply nested empty elements', async () => {
       const htmlNested = `
         <head><title>Nested Structure</title></head>
         <body>
@@ -558,7 +558,7 @@ describe('VIII. ContentExtractor - Consolidated Test Suite', () => {
       expect(result.wordCount).toBeGreaterThan(5);
     });
 
-    test('E.1.5 - Handle extraction options properly', async () => {
+    test('VIII.6.5 - Handle extraction options properly', async () => {
       const htmlWithAllElements = `
         <head><title>Article with All Elements</title></head>
         <body>
@@ -587,8 +587,8 @@ describe('VIII. ContentExtractor - Consolidated Test Suite', () => {
     });
   });
 
-  describe('Integration and Performance', () => {
-    test('I.1.1 - Process large content efficiently', async () => {
+  describe('VIII.7 Integration and Performance', () => {
+    test('VIII.7.1 - Process large content efficiently', async () => {
       const largeContent = 'Large content paragraph with many words. '.repeat(1000);
       const largeHtml = `
         <head><title>Large Article</title></head>
@@ -611,7 +611,7 @@ describe('VIII. ContentExtractor - Consolidated Test Suite', () => {
       expect(processingTime).toBeLessThan(5000); // Should complete within 5 seconds
     });
 
-    test('I.1.2 - Handle multiple extraction calls consistently', async () => {
+    test('VIII.7.2 - Handle multiple extraction calls consistently', async () => {
       setupDOM(createTestHTML('article'));
 
       const result1 = await extractor.extractContent();

@@ -309,8 +309,8 @@ describe('VII. ContentExtractor - Comprehensive Test Suite', () => {
     });
   });
 
-  describe('Metadata Extraction', () => {
-    test('M.1.1 - Extract title from various sources with priority', async () => {
+  describe('VII.4 Metadata Extraction', () => {
+    test('VII.4.1 - Extract title from various sources with priority', async () => {
       const htmlWithMetadata = `
         <head>
           <title>Document Title</title>
@@ -335,7 +335,7 @@ describe('VII. ContentExtractor - Comprehensive Test Suite', () => {
       expect(result.metadata.captureDate).toBeDefined();
     });
 
-    test('M.1.2 - Extract author information from multiple sources', async () => {
+    test('VII.4.2 - Extract author information from multiple sources', async () => {
       const htmlWithAuthor = `
         <head>
           <meta name="author" content="Jane Smith">
@@ -355,7 +355,7 @@ describe('VII. ContentExtractor - Comprehensive Test Suite', () => {
       expect(result.metadata.author).toBe('Jane Smith');
     });
 
-    test('M.1.3 - Extract and process tags from keywords and elements', async () => {
+    test('VII.4.3 - Extract and process tags from keywords and elements', async () => {
       const htmlWithTags = `
         <head>
           <meta name="keywords" content="javascript, typescript, testing">
@@ -381,8 +381,8 @@ describe('VII. ContentExtractor - Comprehensive Test Suite', () => {
     });
   });
 
-  describe('Utility Methods', () => {
-    test('U.1.1 - Extract images with complete metadata', () => {
+  describe('VII.5 Utility Methods', () => {
+    test('VII.5.1 - Extract images with complete metadata', () => {
       const htmlWithImages = `
         <body>
           <img src="https://example.com/image1.jpg" alt="Test Image 1" title="Image Title">
@@ -408,7 +408,7 @@ describe('VII. ContentExtractor - Comprehensive Test Suite', () => {
       });
     });
 
-    test('U.1.2 - Extract links with proper filtering', () => {
+    test('VII.5.2 - Extract links with proper filtering', () => {
       const htmlWithLinks = `
         <body>
           <a href="https://example.com/link1" title="Link Title">Link Text 1</a>
@@ -434,7 +434,7 @@ describe('VII. ContentExtractor - Comprehensive Test Suite', () => {
       });
     });
 
-    test('U.1.3 - Analyze page structure comprehensively', () => {
+    test('VII.5.3 - Analyze page structure comprehensively', () => {
       const htmlWithStructure = `
         <body>
           <h1>Main Heading</h1>
@@ -460,8 +460,8 @@ describe('VII. ContentExtractor - Comprehensive Test Suite', () => {
     });
   });
 
-  describe('Edge Cases and Error Handling', () => {
-    test('E.1.1 - Handle empty document gracefully', async () => {
+  describe('VII.6 Edge Cases and Error Handling', () => {
+    test('VII.6.1 - Handle empty document gracefully', async () => {
       setupDOM('<body></body>');
 
       const result = await extractor.extractContent();
@@ -472,7 +472,7 @@ describe('VII. ContentExtractor - Comprehensive Test Suite', () => {
       expect(result.readingTime).toBe(0);
     });
 
-    test('E.1.2 - Handle content with only whitespace', async () => {
+    test('VII.6.2 - Handle content with only whitespace', async () => {
       const whitespaceHtml = `
         <body>
           <div class="content">
@@ -493,7 +493,7 @@ describe('VII. ContentExtractor - Comprehensive Test Suite', () => {
       expect(result.wordCount).toBe(0);
     });
 
-    test('E.1.3 - Handle mixed wanted and unwanted elements', async () => {
+    test('VII.6.3 - Handle mixed wanted and unwanted elements', async () => {
       const htmlMixed = `
         <head><title>Mixed Content Article</title></head>
         <body>
@@ -521,7 +521,7 @@ describe('VII. ContentExtractor - Comprehensive Test Suite', () => {
       expect(result.wordCount).toBeGreaterThan(10);
     });
 
-    test('E.1.4 - Handle deeply nested empty elements', async () => {
+    test('VII.6.4 - Handle deeply nested empty elements', async () => {
       const htmlNested = `
         <head><title>Nested Structure</title></head>
         <body>
@@ -558,7 +558,7 @@ describe('VII. ContentExtractor - Comprehensive Test Suite', () => {
       expect(result.wordCount).toBeGreaterThan(5);
     });
 
-    test('E.1.5 - Handle extraction options properly', async () => {
+    test('VII.6.5 - Handle extraction options properly', async () => {
       const htmlWithAllElements = `
         <head><title>Article with All Elements</title></head>
         <body>
@@ -587,8 +587,8 @@ describe('VII. ContentExtractor - Comprehensive Test Suite', () => {
     });
   });
 
-  describe('Integration and Performance', () => {
-    test('I.1.1 - Process large content efficiently', async () => {
+  describe('VII.7 Integration and Performance', () => {
+    test('VII.7.1 - Process large content efficiently', async () => {
       const largeContent = 'Large content paragraph with many words. '.repeat(1000);
       const largeHtml = `
         <head><title>Large Article</title></head>
@@ -611,7 +611,7 @@ describe('VII. ContentExtractor - Comprehensive Test Suite', () => {
       expect(processingTime).toBeLessThan(5000); // Should complete within 5 seconds
     });
 
-    test('I.1.2 - Handle multiple extraction calls consistently', async () => {
+    test('VII.7.2 - Handle multiple extraction calls consistently', async () => {
       setupDOM(createTestHTML('article'));
 
       const result1 = await extractor.extractContent();
