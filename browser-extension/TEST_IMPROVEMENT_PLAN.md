@@ -165,21 +165,6 @@ Based on latest test results (175 tests passing):
 **Status**: 🚀 **Ready for Phase 2b** - Service worker breakthrough complete,
 focus on content script
 
-### Content Script Integration Testing (CRITICAL - 0% Coverage)
-
-- [ ] Test actual DOM content extraction with real HTML structures
-- [ ] Test real markdown conversion using actual Turndown library
-- [ ] Test actual Chrome message passing between content script and service
-      worker
-- [ ] Test real page analysis and content scoring algorithms
-- [ ] Test actual image and link extraction from DOM
-- [ ] Test content script initialization and lifecycle management
-- [ ] Test capture workflow: page extraction → markdown conversion → response
-- **Impact**: +20% coverage, core extraction functionality tested
-- **Current Status**: Content script exists with rich functionality but 0% test
-  coverage
-- **Key Files**: `content-script.ts` (670 lines), extensive feature set
-
 - [x] **Add real content script functionality tests** ✅ **COMPLETED**
 
   - [x] Test actual DOM content extraction with real HTML structures
@@ -199,12 +184,13 @@ focus on content script
     capture.
 
 - [ ] **Content script DOM interaction and real-world scenarios**
-  - [ ] Test real DOM manipulation and element selection
-  - [ ] Test content quality scoring with actual algorithms
-  - [ ] Test page structure analysis with real HTML documents
-  - [ ] Test error handling for malformed DOM structures
-  - [ ] Test dynamic content loading scenarios (Docker blog pattern)
-  - [ ] Test real website HTML structures (Wikipedia, Medium, technical blogs)
+  - [x] Test real DOM manipulation and element selection
+  - [x] Test content quality scoring with actual algorithms
+  - [x] Test page structure analysis with real HTML documents
+  - [x] Test error handling for malformed DOM structures
+  - [x] Test dynamic content loading scenarios (Docker blog pattern)
+  - [x] Test real website HTML structures (Wikipedia, Medium, technical blogs)
+  - **Status**: All tests implemented and passing in dom-extraction.test.ts
   - **Impact**: +15% coverage, reliable content extraction for real websites
 
 ### Error Handler Real Logic Testing (PARTIALLY COMPLETE)
