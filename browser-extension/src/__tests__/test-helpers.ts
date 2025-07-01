@@ -1186,11 +1186,11 @@ export { AsyncTestHelper, MemoryTestHelper, PerformanceTestHelper };
 // Additional exports for service worker testing
 export const setupChromeEnvironment = () => {
   const chromeMock = createChromeAPIMock();
-  
+
   // Set up global fetch mock
   (global as any).mockFetch = mockFetch;
   (global as any).fetch = mockFetch;
-  
+
   return chromeMock;
 };
 
