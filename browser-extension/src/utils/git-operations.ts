@@ -2,6 +2,9 @@
 // PrismWeave Git Operations - TypeScript version
 // Handles Git repository management and synchronization
 
+import { createLogger } from './logger';
+const logger = createLogger('GitOperations');
+
 import {
   IDocumentMetadata,
   IFileOperationResult,
@@ -177,21 +180,21 @@ export class GitOperations {
   }
 
   async initialize(settings: ISettings): Promise<void> {
-    console.log('GitOperations: Starting initialization...');
+    logger.info('Starting initialization...');
     this.settings = settings;
 
     if (!this.settings.githubToken) {
-      console.error('GitOperations: GitHub token not configured');
+      logger.error('GitHub token not configured');
       throw new Error('GitHub token not configured');
     }
 
     // Check for repository path
     if (!this.settings.githubRepo) {
-      console.error('GitOperations: GitHub repository not configured');
+      logger.error('GitHub repository not configured');
       throw new Error('GitHub repository not configured');
     }
 
-    console.log('GitOperations initialized with:', {
+    logger.info('Initialized with:', {
       hasToken: !!this.settings.githubToken,
       tokenLength: this.settings.githubToken?.length || 0,
       githubRepo: this.settings.githubRepo,
@@ -219,7 +222,7 @@ export class GitOperations {
         size: content.length,
       };
     } catch (error) {
-      console.error('Failed to save to repository:', error);
+      logger.error('Failed to save to repository:', error);
 
       // Fallback to local download
       await this.downloadFile(content, filename);
@@ -235,7 +238,7 @@ export class GitOperations {
     filename: string,
     metadata: IDocumentMetadata
   ): Promise<IGitCommitResult> {
-    console.log('GitOperations.saveToGitHub: Starting save operation:', {
+    logger.info('saveToGitHub: Starting save operation:', {
       filename,
       contentLength: content.length,
       title: metadata.title,
@@ -243,30 +246,30 @@ export class GitOperations {
     });
 
     if (!this.settings) {
-      console.error('GitOperations.saveToGitHub: Git operations not initialized');
+      logger.error('saveToGitHub: Git operations not initialized');
       throw new Error('Git operations not initialized');
     }
 
     try {
       const repoInfo = this.parseRepositoryPath(this.settings.githubRepo);
-      console.log('GitOperations.saveToGitHub: Parsed repository info:', repoInfo);
+      logger.debug('saveToGitHub: Parsed repository info:', repoInfo);
 
       // Use FileManager to determine folder and build proper path
       const folder = this.determineFolder(metadata);
       const fullPath = this.buildFilePathWithFolder(filename, folder);
-      console.log('GitOperations.saveToGitHub: Determined path:', {
+      logger.debug('saveToGitHub: Determined path:', {
         folder,
         fullPath,
         filename,
       });
 
       // Check if file already exists
-      console.log('GitOperations.saveToGitHub: Checking if file exists at:', fullPath);
+      logger.debug('saveToGitHub: Checking if file exists at:', fullPath);
       const existingFile = await this.getFileInfo(repoInfo, fullPath);
 
       // Prepare file content with metadata
       const fileContent = this.prepareFileContent(content, metadata);
-      console.log('GitOperations.saveToGitHub: Prepared file content:', {
+      logger.debug('saveToGitHub: Prepared file content:', {
         originalLength: content.length,
         withFrontmatterLength: fileContent.length,
         hasExistingFile: !!existingFile,
@@ -283,19 +286,19 @@ export class GitOperations {
         commitOptions.author = metadata.author;
       }
 
-      console.log('GitOperations.saveToGitHub: Commit options:', commitOptions);
+      logger.debug('saveToGitHub: Commit options:', commitOptions);
 
       // Debug logging for file overwrite
       if (existingFile) {
-        console.log('GitOperations: Updating existing file with SHA:', existingFile.sha);
-        console.log('GitOperations: File exists - will perform UPDATE operation');
+        logger.info('Updating existing file with SHA:', existingFile.sha);
+        logger.info('File exists - will perform UPDATE operation');
       } else {
-        console.log('GitOperations: Creating new file at path:', fullPath);
-        console.log('GitOperations: File does not exist - will perform CREATE operation');
+        logger.info('Creating new file at path:', fullPath);
+        logger.info('File does not exist - will perform CREATE operation');
       }
 
       // Create or update the file
-      console.log('GitOperations.saveToGitHub: Calling createOrUpdateFile...');
+      logger.debug('saveToGitHub: Calling createOrUpdateFile...');
       const apiResult = await this.createOrUpdateFile(
         repoInfo,
         fullPath,
@@ -304,7 +307,7 @@ export class GitOperations {
         existingFile?.sha
       );
 
-      console.log('GitOperations.saveToGitHub: API result received:', {
+      logger.debug('saveToGitHub: API result received:', {
         hasCommit: !!apiResult.commit,
         commitSha: apiResult.commit?.sha,
         commitUrl: apiResult.commit?.html_url,
@@ -322,36 +325,36 @@ export class GitOperations {
         result.url = apiResult.commit.html_url;
       }
 
-      console.log('GitOperations.saveToGitHub: Operation completed successfully:', result);
+      logger.info('saveToGitHub: Operation completed successfully:', result);
       return result;
     } catch (error) {
-      console.error('GitOperations.saveToGitHub: Error occurred:', error);
+      logger.error('saveToGitHub: Error occurred:', error);
 
       // Provide more specific error messages for common issues
       const errorMessage = (error as Error).message;
-      console.log('GitOperations.saveToGitHub: Analyzing error message:', errorMessage);
+      logger.debug('saveToGitHub: Analyzing error message:', errorMessage);
 
       if (errorMessage.includes('409') || errorMessage.includes('Conflict')) {
-        console.warn('GitOperations.saveToGitHub: File update conflict detected');
+        logger.warn('saveToGitHub: File update conflict detected');
         return {
           success: false,
           error: `File update conflict: ${errorMessage}. This usually means the file was modified since we last checked it.`,
         };
       } else if (errorMessage.includes('422')) {
-        console.warn('GitOperations.saveToGitHub: Invalid request detected');
+        logger.warn('saveToGitHub: Invalid request detected');
         return {
           success: false,
           error: `Invalid request: ${errorMessage}. Check your GitHub token permissions and repository access.`,
         };
       } else if (errorMessage.includes('404')) {
-        console.warn('GitOperations.saveToGitHub: Repository not found');
+        logger.warn('saveToGitHub: Repository not found');
         return {
           success: false,
           error: `Repository not found: ${errorMessage}. Verify the repository path and permissions.`,
         };
       }
 
-      console.error('GitOperations.saveToGitHub: Unhandled error type');
+      logger.error('saveToGitHub: Unhandled error type');
       return {
         success: false,
         error: (error as Error).message,
@@ -363,19 +366,19 @@ export class GitOperations {
     repoInfo: IRepositoryInfo,
     path: string
   ): Promise<IGitHubFileInfo | null> {
-    console.log('GitOperations.getFileInfo: Fetching file info for:', {
+    logger.debug('getFileInfo: Fetching file info for:', {
       owner: repoInfo.owner,
       repo: repoInfo.repo,
       path,
     });
 
     if (!this.settings?.githubToken) {
-      console.error('GitOperations.getFileInfo: GitHub token not available');
+      logger.error('getFileInfo: GitHub token not available');
       throw new Error('GitHub token not available');
     }
 
     try {
-      console.log('GitOperations.getFileInfo: Making API request to GitHub...');
+      logger.debug('getFileInfo: Making API request to GitHub...');
       const response = await fetch(
         `${this.apiBase}/repos/${repoInfo.owner}/${repoInfo.repo}/contents/${path}`,
         {
@@ -388,15 +391,15 @@ export class GitOperations {
         }
       );
 
-      console.log('GitOperations.getFileInfo: GitHub API response status:', response.status);
+      logger.debug('getFileInfo: GitHub API response status:', response.status);
 
       if (response.status === 404) {
-        console.log('GitOperations.getFileInfo: File not found (404), returning null');
+        logger.debug('getFileInfo: File not found (404), returning null');
         return null; // File doesn't exist
       }
 
       if (!response.ok) {
-        console.error('GitOperations.getFileInfo: API error response:', {
+        logger.error('getFileInfo: API error response:', {
           status: response.status,
           statusText: response.statusText,
         });
@@ -404,7 +407,7 @@ export class GitOperations {
       }
 
       const data = (await response.json()) as IGitHubFileInfo;
-      console.log('GitOperations.getFileInfo: File info retrieved successfully:', {
+      logger.debug('getFileInfo: File info retrieved successfully:', {
         sha: data.sha,
         hasContent: !!data.content,
         encoding: data.encoding,
@@ -413,17 +416,17 @@ export class GitOperations {
 
       // Validate that we have the required SHA for file updates
       if (!data.sha) {
-        console.warn('GitOperations.getFileInfo: GitHub API returned file info without SHA:', data);
+        logger.warn('getFileInfo: GitHub API returned file info without SHA:', data);
         throw new Error('Invalid file info from GitHub: missing SHA');
       }
 
-      console.log('GitOperations.getFileInfo: Validation passed, SHA available for file updates');
+      logger.debug('getFileInfo: Validation passed, SHA available for file updates');
       return data;
     } catch (error) {
-      console.error('GitOperations.getFileInfo: Error during operation:', error);
+      logger.error('getFileInfo: Error during operation:', error);
 
       if ((error as Error).message.includes('404')) {
-        console.log('GitOperations.getFileInfo: Treating 404 error as file not found');
+        logger.debug('getFileInfo: Treating 404 error as file not found');
         return null;
       }
       throw error;
@@ -437,7 +440,7 @@ export class GitOperations {
     commitOptions: IGitCommitOptions,
     existingSha?: string
   ): Promise<IGitHubApiResponse> {
-    console.log('GitOperations.createOrUpdateFile: Starting operation:', {
+    logger.debug('createOrUpdateFile: Starting operation:', {
       owner: repoInfo.owner,
       repo: repoInfo.repo,
       path,
@@ -449,13 +452,13 @@ export class GitOperations {
     });
 
     if (!this.settings?.githubToken) {
-      console.error('GitOperations.createOrUpdateFile: GitHub token not available');
+      logger.error('createOrUpdateFile: GitHub token not available');
       throw new Error('GitHub token not available');
     }
 
-    console.log('GitOperations.createOrUpdateFile: Encoding content for GitHub API...');
+    logger.debug('createOrUpdateFile: Encoding content for GitHub API...');
     const encodedContent = btoa(unescape(encodeURIComponent(content)));
-    console.log('GitOperations.createOrUpdateFile: Content encoded successfully:', {
+    logger.debug('createOrUpdateFile: Content encoded successfully:', {
       originalLength: content.length,
       encodedLength: encodedContent.length,
     });
@@ -469,11 +472,11 @@ export class GitOperations {
     // Include SHA if updating existing file
     if (existingSha) {
       requestBody.sha = existingSha;
-      console.log('GitOperations.createOrUpdateFile: Including SHA for file update:', existingSha);
-      console.log('GitOperations.createOrUpdateFile: This will OVERWRITE the existing file');
+      logger.info('createOrUpdateFile: Including SHA for file update:', existingSha);
+      logger.info('createOrUpdateFile: This will OVERWRITE the existing file');
     } else {
-      console.log('GitOperations.createOrUpdateFile: Creating new file (no SHA provided)');
-      console.log('GitOperations.createOrUpdateFile: This will CREATE a new file');
+      logger.info('createOrUpdateFile: Creating new file (no SHA provided)');
+      logger.info('createOrUpdateFile: This will CREATE a new file');
     }
 
     // Add author information if available
@@ -482,10 +485,10 @@ export class GitOperations {
         name: commitOptions.author,
         email: 'prismweave@example.com', // Default email
       };
-      console.log('GitOperations.createOrUpdateFile: Added author info:', commitOptions.author);
+      logger.debug('createOrUpdateFile: Added author info:', commitOptions.author);
     }
 
-    console.log('GitOperations.createOrUpdateFile: Prepared request body:', {
+    logger.debug('createOrUpdateFile: Prepared request body:', {
       hasMessage: !!requestBody.message,
       hasContent: !!requestBody.content,
       hasSha: !!requestBody.sha,
@@ -493,7 +496,7 @@ export class GitOperations {
       branch: requestBody.branch,
     });
 
-    console.log('GitOperations.createOrUpdateFile: Making PUT request to GitHub API...');
+    logger.debug('createOrUpdateFile: Making PUT request to GitHub API...');
     const response = await fetch(
       `${this.apiBase}/repos/${repoInfo.owner}/${repoInfo.repo}/contents/${path}`,
       {
@@ -508,7 +511,7 @@ export class GitOperations {
       }
     );
 
-    console.log('GitOperations.createOrUpdateFile: GitHub API response received:', {
+    logger.debug('createOrUpdateFile: GitHub API response received:', {
       status: response.status,
       statusText: response.statusText,
       ok: response.ok,
@@ -516,7 +519,7 @@ export class GitOperations {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('GitOperations.createOrUpdateFile: GitHub API error details:', {
+      logger.error('createOrUpdateFile: GitHub API error details:', {
         status: response.status,
         statusText: response.statusText,
         error: errorText,
@@ -527,9 +530,9 @@ export class GitOperations {
       throw new Error(`GitHub API error: ${response.status} ${response.statusText} - ${errorText}`);
     }
 
-    console.log('GitOperations.createOrUpdateFile: Request successful, parsing response...');
+    logger.debug('createOrUpdateFile: Request successful, parsing response...');
     const result = (await response.json()) as IGitHubApiResponse;
-    console.log('GitOperations.createOrUpdateFile: Operation completed successfully:', {
+    logger.info('createOrUpdateFile: Operation completed successfully:', {
       hasCommit: !!result.commit,
       commitSha: result.commit?.sha,
       commitUrl: result.commit?.html_url,

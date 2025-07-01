@@ -2,7 +2,7 @@
 // PrismWeave File Manager - TypeScript version
 // File organization and management utilities
 
-import { IDocumentMetadata, ISettings, IFileOperationResult } from '../types/index.js';
+import { IDocumentMetadata, IFileOperationResult } from '../types/index.js';
 
 interface IFolderMapping {
   [key: string]: string[];
@@ -27,15 +27,48 @@ export class FileManager {
 
   constructor() {
     this.folderMapping = {
-      tech: ['programming', 'software', 'coding', 'development', 'technology', 'tech', 'javascript', 'python', 'react', 'node', 'github', 'stackoverflow', 'dev.to'],
-      business: ['business', 'marketing', 'finance', 'startup', 'entrepreneur', 'sales', 'management', 'strategy', 'linkedin'],
-      tutorial: ['tutorial', 'guide', 'how-to', 'learn', 'course', 'lesson', 'walkthrough', 'step-by-step'],
+      tech: [
+        'programming',
+        'software',
+        'coding',
+        'development',
+        'technology',
+        'tech',
+        'javascript',
+        'python',
+        'react',
+        'node',
+        'github',
+        'stackoverflow',
+        'dev.to',
+      ],
+      business: [
+        'business',
+        'marketing',
+        'finance',
+        'startup',
+        'entrepreneur',
+        'sales',
+        'management',
+        'strategy',
+        'linkedin',
+      ],
+      tutorial: [
+        'tutorial',
+        'guide',
+        'how-to',
+        'learn',
+        'course',
+        'lesson',
+        'walkthrough',
+        'step-by-step',
+      ],
       news: ['news', 'article', 'blog', 'opinion', 'analysis', 'update', 'announcement'],
       research: ['research', 'study', 'paper', 'academic', 'journal', 'thesis', 'analysis', 'data'],
       design: ['design', 'ui', 'ux', 'css', 'figma', 'adobe', 'creative', 'visual', 'art'],
       tools: ['tool', 'utility', 'software', 'app', 'service', 'platform', 'extension'],
       personal: ['personal', 'diary', 'journal', 'thoughts', 'reflection', 'life', 'experience'],
-      reference: ['reference', 'documentation', 'manual', 'spec', 'api', 'docs', 'wiki']
+      reference: ['reference', 'documentation', 'manual', 'spec', 'api', 'docs', 'wiki'],
     };
   }
 
@@ -46,10 +79,20 @@ export class FileManager {
     try {
       const components = this.extractFileNameComponents(metadata);
       const pattern = options.fileNamingPattern || 'YYYY-MM-DD-domain-title';
-      
+
       return this.applyNamingPattern(components, pattern, options);
     } catch (error) {
-      console.error('FileManager: Error generating filename:', error);
+      // Use Logger for error logging
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const { createLogger } = require('./logger');
+        const logger = createLogger('FileManager');
+        logger.error('Error generating filename:', error);
+      } catch (logError) {
+        // Fallback to console if logger import fails
+        // eslint-disable-next-line no-console
+        console.error('FileManager: Error generating filename:', error);
+      }
       return this.getFallbackFilename(metadata);
     }
   }
@@ -62,7 +105,7 @@ export class FileManager {
     if (options.defaultFolder === 'custom' && options.customFolder) {
       return this.sanitizeFolderName(options.customFolder);
     }
-    
+
     if (options.defaultFolder && options.defaultFolder !== 'auto') {
       return options.defaultFolder;
     }
@@ -78,7 +121,7 @@ export class FileManager {
   generateFilePath(metadata: IDocumentMetadata, options: IFileManagerOptions = {}): string {
     const folder = this.determineFolder(metadata, options);
     const filename = this.generateFilename(metadata, options);
-    
+
     return `${folder}/${filename}`;
   }
 
@@ -87,28 +130,51 @@ export class FileManager {
    */
   validateFilePath(filePath: string): { isValid: boolean; errors: string[] } {
     const errors: string[] = [];
-    
+
     // Check for dangerous characters
     const dangerousChars = /[<>:"|?*\x00-\x1f]/;
     if (dangerousChars.test(filePath)) {
       errors.push('File path contains invalid characters');
     }
-    
+
     // Check path length
     if (filePath.length > 260) {
       errors.push('File path is too long (max 260 characters)');
     }
-    
+
     // Check for reserved names
-    const reservedNames = ['CON', 'PRN', 'AUX', 'NUL', 'COM1', 'COM2', 'COM3', 'COM4', 'COM5', 'COM6', 'COM7', 'COM8', 'COM9', 'LPT1', 'LPT2', 'LPT3', 'LPT4', 'LPT5', 'LPT6', 'LPT7', 'LPT8', 'LPT9'];
+    const reservedNames = [
+      'CON',
+      'PRN',
+      'AUX',
+      'NUL',
+      'COM1',
+      'COM2',
+      'COM3',
+      'COM4',
+      'COM5',
+      'COM6',
+      'COM7',
+      'COM8',
+      'COM9',
+      'LPT1',
+      'LPT2',
+      'LPT3',
+      'LPT4',
+      'LPT5',
+      'LPT6',
+      'LPT7',
+      'LPT8',
+      'LPT9',
+    ];
     const filename = filePath.split('/').pop()?.split('.')[0]?.toUpperCase();
     if (filename && reservedNames.includes(filename)) {
       errors.push('Filename uses reserved system name');
     }
-    
+
     return {
       isValid: errors.length === 0,
-      errors
+      errors,
     };
   }
 
@@ -119,42 +185,48 @@ export class FileManager {
     const pathParts = basePath.split('/');
     const filename = pathParts.pop() || '';
     const directory = pathParts.join('/');
-    
+
     const [name, extension] = this.splitFilename(filename);
-    
+
     let counter = 1;
     let uniquePath = basePath;
-    
+
     while (existingFiles.includes(uniquePath)) {
       const uniqueName = `${name}-${counter}.${extension}`;
       uniquePath = directory ? `${directory}/${uniqueName}` : uniqueName;
       counter++;
     }
-    
+
     return uniquePath;
   }
 
   /**
    * Organize files into folder structure
    */
-  organizeFiles(files: Array<{ metadata: IDocumentMetadata; content: string }>, options: IFileManagerOptions = {}): Record<string, Array<{ filename: string; content: string; metadata: IDocumentMetadata }>> {
-    const organized: Record<string, Array<{ filename: string; content: string; metadata: IDocumentMetadata }>> = {};
-    
+  organizeFiles(
+    files: Array<{ metadata: IDocumentMetadata; content: string }>,
+    options: IFileManagerOptions = {}
+  ): Record<string, Array<{ filename: string; content: string; metadata: IDocumentMetadata }>> {
+    const organized: Record<
+      string,
+      Array<{ filename: string; content: string; metadata: IDocumentMetadata }>
+    > = {};
+
     files.forEach(file => {
       const folder = this.determineFolder(file.metadata, options);
       const filename = this.generateFilename(file.metadata, options);
-      
+
       if (!organized[folder]) {
         organized[folder] = [];
       }
-      
+
       organized[folder].push({
         filename,
         content: file.content,
-        metadata: file.metadata
+        metadata: file.metadata,
       });
     });
-    
+
     return organized;
   }
 
@@ -162,32 +234,36 @@ export class FileManager {
     const date = this.formatDate(new Date(metadata.captureDate));
     const domain = this.extractDomain(metadata.url);
     const title = this.sanitizeTitle(metadata.title);
-    
+
     return {
       date,
       domain,
       title,
-      extension: 'md'
+      extension: 'md',
     };
   }
 
-  private applyNamingPattern(components: IFileNameComponents, pattern: string, options: IFileManagerOptions = {}): string {
+  private applyNamingPattern(
+    components: IFileNameComponents,
+    pattern: string,
+    options: IFileManagerOptions = {}
+  ): string {
     if (pattern === 'custom' && options.customNamingPattern) {
       pattern = options.customNamingPattern;
     }
-    
+
     let filename = pattern
       .replace(/YYYY/g, components.date.substring(0, 4))
       .replace(/MM/g, components.date.substring(5, 7))
       .replace(/DD/g, components.date.substring(8, 10))
       .replace(/domain/g, components.domain)
       .replace(/title/g, components.title);
-    
+
     // Add extension if not present
     if (!filename.endsWith(`.${components.extension}`)) {
       filename += `.${components.extension}`;
     }
-    
+
     return this.sanitizeFilename(filename);
   }
 
@@ -199,19 +275,19 @@ export class FileManager {
     try {
       const urlObj = new URL(url);
       let domain = urlObj.hostname;
-      
+
       // Remove www. prefix
       if (domain.startsWith('www.')) {
         domain = domain.substring(4);
       }
-      
+
       // Take only the main domain (remove subdomains for common sites)
       const domainParts = domain.split('.');
       if (domainParts.length > 2) {
         // Keep only the last two parts for main domain
         domain = domainParts.slice(-2).join('.');
       }
-      
+
       return domain.replace(/\./g, '-');
     } catch {
       return 'unknown-site';
@@ -255,12 +331,12 @@ export class FileManager {
     const searchText = [
       metadata.title.toLowerCase(),
       metadata.url.toLowerCase(),
-      ...metadata.tags.map(tag => tag.toLowerCase())
+      ...metadata.tags.map(tag => tag.toLowerCase()),
     ].join(' ');
 
     // Score each folder based on keyword matches
     const folderScores: Record<string, number> = {};
-    
+
     Object.entries(this.folderMapping).forEach(([folder, keywords]) => {
       let score = 0;
       keywords.forEach(keyword => {
@@ -270,16 +346,15 @@ export class FileManager {
           score += matches.length;
         }
       });
-      
+
       if (score > 0) {
         folderScores[folder] = score;
       }
     });
 
     // Return folder with highest score
-    const bestFolder = Object.entries(folderScores)
-      .sort(([, a], [, b]) => b - a)[0];
-    
+    const bestFolder = Object.entries(folderScores).sort(([, a], [, b]) => b - a)[0];
+
     return bestFolder ? bestFolder[0] : null;
   }
 
@@ -288,11 +363,8 @@ export class FileManager {
     if (lastDot === -1) {
       return [filename, 'md'];
     }
-    
-    return [
-      filename.substring(0, lastDot),
-      filename.substring(lastDot + 1)
-    ];
+
+    return [filename.substring(0, lastDot), filename.substring(lastDot + 1)];
   }
 
   // Public utility methods
@@ -308,7 +380,7 @@ export class FileManager {
     if (!this.folderMapping[folder]) {
       this.folderMapping[folder] = [];
     }
-    
+
     keywords.forEach(keyword => {
       if (!this.folderMapping[folder].includes(keyword.toLowerCase())) {
         this.folderMapping[folder].push(keyword.toLowerCase());
@@ -321,11 +393,14 @@ export class FileManager {
     const filename = parts.pop() || '';
     const folder = parts.join('/') || '';
     const [name, extension] = this.splitFilename(filename);
-    
+
     return { folder, filename: name, extension };
   }
 
-  generateFilePreview(metadata: IDocumentMetadata, options: IFileManagerOptions = {}): {
+  generateFilePreview(
+    metadata: IDocumentMetadata,
+    options: IFileManagerOptions = {}
+  ): {
     filename: string;
     folder: string;
     fullPath: string;
@@ -336,24 +411,24 @@ export class FileManager {
     const folder = this.determineFolder(metadata, options);
     const fullPath = `${folder}/${filename}`;
     const validation = this.validateFilePath(fullPath);
-    
+
     const warnings: string[] = [];
-    
+
     // Check for potential issues
     if (filename.length > 100) {
       warnings.push('Filename is quite long and may cause issues on some systems');
     }
-    
+
     if (metadata.title.length < 5) {
       warnings.push('Document title is very short, consider adding more descriptive content');
     }
-    
+
     return {
       filename,
       folder,
       fullPath,
       isValid: validation.isValid,
-      warnings: [...warnings, ...validation.errors]
+      warnings: [...warnings, ...validation.errors],
     };
   }
 
@@ -363,8 +438,8 @@ export class FileManager {
    * Instead, we'll save to GitHub via GitOperations
    */
   async saveMarkdownFile(
-    content: string, 
-    metadata: IDocumentMetadata, 
+    content: string,
+    metadata: IDocumentMetadata,
     options: IFileManagerOptions = {},
     gitOperations?: any
   ): Promise<IFileOperationResult> {
@@ -372,25 +447,25 @@ export class FileManager {
       // Generate file path
       const fullPath = this.generateFilePath(metadata, options);
       const validation = this.validateFilePath(fullPath);
-      
+
       if (!validation.isValid) {
         return {
           success: false,
           filePath: fullPath,
-          error: `Invalid file path: ${validation.errors.join(', ')}`
+          error: `Invalid file path: ${validation.errors.join(', ')}`,
         };
       }
 
       // For browser extension, we need to use Git operations to save
       if (gitOperations) {
         const gitResult = await gitOperations.saveToGitHub(content, fullPath, metadata);
-        
+
         return {
           success: gitResult.success,
           filePath: fullPath,
           sha: gitResult.sha,
           url: gitResult.url,
-          error: gitResult.error
+          error: gitResult.error,
         };
       } else {
         // If no git operations provided, we can't actually save the file
@@ -398,15 +473,25 @@ export class FileManager {
         return {
           success: false,
           filePath: fullPath,
-          error: 'No save mechanism provided (Git operations required)'
+          error: 'No save mechanism provided (Git operations required)',
         };
       }
     } catch (error) {
-      console.error('FileManager: Error saving markdown file:', error);
+      // Use Logger for error logging
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const { createLogger } = require('./logger');
+        const logger = createLogger('FileManager');
+        logger.error('Error saving markdown file:', error);
+      } catch (logError) {
+        // Fallback to console if logger import fails
+        // eslint-disable-next-line no-console
+        console.error('FileManager: Error saving markdown file:', error);
+      }
       return {
         success: false,
         filePath: '',
-        error: (error as Error).message
+        error: (error as Error).message,
       };
     }
   }

@@ -2,6 +2,9 @@
 // PrismWeave Shared Utilities
 // Common helper functions used across multiple modules
 
+import { createLogger } from './logger';
+const logger = createLogger('SharedUtils');
+
 import { getGlobalScope } from './global-types';
 
 interface IFileValidationResult {
@@ -214,7 +217,7 @@ class SharedUtils {
 
   static logError(error: Error, context: string = ''): void {
     const timestamp = new Date().toISOString();
-    console.error(`[PrismWeave${context ? ' ' + context : ''}] ${timestamp}:`, error);
+    logger.error(`[PrismWeave${context ? ' ' + context : ''}] ${timestamp}:`, error);
   }
 
   static generateFilename(

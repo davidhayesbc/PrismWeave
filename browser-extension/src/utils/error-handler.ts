@@ -2,6 +2,9 @@
 // PrismWeave Error Handler - TypeScript version
 // Centralized error handling with user-friendly messages
 
+import { createLogger } from './logger';
+const logger = createLogger('ErrorHandler');
+
 // Local type definition for service worker compatibility
 interface IErrorHandlerInfo {
   message: string;
@@ -112,7 +115,7 @@ class ErrorHandler {
 
     // Only log to console if not in test environment
     if (!this._isTestEnvironment()) {
-      console.error(`${context}:`, errorInfo);
+      logger.error(`${context}:`, errorInfo);
     }
 
     // Optionally send to background for logging
@@ -170,7 +173,7 @@ class ErrorHandler {
     // This would integrate with the UI notification system
     // Only log to console if not in test environment
     if (!this._isTestEnvironment()) {
-      console.warn('User notification:', error.message, error.solution);
+      logger.warn('User notification:', error.message, error.solution);
     }
   }
 }

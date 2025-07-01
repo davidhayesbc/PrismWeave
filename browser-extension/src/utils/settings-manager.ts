@@ -2,6 +2,9 @@
 // PrismWeave Settings Manager - TypeScript version
 // Centralized settings management with consistent schema and validation
 
+import { createLogger } from './logger';
+const logger = createLogger('SettingsManager');
+
 import { ISettings } from '../types/index';
 
 // Type definitions for service worker compatibility
@@ -163,12 +166,12 @@ class SettingsManager {
       // Validate settings against schema - just log errors, don't block
       const validationResult = this.validateSettings(rawSettings);
       if (!validationResult.isValid) {
-        console.warn('SettingsManager: Settings validation failed:', validationResult.errors);
+        logger.warn('Settings validation failed:', validationResult.errors);
       }
 
       return rawSettings;
     } catch (error) {
-      console.error('SettingsManager: Error getting settings:', error);
+      logger.error('Error getting settings:', error);
       return {};
     }
   }
@@ -189,7 +192,7 @@ class SettingsManager {
 
       return { ...defaults, ...current };
     } catch (error) {
-      console.error('SettingsManager: Error getting settings with defaults:', error);
+      logger.error('Error getting settings with defaults:', error);
       return await this.getDefaults();
     }
   }
@@ -198,7 +201,7 @@ class SettingsManager {
     try {
       const validationResult = this.validateSettings(updates);
       if (!validationResult.isValid) {
-        console.error('SettingsManager: Validation failed:', validationResult.errors);
+        logger.error('Validation failed:', validationResult.errors);
         return false;
       }
 
@@ -208,7 +211,7 @@ class SettingsManager {
       await this.setToStorage({ [this.STORAGE_KEY]: updated });
       return true;
     } catch (error) {
-      console.error('SettingsManager: Error updating settings:', error);
+      logger.error('Error updating settings:', error);
       return false;
     }
   }
@@ -219,7 +222,7 @@ class SettingsManager {
       await this.setToStorage({ [this.STORAGE_KEY]: defaults });
       return true;
     } catch (error) {
-      console.error('SettingsManager: Error resetting settings:', error);
+      logger.error('Error resetting settings:', error);
       return false;
     }
   }
@@ -323,7 +326,7 @@ class SettingsManager {
       const sanitized = this.sanitizeForExport(settings);
       return JSON.stringify(sanitized, null, 2);
     } catch (error) {
-      console.error('SettingsManager: Error exporting settings:', error);
+      logger.error('Error exporting settings:', error);
       throw error;
     }
   }
@@ -333,7 +336,7 @@ class SettingsManager {
       const imported = JSON.parse(jsonString) as Partial<ISettings>;
       return await this.updateSettings(imported);
     } catch (error) {
-      console.error('SettingsManager: Error importing settings:', error);
+      logger.error('Error importing settings:', error);
       return false;
     }
   }

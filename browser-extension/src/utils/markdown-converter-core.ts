@@ -286,7 +286,18 @@ export class MarkdownConverterCore {
 
       return result;
     } catch (error) {
-      console.error('MarkdownConverter: Conversion failed:', error);
+      // Use Logger for error logging
+      try {
+        // Lazy import to avoid circular dependency if needed
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const { createLogger } = require('./logger');
+        const logger = createLogger('MarkdownConverterCore');
+        logger.error('Conversion failed:', error);
+      } catch (logError) {
+        // Fallback to console if logger import fails
+        // eslint-disable-next-line no-console
+        console.error('MarkdownConverter: Conversion failed:', error);
+      }
       throw error;
     }
   }

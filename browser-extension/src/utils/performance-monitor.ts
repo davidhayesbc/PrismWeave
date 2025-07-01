@@ -3,6 +3,7 @@
 // Tracks extension performance and provides optimization insights
 
 import { getGlobalScope } from './global-types';
+import { createLogger } from './logger';
 
 interface IPerformanceMemory {
   usedJSHeapSize: number;
@@ -45,6 +46,7 @@ interface IMetricsSummary {
 class PerformanceMonitor {
   private metrics: Map<string, IPerformanceMetric>;
   private isEnabled: boolean;
+  private logger = createLogger('PerformanceMonitor');
 
   constructor() {
     this.metrics = new Map();
@@ -95,14 +97,17 @@ class PerformanceMonitor {
 
     // Log slow operations
     if (duration > 1000) {
-      console.warn(
+      this.logger.warn(
         `🐌 Slow operation detected: ${operation} took ${duration.toFixed(2)}ms`,
         metadata
       );
     } else if (duration > 500) {
-      console.info(`⚠️ Moderate operation: ${operation} took ${duration.toFixed(2)}ms`, metadata);
+      this.logger.info(
+        `⚠️ Moderate operation: ${operation} took ${duration.toFixed(2)}ms`,
+        metadata
+      );
     } else {
-      console.debug(`✅ Fast operation: ${operation} took ${duration.toFixed(2)}ms`, metadata);
+      this.logger.debug(`✅ Fast operation: ${operation} took ${duration.toFixed(2)}ms`, metadata);
     }
   }
   measureMemory(): IMemoryInfo | null {

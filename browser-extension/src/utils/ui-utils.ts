@@ -601,7 +601,17 @@ class UIUtils {
       await navigator.clipboard.writeText(text);
       UIUtils.showStatus('Copied to clipboard', UIUtils.STATUS_TYPES.SUCCESS, 2000);
     } catch (error) {
-      console.error('Failed to copy to clipboard:', error);
+      // Use Logger for error logging
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const { createLogger } = require('./logger');
+        const logger = createLogger('UIUtils');
+        logger.error('Failed to copy to clipboard:', error);
+      } catch (logError) {
+        // Fallback to console if logger import fails
+        // eslint-disable-next-line no-console
+        console.error('Failed to copy to clipboard:', error);
+      }
       UIUtils.showStatus('Failed to copy to clipboard', UIUtils.STATUS_TYPES.ERROR);
     }
   }

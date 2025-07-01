@@ -4,6 +4,7 @@
 
 import { IContentScriptMessage, IMessageResponse } from '../types/index';
 import { ContentExtractor } from '../utils/content-extractor';
+import { createLogger } from '../utils/logger';
 import { MarkdownConverter } from '../utils/markdown-converter';
 
 interface IContentExtractor {
@@ -13,6 +14,7 @@ interface IContentExtractor {
 }
 
 export class PrismWeaveContent {
+  private logger = createLogger('ContentScript');
   /**
    * Direct async message handler for testing and internal use.
    * Accepts a message object and returns a Promise with the response data or throws on error.
@@ -100,7 +102,7 @@ export class PrismWeaveContent {
     // Add visual feedback for capturing
     this.createCaptureIndicator();
 
-    console.log('PrismWeave content script initialized');
+    this.logger.info('PrismWeave content script initialized');
   }
   public async handleMessage(
     message: IContentScriptMessage,
@@ -159,7 +161,7 @@ export class PrismWeaveContent {
           throw new Error(`Unknown message type: ${message.type}`);
       }
     } catch (error) {
-      console.error('PrismWeaveContent: Message handling error:', error);
+      this.logger.error('Message handling error:', error);
       sendResponse({
         success: false,
         error: (error as Error).message,
@@ -168,7 +170,7 @@ export class PrismWeaveContent {
   }
   private async captureCurrentPage(): Promise<any> {
     if (this.isCapturing) {
-      console.warn('Capture already in progress');
+      this.logger.warn('Capture already in progress');
       return { error: 'Capture already in progress' };
     }
 
@@ -210,7 +212,7 @@ export class PrismWeaveContent {
 
       return result;
     } catch (error) {
-      console.error('Error capturing page:', error);
+      this.logger.error('Error capturing page:', error);
       this.showCaptureIndicator('Capture failed!', 'error');
       setTimeout(() => this.hideCaptureIndicator(), 3000);
       throw error;
@@ -265,7 +267,7 @@ export class PrismWeaveContent {
 
       return result;
     } catch (error) {
-      console.error('Error capturing selection:', error);
+      this.logger.error('Error capturing selection:', error);
       this.showCaptureIndicator('Selection capture failed!', 'error');
       setTimeout(() => this.hideCaptureIndicator(), 3000);
       throw error;
@@ -312,14 +314,14 @@ export class PrismWeaveContent {
 
       setTimeout(() => this.hideCaptureIndicator(), 2000);
     } catch (error) {
-      console.error('Error highlighting content:', error);
+      this.logger.error('Error highlighting content:', error);
     }
   }
 
   private cancelCapture(): void {
     this.isCapturing = false;
     this.hideCaptureIndicator();
-    console.log('Capture cancelled');
+    this.logger.debug('Capture cancelled');
   }
 
   private getPageInfo(): any {
@@ -401,7 +403,7 @@ export class PrismWeaveContent {
 
   public async extractContentForServiceWorker(data?: any): Promise<any> {
     try {
-      console.log('Extracting content for service worker');
+      this.logger.info('Extracting content for service worker');
 
       // Extract basic page information
       const title = document.title || 'Untitled';
@@ -441,7 +443,7 @@ export class PrismWeaveContent {
         },
       };
     } catch (error) {
-      console.error('Error extracting content for service worker:', error);
+      this.logger.error('Error extracting content for service worker:', error);
 
       // Fallback to basic HTML extraction
       try {
@@ -509,8 +511,8 @@ export class PrismWeaveContent {
   }
   public async extractAndConvertToMarkdown(data?: any): Promise<any> {
     try {
-      console.log('Extracting content and converting to markdown for service worker');
-      console.log('Current URL:', window.location.href);
+      this.logger.info('Extracting content and converting to markdown for service worker');
+      this.logger.debug('Current URL:', window.location.href);
 
       // Validate that extractors are available
       if (!this.contentExtractor) {
@@ -522,7 +524,7 @@ export class PrismWeaveContent {
 
       // Enhanced debugging for Docker blog
       if (window.location.href.includes('docker.com')) {
-        console.log('Docker blog detected - debugging DOM structure...');
+        this.logger.debug('Docker blog detected - debugging DOM structure...');
 
         // Check for various potential content containers
         const potentialSelectors = [
@@ -549,14 +551,14 @@ export class PrismWeaveContent {
         potentialSelectors.forEach(selector => {
           const elements = document.querySelectorAll(selector);
           if (elements.length > 0) {
-            console.log(`Found ${elements.length} elements for "${selector}"`);
+            this.logger.debug(`Found ${elements.length} elements for "${selector}"`);
             elements.forEach((el, index) => {
               if (index < 3) {
                 // Only log first 3 to avoid spam
                 const textLength = el.textContent?.trim().length || 0;
-                console.log(`  - Element ${index}: ${el.tagName} with ${textLength} chars`);
-                if (textLength > 500) {
-                  console.log(`    - Likely content element:`, el.className, el.id);
+                this.logger.debug(`  - Element ${index}: ${el.tagName} with ${textLength} chars`);
+                if (textLength > 100) {
+                  this.logger.debug(`    - Likely content element:`, el.className, el.id);
                 }
               }
             });
@@ -574,11 +576,11 @@ export class PrismWeaveContent {
           '.content-area',
         ];
 
-        console.log('Checking Docker-specific selectors...');
+        this.logger.debug('Checking Docker-specific selectors...');
         dockerSpecific.forEach(selector => {
           const elements = document.querySelectorAll(selector);
           if (elements.length > 0) {
-            console.log(`Docker selector "${selector}": found ${elements.length} elements`);
+            this.logger.debug(`Docker selector "${selector}": found ${elements.length} elements`);
           }
         });
       }
@@ -590,7 +592,7 @@ export class PrismWeaveContent {
         removeNavigation: true,
         ...data, // Include any extraction options from the service worker
       });
-      console.log('Content extraction completed:', {
+      this.logger.debug('Content extraction completed:', {
         hasContent: !!(extractedContent.content || extractedContent.cleanedContent),
         contentLength: (extractedContent.content || extractedContent.cleanedContent || '').length,
         hasMetadata: !!extractedContent.metadata,
@@ -662,7 +664,7 @@ export class PrismWeaveContent {
 
       // If we got very little content, wait a moment for dynamic content to load
       if (htmlContent.length < 200 && window.location.href.includes('docker.com')) {
-        console.log('Docker blog: Content seems short, waiting for dynamic loading...');
+        this.logger.debug('Docker blog: Content seems short, waiting for dynamic loading...');
         await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds
 
         // Try extraction again
@@ -675,7 +677,7 @@ export class PrismWeaveContent {
 
         const retryHtml = retryContent.content || retryContent.cleanedContent || '';
         if (retryHtml.length > htmlContent.length) {
-          console.log('Docker blog: Retry extraction got more content:', retryHtml.length);
+          this.logger.debug('Docker blog: Retry extraction got more content:', retryHtml.length);
           htmlContent = retryHtml;
           extractedContent = retryContent;
         }
@@ -683,7 +685,7 @@ export class PrismWeaveContent {
 
       // Special handling for Docker blog if standard extraction fails
       if (htmlContent.length < 200 && window.location.href.includes('docker.com/blog')) {
-        console.log(
+        this.logger.debug(
           'Docker blog: Standard extraction yielded little content, trying direct approach...'
         );
 
@@ -698,7 +700,10 @@ export class PrismWeaveContent {
         ].find(content => content && content.length > 500);
 
         if (possibleContent) {
-          console.log('Docker blog: Found content via direct approach:', possibleContent.length);
+          this.logger.debug(
+            'Docker blog: Found content via direct approach:',
+            possibleContent.length
+          );
           htmlContent = possibleContent;
           // Update extracted content as well
           extractedContent = {
@@ -707,13 +712,13 @@ export class PrismWeaveContent {
             cleanedContent: possibleContent,
           };
         } else {
-          console.log('Docker blog: No substantial content found via direct approach either');
+          this.logger.debug('Docker blog: No substantial content found via direct approach either');
           // Log what we actually found
-          console.log('Available content containers:');
+          this.logger.debug('Available content containers:');
           ['main', 'article', '.content', '.post-content', '.container'].forEach(sel => {
             const el = document.querySelector(sel);
             if (el) {
-              console.log(`${sel}: ${el.textContent?.length || 0} chars`);
+              this.logger.debug(`${sel}: ${el.textContent?.length || 0} chars`);
             }
           });
         }
@@ -725,7 +730,7 @@ export class PrismWeaveContent {
         title: document.title || 'Untitled',
         url: window.location.href,
       };
-      console.log('Converting extracted content to markdown:', {
+      this.logger.debug('Converting extracted content to markdown:', {
         contentLength: htmlContent.length,
         hasMarkdownConverter: !!this.markdownConverter,
         metadata: metadata,
@@ -738,7 +743,7 @@ export class PrismWeaveContent {
         ...data?.conversionOptions, // Include any conversion options
       });
 
-      console.log('Markdown conversion completed:', {
+      this.logger.debug('Markdown conversion completed:', {
         hasMarkdown: !!conversionResult.markdown,
         markdownLength: conversionResult.markdown?.length || 0,
         hasFrontmatter: !!conversionResult.frontmatter,
@@ -767,7 +772,7 @@ export class PrismWeaveContent {
         timestamp: new Date().toISOString(),
       };
     } catch (error) {
-      console.error('Error extracting and converting content:', error);
+      this.logger.error('Error extracting and converting content:', error);
 
       // Return error result
       return {

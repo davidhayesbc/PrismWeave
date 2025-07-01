@@ -2,8 +2,10 @@
 // PrismWeave Options/Settings Page Script - TypeScript version
 
 import { IMessageData, IMessageResponse, ISettings } from '../types/index.js';
+import { createLogger } from '../utils/logger';
 
 export class PrismWeaveOptions {
+  private logger = createLogger('Options');
   private settings: Partial<ISettings> = {};
 
   constructor() {
@@ -13,13 +15,13 @@ export class PrismWeaveOptions {
   // ...existing code...
 
   private async initializeOptions(): Promise<void> {
-    console.log('PrismWeaveOptions: Initializing options page');
+    this.logger.info('PrismWeaveOptions: Initializing options page');
     await this.loadSettings();
-    console.log('PrismWeaveOptions: Settings loaded:', this.settings);
+    this.logger.info('PrismWeaveOptions: Settings loaded', this.settings);
     this.populateForm();
-    console.log('PrismWeaveOptions: Form populated');
+    this.logger.info('PrismWeaveOptions: Form populated');
     this.setupEventListeners();
-    console.log('PrismWeaveOptions: Event listeners setup complete');
+    this.logger.info('PrismWeaveOptions: Event listeners setup complete');
   }
   private getDefaultSettings(): Partial<ISettings> {
     return {
@@ -55,21 +57,21 @@ export class PrismWeaveOptions {
 
   private async loadSettings(): Promise<void> {
     try {
-      console.log('PrismWeaveOptions: Requesting settings from background...');
+      this.logger.info('PrismWeaveOptions: Requesting settings from background...');
       const response = await this.sendMessage('GET_SETTINGS');
-      console.log('PrismWeaveOptions: Received response:', response);
+      this.logger.info('PrismWeaveOptions: Received response', response);
 
       if (response.success) {
         // Merge received settings with defaults to ensure all fields have values
         const defaultSettings = this.getDefaultSettings();
         this.settings = { ...defaultSettings, ...(response.data as Partial<ISettings>) };
-        console.log('PrismWeaveOptions: Settings updated:', this.settings);
+        this.logger.info('PrismWeaveOptions: Settings updated', this.settings);
       } else {
-        console.warn('PrismWeaveOptions: Failed to load settings, using defaults');
+        this.logger.warn('PrismWeaveOptions: Failed to load settings, using defaults');
         this.settings = this.getDefaultSettings();
       }
     } catch (error) {
-      console.error('PrismWeaveOptions: Failed to load settings:', error);
+      this.logger.error('PrismWeaveOptions: Failed to load settings', error);
       this.settings = this.getDefaultSettings();
     }
   }
@@ -283,7 +285,7 @@ export class PrismWeaveOptions {
         throw new Error(response.error || 'Failed to save settings');
       }
     } catch (error) {
-      console.error('Failed to save settings:', error);
+      this.logger.error('Failed to save settings', error);
       this.showMessage('Failed to save settings: ' + (error as Error).message, 'error');
     }
   }
@@ -304,7 +306,7 @@ export class PrismWeaveOptions {
         throw new Error(response.error || 'Failed to reset settings');
       }
     } catch (error) {
-      console.error('Failed to reset settings:', error);
+      this.logger.error('Failed to reset settings', error);
       this.showMessage('Failed to reset settings: ' + (error as Error).message, 'error');
     }
   }
@@ -329,7 +331,7 @@ export class PrismWeaveOptions {
         throw new Error(response.error || 'Failed to export settings');
       }
     } catch (error) {
-      console.error('Failed to export settings:', error);
+      this.logger.error('Failed to export settings', error);
       this.showMessage('Failed to export settings: ' + (error as Error).message, 'error');
     }
   }
@@ -355,7 +357,7 @@ export class PrismWeaveOptions {
           throw new Error(response.error || 'Failed to import settings');
         }
       } catch (error) {
-        console.error('Failed to import settings:', error);
+        this.logger.error('Failed to import settings', error);
         this.showMessage('Failed to import settings: ' + (error as Error).message, 'error');
       }
     };
@@ -394,7 +396,7 @@ export class PrismWeaveOptions {
         throw new Error(response.error || 'Connection test failed');
       }
     } catch (error) {
-      console.error('Connection test failed:', error);
+      this.logger.error('Connection test failed', error);
       const errorMessage = this.getDetailedErrorMessage(error as Error);
       this.showMessage('Connection test failed: ' + errorMessage, 'error');
       this.showConnectionResult('❌ ' + errorMessage, 'error');

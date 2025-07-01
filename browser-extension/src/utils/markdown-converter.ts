@@ -2,6 +2,9 @@
 // PrismWeave Markdown Converter - Browser Extension wrapper
 // Uses the shared core with browser-specific TurndownService initialization
 
+import { createLogger } from './logger';
+const logger = createLogger('MarkdownConverter');
+
 import TurndownService from 'turndown';
 import {
   IConversionOptions,
@@ -21,9 +24,7 @@ export class MarkdownConverter extends MarkdownConverterCore {
       typeof (globalThis as any).importScripts === 'function' && typeof window === 'undefined';
     if (isServiceWorker) {
       if (process.env.NODE_ENV !== 'test') {
-        console.info(
-          'MarkdownConverter: Running in service worker context, TurndownService not available'
-        );
+        logger.info('Running in service worker context, TurndownService not available');
       }
       this.turndownService = null;
       this._isInitialized = true;
@@ -33,9 +34,7 @@ export class MarkdownConverter extends MarkdownConverterCore {
     // Check if document is available (content script context)
     if (typeof document === 'undefined') {
       if (process.env.NODE_ENV !== 'test') {
-        console.warn(
-          'MarkdownConverter: Document not available, TurndownService cannot be initialized'
-        );
+        logger.warn('Document not available, TurndownService cannot be initialized');
       }
       this.turndownService = null;
       this._isInitialized = true;
@@ -49,11 +48,11 @@ export class MarkdownConverter extends MarkdownConverterCore {
       this.setupTurndownService();
       this._isInitialized = true;
       if (process.env.NODE_ENV !== 'test') {
-        console.info('MarkdownConverter: TurndownService initialized successfully');
+        logger.info('TurndownService initialized successfully');
       }
     } catch (error) {
       if (process.env.NODE_ENV !== 'test') {
-        console.warn('MarkdownConverter: Failed to initialize TurndownService:', error);
+        logger.warn('Failed to initialize TurndownService:', error);
       }
       this.turndownService = null;
       this._isInitialized = true;

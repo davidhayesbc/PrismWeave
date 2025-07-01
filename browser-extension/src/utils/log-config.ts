@@ -3,6 +3,8 @@
 // Edit these values to control logging behavior across the extension
 
 import { getGlobalScope } from './global-types';
+import { createLogger } from './logger';
+const logger = createLogger('LogConfig');
 
 type LogLevel = 0 | 1 | 2 | 3 | 4;
 
@@ -53,12 +55,9 @@ globalScope.PRISMWEAVE_LOG_CONFIG = {
 // Apply global configuration when logger becomes available
 setTimeout(() => {
   if (globalScope.PrismWeaveLogger) {
-    console.log(
-      '%c🔧 PrismWeave Logging Configuration Loaded',
-      'color: #4CAF50; font-weight: bold;'
-    );
-    console.log('Logging enabled:', globalScope.PRISMWEAVE_LOG_CONFIG?.enabled);
-    console.log('Global log level:', globalScope.PRISMWEAVE_LOG_CONFIG?.level);
+    logger.info('🔧 PrismWeave Logging Configuration Loaded');
+    logger.info('Logging enabled:', globalScope.PRISMWEAVE_LOG_CONFIG?.enabled);
+    logger.info('Global log level:', globalScope.PRISMWEAVE_LOG_CONFIG?.level);
   }
 }, 100);
 

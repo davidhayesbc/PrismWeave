@@ -2,6 +2,9 @@
 // Content Cleaning Utilities - Separated content cleaning logic
 // Handles removal of unwanted elements and content normalization
 
+import { createLogger } from './logger';
+const logger = createLogger('ContentCleaner');
+
 export interface ICleaningOptions {
   preserveFormatting?: boolean;
   removeAds?: boolean;
@@ -165,7 +168,7 @@ export class ContentCleaner {
         el.remove();
       }
     } catch (error) {
-      console.warn('ContentCleaner: Error applying rule', rule.name, error);
+      logger.warn('Error applying rule', rule.name, error);
     }
   }
 

@@ -3,22 +3,10 @@
 // Handles the extension popup interface and user interactions
 
 import { IMessageData, IMessageResponse, ISettings } from '../types/index.js';
-
-// Declare logger for TypeScript
-declare const PrismWeaveLogger: any;
+import { createLogger } from '../utils/logger';
 
 // Initialize logger
-const logger = (window as any).PrismWeaveLogger
-  ? (window as any).PrismWeaveLogger.createLogger('Popup')
-  : {
-      debug: console.log,
-      info: console.log,
-      warn: console.warn,
-      error: console.error,
-      trace: console.log,
-      group: console.group,
-      groupEnd: console.groupEnd,
-    };
+const logger = createLogger('Popup');
 
 export class PrismWeavePopup {
   private currentTab: chrome.tabs.Tab | null = null;
@@ -39,23 +27,19 @@ export class PrismWeavePopup {
   private async initializePopup(): Promise<void> {
     logger.group('Initializing popup');
     try {
-      // Get current tab information
       logger.debug('Getting current tab');
       await this.getCurrentTab();
       logger.debug('Current tab obtained:', this.currentTab);
 
-      // Load settings
       logger.debug('Loading settings');
       await this.loadSettings();
       logger.debug('Settings loaded:', this.settings);
 
-      // Update UI
       logger.debug('Updating page info');
       this.updatePageInfo();
       logger.debug('Setting up event listeners');
       this.setupEventListeners();
 
-      // Check if page is capturable
       logger.debug('Checking page capturability');
       this.checkPageCapturability();
 
