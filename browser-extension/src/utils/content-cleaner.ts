@@ -159,7 +159,7 @@ export class ContentCleaner {
     try {
       const elementsToRemove = element.querySelectorAll(rule.selectors.join(','));
 
-      for (const el of elementsToRemove) {
+      for (const el of Array.from(elementsToRemove)) {
         // Apply condition if specified
         if (rule.condition && !rule.condition(el)) {
           continue;
@@ -178,7 +178,7 @@ export class ContentCleaner {
   private removeAdContentByText(element: Element): void {
     const suspiciousElements = element.querySelectorAll('div, span, section, aside');
 
-    for (const el of suspiciousElements) {
+    for (const el of Array.from(suspiciousElements)) {
       const text = el.textContent?.toLowerCase() || '';
       const className = el.className?.toLowerCase() || '';
       const id = el.id?.toLowerCase() || '';

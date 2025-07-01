@@ -158,7 +158,7 @@ export class ContentExtractor {
     let bestScore = 0;
     const minScore = this.isDynamicSite() ? 50 : 100;
 
-    for (const candidate of candidates) {
+    for (const candidate of Array.from(candidates)) {
       const quality = this.qualityAnalyzer.analyzeContent(candidate, {
         isDynamicSite: this.isDynamicSite(),
       });

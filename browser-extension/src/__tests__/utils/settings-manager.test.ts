@@ -6,6 +6,22 @@
 import { SettingsManager } from '../../utils/settings-manager';
 import { cleanupTest, mockChromeAPIs } from '../test-helpers';
 
+// Mock the logger module with a single shared instance
+const mockLoggerInstance = {
+  warn: jest.fn(),
+  error: jest.fn(),
+  info: jest.fn(),
+  debug: jest.fn(),
+  trace: jest.fn(),
+  enabled: true,
+  level: 1,
+  component: 'SettingsManager'
+};
+
+jest.mock('../../utils/logger', () => ({
+  createLogger: jest.fn(() => mockLoggerInstance)
+}));
+
 describe('III. - SettingsManager - Comprehensive Functionality', () => {
   let manager: SettingsManager;
   let mockChrome: any;
@@ -18,6 +34,8 @@ describe('III. - SettingsManager - Comprehensive Functionality', () => {
 
   afterEach(() => {
     cleanupTest();
+    // Reset logger mocks
+    jest.clearAllMocks();
   });
 
   describe('III.1 - Schema and Defaults', () => {
@@ -320,8 +338,7 @@ describe('III. - SettingsManager - Comprehensive Functionality', () => {
         });
       });
 
-      const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation();
-
+      // Test validates that logger.warn is called with validation errors
       const settings = await manager.getSettings();
       expect(settings).toEqual({
         githubToken: 12345,
@@ -329,8 +346,9 @@ describe('III. - SettingsManager - Comprehensive Functionality', () => {
         defaultFolder: 'not-a-valid-folder',
         autoCommit: 'yes',
       });
-      expect(consoleWarnSpy).toHaveBeenCalledWith(
-        'SettingsManager: Settings validation failed:',
+      
+      expect(mockLoggerInstance.warn).toHaveBeenCalledWith(
+        'Settings validation failed:',
         expect.arrayContaining([
           expect.stringContaining('Invalid type for githubToken'),
           expect.stringContaining('Invalid format for githubRepo'),
@@ -338,7 +356,6 @@ describe('III. - SettingsManager - Comprehensive Functionality', () => {
           expect.stringContaining('Invalid type for autoCommit'),
         ])
       );
-      consoleWarnSpy.mockRestore();
     });
   });
 
@@ -391,26 +408,20 @@ describe('III. - SettingsManager - Comprehensive Functionality', () => {
     });
 
     test('III.4.3 - Should handle invalid JSON import gracefully', async () => {
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
-
       const invalidJson = '{ invalid json }';
 
       const result = await manager.importSettings(invalidJson);
       expect(result).toBe(false);
 
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        'SettingsManager: Error importing settings:',
+      expect(mockLoggerInstance.error).toHaveBeenCalledWith(
+        'Error importing settings:',
         expect.any(SyntaxError)
       );
-
-      consoleErrorSpy.mockRestore();
     });
   });
 
   describe('III.5 - Error Handling and Edge Cases', () => {
     test('III.5.1 - Should handle storage errors gracefully', async () => {
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
-
       mockChrome.runtime.lastError = { message: 'Storage quota exceeded' };
       mockChrome.storage.sync.get.mockImplementation((keys: any, callback: any) => {
         callback({});
@@ -419,12 +430,11 @@ describe('III. - SettingsManager - Comprehensive Functionality', () => {
       const settings = await manager.getSettings();
       expect(settings).toEqual({});
 
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        'SettingsManager: Error getting settings:',
+      expect(mockLoggerInstance.error).toHaveBeenCalledWith(
+        'Error getting settings:',
         expect.any(Error)
       );
 
-      consoleErrorSpy.mockRestore();
       mockChrome.runtime.lastError = null;
     });
 

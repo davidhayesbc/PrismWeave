@@ -172,25 +172,15 @@ describe('GitOperations Debug - File Overwrite Issue', () => {
           encoding: 'base64',
           name: 'test.md',
         }),
-      })
-      .mockResolvedValueOnce({
-        ok: false,
-        status: 409,
-        statusText: 'Conflict',
-        text: async () => 'SHA required for update',
       });
 
     const result = await gitOps.saveToGitHub('New content', 'test.md', mockMetadata);
 
     // This should fail because we didn't provide SHA for existing file
     expect(result.success).toBe(false);
+    expect(result.error).toContain('missing SHA');
 
-    // Check the actual API call made
-    const updateCall = (fetch as jest.Mock).mock.calls[1];
-    const updateBody = JSON.parse(updateCall[1].body);
-
-    // The problem: sha is undefined when it should have a value
-    console.log('DEBUG - SHA in request body:', updateBody.sha);
-    expect(updateBody.sha).toBeUndefined();
+    // Since the operation fails early, there should only be one fetch call (getFileInfo)
+    expect((fetch as jest.Mock).mock.calls.length).toBe(1);
   });
 });

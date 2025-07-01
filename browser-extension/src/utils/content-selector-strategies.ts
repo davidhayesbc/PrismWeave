@@ -179,7 +179,7 @@ export class ContentSelectorManager {
       for (const selector of group.selectors) {
         try {
           const elements = document.querySelectorAll(selector);
-          for (const element of elements) {
+          for (const element of Array.from(elements)) {
             if (this.isValidContentElement(element)) {
               return element;
             }

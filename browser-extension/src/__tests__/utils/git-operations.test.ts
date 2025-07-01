@@ -165,7 +165,8 @@ describe('GitOperations - File Overwrite', () => {
       const result = await gitOps.saveToGitHub('Test content', 'test-file.md', mockMetadata);
 
       expect(result.success).toBe(false);
-      expect(result.error).toContain('GitHub API error: 422');
+      // Network error from getFileInfo is propagated directly
+      expect(result.error).toContain('Network error');
     });
 
     test('should generate correct commit message for updates vs creates', async () => {
@@ -312,24 +313,13 @@ describe('GitOperations - File Overwrite', () => {
             content: 'content',
             encoding: 'base64',
           }),
-        })
-        .mockResolvedValueOnce({
-          ok: true,
-          status: 200,
-          json: async () => ({
-            commit: { sha: 'commit-sha', html_url: 'url' },
-          }),
         });
 
       const result = await gitOps.saveToGitHub('content', 'file.md', mockMetadata);
 
-      expect(result.success).toBe(true);
-
-      // Should attempt update but without SHA (GitHub will handle this)
-      const updateCall = (fetch as jest.Mock).mock.calls[1];
-      const updateBody = JSON.parse(updateCall[1].body);
-
-      expect(updateBody.sha).toBeUndefined();
+      // Should fail due to missing SHA validation
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('missing SHA');
     });
   });
 });
