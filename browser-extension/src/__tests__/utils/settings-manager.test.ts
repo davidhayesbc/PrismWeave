@@ -19,7 +19,7 @@ jest.mock('../../utils/logger', () => {
     level: 1,
     component: 'SettingsManager',
   };
-  
+
   return {
     createLogger: jest.fn(() => mockLogger),
   };
@@ -34,11 +34,11 @@ describe('III. - SettingsManager - Comprehensive Functionality', () => {
     mockChrome = mockChromeAPIs();
     (global as any).chrome = mockChrome;
     manager = new SettingsManager();
-    
+
     // Get the mocked logger instance from the mocked module
     const { createLogger } = require('../../utils/logger');
     mockLogger = createLogger();
-    
+
     // Reset all mocks including the logger
     jest.clearAllMocks();
   });
@@ -439,10 +439,7 @@ describe('III. - SettingsManager - Comprehensive Functionality', () => {
       const settings = await manager.getSettings();
       expect(settings).toEqual({});
 
-      expect(mockLogger.error).toHaveBeenCalledWith(
-        'Error getting settings:',
-        expect.any(Error)
-      );
+      expect(mockLogger.error).toHaveBeenCalledWith('Error getting settings:', expect.any(Error));
 
       mockChrome.runtime.lastError = null;
     });
