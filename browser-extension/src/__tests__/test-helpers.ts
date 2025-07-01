@@ -271,50 +271,81 @@ export const createChromeAPIMock = (
     const enabled = type === 'sync' ? storage.syncEnabled : storage.localEnabled;
 
     return {
-      get: jest.fn((keys: any, callback: any) => {
-        if (!enabled || storage.simulateErrors) {
-          (global as any).chrome.runtime.lastError = { message: `${type} storage unavailable` };
-          callback({});
-          return;
-        }
+      get: jest.fn((keys: any, callback?: any) => {
+        const performGet = (): any => {
+          let result: Record<string, any> = {};
 
-        let result: Record<string, any> = {};
-        if (typeof keys === 'string') {
-          if (storageData[keys]) result[keys] = storageData[keys];
-        } else if (Array.isArray(keys)) {
-          keys.forEach(key => {
-            if (storageData[key]) result[key] = storageData[key];
-          });
-        } else if (keys === null || keys === undefined) {
-          result = { ...storageData };
-        } else if (typeof keys === 'object') {
-          Object.keys(keys).forEach(key => {
-            result[key] = storageData[key] || keys[key];
-          });
-        }
+          if (!enabled || storage.simulateErrors) {
+            (global as any).chrome.runtime.lastError = { message: `${type} storage unavailable` };
+            if (callback) {
+              callback({});
+              return;
+            } else {
+              return Promise.reject(new Error(`${type} storage unavailable`));
+            }
+          }
 
-        (global as any).chrome.runtime.lastError = null;
-        callback(result);
+          if (typeof keys === 'string') {
+            if (storageData[keys]) result[keys] = storageData[keys];
+          } else if (Array.isArray(keys)) {
+            keys.forEach(key => {
+              if (storageData[key]) result[key] = storageData[key];
+            });
+          } else if (keys === null || keys === undefined) {
+            result = { ...storageData };
+          } else if (typeof keys === 'object') {
+            Object.keys(keys).forEach(key => {
+              result[key] = storageData[key] || keys[key];
+            });
+          }
+
+          (global as any).chrome.runtime.lastError = null;
+
+          if (callback) {
+            callback(result);
+          } else {
+            return Promise.resolve(result);
+          }
+        };
+
+        return performGet();
       }),
 
       set: jest.fn((data: any, callback?: any) => {
-        if (!enabled || storage.simulateErrors) {
-          (global as any).chrome.runtime.lastError = { message: `${type} storage unavailable` };
-          callback?.();
-          return;
-        }
+        const performSet = (): any => {
+          if (!enabled || storage.simulateErrors) {
+            (global as any).chrome.runtime.lastError = { message: `${type} storage unavailable` };
+            if (callback) {
+              callback();
+              return;
+            } else {
+              return Promise.reject(new Error(`${type} storage unavailable`));
+            }
+          }
 
-        // Check quota
-        const dataSize = JSON.stringify(data).length;
-        if (dataSize > storage.quota!) {
-          (global as any).chrome.runtime.lastError = { message: 'QUOTA_BYTES quota exceeded' };
-          callback?.();
-          return;
-        }
+          // Check quota
+          const dataSize = JSON.stringify(data).length;
+          if (dataSize > storage.quota!) {
+            (global as any).chrome.runtime.lastError = { message: 'QUOTA_BYTES quota exceeded' };
+            if (callback) {
+              callback();
+              return;
+            } else {
+              return Promise.reject(new Error('QUOTA_BYTES quota exceeded'));
+            }
+          }
 
-        Object.assign(storageData, data);
-        (global as any).chrome.runtime.lastError = null;
-        callback?.();
+          Object.assign(storageData, data);
+          (global as any).chrome.runtime.lastError = null;
+
+          if (callback) {
+            callback();
+          } else {
+            return Promise.resolve();
+          }
+        };
+
+        return performSet();
       }),
 
       remove: jest.fn((keys: string | string[], callback?: any) => {
@@ -367,6 +398,12 @@ export const createChromeAPIMock = (
     }),
 
     onMessage: {
+      addListener: jest.fn(),
+      removeListener: jest.fn(),
+      hasListener: jest.fn(() => false),
+    },
+
+    onInstalled: {
       addListener: jest.fn(),
       removeListener: jest.fn(),
       hasListener: jest.fn(() => false),
@@ -1145,3 +1182,132 @@ export const TestAssertions = {
 
 // Export test helper classes
 export { AsyncTestHelper, MemoryTestHelper, PerformanceTestHelper };
+
+// Additional exports for service worker testing
+export const setupChromeEnvironment = () => {
+  return createChromeAPIMock();
+};
+
+export const mockFetch = jest.fn().mockResolvedValue({
+  ok: true,
+  text: jest.fn().mockResolvedValue('mock library content'),
+  json: jest.fn().mockResolvedValue({ success: true }),
+});
+
+export const mockGetURL = jest.fn((path: string) => `chrome-extension://test-id/${path}`);
+
+// Execute service worker code and return API for testing
+export const executeServiceWorkerCode = (chromeAPI?: any) => {
+  try {
+    // Read the compiled service worker JavaScript code (not TypeScript)
+    const fs = require('fs');
+    const path = require('path');
+
+    // Get the compiled service worker JavaScript code
+    const serviceWorkerPath = path.join(__dirname, '../../dist/background/service-worker.js');
+    let serviceWorkerCode = fs.readFileSync(serviceWorkerPath, 'utf-8');
+
+    // Modify the service worker code to expose internal functions
+    serviceWorkerCode = serviceWorkerCode
+      .replace(
+        '  async function handleMessage(message, sender) {',
+        '  global.handleMessage = async function handleMessage(message, sender) {'
+      )
+      .replace(
+        'async function testGitHubConnection() {',
+        'global.testGitHubConnection = async function testGitHubConnection() {'
+      )
+      .replace(
+        'async function getTurndownLibrary() {',
+        'global.getTurndownLibrary = async function getTurndownLibrary() {'
+      )
+      .replace('let settingsManager;', 'let settingsManager; global.settingsManager = null;')
+      .replace(
+        'settingsManager = new ServiceWorkerSettingsManager();',
+        'settingsManager = new ServiceWorkerSettingsManager(); global.settingsManager = settingsManager;'
+      );
+
+    // Wrap the service worker code to inject Chrome API into global scope
+    const wrappedCode = `
+      (function() {
+        // Set up Chrome API in global scope - inline definitions to avoid JSON.stringify issues
+        global.chrome = {
+          storage: {
+            sync: {
+              get: function(keys, callback) {
+                if (callback) callback({});
+                return Promise.resolve({});
+              },
+              set: function(data, callback) {
+                if (callback) callback();
+                return Promise.resolve();
+              }
+            }
+          },
+          runtime: {
+            onInstalled: {
+              addListener: function(callback) {
+                // Mock event listener registration
+              }
+            },
+            onMessage: {
+              addListener: function(callback) {
+                // Mock event listener registration
+              }
+            },
+            getManifest: function() {
+              return { version: '1.0.0' };
+            },
+            getURL: function(path) {
+              return 'chrome-extension://test-extension-id/' + path;
+            }
+          }
+        };
+        
+        // Set up console in global scope
+        global.console = console;
+        
+        // Set up fetch
+        global.fetch = function(url, options) {
+          return Promise.resolve({ 
+            ok: true, 
+            status: 200,
+            json: () => Promise.resolve({}) 
+          });
+        };
+        
+        // Execute the service worker code
+        ${serviceWorkerCode}
+      })();
+    `;
+
+    // Execute the wrapped code with proper context
+    const executeCode = new Function(wrappedCode);
+    executeCode();
+
+    // Wait a bit for async initialization
+    setTimeout(() => {}, 10);
+
+    // Return access to the service worker's functions
+    return {
+      handleMessage: (global as any).handleMessage,
+      settingsManager: (global as any).settingsManager,
+      testGitHubConnection: (global as any).testGitHubConnection,
+      getTurndownLibrary: (global as any).getTurndownLibrary,
+    };
+  } catch (error) {
+    console.error('Failed to execute service worker code:', error);
+
+    // Return a mock API that throws meaningful errors
+    return {
+      handleMessage: jest.fn().mockRejectedValue(new Error('Service worker code execution failed')),
+      settingsManager: null,
+      testGitHubConnection: jest
+        .fn()
+        .mockRejectedValue(new Error('Service worker code execution failed')),
+      getTurndownLibrary: jest
+        .fn()
+        .mockRejectedValue(new Error('Service worker code execution failed')),
+    };
+  }
+};

@@ -136,6 +136,11 @@ logs
 test-results/
 coverage/
 
+# Compiled TypeScript files (should not be in source control)
+src/**/*.js
+src/**/*.js.map
+*.js.map
+
 # Temporary files
 tmp/
 temp/
