@@ -167,20 +167,36 @@ focus on content script
 
 ### Content Script Integration Testing (CRITICAL - 0% Coverage)
 
-- [ ] **Add real content script functionality tests** 🚨 **HIGH PRIORITY**
+- [ ] Test actual DOM content extraction with real HTML structures
+- [ ] Test real markdown conversion using actual Turndown library
+- [ ] Test actual Chrome message passing between content script and service
+      worker
+- [ ] Test real page analysis and content scoring algorithms
+- [ ] Test actual image and link extraction from DOM
+- [ ] Test content script initialization and lifecycle management
+- [ ] Test capture workflow: page extraction → markdown conversion → response
+- **Impact**: +20% coverage, core extraction functionality tested
+- **Current Status**: Content script exists with rich functionality but 0% test
+  coverage
+- **Key Files**: `content-script.ts` (670 lines), extensive feature set
 
-  - [ ] Test actual DOM content extraction with real HTML structures
-  - [ ] Test real markdown conversion using actual Turndown library
-  - [ ] Test actual Chrome message passing between content script and service
+- [x] **Add real content script functionality tests** ✅ **COMPLETED**
+
+  - [x] Test actual DOM content extraction with real HTML structures
+  - [x] Test real markdown conversion using actual Turndown library
+  - [x] Test actual Chrome message passing between content script and service
         worker
-  - [ ] Test real page analysis and content scoring algorithms
-  - [ ] Test actual image and link extraction from DOM
-  - [ ] Test content script initialization and lifecycle management
-  - [ ] Test capture workflow: page extraction → markdown conversion → response
+  - [x] Test real page analysis and content scoring algorithms
+  - [x] Test actual image and link extraction from DOM
+  - [x] Test content script initialization and lifecycle management
+  - [x] Test capture workflow: page extraction → markdown conversion → response
   - **Impact**: +20% coverage, core extraction functionality tested
-  - **Current Status**: Content script exists with rich functionality but 0%
-    test coverage
-  - **Key Files**: `content-script.ts` (670 lines), extensive feature set
+  - **Current Status**: Content script now has comprehensive real functionality
+    tests, all major features covered and passing.
+  - **Key Files**: `content-script.ts`, `content-script.test.ts`
+  - **Test Results**: All tests pass for DOM extraction, markdown conversion,
+    message handling, highlighting, style injection, page info, and selection
+    capture.
 
 - [ ] **Content script DOM interaction and real-world scenarios**
   - [ ] Test real DOM manipulation and element selection
