@@ -23,13 +23,6 @@ export interface IConversionResult {
   wordCount: number;
 }
 
-interface ITurndownService {
-  turndown(html: string): string;
-  addRule(key: string, rule: any): void;
-  remove(filter: string | string[]): void;
-  use(plugin: any): void;
-}
-
 interface ISemanticSelectors {
   callouts: string[];
   quotes: string[];
@@ -40,7 +33,7 @@ interface ISemanticSelectors {
 }
 
 export class MarkdownConverterCore {
-  protected turndownService: ITurndownService | null = null;
+  protected turndownService: any = null; // Use any to be compatible with both TurndownService and mock
   protected readonly semanticSelectors: ISemanticSelectors;
   protected _isInitialized: boolean = false;
 
@@ -74,8 +67,8 @@ export class MarkdownConverterCore {
       headingStyle: 'atx' as const,
       bulletListMarker: '-' as const,
       codeBlockStyle: 'fenced' as const,
-      emDelimiter: '*',
-      strongDelimiter: '**',
+      emDelimiter: '*' as const,
+      strongDelimiter: '**' as const,
       linkStyle: 'inlined' as const,
       linkReferenceStyle: 'full' as const,
       preformattedCode: true,

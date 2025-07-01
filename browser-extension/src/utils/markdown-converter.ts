@@ -7,19 +7,7 @@ import {
   IConversionResult,
   MarkdownConverterCore,
 } from './markdown-converter-core';
-
-interface ITurndownService {
-  turndown(html: string): string;
-  addRule(key: string, rule: any): void;
-  remove(filter: string | string[]): void;
-  use(plugin: any): void;
-}
-
-declare global {
-  interface Window {
-    TurndownService?: new (options?: any) => ITurndownService;
-  }
-}
+import TurndownService from 'turndown';
 
 export class MarkdownConverter extends MarkdownConverterCore {
   constructor() {
@@ -54,28 +42,21 @@ export class MarkdownConverter extends MarkdownConverterCore {
       return;
     }
 
-    // Get TurndownService constructor from window or globalThis
-    const TurndownService =
-      (typeof window !== 'undefined' && window.TurndownService) ||
-      (typeof globalThis !== 'undefined' && (globalThis as any).TurndownService);
-
-    // Check if TurndownService is available
-    if (!TurndownService) {
+    try {
+      // Use the imported TurndownService directly
+      const options = this.getTurndownOptions();
+      this.turndownService = new TurndownService(options);
+      this.setupTurndownService();
+      this._isInitialized = true;
       if (process.env.NODE_ENV !== 'test') {
-        console.warn('MarkdownConverter: TurndownService not available, cannot initialize');
+        console.info('MarkdownConverter: TurndownService initialized successfully');
+      }
+    } catch (error) {
+      if (process.env.NODE_ENV !== 'test') {
+        console.warn('MarkdownConverter: Failed to initialize TurndownService:', error);
       }
       this.turndownService = null;
       this._isInitialized = true;
-      return;
-    }
-
-    // TurndownService is available - initialize it
-    const options = this.getTurndownOptions();
-    this.turndownService = new TurndownService(options);
-    this.setupTurndownService();
-    this._isInitialized = true;
-    if (process.env.NODE_ENV !== 'test') {
-      console.info('MarkdownConverter: TurndownService initialized successfully');
     }
   }
 }
