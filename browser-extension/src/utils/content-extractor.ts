@@ -30,6 +30,11 @@ export class ContentExtractor {
 
   constructor() {
     this.readabilitySelectors = [
+      // Simon Willison's blog specific - prioritize these first
+      '.entry.entryPage [data-permalink-context]',
+      '.entry.entryPage',
+      '.entry [data-permalink-context]',
+      '[data-permalink-context]',
       // Prioritize specific content containers over generic ones
       '.entry-content',
       '.post-content',
@@ -544,7 +549,27 @@ export class ContentExtractor {
       hasBlockquotes,
     ];
     const positiveSignals = contentSignals.filter(Boolean).length;
-    const isLikelyContent = positiveSignals >= 2 || (positiveSignals >= 1 && text.length > 200);
+    
+    // Stricter validation for content quality
+    // If there are no paragraphs, require multiple other signals
+    let isLikelyContent = false;
+    if (paragraphs === 0) {
+      // Without paragraphs, require at least 3 positive signals and longer text
+      isLikelyContent = positiveSignals >= 3 && text.length > 500;
+    } else if (paragraphs === 1) {
+      // With only 1 paragraph, require at least 2 positive signals
+      isLikelyContent = positiveSignals >= 2 && text.length > 100;
+    } else {
+      // With multiple paragraphs, use more lenient criteria
+      isLikelyContent = positiveSignals >= 2 || (positiveSignals >= 1 && text.length > 200);
+    }
+    
+    // Additional check: if element has "recent", "related", "more" in class/id, likely not main content
+    const isLikelyNavigation = /recent|related|more|sidebar|navigation|nav|menu/i.test(className + ' ' + id);
+    if (isLikelyNavigation && paragraphs < 3) {
+      this.logger.debug('Element rejected - appears to be navigation/sidebar content');
+      isLikelyContent = false;
+    }
 
     this.logger.debug('Element assessment:', {
       textLength: text.length,
