@@ -45,7 +45,7 @@ describe('MarkdownConverter - HTML to Markdown', () => {
   });
 
   describe('I.1.1 - Convert basic HTML elements (h1-h6, p, div)', () => {
-    test('should convert headers h1-h6 to markdown headers', () => {
+    test('I.1.1.1 - should convert headers h1-h6 to markdown headers', () => {
       const html = `
         <h1>Main Title</h1>
         <h2>Subtitle</h2>
@@ -65,7 +65,7 @@ describe('MarkdownConverter - HTML to Markdown', () => {
       expect(result.markdown).toContain('###### Smallest Heading');
     });
 
-    test('should convert paragraphs to markdown', () => {
+    test('I.1.1.2 - should convert paragraphs to markdown', () => {
       const html = `
         <p>This is the first paragraph.</p>
         <p>This is the second paragraph with <strong>bold text</strong>.</p>
@@ -77,7 +77,7 @@ describe('MarkdownConverter - HTML to Markdown', () => {
       expect(result.markdown).toContain('This is the second paragraph with **bold text**.');
     });
 
-    test('should handle div elements as containers', () => {
+    test('I.1.1.3 - should handle div elements as containers', () => {
       const html = `
         <div>
           <p>Content in a div</p>
@@ -93,7 +93,7 @@ describe('MarkdownConverter - HTML to Markdown', () => {
       expect(result.markdown).toContain('Nested content');
     });
 
-    test('should preserve text content from various elements', () => {
+    test('I.1.1.4 - should preserve text content from various elements', () => {
       const html = `
         <div>
           <span>Span text</span>
@@ -111,7 +111,7 @@ describe('MarkdownConverter - HTML to Markdown', () => {
   });
 
   describe('I.1.2 - Handle nested structures', () => {
-    test('should handle deeply nested HTML structures', () => {
+    test('I.1.2.1 - should handle deeply nested HTML structures', () => {
       const html = `
         <article>
           <header>
@@ -144,7 +144,7 @@ describe('MarkdownConverter - HTML to Markdown', () => {
       expect(result.markdown).toContain('Nested paragraph content.');
     });
 
-    test('should handle nested lists correctly', () => {
+    test('I.1.2.2 - should handle nested lists correctly', () => {
       const html = `
         <ul>
           <li>First level item
@@ -169,7 +169,7 @@ describe('MarkdownConverter - HTML to Markdown', () => {
       expect(result.markdown).toContain('-   Another first level');
     });
 
-    test('should preserve structure in complex nested content', () => {
+    test('I.1.2.3 - should preserve structure in complex nested content', () => {
       const html = `
         <div class="container">
           <section class="main">
@@ -199,7 +199,7 @@ describe('MarkdownConverter - HTML to Markdown', () => {
   });
 
   describe('I.1.3 - Preserve code blocks and syntax highlighting', () => {
-    test('should convert pre/code blocks to fenced code blocks', () => {
+    test('I.1.3.1 - should convert pre/code blocks to fenced code blocks', () => {
       const html = `
         <pre><code>function hello() {
   console.log("Hello, World!");
@@ -213,7 +213,7 @@ describe('MarkdownConverter - HTML to Markdown', () => {
       expect(result.markdown).toContain('console.log("Hello, World!");');
     });
 
-    test('should handle inline code elements', () => {
+    test('I.1.3.2 - should handle inline code elements', () => {
       const html = `
         <p>Use the <code>console.log()</code> function to output text.</p>
         <p>The variable <code>myVariable</code> stores the value.</p>
@@ -225,7 +225,7 @@ describe('MarkdownConverter - HTML to Markdown', () => {
       expect(result.markdown).toContain('`myVariable`');
     });
 
-    test('should preserve code block indentation and formatting', () => {
+    test('I.1.3.3 - should preserve code block indentation and formatting', () => {
       const html = `
         <pre><code>if (condition) {
     doSomething();
@@ -243,7 +243,7 @@ describe('MarkdownConverter - HTML to Markdown', () => {
       expect(result.markdown).toContain('doSomethingElse()');
     });
 
-    test('should handle code blocks with syntax highlighting classes', () => {
+    test('I.1.3.4 - should handle code blocks with syntax highlighting classes', () => {
       const html = `
         <pre class="highlight"><code class="language-javascript">const x = 42;
 console.log(x);</code></pre>
@@ -256,7 +256,7 @@ console.log(x);</code></pre>
       expect(result.markdown).toContain('console.log(x)');
     });
 
-    test('should handle multiple code blocks in same content', () => {
+    test('I.1.3.5 - should handle multiple code blocks in same content', () => {
       const html = `
         <p>First example:</p>
         <pre><code>const a = 1;</code></pre>
@@ -274,7 +274,7 @@ console.log(x);</code></pre>
   });
 
   describe('I.1.4 - Convert links and images with proper escaping', () => {
-    test('should convert links to markdown format', () => {
+    test('I.1.4.1 - should convert links to markdown format', () => {
       const html = `
         <p>Visit <a href="https://example.com">Example</a> for more info.</p>
         <p>Check out <a href="https://github.com/user/repo">this repository</a>.</p>
@@ -286,7 +286,7 @@ console.log(x);</code></pre>
       expect(result.markdown).toContain('[this repository](https://github.com/user/repo)');
     });
 
-    test('should convert images to markdown format', () => {
+    test('I.1.4.2 - should convert images to markdown format', () => {
       const html = `
         <img src="https://example.com/image.jpg" alt="Example Image">
         <img src="/local/image.png" alt="Local Image">
@@ -300,7 +300,7 @@ console.log(x);</code></pre>
       expect(result.markdown).toContain('![](relative/path.jpg)');
     });
 
-    test('should handle links with special characters', () => {
+    test('I.1.4.3 - should handle links with special characters', () => {
       const html = `
         <a href="https://example.com/page?param=value&other=123">Link with params</a>
         <a href="https://example.com/path/to/file.html#section">Link with anchor</a>
@@ -316,7 +316,7 @@ console.log(x);</code></pre>
       );
     });
 
-    test('should handle images with special characters in alt text', () => {
+    test('I.1.4.4 - should handle images with special characters in alt text', () => {
       const html = `
         <img src="https://example.com/image.jpg" alt="Image with &quot;quotes&quot; and special chars: @#$%">
         <img src="https://example.com/image2.jpg" alt="Image &amp; More &amp; Stuff">
@@ -329,7 +329,7 @@ console.log(x);</code></pre>
       expect(result.markdown).toContain('More & Stuff');
     });
 
-    test('should handle nested links and images', () => {
+    test('I.1.4.5 - should handle nested links and images', () => {
       const html = `
         <p><a href="https://example.com"><img src="image.jpg" alt="Linked Image"></a></p>
         <div>
