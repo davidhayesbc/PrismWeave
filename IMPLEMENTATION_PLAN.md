@@ -17,22 +17,22 @@ Implementation roadmap for PrismWeave: A comprehensive document management and c
 **Value: Immediate document capture and sync**
 
 ### 1.1 Browser Extension Development
-- [ ] **Extension Manifest**: Chrome/Edge compatible (Manifest V3)
-- [ ] **Content Script**: Page content extraction and cleaning
-- [ ] **Background Service**: File processing and Git operations
-- [ ] **UI Components**:
-  - [ ] Toolbar button for one-click capture
-  - [ ] Options page for configuration
-  - [ ] Progress notifications
-- [ ] **Content Processing Engine**:
-  - [ ] HTML to clean Markdown conversion
-  - [ ] Image handling (download + reference)
-  - [ ] Metadata extraction (title, URL, timestamp, domain)
-  - [ ] Content cleaning (ads, navigation, sidebar removal)
+- [x] **Extension Manifest**: Chrome/Edge compatible (Manifest V3)
+- [x] **Content Script**: Page content extraction and cleaning
+- [x] **Background Service**: File processing and Git operations
+- [x] **UI Components**:
+  - [x] Toolbar button for one-click capture
+  - [x] Options page for configuration
+  - [x] Progress notifications
+- [x] **Content Processing Engine**:
+  - [x] HTML to clean Markdown conversion
+  - [x] Image handling (download + reference)
+  - [x] Metadata extraction (title, URL, timestamp, domain)
+  - [x] Content cleaning (ads, navigation, sidebar removal)
 
 ### 1.2 File Management System
-- [ ] **Automatic File Naming**: `YYYY-MM-DD-domain-title.md`
-- [ ] **Metadata Headers**: YAML frontmatter with:
+- [x] **Automatic File Naming**: `YYYY-MM-DD-domain-title.md`
+- [x] **Metadata Headers**: YAML frontmatter with:
   ```yaml
   ---
   title: "Article Title"
@@ -43,7 +43,7 @@ Implementation roadmap for PrismWeave: A comprehensive document management and c
   summary: ""
   ---
   ```
-- [ ] **Directory Structure**: 
+- [x] **Directory Structure**: 
   ```
   /documents
     /tech
@@ -53,13 +53,13 @@ Implementation roadmap for PrismWeave: A comprehensive document management and c
   ```
 
 ### 1.3 Git Integration
-- [ ] **Git Operations**:
-  - [ ] Clone/setup repository configuration
-  - [ ] Automatic file staging
-  - [ ] Smart commit messages: "Add: [domain] - [title]"
-  - [ ] Optional auto-push with user setting
-- [ ] **Conflict Resolution**: Basic merge strategies for multi-device captures
-- [ ] **Authentication**: GitHub token management
+- [x] **Git Operations**:
+  - [x] Clone/setup repository configuration
+  - [x] Automatic file staging
+  - [x] Smart commit messages: "Add: [domain] - [title]"
+  - [x] Optional auto-push with user setting
+- [x] **Conflict Resolution**: Basic merge strategies for multi-device captures
+- [x] **Authentication**: GitHub token management
 
 ### Phase 1 Deliverables
 ✅ Working browser extension for Chrome/Edge
