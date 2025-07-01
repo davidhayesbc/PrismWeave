@@ -137,9 +137,44 @@ export interface IContentScriptMessage extends IMessageData {
   context: IExtensionContext;
 }
 
+export interface ICaptureResult {
+  success: boolean;
+  message: string;
+  data?: {
+    filename: string;
+    filePath: string;
+    title?: string;
+    url?: string;
+    markdownLength: number;
+    markdown?: string;
+    commitUrl?: string;
+    status?: string;
+    timestamp: string;
+  };
+}
+
 // Storage type helpers
 export type StorageKeys = string | string[] | Record<string, unknown> | null;
 export type StorageResult<T = Record<string, unknown>> = Promise<T>;
+
+// Content extraction data interfaces
+export interface IContentExtractionData {
+  html: string;
+  title?: string;
+  url?: string;
+  metadata?: Record<string, unknown>;
+  markdown?: string;
+  frontmatter?: string;
+  images?: string[];
+}
+
+export interface IContentExtractionResult {
+  success: boolean;
+  data?: IContentExtractionData;
+  error?: string;
+  extractionMethod?: 'content-script' | 'direct' | 'basic-fallback';
+  timestamp?: string;
+}
 
 // Utility type helpers
 export type DeepPartial<T> = {
