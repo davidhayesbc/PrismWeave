@@ -20,7 +20,7 @@ async function buildExtension() {
 
   const buildOptions = {
     target: 'es2020',
-    format: 'iife', // IIFE works in all Chrome extension contexts
+    format: 'esm', // ES modules format for proper import support
     platform: 'browser',
     sourcemap: !isProduction, // No sourcemaps in production
     minify: isProduction, // Minify in production
@@ -130,7 +130,7 @@ async function buildDev() {
 
   const buildOptions = {
     target: 'es2020',
-    format: 'iife',
+    format: 'esm',
     platform: 'browser',
     sourcemap: true,
     minify: false,
