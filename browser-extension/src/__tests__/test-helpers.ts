@@ -1185,7 +1185,13 @@ export { AsyncTestHelper, MemoryTestHelper, PerformanceTestHelper };
 
 // Additional exports for service worker testing
 export const setupChromeEnvironment = () => {
-  return createChromeAPIMock();
+  const chromeMock = createChromeAPIMock();
+  
+  // Set up global fetch mock
+  (global as any).mockFetch = mockFetch;
+  (global as any).fetch = mockFetch;
+  
+  return chromeMock;
 };
 
 export const mockFetch = jest.fn().mockResolvedValue({
@@ -1207,82 +1213,131 @@ export const executeServiceWorkerCode = (chromeAPI?: any) => {
     const serviceWorkerPath = path.join(__dirname, '../../dist/background/service-worker.js');
     let serviceWorkerCode = fs.readFileSync(serviceWorkerPath, 'utf-8');
 
+    // Remove the IIFE wrapper to expose functions globally
+    serviceWorkerCode = serviceWorkerCode
+      .replace(/^"use strict";\s*\(\(\) => \{\s*/, '') // Remove opening IIFE
+      .replace(/\s*\}\)\(\);\s*$/m, '') // Remove closing IIFE
+      .replace(/\/\/# sourceMappingURL=.*$/, ''); // Remove source map comment
+
     // Modify the service worker code to expose internal functions
     serviceWorkerCode = serviceWorkerCode
       .replace(
-        '  async function handleMessage(message, sender) {',
-        '  global.handleMessage = async function handleMessage(message, sender) {'
+        /async function handleMessage\(message, sender\)/g,
+        'global.handleMessage = async function handleMessage(message, sender)'
       )
       .replace(
-        'async function testGitHubConnection() {',
-        'global.testGitHubConnection = async function testGitHubConnection() {'
+        /async function testGitHubConnection\(\)/g,
+        'global.testGitHubConnection = async function testGitHubConnection()'
       )
       .replace(
-        'async function getTurndownLibrary() {',
-        'global.getTurndownLibrary = async function getTurndownLibrary() {'
+        /async function getTurndownLibrary\(\)/g,
+        'global.getTurndownLibrary = async function getTurndownLibrary()'
       )
-      .replace('let settingsManager;', 'let settingsManager; global.settingsManager = null;')
+      .replace(/var settingsManager;/, 'var settingsManager; global.settingsManager = null;')
       .replace(
-        'settingsManager = new ServiceWorkerSettingsManager();',
+        /settingsManager = new ServiceWorkerSettingsManager\(\);/g,
         'settingsManager = new ServiceWorkerSettingsManager(); global.settingsManager = settingsManager;'
       );
 
-    // Wrap the service worker code to inject Chrome API into global scope
-    const wrappedCode = `
-      (function() {
-        // Set up Chrome API in global scope - inline definitions to avoid JSON.stringify issues
-        global.chrome = {
-          storage: {
-            sync: {
-              get: function(keys, callback) {
-                if (callback) callback({});
-                return Promise.resolve({});
-              },
-              set: function(data, callback) {
-                if (callback) callback();
-                return Promise.resolve();
-              }
-            }
-          },
-          runtime: {
-            onInstalled: {
-              addListener: function(callback) {
-                // Mock event listener registration
-              }
+    // Set up Chrome API and other globals before executing service worker code
+    const setupGlobals = `
+      // Set up Chrome API in global scope
+      global.chrome = {
+        storage: {
+          sync: {
+            get: function(keys) {
+              const storageData = global.mockStorageData || {};
+              return new Promise((resolve) => {
+                let result = {};
+                if (typeof keys === 'string') {
+                  if (storageData[keys]) result[keys] = storageData[keys];
+                } else if (Array.isArray(keys)) {
+                  keys.forEach(key => {
+                    if (storageData[key]) result[key] = storageData[key];
+                  });
+                } else if (keys === null || keys === undefined) {
+                  result = { ...storageData };
+                } else if (typeof keys === 'object') {
+                  Object.keys(keys).forEach(key => {
+                    result[key] = storageData[key] || keys[key];
+                  });
+                }
+                global.chrome.runtime.lastError = null;
+                resolve(result);
+              });
             },
-            onMessage: {
-              addListener: function(callback) {
-                // Mock event listener registration
-              }
-            },
-            getManifest: function() {
-              return { version: '1.0.0' };
-            },
-            getURL: function(path) {
-              return 'chrome-extension://test-extension-id/' + path;
+            set: function(data) {
+              global.mockStorageData = global.mockStorageData || {};
+              Object.assign(global.mockStorageData, data);
+              return new Promise((resolve) => {
+                global.chrome.runtime.lastError = null;
+                resolve();
+              });
             }
           }
-        };
-        
-        // Set up console in global scope
-        global.console = console;
-        
-        // Set up fetch
-        global.fetch = function(url, options) {
-          return Promise.resolve({ 
-            ok: true, 
-            status: 200,
-            json: () => Promise.resolve({}) 
-          });
-        };
-        
-        // Execute the service worker code
-        ${serviceWorkerCode}
-      })();
+        },
+        runtime: {
+          onInstalled: {
+            addListener: function(callback) {}
+          },
+          onMessage: {
+            addListener: function(callback) {}
+          },
+          getManifest: function() {
+            return { version: '1.0.0' };
+          },
+          getURL: function(path) {
+            return 'chrome-extension://test-extension-id/' + path;
+          },
+          lastError: null
+        },
+        scripting: {
+          executeScript: function(injection) {
+            return Promise.resolve([{ result: 'Script executed' }]);
+          }
+        },
+        tabs: {
+          query: function(queryInfo) {
+            return Promise.resolve([{
+              id: 1,
+              url: 'https://example.com',
+              title: 'Test Page',
+              active: true
+            }]);
+          },
+          sendMessage: function(tabId, message) {
+            return Promise.resolve({ success: true });
+          },
+          get: function(tabId) {
+            return Promise.resolve({
+              id: tabId,
+              url: 'https://example.com',
+              title: 'Test Page'
+            });
+          }
+        }
+      };
+      
+      // Set up fetch for GitHub API calls
+      global.fetch = global.mockFetch || function(url, options) {
+        // Default mock response
+        return Promise.resolve({ 
+          ok: true, 
+          status: 200,
+          json: () => Promise.resolve({}),
+          text: () => Promise.resolve('mock response')
+        });
+      };
+      
+      // Initialize mock storage data
+      global.mockStorageData = {};
+      
+      // Set up console
+      global.console = console;
     `;
 
-    // Execute the wrapped code with proper context
-    const executeCode = new Function(wrappedCode);
+    // Execute setup and service worker code
+    const executeCode = new Function(setupGlobals + '\n' + serviceWorkerCode);
     executeCode();
 
     // Wait a bit for async initialization
@@ -1297,6 +1352,8 @@ export const executeServiceWorkerCode = (chromeAPI?: any) => {
     };
   } catch (error) {
     console.error('Failed to execute service worker code:', error);
+    console.error('Error details:', (error as Error).message);
+    console.error('Stack trace:', (error as Error).stack);
 
     // Return a mock API that throws meaningful errors
     return {
