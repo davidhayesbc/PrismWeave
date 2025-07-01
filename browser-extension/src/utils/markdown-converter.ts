@@ -2,12 +2,12 @@
 // PrismWeave Markdown Converter - Browser Extension wrapper
 // Uses the shared core with browser-specific TurndownService initialization
 
+import TurndownService from 'turndown';
 import {
   IConversionOptions,
   IConversionResult,
   MarkdownConverterCore,
 } from './markdown-converter-core';
-import TurndownService from 'turndown';
 
 export class MarkdownConverter extends MarkdownConverterCore {
   constructor() {
