@@ -304,16 +304,15 @@ describe('GitOperations - File Overwrite', () => {
       await gitOps.initialize(mockSettings);
 
       // Mock: File exists but response is malformed (no SHA)
-      (fetch as jest.Mock)
-        .mockResolvedValueOnce({
-          ok: true,
-          status: 200,
-          json: async () => ({
-            // Missing sha field
-            content: 'content',
-            encoding: 'base64',
-          }),
-        });
+      (fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          // Missing sha field
+          content: 'content',
+          encoding: 'base64',
+        }),
+      });
 
       const result = await gitOps.saveToGitHub('content', 'file.md', mockMetadata);
 

@@ -6,36 +6,45 @@
 import { SettingsManager } from '../../utils/settings-manager';
 import { cleanupTest, mockChromeAPIs } from '../test-helpers';
 
-// Mock the logger module with a single shared instance
-const mockLoggerInstance = {
-  warn: jest.fn(),
-  error: jest.fn(),
-  info: jest.fn(),
-  debug: jest.fn(),
-  trace: jest.fn(),
-  enabled: true,
-  level: 1,
-  component: 'SettingsManager'
-};
-
-jest.mock('../../utils/logger', () => ({
-  createLogger: jest.fn(() => mockLoggerInstance)
-}));
+// Mock the logger module to always return the same mock instance
+// We need to define the mock instance inside the factory to avoid hoisting issues
+jest.mock('../../utils/logger', () => {
+  const mockLogger = {
+    warn: jest.fn(),
+    error: jest.fn(),
+    info: jest.fn(),
+    debug: jest.fn(),
+    trace: jest.fn(),
+    enabled: true,
+    level: 1,
+    component: 'SettingsManager',
+  };
+  
+  return {
+    createLogger: jest.fn(() => mockLogger),
+  };
+});
 
 describe('III. - SettingsManager - Comprehensive Functionality', () => {
   let manager: SettingsManager;
   let mockChrome: any;
+  let mockLogger: any;
 
   beforeEach(() => {
     mockChrome = mockChromeAPIs();
     (global as any).chrome = mockChrome;
     manager = new SettingsManager();
+    
+    // Get the mocked logger instance from the mocked module
+    const { createLogger } = require('../../utils/logger');
+    mockLogger = createLogger();
+    
+    // Reset all mocks including the logger
+    jest.clearAllMocks();
   });
 
   afterEach(() => {
     cleanupTest();
-    // Reset logger mocks
-    jest.clearAllMocks();
   });
 
   describe('III.1 - Schema and Defaults', () => {
@@ -346,8 +355,8 @@ describe('III. - SettingsManager - Comprehensive Functionality', () => {
         defaultFolder: 'not-a-valid-folder',
         autoCommit: 'yes',
       });
-      
-      expect(mockLoggerInstance.warn).toHaveBeenCalledWith(
+
+      expect(mockLogger.warn).toHaveBeenCalledWith(
         'Settings validation failed:',
         expect.arrayContaining([
           expect.stringContaining('Invalid type for githubToken'),
@@ -413,7 +422,7 @@ describe('III. - SettingsManager - Comprehensive Functionality', () => {
       const result = await manager.importSettings(invalidJson);
       expect(result).toBe(false);
 
-      expect(mockLoggerInstance.error).toHaveBeenCalledWith(
+      expect(mockLogger.error).toHaveBeenCalledWith(
         'Error importing settings:',
         expect.any(SyntaxError)
       );
@@ -430,7 +439,7 @@ describe('III. - SettingsManager - Comprehensive Functionality', () => {
       const settings = await manager.getSettings();
       expect(settings).toEqual({});
 
-      expect(mockLoggerInstance.error).toHaveBeenCalledWith(
+      expect(mockLogger.error).toHaveBeenCalledWith(
         'Error getting settings:',
         expect.any(Error)
       );

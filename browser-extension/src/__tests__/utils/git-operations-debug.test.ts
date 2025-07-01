@@ -162,17 +162,16 @@ describe('GitOperations Debug - File Overwrite Issue', () => {
     // when it should have a value
 
     // Mock: getFileInfo returns file info but with undefined SHA
-    (fetch as jest.Mock)
-      .mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: async () => ({
-          // Missing sha field - this could be the bug!
-          content: 'ZXhpc3RpbmcgY29udGVudA==',
-          encoding: 'base64',
-          name: 'test.md',
-        }),
-      });
+    (fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        // Missing sha field - this could be the bug!
+        content: 'ZXhpc3RpbmcgY29udGVudA==',
+        encoding: 'base64',
+        name: 'test.md',
+      }),
+    });
 
     const result = await gitOps.saveToGitHub('New content', 'test.md', mockMetadata);
 
