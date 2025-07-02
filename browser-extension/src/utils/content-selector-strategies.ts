@@ -13,7 +13,7 @@ export interface ISelectorStrategy {
 }
 
 /**
- * Base strategy for general content extraction
+ * Base strategy for general content extraction - Enhanced with readability selectors
  */
 export class GeneralContentStrategy implements ISelectorStrategy {
   isApplicable(): boolean {
@@ -23,7 +23,7 @@ export class GeneralContentStrategy implements ISelectorStrategy {
   getSelectors(): IContentSelector[] {
     return [
       {
-        name: 'main-content',
+        name: 'primary-content',
         selectors: [
           'article',
           'main',
@@ -37,14 +37,33 @@ export class GeneralContentStrategy implements ISelectorStrategy {
         ],
       },
       {
-        name: 'semantic-content',
+        name: 'readability-selectors',
         selectors: [
+          // Enhanced readability selectors from legacy implementation
+          'div[class*="content"]',
+          'div[class*="post"]',
+          'div[class*="article"]',
+          'div[class*="entry"]',
+          'div[id*="content"]',
+          'div[id*="post"]',
+          'div[id*="article"]',
+          'div[id*="entry"]',
+          'section[class*="content"]',
+          'section[class*="post"]',
+          'section[class*="article"]',
           '.article-body',
           '.post-body',
           '.entry-body',
           '.content-body',
           '.article-text',
           '.story-body',
+          '.post-container',
+          '.article-container',
+          '.blog-container',
+          '.content-main',
+          '.main-article',
+          '.blog-article-body',
+          '.entry-content-wrap',
         ],
       },
       {
@@ -52,9 +71,20 @@ export class GeneralContentStrategy implements ISelectorStrategy {
         selectors: [
           '[itemtype*="BlogPosting"]',
           '[itemtype*="Article"]',
-          '[data-testid*="content"]',
-          '[data-testid*="article"]',
-          '[data-testid*="post"]',
+          '[data-testid="post-content"]',
+          '[data-testid="article-content"]',
+          '[data-testid="blog-content"]',
+          '[data-content]',
+          '[data-article]',
+        ],
+      },
+      {
+        name: 'fallback-selectors',
+        selectors: [
+          '[id*="content"]',
+          '[class*="content"]',
+          '[class*="article"]',
+          '[class*="post"]',
         ],
       },
     ];
@@ -62,7 +92,7 @@ export class GeneralContentStrategy implements ISelectorStrategy {
 }
 
 /**
- * Strategy for blog platforms like Simon Willison's blog
+ * Strategy for blog platforms like Simon Willison's blog - Enhanced with specific selectors
  */
 export class BlogPlatformStrategy implements ISelectorStrategy {
   isApplicable(url: string): boolean {
@@ -74,6 +104,8 @@ export class BlogPlatformStrategy implements ISelectorStrategy {
       'dev.to',
       'hashnode.com',
       'substack.com',
+      'wordpress.com',
+      'ghost.org',
     ];
     return blogPatterns.some(pattern => url.includes(pattern));
   }
@@ -81,7 +113,7 @@ export class BlogPlatformStrategy implements ISelectorStrategy {
   getSelectors(): IContentSelector[] {
     return [
       {
-        name: 'blog-specific',
+        name: 'simon-willison-specific',
         selectors: [
           '.entry.entryPage [data-permalink-context]',
           '.entry.entryPage',
@@ -98,6 +130,8 @@ export class BlogPlatformStrategy implements ISelectorStrategy {
           '.article-content',
           '.post-body',
           '.blog-post-content',
+          '.blog-article-body',
+          '.entry-content-wrap',
         ],
       },
     ];
@@ -105,7 +139,7 @@ export class BlogPlatformStrategy implements ISelectorStrategy {
 }
 
 /**
- * Strategy for documentation and technical sites
+ * Strategy for documentation and technical sites - Enhanced with Docker-specific patterns
  */
 export class DocumentationStrategy implements ISelectorStrategy {
   isApplicable(url: string): boolean {
@@ -124,18 +158,38 @@ export class DocumentationStrategy implements ISelectorStrategy {
   getSelectors(): IContentSelector[] {
     return [
       {
+        name: 'docker-specific',
+        selectors: [
+          '.DockerBlogPost',
+          '.post-content',
+          '.entry-content',
+          '.article-content',
+          '.blog-content',
+          '[data-testid="post-content"]',
+          '[data-testid="article-content"]',
+          '[data-testid="blog-content"]',
+        ],
+      },
+      {
         name: 'documentation-specific',
         selectors: [
           '.documentation-content',
           '.tutorial-content',
           '.guide-content',
-          '.DockerBlogPost',
           '.docs-content',
+          '.content-wrapper',
+          '.page-content',
         ],
       },
       {
         name: 'technical-content',
-        selectors: ['.prose', '.rich-text', '.markdown-body', '.content-wrapper', '.page-content'],
+        selectors: [
+          '.prose',
+          '.rich-text',
+          '.markdown-body',
+          '.content-main',
+          '.main-article',
+        ],
       },
     ];
   }
@@ -170,18 +224,21 @@ export class ContentSelectorManager {
   }
 
   /**
-   * Find the best content element using prioritized selectors
+   * Find the best content element using prioritized selectors and scoring
    */
   findContentElement(url: string, document: Document): Element | null {
     const selectorGroups = this.getSelectorsForContent(url, document);
+    const candidates: Array<{ element: Element; score: number; selector: string }> = [];
 
+    // Collect all possible candidates with their scores
     for (const group of selectorGroups) {
       for (const selector of group.selectors) {
         try {
           const elements = document.querySelectorAll(selector);
           for (const element of Array.from(elements)) {
             if (this.isValidContentElement(element)) {
-              return element;
+              const score = this.scoreContentElement(element);
+              candidates.push({ element, score, selector });
             }
           }
         } catch (error) {
@@ -190,7 +247,69 @@ export class ContentSelectorManager {
       }
     }
 
+    // Return the highest-scoring candidate
+    if (candidates.length > 0) {
+      candidates.sort((a, b) => b.score - a.score);
+      console.debug('ContentSelectorManager: Best candidate:', {
+        selector: candidates[0].selector,
+        score: candidates[0].score,
+        className: candidates[0].element.className,
+      });
+      return candidates[0].element;
+    }
+
     return null;
+  }
+
+  /**
+   * Score content elements using sophisticated algorithm from legacy implementation
+   */
+  private scoreContentElement(element: Element): number {
+    let score = 0;
+    const text = element.textContent?.trim() || '';
+    const html = element.innerHTML || '';
+
+    // Base score from text length
+    score += Math.min(text.length / 10, 500);
+
+    // Bonus for paragraphs
+    const paragraphs = element.querySelectorAll('p').length;
+    score += paragraphs * 25;
+
+    // Bonus for headings
+    const headings = element.querySelectorAll('h1, h2, h3, h4, h5, h6').length;
+    score += headings * 30;
+
+    // Penalty for too many links (likely navigation)
+    const links = element.querySelectorAll('a').length;
+    if (links > paragraphs * 2) {
+      score -= links * 10;
+    }
+
+    // Penalty for too many script/style tags
+    const scripts = element.querySelectorAll('script, style').length;
+    score -= scripts * 50;
+
+    // Bonus for content-related class names
+    const className = element.className.toLowerCase();
+    const id = element.id.toLowerCase();
+    const contentTerms = ['content', 'article', 'post', 'entry', 'main', 'body', 'text'];
+
+    contentTerms.forEach(term => {
+      if (className.includes(term) || id.includes(term)) {
+        score += 100;
+      }
+    });
+
+    // Penalty for navigation-related class names
+    const navTerms = ['nav', 'menu', 'sidebar', 'footer', 'header', 'ad', 'banner'];
+    navTerms.forEach(term => {
+      if (className.includes(term) || id.includes(term)) {
+        score -= 200;
+      }
+    });
+
+    return Math.max(0, score);
   }
 
   /**

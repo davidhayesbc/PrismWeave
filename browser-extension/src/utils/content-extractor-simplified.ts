@@ -201,7 +201,7 @@ export class ContentExtractor {
   }
 
   /**
-   * Wait for dynamic content to stabilize
+   * Wait for dynamic content to stabilize - Enhanced with platform-specific handling
    */
   private async waitForDynamicContent(): Promise<void> {
     const maxWaitTime = 5000;
@@ -209,6 +209,10 @@ export class ContentExtractor {
     const startTime = Date.now();
     let previousContentLength = 0;
 
+    // First, try platform-specific waiting
+    await this.waitForSpecificContent();
+
+    // Then general content stabilization
     while (Date.now() - startTime < maxWaitTime) {
       const currentContentLength = document.body.textContent?.length || 0;
 
@@ -222,6 +226,44 @@ export class ContentExtractor {
       } else {
         await new Promise(resolve => setTimeout(resolve, checkInterval));
       }
+    }
+  }
+
+  /**
+   * Platform-specific content waiting logic
+   */
+  private async waitForSpecificContent(): Promise<void> {
+    const url = window.location.href.toLowerCase();
+
+    // Docker blog specific waiting logic
+    if (url.includes('docker.com/blog')) {
+      this.logger.debug('Waiting for Docker blog specific content...');
+
+      const dockerSelectors = [
+        '.post-content',
+        '.entry-content',
+        '.article-content',
+        '.blog-content',
+        'article',
+        '.content',
+        '[data-testid*="content"]',
+      ];
+
+      const maxWait = 5000;
+      const startTime = Date.now();
+
+      while (Date.now() - startTime < maxWait) {
+        for (const selector of dockerSelectors) {
+          const element = document.querySelector(selector);
+          if (element && element.textContent && element.textContent.trim().length > 500) {
+            this.logger.debug(`Found Docker content via selector: ${selector}`);
+            return;
+          }
+        }
+        await new Promise(resolve => setTimeout(resolve, 200));
+      }
+
+      this.logger.debug('Docker blog content wait timeout');
     }
   }
 

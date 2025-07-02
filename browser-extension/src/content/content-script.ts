@@ -3,7 +3,7 @@
 // Runs on web pages to assist with content extraction and user interactions
 
 import { IContentScriptMessage, IMessageResponse } from '../types/index';
-import { ContentExtractor } from '../utils/content-extractor';
+import { ContentExtractor } from '../utils/content-extractor-simplified';
 import { createLogger } from '../utils/logger';
 import { MarkdownConverter } from '../utils/markdown-converter';
 
