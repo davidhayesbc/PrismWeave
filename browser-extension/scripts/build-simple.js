@@ -18,9 +18,8 @@ async function buildExtension() {
   }
   fs.mkdirSync('./dist', { recursive: true });
 
-  const buildOptions = {
+  const baseOptions = {
     target: 'es2020',
-    format: 'esm', // ES modules format for proper import support
     platform: 'browser',
     sourcemap: !isProduction, // No sourcemaps in production
     minify: isProduction, // Minify in production
@@ -31,31 +30,35 @@ async function buildExtension() {
   };
 
   try {
-    // Build all components with consistent IIFE format
+    // Build components with appropriate formats for Chrome extension compatibility
     const builds = [
       {
         name: 'Service Worker',
         entryPoints: ['src/background/service-worker.ts'],
         outfile: 'dist/background/service-worker.js',
-        ...buildOptions,
+        format: 'esm', // ES modules for service worker (manifest has "type": "module")
+        ...baseOptions,
       },
       {
         name: 'Content Script',
         entryPoints: ['src/content/content-script.ts'],
         outfile: 'dist/content/content-script.js',
-        ...buildOptions,
+        format: 'iife', // IIFE format for content script compatibility
+        ...baseOptions,
       },
       {
         name: 'Popup',
         entryPoints: ['src/popup/popup.ts'],
         outfile: 'dist/popup/popup.js',
-        ...buildOptions,
+        format: 'iife', // IIFE format for popup scripts
+        ...baseOptions,
       },
       {
         name: 'Options',
         entryPoints: ['src/options/options.ts'],
         outfile: 'dist/options/options.js',
-        ...buildOptions,
+        format: 'iife', // IIFE format for options scripts
+        ...baseOptions,
       },
     ];
 
@@ -128,9 +131,8 @@ async function copyStaticAssets() {
 async function buildDev() {
   console.log('🔄 Starting development build with watch mode...');
 
-  const buildOptions = {
+  const baseOptions = {
     target: 'es2020',
-    format: 'esm',
     platform: 'browser',
     sourcemap: true,
     minify: false,
@@ -141,22 +143,26 @@ async function buildDev() {
     esbuild.context({
       entryPoints: ['src/background/service-worker.ts'],
       outfile: 'dist/background/service-worker.js',
-      ...buildOptions,
+      format: 'esm', // ES modules for service worker
+      ...baseOptions,
     }),
     esbuild.context({
       entryPoints: ['src/content/content-script.ts'],
       outfile: 'dist/content/content-script.js',
-      ...buildOptions,
+      format: 'iife', // IIFE for content script
+      ...baseOptions,
     }),
     esbuild.context({
       entryPoints: ['src/popup/popup.ts'],
       outfile: 'dist/popup/popup.js',
-      ...buildOptions,
+      format: 'iife', // IIFE for popup
+      ...baseOptions,
     }),
     esbuild.context({
       entryPoints: ['src/options/options.ts'],
       outfile: 'dist/options/options.js',
-      ...buildOptions,
+      format: 'iife', // IIFE for options
+      ...baseOptions,
     }),
   ]);
 

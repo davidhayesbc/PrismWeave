@@ -13,7 +13,7 @@ interface IContentExtractor {
   highlightContent(selector?: string): void;
 }
 
-export class PrismWeaveContent {
+class PrismWeaveContent {
   private logger = createLogger('ContentScript');
   /**
    * Direct async message handler for testing and internal use.
@@ -786,10 +786,28 @@ export class PrismWeaveContent {
 }
 
 // Initialize content script when DOM is ready
+let prismWeaveContentInstance: PrismWeaveContent | undefined;
+
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => {
-    new PrismWeaveContent();
+    prismWeaveContentInstance = new PrismWeaveContent();
+    // Make instance available globally after creation
+    if (typeof window !== 'undefined') {
+      (window as any).prismWeaveContentInstance = prismWeaveContentInstance;
+    }
   });
 } else {
-  new PrismWeaveContent();
+  prismWeaveContentInstance = new PrismWeaveContent();
+  // Make instance available globally after creation
+  if (typeof window !== 'undefined') {
+    (window as any).prismWeaveContentInstance = prismWeaveContentInstance;
+  }
 }
+
+// Make class available globally for testing (only in IIFE format)
+if (typeof window !== 'undefined') {
+  (window as any).PrismWeaveContent = PrismWeaveContent;
+}
+
+// Export for Jest testing (this will be removed in IIFE build)
+export { PrismWeaveContent };
