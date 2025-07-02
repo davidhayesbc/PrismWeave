@@ -183,13 +183,7 @@ export class DocumentationStrategy implements ISelectorStrategy {
       },
       {
         name: 'technical-content',
-        selectors: [
-          '.prose',
-          '.rich-text',
-          '.markdown-body',
-          '.content-main',
-          '.main-article',
-        ],
+        selectors: ['.prose', '.rich-text', '.markdown-body', '.content-main', '.main-article'],
       },
     ];
   }

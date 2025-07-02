@@ -41,7 +41,8 @@
 #### Files to Address:
 
 - [x] `content-extractor.ts` (1055 lines, 63.33% coverage) - **REMOVED** ✅
-- [x] `content-extractor-simplified.ts` (382 lines, 58.15% coverage) - **ENHANCED** ✅
+- [x] `content-extractor-simplified.ts` (382 lines, 58.15% coverage) -
+      **ENHANCED** ✅
 - [x] Update import in `content-script.ts` to use simplified version ✅
 
 #### Action Items:
@@ -60,7 +61,8 @@
 - [x] **Update test imports** in `content-extractor.all.test.ts` ✅
 - [x] **Run tests** to ensure no breaking changes ✅
 
-**✅ PHASE 1.1 COMPLETED** - All tests passing (154 tests), no breaking changes detected.
+**✅ PHASE 1.1 COMPLETED** - All tests passing (154 tests), no breaking changes
+detected.
 
 ### 1.2 Manager Class Consolidation
 
