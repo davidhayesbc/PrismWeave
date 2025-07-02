@@ -283,7 +283,12 @@ describe('ContentCaptureService - Consolidated Manager Tests', () => {
       expect(result.content).toContain('url: "https://example.com/test-article"');
       expect(result.metadata.title).toBe(title);
       expect(result.metadata.url).toBe(url);
-      expect(result.metadata.tags).toEqual(['test', 'article', 'tutorial']);
+      expect(result.metadata.tags).toContain('test');
+      expect(result.metadata.tags).toContain('article');
+      expect(result.metadata.tags).toContain('tutorial');
+      // Should also extract tags from description and author
+      expect(result.metadata.tags).toContain('test description');
+      expect(result.metadata.tags).toContain('test author');
     });
 
     test('II.2 - Should auto-detect folder based on content', () => {
