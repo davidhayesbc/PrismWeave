@@ -46,9 +46,11 @@ module.exports = {
       statements: 70,
     },
   },
-  // Module name mapping for browser APIs
+  // Module name mapping for browser APIs and TypeScript imports
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
+    // Handle TypeScript imports with .js extensions
+    '^(.+)\\.js$': '$1',
   },
 
   // Setup files
