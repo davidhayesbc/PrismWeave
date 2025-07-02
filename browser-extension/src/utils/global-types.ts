@@ -86,5 +86,18 @@ export type GlobalScope =
 
 // Helper function to get the appropriate global scope
 export function getGlobalScope(): GlobalScope {
-  return (typeof window !== 'undefined' ? window : self) as GlobalScope;
+  // Service worker context: use 'self'
+  if (typeof self !== 'undefined' && typeof window === 'undefined') {
+    return self as GlobalScope;
+  }
+  // Browser context: use 'window'  
+  if (typeof window !== 'undefined') {
+    return window as GlobalScope;
+  }
+  // Node.js/test context: use 'globalThis' as fallback
+  if (typeof globalThis !== 'undefined') {
+    return globalThis as unknown as GlobalScope;
+  }
+  // Final fallback - throw error if no global scope found
+  throw new Error('No global scope available');
 }
