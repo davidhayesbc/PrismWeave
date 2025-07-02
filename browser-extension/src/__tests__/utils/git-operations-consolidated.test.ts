@@ -220,7 +220,8 @@ describe('GitOperations - Consolidated Test Suite', () => {
           json: async () => ({
             content: {
               sha: 'new-file-sha',
-              html_url: 'https://github.com/testuser/test-repo/blob/main/documents/test/new-file.md',
+              html_url:
+                'https://github.com/testuser/test-repo/blob/main/documents/test/new-file.md',
             },
             commit: {
               sha: 'creation-commit-sha',
@@ -618,7 +619,8 @@ The old content should be completely overwritten.`;
           json: async () => ({
             content: {
               sha: 'new-content-sha-999',
-              html_url: 'https://github.com/testuser/test-repo/blob/main/documents/test/test-file.md',
+              html_url:
+                'https://github.com/testuser/test-repo/blob/main/documents/test/test-file.md',
             },
             commit: {
               sha: 'new-commit-sha-888',
@@ -765,13 +767,11 @@ The old content should be completely overwritten.`;
       // without state pollution
 
       // First operation: successful creation
-      (fetch as jest.Mock)
-        .mockResolvedValueOnce({ status: 404, ok: false })
-        .mockResolvedValueOnce({
-          ok: true,
-          status: 201,
-          json: async () => ({ commit: { sha: 'sha1', html_url: 'url1' } }),
-        });
+      (fetch as jest.Mock).mockResolvedValueOnce({ status: 404, ok: false }).mockResolvedValueOnce({
+        ok: true,
+        status: 201,
+        json: async () => ({ commit: { sha: 'sha1', html_url: 'url1' } }),
+      });
 
       const result1 = await gitOps.saveToGitHub('content1', 'file1.md', mockMetadata);
       expect(result1.success).toBe(true);

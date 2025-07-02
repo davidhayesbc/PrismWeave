@@ -653,8 +653,6 @@ export class GitOperations {
 
       // Clean up the object URL
       URL.revokeObjectURL(url);
-
-      console.log('File downloaded as fallback:', filename);
     } catch (error) {
       console.error('Failed to download file:', error);
       throw error;
@@ -663,22 +661,9 @@ export class GitOperations {
 
   // Folder classification logic integrated into GitOperations
   private determineFolder(metadata: IDocumentMetadata): string {
-    console.log('GitOperations.determineFolder: Determining folder for document:', {
-      title: metadata.title,
-      url: metadata.url,
-      tags: metadata.tags,
-      hasSettings: !!this.settings,
-    });
-
     if (!this.settings) {
-      console.log('GitOperations.determineFolder: No settings available, using "unsorted"');
       return 'unsorted';
     }
-
-    console.log('GitOperations.determineFolder: Settings available:', {
-      defaultFolder: this.settings.defaultFolder,
-      hasCustomFolder: !!this.settings.customFolder,
-    });
 
     // Use explicit folder setting if provided
     if (
@@ -686,30 +671,17 @@ export class GitOperations {
       this.settings.defaultFolder !== 'auto' &&
       this.settings.defaultFolder !== 'custom'
     ) {
-      console.log(
-        'GitOperations.determineFolder: Using explicit folder setting:',
-        this.settings.defaultFolder
-      );
       return this.settings.defaultFolder;
     }
 
     if (this.settings.defaultFolder === 'custom' && this.settings.customFolder) {
       const sanitizedFolder = this.sanitizeFolderName(this.settings.customFolder);
-      console.log('GitOperations.determineFolder: Using custom folder:', {
-        original: this.settings.customFolder,
-        sanitized: sanitizedFolder,
-      });
       return sanitizedFolder;
     }
 
     // Auto-detect folder based on content
-    console.log('GitOperations.determineFolder: Auto-detecting folder based on content...');
     const detectedFolder = this.autoDetectFolder(metadata);
     const finalFolder = detectedFolder || 'unsorted';
-    console.log('GitOperations.determineFolder: Final folder determined:', {
-      detected: detectedFolder,
-      final: finalFolder,
-    });
     return finalFolder;
   }
 
@@ -753,12 +725,6 @@ export class GitOperations {
       .replace(/^-|-$/g, '');
   }
   private buildFilePathWithFolder(filename: string, folder: string): string {
-    console.log('GitOperations.buildFilePathWithFolder: Building file path:', {
-      filename,
-      folder,
-      hasSettings: !!this.settings,
-    });
-
     if (!this.settings) {
       console.error('GitOperations.buildFilePathWithFolder: Settings not initialized');
       throw new Error('Settings not initialized');
@@ -771,16 +737,8 @@ export class GitOperations {
     const cleanFolder = folder.replace(/^\/+|\/+$/g, '');
     const cleanFilename = filename.replace(/^\/+/, '');
 
-    console.log('GitOperations.buildFilePathWithFolder: Path components cleaned:', {
-      documentPath: cleanDocumentPath,
-      folder: cleanFolder,
-      filename: cleanFilename,
-    });
-
     // Build: documents/folder/filename
     const fullPath = `${cleanDocumentPath}/${cleanFolder}/${cleanFilename}`;
-    console.log('GitOperations.buildFilePathWithFolder: Final path constructed:', fullPath);
-
     return fullPath;
   }
 
