@@ -2,6 +2,10 @@
 // Content Selector Strategies - Separated content selection logic
 // Implements different strategies for finding main content
 
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('ContentSelectorStrategies');
+
 export interface IContentSelector {
   readonly name: string;
   readonly selectors: string[];
@@ -236,7 +240,7 @@ export class ContentSelectorManager {
             }
           }
         } catch (error) {
-          console.warn('ContentSelectorManager: Invalid selector:', selector, error);
+          logger.warn('ContentSelectorManager: Invalid selector:', selector, error);
         }
       }
     }
@@ -244,7 +248,7 @@ export class ContentSelectorManager {
     // Return the highest-scoring candidate
     if (candidates.length > 0) {
       candidates.sort((a, b) => b.score - a.score);
-      console.debug('ContentSelectorManager: Best candidate:', {
+      logger.debug('ContentSelectorManager: Best candidate:', {
         selector: candidates[0].selector,
         score: candidates[0].score,
         className: candidates[0].element.className,

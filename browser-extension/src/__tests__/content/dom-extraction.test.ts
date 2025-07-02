@@ -62,17 +62,7 @@ describe('II.2 - PrismWeaveContent - DOM Interaction and Real-World Scenarios', 
     const wordContent = 'word '.repeat(100);
     document.body.innerHTML = `<main><p>${wordContent}</p></main>`;
 
-    // Debug the word count issue
-    console.log('Content before extraction:', document.body.innerHTML.length);
-    console.log('Content extractor available:', !!(contentScript as any).contentExtractor);
-    console.log(
-      'Content extractor function:',
-      typeof (contentScript as any).contentExtractor?.getContentQualityScore
-    );
-
     const result = await (contentScript as any).extractContentForServiceWorker();
-
-    console.log('Result metadata:', result.metadata);
 
     // Check that word count calculation works - if still 0, check the markdown directly
     if (result.metadata.wordCount === 0) {

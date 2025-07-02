@@ -89,9 +89,7 @@ export class FileManager {
         const logger = createLogger('FileManager');
         logger.error('Error generating filename:', error);
       } catch (logError) {
-        // Fallback to console if logger import fails
-        // eslint-disable-next-line no-console
-        console.error('FileManager: Error generating filename:', error);
+        // Fallback silently if logger fails - error will be handled by return value
       }
       return this.getFallbackFilename(metadata);
     }
@@ -484,9 +482,7 @@ export class FileManager {
         const logger = createLogger('FileManager');
         logger.error('Error saving markdown file:', error);
       } catch (logError) {
-        // Fallback to console if logger import fails
-        // eslint-disable-next-line no-console
-        console.error('FileManager: Error saving markdown file:', error);
+        // Fallback silently if logger fails - error will be handled by return value
       }
       return {
         success: false,

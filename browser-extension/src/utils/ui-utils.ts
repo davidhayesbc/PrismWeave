@@ -3,6 +3,9 @@
 // Consolidated UI patterns, DOM manipulation, and toast notifications
 
 import { getGlobalScope } from './global-types';
+import { createLogger } from './logger';
+
+const logger = createLogger('UIUtils');
 
 type StatusType = 'success' | 'error' | 'warning' | 'info';
 
@@ -602,16 +605,7 @@ class UIUtils {
       UIUtils.showStatus('Copied to clipboard', UIUtils.STATUS_TYPES.SUCCESS, 2000);
     } catch (error) {
       // Use Logger for error logging
-      try {
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
-        const { createLogger } = require('./logger');
-        const logger = createLogger('UIUtils');
-        logger.error('Failed to copy to clipboard:', error);
-      } catch (logError) {
-        // Fallback to console if logger import fails
-        // eslint-disable-next-line no-console
-        console.error('Failed to copy to clipboard:', error);
-      }
+      logger.error('Failed to copy to clipboard:', error);
       UIUtils.showStatus('Failed to copy to clipboard', UIUtils.STATUS_TYPES.ERROR);
     }
   }

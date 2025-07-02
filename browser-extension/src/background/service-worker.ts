@@ -7,10 +7,10 @@ import { ContentCaptureService } from '../utils/content-capture-service';
 import { createLogger } from '../utils/logger';
 import { SettingsManager } from '../utils/settings-manager';
 
-console.log('Service Worker starting...');
-
 // Initialize logger
 const logger = createLogger('ServiceWorker');
+
+logger.info('Service Worker starting...');
 
 // Initialize managers
 let settingsManager: SettingsManager;

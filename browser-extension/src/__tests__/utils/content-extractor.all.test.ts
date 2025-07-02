@@ -356,9 +356,6 @@ describe('VIII.3 Simon Willison Blog Content Extraction', () => {
     // Run extraction
     const result = await freshExtractor.extractContent();
 
-    // Debug: Show what was actually extracted
-    console.log('Test VIII.3.1 - Extracted content:', result.content.substring(0, 200));
-
     // Validate main content is found
     const dataPermalinkElements = mockDocument.querySelectorAll('[data-permalink-context]');
     const entryElements = mockDocument.querySelectorAll('.entry.entryPage');
@@ -399,7 +396,6 @@ describe('VIII.3 Simon Willison Blog Content Extraction', () => {
         expect(hasNoSidebar).toBe(true);
       } else {
         // Content extraction might not work in JSDOM, but DOM structure should be correct
-        console.warn('Content extraction limited in JSDOM, validating DOM structure instead');
         const h1Element = mockDocument.querySelector('h1');
         const dataPermalinkContent = mockDocument.querySelector('[data-permalink-context]');
 

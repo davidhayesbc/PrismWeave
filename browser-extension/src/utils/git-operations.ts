@@ -654,7 +654,7 @@ export class GitOperations {
       // Clean up the object URL
       URL.revokeObjectURL(url);
     } catch (error) {
-      console.error('Failed to download file:', error);
+      logger.error('Failed to download file:', error);
       throw error;
     }
   }
@@ -726,7 +726,7 @@ export class GitOperations {
   }
   private buildFilePathWithFolder(filename: string, folder: string): string {
     if (!this.settings) {
-      console.error('GitOperations.buildFilePathWithFolder: Settings not initialized');
+      logger.error('GitOperations.buildFilePathWithFolder: Settings not initialized');
       throw new Error('Settings not initialized');
     }
 
@@ -820,7 +820,7 @@ export class GitOperations {
         ];
       }
     } catch (error) {
-      console.error('Failed to list files:', error);
+      logger.error('Failed to list files:', error);
       throw error;
     }
   }

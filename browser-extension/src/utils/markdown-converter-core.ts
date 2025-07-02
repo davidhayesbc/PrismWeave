@@ -3,6 +3,9 @@
 // Environment-agnostic core that can be used in both browser and Node.js
 
 import { IDocumentMetadata, IImageAsset } from '../types/index';
+import { createLogger } from './logger';
+
+const logger = createLogger('MarkdownConverter');
 
 export interface IConversionOptions {
   preserveFormatting?: boolean;
@@ -287,17 +290,7 @@ export class MarkdownConverterCore {
       return result;
     } catch (error) {
       // Use Logger for error logging
-      try {
-        // Lazy import to avoid circular dependency if needed
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
-        const { createLogger } = require('./logger');
-        const logger = createLogger('MarkdownConverterCore');
-        logger.error('Conversion failed:', error);
-      } catch (logError) {
-        // Fallback to console if logger import fails
-        // eslint-disable-next-line no-console
-        console.error('MarkdownConverter: Conversion failed:', error);
-      }
+      logger.error('MarkdownConverter: Conversion failed:', error);
       throw error;
     }
   }

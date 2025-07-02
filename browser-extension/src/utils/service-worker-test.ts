@@ -1,12 +1,17 @@
 // Test script to verify Chrome API access in service worker context
 // This simulates the service worker environment to test our fix
+// NOTE: This file is a candidate for removal in Phase 4.1 (Dead Code Removal)
+
+import { createLogger } from './logger';
+
+const logger = createLogger('ServiceWorkerTest');
 
 /**
  * Test Chrome API access patterns in service worker context
  * This test verifies that our fixes work correctly
  */
 async function testServiceWorkerChromeAccess(): Promise<void> {
-  console.log('Testing Chrome API access in service worker context...');
+  logger.info('Testing Chrome API access in service worker context...');
 
   // Simulate service worker environment (no window, no global)
   const originalWindow = (globalThis as any).window;
@@ -22,11 +27,11 @@ async function testServiceWorkerChromeAccess(): Promise<void> {
       storage: {
         sync: {
           get: (keys: any, callback: any) => {
-            console.log('Mock chrome.storage.sync.get called');
+            logger.debug('Mock chrome.storage.sync.get called');
             callback({ test: 'value' });
           },
           set: (data: any, callback: any) => {
-            console.log('Mock chrome.storage.sync.set called');
+            logger.debug('Mock chrome.storage.sync.set called');
             callback();
           },
         },
@@ -40,17 +45,17 @@ async function testServiceWorkerChromeAccess(): Promise<void> {
     const { SettingsManager } = await import('./settings-manager.js');
     const settingsManager = new SettingsManager();
 
-    console.log('Testing getSettings...');
+    logger.info('Testing getSettings...');
     const settings = await settingsManager.getSettings();
-    console.log('✓ getSettings succeeded');
+    logger.info('✓ getSettings succeeded');
 
-    console.log('Testing updateSettings...');
+    logger.info('Testing updateSettings...');
     await settingsManager.updateSettings({ githubToken: 'test-token', githubRepo: 'test/repo' });
-    console.log('✓ updateSettings succeeded');
+    logger.info('✓ updateSettings succeeded');
 
-    console.log('✅ All Chrome API access tests passed!');
+    logger.info('✅ All Chrome API access tests passed!');
   } catch (error) {
-    console.error('❌ Chrome API access test failed:', error);
+    logger.error('❌ Chrome API access test failed:', error);
     throw error;
   } finally {
     // Restore original globals
@@ -70,11 +75,11 @@ export { testServiceWorkerChromeAccess };
 if (require.main === module) {
   testServiceWorkerChromeAccess()
     .then(() => {
-      console.log('Service worker Chrome API test completed successfully');
+      logger.info('Service worker Chrome API test completed successfully');
       process.exit(0);
     })
     .catch(error => {
-      console.error('Service worker Chrome API test failed:', error);
+      logger.error('Service worker Chrome API test failed:', error);
       process.exit(1);
     });
 }
