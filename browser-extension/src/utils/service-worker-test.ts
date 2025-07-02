@@ -11,12 +11,12 @@ async function testServiceWorkerChromeAccess(): Promise<void> {
   // Simulate service worker environment (no window, no global)
   const originalWindow = (globalThis as any).window;
   const originalGlobal = (globalThis as any).global;
-  
+
   try {
     // Remove window and global to simulate service worker
     delete (globalThis as any).window;
     delete (globalThis as any).global;
-    
+
     // Make sure chrome is available (simulated)
     (globalThis as any).chrome = {
       storage: {
@@ -28,28 +28,27 @@ async function testServiceWorkerChromeAccess(): Promise<void> {
           set: (data: any, callback: any) => {
             console.log('Mock chrome.storage.sync.set called');
             callback();
-          }
-        }
+          },
+        },
       },
       runtime: {
-        lastError: null
-      }
+        lastError: null,
+      },
     };
 
     // Test settings manager in this context
     const { SettingsManager } = await import('./settings-manager.js');
     const settingsManager = new SettingsManager();
-    
+
     console.log('Testing getSettings...');
     const settings = await settingsManager.getSettings();
     console.log('✓ getSettings succeeded');
-    
+
     console.log('Testing updateSettings...');
     await settingsManager.updateSettings({ githubToken: 'test-token', githubRepo: 'test/repo' });
     console.log('✓ updateSettings succeeded');
-    
+
     console.log('✅ All Chrome API access tests passed!');
-    
   } catch (error) {
     console.error('❌ Chrome API access test failed:', error);
     throw error;
@@ -74,7 +73,7 @@ if (require.main === module) {
       console.log('Service worker Chrome API test completed successfully');
       process.exit(0);
     })
-    .catch((error) => {
+    .catch(error => {
       console.error('Service worker Chrome API test failed:', error);
       process.exit(1);
     });

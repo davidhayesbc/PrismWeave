@@ -90,7 +90,7 @@ export function getGlobalScope(): GlobalScope {
   if (typeof self !== 'undefined' && typeof window === 'undefined') {
     return self as GlobalScope;
   }
-  // Browser context: use 'window'  
+  // Browser context: use 'window'
   if (typeof window !== 'undefined') {
     return window as GlobalScope;
   }

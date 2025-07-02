@@ -356,12 +356,12 @@ class SettingsManager {
     keys: SettingsManagerStorageKeys
   ): SettingsManagerStorageResult<T> {
     // Access chrome API - check multiple contexts for compatibility
-    const chromeAPI = 
+    const chromeAPI =
       (typeof chrome !== 'undefined' ? chrome : undefined) ||
       (typeof globalThis !== 'undefined' && (globalThis as any).chrome) ||
       (typeof self !== 'undefined' && (self as any).chrome) ||
       (typeof global !== 'undefined' && (global as any).chrome);
-      
+
     if (!chromeAPI || !chromeAPI.storage) {
       throw new Error('Chrome storage API not available');
     }
@@ -379,12 +379,12 @@ class SettingsManager {
 
   private async setToStorage(data: ISettingsManagerStorageData): Promise<void> {
     // Access chrome API - check multiple contexts for compatibility
-    const chromeAPI = 
+    const chromeAPI =
       (typeof chrome !== 'undefined' ? chrome : undefined) ||
       (typeof globalThis !== 'undefined' && (globalThis as any).chrome) ||
       (typeof self !== 'undefined' && (self as any).chrome) ||
       (typeof global !== 'undefined' && (global as any).chrome);
-      
+
     if (!chromeAPI || !chromeAPI.storage) {
       throw new Error('Chrome storage API not available');
     }
