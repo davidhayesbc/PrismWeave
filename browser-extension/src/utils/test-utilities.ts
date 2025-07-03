@@ -3,8 +3,10 @@
 // This file provides testable versions of service worker functions
 
 import { createLogger } from './logger';
+import { createTestLogger } from './test-logger';
 
 const logger = createLogger('TestUtilities');
+const testLogger = createTestLogger('TestUtilities');
 
 // Decode HTML entities
 export function decodeHtmlEntities(str: string): string {
@@ -138,8 +140,8 @@ export function simpleMarkdownConversion(
 ): { content: string; title: string; url: string } {
   let markdown = '';
 
-  // Check if DOMParser is available and log it
-  logger.debug('DOMParser available:', typeof DOMParser !== 'undefined');
+  // Check if DOMParser is available
+  testLogger.debug('DOMParser available:', typeof DOMParser !== 'undefined');
   // Create a DOM parser for testing
   if (typeof DOMParser !== 'undefined') {
     const parser = new DOMParser();
@@ -147,14 +149,14 @@ export function simpleMarkdownConversion(
 
     // Process code blocks with improved extraction
     const codeBlocks = doc.querySelectorAll('pre code, pre, code');
-    logger.debug('Found code blocks:', codeBlocks.length);
+    testLogger.debug('Found code blocks:', codeBlocks.length);
 
     codeBlocks.forEach((block, index) => {
-      logger.debug(
+      testLogger.debug(
         `Block ${index}: tagName=${block.tagName}, parentTag=${block.parentElement?.tagName}`
       );
       const isPreBlock = block.tagName === 'PRE' || block.parentElement?.tagName === 'PRE';
-      logger.debug(`Block ${index}: isPreBlock=${isPreBlock}`);
+      testLogger.debug(`Block ${index}: isPreBlock=${isPreBlock}`);
 
       if (isPreBlock) {
         // Handle code blocks

@@ -60,12 +60,21 @@ module.exports = {
   // Test timeout
   testTimeout: 10000,
 
-  // Verbose output
-  verbose: true,
+  // Verbose output - controlled by TEST_DEBUG environment variable
+  verbose: process.env.TEST_DEBUG === 'true',
+
+  // Silent mode - suppress console output unless debug mode
+  silent: process.env.TEST_DEBUG !== 'true',
 
   // Clear mocks between tests
   clearMocks: true,
 
   // Restore mocks after each test
   restoreMocks: true,
+
+  // Globals configuration for test logging
+  globals: {
+    TEST_DEBUG: process.env.TEST_DEBUG === 'true',
+    TEST_LOG_LEVEL: process.env.TEST_LOG_LEVEL || 'ERROR',
+  },
 };

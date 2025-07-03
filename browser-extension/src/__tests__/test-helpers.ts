@@ -2,8 +2,87 @@
 // Enhanced test utilities and setup for PrismWeave browser extension tests
 
 import { createLogger } from '../utils/logger';
+import { createTestLogger } from '../utils/test-logger';
 
 const logger = createLogger('TestHelpers');
+const testLogger = createTestLogger('TestHelpers');
+
+// ============================================================================
+// Test Logging Utilities
+// ============================================================================
+
+/**
+ * Test logging utilities for consistent test output
+ */
+export class TestLoggingHelper {
+  private static testLogger = createTestLogger('TestRunner');
+
+  static setTestSuite(suiteName: string): void {
+    this.testLogger.setTestSuite(suiteName);
+  }
+
+  static setTestCase(caseName: string): void {
+    this.testLogger.setTestCase(caseName);
+  }
+
+  static logTestStart(testName: string, data?: any): void {
+    this.testLogger.logTestStart(testName, data);
+  }
+
+  static logTestEnd(testName: string, success: boolean, duration?: number): void {
+    this.testLogger.logTestEnd(testName, success, duration);
+  }
+
+  static logAssertion(assertion: string, success: boolean, actual?: any, expected?: any): void {
+    this.testLogger.logAssertion(assertion, success, actual, expected);
+  }
+
+  static logMockCall(mockName: string, args?: any[], result?: any): void {
+    this.testLogger.logMockCall(mockName, args, result);
+  }
+
+  static logPerformance(operation: string, duration: number, threshold?: number): void {
+    this.testLogger.logPerformance(operation, duration, threshold);
+  }
+
+  static debug(message: string, data?: any): void {
+    this.testLogger.debug(message, data);
+  }
+
+  static info(message: string, data?: any): void {
+    this.testLogger.info(message, data);
+  }
+
+  static warn(message: string, data?: any): void {
+    this.testLogger.warn(message, data);
+  }
+
+  static error(message: string, error?: any): void {
+    this.testLogger.error(message, error);
+  }
+
+  static clearTestContext(): void {
+    this.testLogger.clearTestContext();
+  }
+
+  static getTestLogs(): string {
+    return this.testLogger.getEntriesAsText();
+  }
+
+  static clearTestLogs(): void {
+    this.testLogger.clearEntries();
+  }
+
+  // Helper for enabling debug mode in specific tests
+  static enableDebugForTest(): void {
+    this.testLogger.enable();
+    this.testLogger.setConfig({ level: 'DEBUG' });
+  }
+
+  static disableDebugForTest(): void {
+    this.testLogger.disable();
+  }
+}
 
 // ============================================================================
 // DOM Setup and Manipulation Utilities
