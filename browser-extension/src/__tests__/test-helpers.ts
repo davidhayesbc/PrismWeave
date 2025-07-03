@@ -2,7 +2,7 @@
 // Enhanced test utilities and setup for PrismWeave browser extension tests
 
 import { createLogger } from '../utils/logger';
-import { createTestLogger } from '../utils/test-logger';
+import { createTestLogger } from '../utils/test-utilities';
 
 const logger = createLogger('TestHelpers');
 const testLogger = createTestLogger('TestHelpers');
