@@ -17,6 +17,16 @@ interface ILogConfig {
   enabled: boolean;
   level: LogLevel;
   components: Record<string, IComponentLogConfig>;
+  structuredLogging: {
+    enabled: boolean;
+    maxLogs: number;
+    environments: ('development' | 'production' | 'test')[];
+  };
+  environmentOverrides: {
+    development: Partial<IComponentLogConfig>;
+    production: Partial<IComponentLogConfig>;
+    test: Partial<IComponentLogConfig>;
+  };
 }
 
 interface ILoggerStatic {
@@ -39,37 +49,83 @@ globalScope.PRISMWEAVE_LOG_CONFIG = {
   // 4 = ERROR + WARN + INFO + DEBUG + TRACE (very verbose)
   level: 3,
 
+  // Structured logging configuration
+  structuredLogging: {
+    enabled: true, // Enable structured logging for analytics
+    maxLogs: 100, // Maximum number of structured logs to keep in memory
+    environments: ['production'], // Only collect in production by default
+  },
+
+  // Environment-specific overrides
+  environmentOverrides: {
+    development: {
+      enabled: true,
+      level: 4, // More verbose in development
+    },
+    production: {
+      enabled: true,
+      level: 2, // Less verbose in production
+    },
+    test: {
+      enabled: false, // Minimal logging during tests
+      level: 0,
+    },
+  },
+
   // Component-specific overrides
   components: {
     // Enable/disable logging for specific components
     Popup: { enabled: true, level: 3 },
     Background: { enabled: true, level: 3 },
+    ServiceWorker: { enabled: true, level: 3 },
     Content: { enabled: true, level: 2 },
     Settings: { enabled: true, level: 2 },
     Git: { enabled: true, level: 2 },
     FileManager: { enabled: true, level: 2 },
     MarkdownConverter: { enabled: true, level: 2 },
+    ContentExtractor: { enabled: true, level: 2 },
+    ContentCaptureService: { enabled: true, level: 3 },
+    PerformanceMonitor: { enabled: true, level: 1 },
+    UIUtils: { enabled: true, level: 1 },
   },
 };
 
 // Apply global configuration when logger becomes available
 setTimeout(() => {
   if (globalScope.PrismWeaveLogger) {
-    logger.info('🔧 PrismWeave Logging Configuration Loaded');
-    logger.info('Logging enabled:', globalScope.PRISMWEAVE_LOG_CONFIG?.enabled);
-    logger.info('Global log level:', globalScope.PRISMWEAVE_LOG_CONFIG?.level);
+    const config = globalScope.PRISMWEAVE_LOG_CONFIG as any;
+    logger.info('🔧 PrismWeave Enhanced Logging Configuration Loaded');
+    logger.info('Logging enabled:', config?.enabled);
+    logger.info('Global log level:', config?.level);
+    logger.info('Structured logging:', config?.structuredLogging?.enabled);
+    logger.info(
+      'Environment overrides configured for:',
+      Object.keys(config?.environmentOverrides || {})
+    );
   }
 }, 100);
 
-// Quick commands for console debugging:
+// Enhanced quick commands for console debugging:
 //
-// To disable all logging:
-// (typeof window !== 'undefined' ? window : self).PRISMWEAVE_LOG_CONFIG.enabled = false;
+// Global Configuration:
+// Logger.setGlobalLevel(4); // Enable verbose logging
+// Logger.setGlobalEnabled(false); // Disable all logging
+// Logger.getGlobalConfiguration(); // View current configuration
 //
-// To enable verbose logging:
-// (typeof window !== 'undefined' ? window : self).PRISMWEAVE_LOG_CONFIG.level = 4;
+// Environment-specific:
+// Logger.setEnvironmentLogging('development', true, 4); // Enable verbose dev logging
+// Logger.setEnvironmentLogging('production', true, 1); // Only warnings/errors in production
 //
-// To disable popup logging only:
+// Component-specific:
 // (typeof window !== 'undefined' ? window : self).PRISMWEAVE_LOG_CONFIG.components.Popup.enabled = false;
+// (typeof window !== 'undefined' ? window : self).PRISMWEAVE_LOG_CONFIG.components.Background.level = 4;
+//
+// Structured Logging:
+// Logger.getStructuredLogs(); // View collected structured logs
+// Logger.clearStructuredLogs(); // Clear structured log history
+//
+// Debug Mode:
+// enableDebugMode(); // Enable full debug mode with helpful console messages
+// disableDebugMode(); // Disable debug mode
 
 export type { IComponentLogConfig, ILogConfig, LogLevel };

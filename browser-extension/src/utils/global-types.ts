@@ -2,6 +2,9 @@
 // Centralized Global Scope Interface for PrismWeave Browser Extension
 // Consolidates all global scope definitions to eliminate duplication
 
+// Import LogLevel type from logger
+type LogLevel = 0 | 1 | 2 | 3 | 4;
+
 // Logger types
 export interface ILogger {
   debug: (...args: unknown[]) => void;
@@ -10,10 +13,24 @@ export interface ILogger {
   error: (...args: unknown[]) => void;
   group: (label?: string, collapsed?: boolean) => void;
   groupEnd: () => void;
+  setLevel: (level: LogLevel) => void;
+  enable: () => void;
+  disable: () => void;
+  withContext: (contextData: Record<string, unknown>) => ILogger;
+  getEnvironmentInfo: () => Record<string, unknown>;
 }
 
 export interface ILoggerFactory {
   createLogger: (component: string) => ILogger;
+  Logger?: {
+    setGlobalLevel: (level: LogLevel) => void;
+    setGlobalEnabled: (enabled: boolean) => void;
+    getGlobalConfiguration: () => Record<string, unknown>;
+    getStructuredLogs: () => unknown[];
+    clearStructuredLogs: () => void;
+  };
+  enableDebugMode?: () => void;
+  disableDebugMode?: () => void;
 }
 
 // Utility registry types
@@ -57,10 +74,12 @@ export interface IPerformanceMonitor {
 
 // Main global scope interface that all utilities should use
 export interface IPrismWeaveGlobalScope {
-  // Logging system
+  // Enhanced logging system
   PRISMWEAVE_LOG_ENABLED?: boolean;
   PRISMWEAVE_LOG_LEVEL?: number;
   PRISMWEAVE_LOG_CONFIG?: Record<string, unknown>;
+  PRISMWEAVE_STRUCTURED_LOGS?: unknown[];
+  PRISMWEAVE_ENV_LOGGING?: Record<string, { enabled: boolean; level: number }>;
   PrismWeaveLogger?: ILoggerFactory;
 
   // Utility registry
