@@ -12,33 +12,166 @@ const logger = createLogger('ServiceWorker');
 
 logger.info('Service Worker starting...');
 
-// Initialize managers
-let settingsManager: SettingsManager;
-let captureService: ContentCaptureService;
-
-try {
-  settingsManager = new SettingsManager();
-  captureService = new ContentCaptureService(settingsManager);
-  logger.info('Service managers initialized successfully');
-} catch (error) {
-  logger.error('Failed to initialize service managers:', error);
+// Service worker state management
+interface IServiceWorkerState {
+  settingsManager: SettingsManager | null;
+  captureService: ContentCaptureService | null;
+  isInitialized: boolean;
+  initializationError: Error | null;
 }
 
-// Chrome extension event listeners
-chrome.runtime.onInstalled.addListener(async (details: chrome.runtime.InstalledDetails) => {
+// Global state
+let serviceWorkerState: IServiceWorkerState = {
+  settingsManager: null,
+  captureService: null,
+  isInitialized: false,
+  initializationError: null,
+};
+
+// Initialize managers with dependency injection support for testing
+export async function initializeServiceWorkers(
+  customSettingsManager?: SettingsManager,
+  customCaptureService?: ContentCaptureService
+): Promise<IServiceWorkerState> {
+  try {
+    logger.info('Initializing service worker managers...');
+
+    // Use injected dependencies or create new instances
+    serviceWorkerState.settingsManager = customSettingsManager || new SettingsManager();
+    serviceWorkerState.captureService =
+      customCaptureService || new ContentCaptureService(serviceWorkerState.settingsManager);
+
+    serviceWorkerState.isInitialized = true;
+    serviceWorkerState.initializationError = null;
+
+    logger.info('Service managers initialized successfully');
+    return serviceWorkerState;
+  } catch (error) {
+    serviceWorkerState.initializationError = error as Error;
+    serviceWorkerState.isInitialized = false;
+    logger.error('Failed to initialize service managers:', error);
+    throw error;
+  }
+}
+
+// Initialize on startup
+initializeServiceWorkers().catch(error => {
+  logger.error('Service worker startup failed:', error);
+});
+
+// Chrome extension event handlers - exported for testing
+export async function handleInstallation(details: chrome.runtime.InstalledDetails): Promise<void> {
   try {
     logger.info('Extension installed/updated:', details.reason);
 
     if (details.reason === 'install') {
       // Initialize default settings on first install
-      if (settingsManager) {
-        await settingsManager.resetSettings();
+      if (serviceWorkerState.settingsManager) {
+        await serviceWorkerState.settingsManager.resetSettings();
         logger.info('Default settings initialized');
       }
     }
   } catch (error) {
     logger.error('Error handling installation:', error);
+    throw error;
   }
+}
+
+// Message handler - implement actual functionality - exported for testing
+export async function handleMessage(
+  message: IMessageData,
+  sender: chrome.runtime.MessageSender
+): Promise<unknown> {
+  // Validate message structure
+  if (!message || typeof message.type !== 'string') {
+    throw new Error('Invalid message format');
+  }
+
+  // Check service worker initialization
+  if (!serviceWorkerState.isInitialized) {
+    throw new Error('Service worker not properly initialized');
+  }
+
+  // Validate manager initialization for data operations
+  const requiresManager = [
+    'GET_SETTINGS',
+    'UPDATE_SETTINGS',
+    'RESET_SETTINGS',
+    'VALIDATE_SETTINGS',
+  ];
+  if (requiresManager.includes(message.type) && !serviceWorkerState.settingsManager) {
+    throw new Error('Settings manager not initialized');
+  }
+
+  const requiresCaptureService = ['TEST_CONNECTION', 'CAPTURE_PAGE'];
+  if (requiresCaptureService.includes(message.type) && !serviceWorkerState.captureService) {
+    throw new Error('Capture service not initialized');
+  }
+
+  switch (message.type) {
+    case 'GET_SETTINGS':
+      return await serviceWorkerState.settingsManager!.getSettings();
+
+    case 'UPDATE_SETTINGS':
+      if (!message.data || typeof message.data !== 'object') {
+        throw new Error('Invalid settings data provided');
+      }
+      await serviceWorkerState.settingsManager!.updateSettings(message.data);
+      return { success: true };
+
+    case 'RESET_SETTINGS':
+      await serviceWorkerState.settingsManager!.resetSettings();
+      return { success: true };
+
+    case 'VALIDATE_SETTINGS':
+      const currentSettings = await serviceWorkerState.settingsManager!.getSettings();
+      return serviceWorkerState.settingsManager!.validateSettings(currentSettings);
+
+    case 'TEST':
+      return {
+        message: 'Service worker is working',
+        timestamp: new Date().toISOString(),
+        version: chrome.runtime.getManifest().version,
+      };
+
+    case 'TEST_CONNECTION':
+      return await serviceWorkerState.captureService!.testGitHubConnection();
+
+    case 'CAPTURE_PAGE':
+      return await serviceWorkerState.captureService!.capturePage(message.data, {
+        validateSettings: true,
+        includeMarkdown: true,
+      });
+
+    case 'GET_STATUS':
+      return getServiceWorkerStatus();
+
+    case 'GET_TURNDOWN_LIBRARY':
+      return await getTurndownLibrary();
+
+    // TEST_MARKDOWN_CONVERSION removed - use content script conversion only
+
+    default:
+      throw new Error(`Unknown message type: ${message.type}`);
+  }
+}
+
+// Helper function to get service worker status - exported for testing
+export function getServiceWorkerStatus(): Record<string, unknown> {
+  return {
+    initialized: serviceWorkerState.isInitialized,
+    hasSettingsManager: !!serviceWorkerState.settingsManager,
+    hasCaptureService: !!serviceWorkerState.captureService,
+    hasInitializationError: !!serviceWorkerState.initializationError,
+    initializationError: serviceWorkerState.initializationError?.message,
+    version: chrome.runtime.getManifest().version,
+    timestamp: new Date().toISOString(),
+  };
+}
+
+// Chrome extension event listeners
+chrome.runtime.onInstalled.addListener(async (details: chrome.runtime.InstalledDetails) => {
+  await handleInstallation(details);
 });
 
 chrome.runtime.onMessage.addListener(
@@ -64,79 +197,8 @@ chrome.runtime.onMessage.addListener(
   }
 );
 
-// Message handler - implement actual functionality
-async function handleMessage(
-  message: IMessageData,
-  sender: chrome.runtime.MessageSender
-): Promise<unknown> {
-  // Validate message structure
-  if (!message || typeof message.type !== 'string') {
-    throw new Error('Invalid message format');
-  }
-
-  // Validate manager initialization for data operations
-  const requiresManager = [
-    'GET_SETTINGS',
-    'UPDATE_SETTINGS',
-    'RESET_SETTINGS',
-    'VALIDATE_SETTINGS',
-  ];
-  if (requiresManager.includes(message.type) && !settingsManager) {
-    throw new Error('Service manager not initialized');
-  }
-
-  switch (message.type) {
-    case 'GET_SETTINGS':
-      return await settingsManager!.getSettings();
-
-    case 'UPDATE_SETTINGS':
-      if (!message.data || typeof message.data !== 'object') {
-        throw new Error('Invalid settings data provided');
-      }
-      await settingsManager!.updateSettings(message.data);
-      return { success: true };
-
-    case 'RESET_SETTINGS':
-      await settingsManager!.resetSettings();
-      return { success: true };
-
-    case 'VALIDATE_SETTINGS':
-      const currentSettings = await settingsManager!.getSettings();
-      return settingsManager!.validateSettings(currentSettings);
-    case 'TEST':
-      return {
-        message: 'Service worker is working',
-        timestamp: new Date().toISOString(),
-        version: chrome.runtime.getManifest().version,
-      };
-    case 'TEST_CONNECTION':
-      return await captureService.testGitHubConnection();
-
-    case 'CAPTURE_PAGE':
-      return await captureService.capturePage(message.data, {
-        validateSettings: true,
-        includeMarkdown: true,
-      });
-
-    case 'GET_STATUS':
-      return {
-        initialized: !!settingsManager,
-        version: chrome.runtime.getManifest().version,
-        timestamp: new Date().toISOString(),
-      };
-
-    case 'GET_TURNDOWN_LIBRARY':
-      return await getTurndownLibrary();
-
-    // TEST_MARKDOWN_CONVERSION removed - use content script conversion only
-
-    default:
-      throw new Error(`Unknown message type: ${message.type}`);
-  }
-}
-
-// Get TurndownService library content for alternative loading
-async function getTurndownLibrary(): Promise<unknown> {
+// Get TurndownService library content for alternative loading - exported for testing
+export async function getTurndownLibrary(): Promise<unknown> {
   try {
     logger.info('Fetching TurndownService library for content script...');
 
@@ -160,6 +222,11 @@ async function getTurndownLibrary(): Promise<unknown> {
       timestamp: new Date().toISOString(),
     };
   }
+}
+
+// Get current service worker state - exported for testing
+export function getServiceWorkerState(): IServiceWorkerState {
+  return { ...serviceWorkerState };
 }
 
 logger.info('Service Worker initialized successfully');
