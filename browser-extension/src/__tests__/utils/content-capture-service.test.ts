@@ -4,7 +4,7 @@
 
 // Mock all external dependencies first
 jest.mock('../../utils/settings-manager');
-jest.mock('../../utils/github-file-manager');
+jest.mock('../../utils/unified-file-manager');
 jest.mock('../../utils/logger', () => ({
   createLogger: jest.fn(() => ({
     debug: jest.fn(),
@@ -68,8 +68,8 @@ jest.mock('../../utils/shared-utils', () => ({
 }));
 
 import { ContentCaptureService } from '../../utils/content-capture-service';
-import { GitHubFileManager } from '../../utils/github-file-manager';
 import { SettingsManager } from '../../utils/settings-manager';
+import { UnifiedFileManager } from '../../utils/unified-file-manager';
 
 // Mock Chrome APIs
 const mockChrome = {
@@ -104,7 +104,7 @@ const mockChrome = {
 describe('ContentCaptureService - Consolidated Manager Tests', () => {
   let service: ContentCaptureService;
   let mockSettingsManager: jest.Mocked<SettingsManager>;
-  let mockGitHubManager: jest.Mocked<GitHubFileManager>;
+  let mockFileManager: jest.Mocked<UnifiedFileManager>;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -147,11 +147,11 @@ describe('ContentCaptureService - Consolidated Manager Tests', () => {
     // Create service with mocked dependencies
     service = new ContentCaptureService(mockSettingsManager);
 
-    // Setup GitHub manager mock after service creation
-    mockGitHubManager = (service as any).githubManager;
-    if (mockGitHubManager) {
-      mockGitHubManager.commitToGitHub = jest.fn();
-      mockGitHubManager.testConnection = jest.fn();
+    // Setup unified file manager mock after service creation
+    mockFileManager = (service as any).fileManager;
+    if (mockFileManager) {
+      mockFileManager.saveToGitHub = jest.fn();
+      mockFileManager.testGitHubConnection = jest.fn();
     }
   });
 
@@ -385,8 +385,9 @@ describe('ContentCaptureService - Consolidated Manager Tests', () => {
 
     test('III.1 - Should complete full capture workflow with GitHub commit', async () => {
       // Mock successful GitHub commit
-      mockGitHubManager.commitToGitHub = jest.fn().mockResolvedValue({
+      mockFileManager.saveToGitHub = jest.fn().mockResolvedValue({
         success: true,
+        url: 'https://github.com/test-user/test-repo/commit/abc123',
         data: { html_url: 'https://github.com/test-user/test-repo/commit/abc123' },
       });
 
@@ -395,12 +396,12 @@ describe('ContentCaptureService - Consolidated Manager Tests', () => {
       expect(result.success).toBe(true);
       expect(result.message).toContain('captured and committed');
       expect(result.data?.commitUrl).toContain('github.com');
-      expect(mockGitHubManager.commitToGitHub).toHaveBeenCalled();
+      expect(mockFileManager.saveToGitHub).toHaveBeenCalled();
     });
 
     test('III.2 - Should fallback to local storage when GitHub commit fails', async () => {
       // Mock GitHub commit failure
-      mockGitHubManager.commitToGitHub = jest.fn().mockResolvedValue({
+      mockFileManager.saveToGitHub = jest.fn().mockResolvedValue({
         success: false,
         error: 'GitHub API error',
       });
@@ -429,7 +430,7 @@ describe('ContentCaptureService - Consolidated Manager Tests', () => {
     });
 
     test('III.4 - Should include markdown in response when requested', async () => {
-      mockGitHubManager.commitToGitHub = jest.fn().mockResolvedValue({
+      mockFileManager.saveToGitHub = jest.fn().mockResolvedValue({
         success: true,
         data: { html_url: 'https://github.com/test-user/test-repo/commit/abc123' },
       });
@@ -459,7 +460,7 @@ describe('ContentCaptureService - Consolidated Manager Tests', () => {
 
   describe('IV. GitHub Integration', () => {
     test('IV.1 - Should test GitHub connection successfully', async () => {
-      mockGitHubManager.testConnection = jest.fn().mockResolvedValue({
+      mockFileManager.testGitHubConnection = jest.fn().mockResolvedValue({
         success: true,
         status: 'connected',
         message: 'Connection successful',
@@ -494,7 +495,9 @@ describe('ContentCaptureService - Consolidated Manager Tests', () => {
     });
 
     test('IV.3 - Should handle GitHub connection errors', async () => {
-      mockGitHubManager.testConnection = jest.fn().mockRejectedValue(new Error('Network error'));
+      mockFileManager.testGitHubConnection = jest
+        .fn()
+        .mockRejectedValue(new Error('Network error'));
 
       const result = await service.testGitHubConnection();
 

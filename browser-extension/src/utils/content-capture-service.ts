@@ -8,10 +8,10 @@ import {
   IDocumentMetadata,
   ISettings,
 } from '../types/index.js';
-import { GitHubFileManager, IGitHubCommitParams } from './github-file-manager.js';
 import { createLogger } from './logger.js';
 import { SettingsManager } from './settings-manager.js';
 import SharedUtils from './shared-utils.js';
+import { IGitHubSettings, UnifiedFileManager } from './unified-file-manager.js';
 
 const logger = createLogger('ContentCaptureService');
 
@@ -214,11 +214,11 @@ export class ContentCaptureService implements IContentExtractor, IDocumentProces
     ],
   };
 
-  private githubManager: GitHubFileManager;
+  private fileManager: UnifiedFileManager;
   private settingsManager: SettingsManager;
 
   constructor(settingsManager: SettingsManager) {
-    this.githubManager = new GitHubFileManager();
+    this.fileManager = new UnifiedFileManager();
     this.settingsManager = settingsManager;
   }
 
@@ -291,7 +291,7 @@ export class ContentCaptureService implements IContentExtractor, IDocumentProces
         if (commitResult.success) {
           return this.createSuccessResult(processedDoc, {
             message: 'Page captured and committed to repository',
-            ...(commitResult.data?.html_url && { commitUrl: commitResult.data.html_url }),
+            ...(commitResult.url && { commitUrl: commitResult.url }),
             ...(options.includeMarkdown !== undefined && {
               includeMarkdown: options.includeMarkdown,
             }),
@@ -334,7 +334,7 @@ export class ContentCaptureService implements IContentExtractor, IDocumentProces
         };
       }
 
-      const result = await this.githubManager.testConnection(
+      const result = await this.fileManager.testGitHubConnection(
         settings.githubToken,
         settings.githubRepo
       );
@@ -925,16 +925,17 @@ export class ContentCaptureService implements IContentExtractor, IDocumentProces
   }
 
   private async commitToGitHub(processedDoc: IProcessedDocument, settings: ISettings) {
-    const commitParams: IGitHubCommitParams = {
+    const githubSettings: IGitHubSettings = {
       token: settings.githubToken!,
-      repo: settings.githubRepo!,
-      filePath: processedDoc.filePath,
-      content: processedDoc.content,
-      message: this.generateCommitMessage(processedDoc.metadata),
-      url: processedDoc.metadata.url,
+      repository: settings.githubRepo!,
+      branch: 'main',
     };
 
-    return await this.githubManager.commitToGitHub(commitParams);
+    return await this.fileManager.saveToGitHub(
+      processedDoc.content,
+      processedDoc.metadata,
+      githubSettings
+    );
   }
 
   private async storeLocally(processedDoc: IProcessedDocument): Promise<void> {
