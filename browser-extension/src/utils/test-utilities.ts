@@ -142,17 +142,17 @@ class TestLogger {
     if (this._isDebugMode()) {
       switch (level) {
         case 'ERROR':
-          console.error(formattedMessage);
+          logger.error(formattedMessage);
           break;
         case 'WARN':
-          console.warn(formattedMessage);
+          logger.warn(formattedMessage);
           break;
         case 'INFO':
-          console.info(formattedMessage);
+          logger.info(formattedMessage);
           break;
         case 'DEBUG':
         case 'TRACE':
-          console.log(formattedMessage);
+          logger.debug(formattedMessage);
           break;
       }
     }
@@ -267,13 +267,13 @@ class TestLogger {
     (global as any).TEST_LOGGER_DEBUG = true;
     TestLogger._globalConfig.enabled = true;
     TestLogger._globalConfig.level = 'DEBUG';
-    console.log('🧪 Test Logger Debug Mode Enabled');
+    logger.info('🧪 Test Logger Debug Mode Enabled');
   }
 
   static disableDebugMode(): void {
     delete (global as any).TEST_LOGGER_DEBUG;
     TestLogger._globalConfig.enabled = false;
-    console.log('🧪 Test Logger Debug Mode Disabled');
+    logger.info('🧪 Test Logger Debug Mode Disabled');
   }
 
   static createLogger(component: string): TestLogger {
