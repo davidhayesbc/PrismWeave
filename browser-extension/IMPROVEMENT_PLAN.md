@@ -125,15 +125,15 @@ codebase
 
 #### Files with Console Usage (High Priority):
 
-- [ ] `service-worker.ts` - Replace `console.log('Service Worker starting...')`
-- [ ] `git-operations-debug.test.ts` - Remove debug console.log statements
-- [ ] `error-handler.test.ts` - Clean up test console references
-- [ ] `content-extractor.all.test.ts` - Remove test debug logs
-- [ ] `dom-extraction.test.ts` - Remove test debug logs
+- [x] `service-worker.ts` - Replace `console.log('Service Worker starting...')`
+- [x] `git-operations-debug.test.ts` - Remove debug console.log statements
+- [x] `error-handler.test.ts` - Clean up test console references
+- [x] `content-extractor.all.test.ts` - Remove test debug logs
+- [x] `dom-extraction.test.ts` - Remove test debug logs
 
 #### Replacement Rules:
 
-- [ ] **Replace all instances**:
+- [x] **Replace all instances**:
   ```typescript
   // Replace:
   console.log() → logger.info()
@@ -144,16 +144,16 @@ codebase
 
 #### Implementation Steps:
 
-- [ ] **Run global search** for
+- [x] **Run global search** for
       `console\.log|console\.error|console\.warn|console\.debug`
-- [ ] **Replace each instance** with appropriate logger call
-- [ ] **Add logger imports** where missing:
+- [x] **Replace each instance** with appropriate logger call
+- [x] **Add logger imports** where missing:
   ```typescript
   import { createLogger } from '../utils/logger';
   const logger = createLogger('ComponentName');
   ```
-- [ ] **Remove test debug statements** (keep only essential test logging)
-- [ ] **Test logging functionality** in each component
+- [x] **Remove test debug statements** (keep only essential test logging)
+- [x] **Test logging functionality** in each component
 
 ### 2.2 Logger Configuration Enhancement
 
