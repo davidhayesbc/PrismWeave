@@ -57,6 +57,15 @@ class Logger {
 
   static readonly LEVEL_NAMES = ['ERROR', 'WARN', 'INFO', 'DEBUG', 'TRACE'] as const;
 
+  // Helper methods for common operations
+  static isValidLevel(level: unknown): level is LogLevel {
+    return typeof level === 'number' && level >= 0 && level <= 4;
+  }
+
+  static getGlobalScope(): any {
+    return getGlobalScope() as any;
+  }
+
   constructor(component: string = 'PrismWeave') {
     this.component = component;
     this.environment = this._detectEnvironment();
@@ -102,8 +111,7 @@ class Logger {
   }
 
   private _getComponentConfig(componentName: string): IComponentLogConfig | null {
-    const globalScope = getGlobalScope();
-    const config = globalScope.PRISMWEAVE_LOG_CONFIG as any;
+    const config = Logger.getGlobalScope().PRISMWEAVE_LOG_CONFIG;
 
     if (
       config?.components &&
@@ -117,62 +125,52 @@ class Logger {
   }
 
   private _initializeConfiguration(): void {
-    const globalScope = getGlobalScope();
-    const globalConfig = globalScope.PRISMWEAVE_LOG_CONFIG as any;
+    const globalScope = Logger.getGlobalScope();
+    const globalConfig = globalScope.PRISMWEAVE_LOG_CONFIG;
 
     // Environment-based defaults
-    switch (this.environment) {
-      case 'test':
-        this.enabled = false; // Minimize test noise
-        this.level = Logger.LEVELS.ERROR;
-        break;
-      case 'development':
-        this.enabled = true;
-        this.level = Logger.LEVELS.DEBUG;
-        break;
-      case 'production':
-        this.enabled = true;
-        this.level = Logger.LEVELS.INFO; // Less verbose in production
-        break;
-    }
+    const environmentDefaults = {
+      test: { enabled: false, level: Logger.LEVELS.ERROR },
+      development: { enabled: true, level: Logger.LEVELS.DEBUG },
+      production: { enabled: true, level: Logger.LEVELS.INFO },
+    };
 
-    // Apply global configuration overrides
+    const defaults = environmentDefaults[this.environment];
+    this.enabled = defaults.enabled;
+    this.level = defaults.level;
+
+    // Apply configurations in order of precedence
+    this._applyGlobalConfig(globalConfig);
+    this._applyComponentConfig();
+    this._applyRuntimeOverrides(globalScope);
+  }
+
+  private _applyGlobalConfig(globalConfig: any): void {
     if (globalConfig && typeof globalConfig.enabled === 'boolean') {
       this.enabled = globalConfig.enabled;
     }
-    if (
-      globalConfig &&
-      typeof globalConfig.level === 'number' &&
-      globalConfig.level >= 0 &&
-      globalConfig.level <= 4
-    ) {
-      this.level = globalConfig.level as LogLevel;
+    if (globalConfig && Logger.isValidLevel(globalConfig.level)) {
+      this.level = globalConfig.level;
     }
+  }
 
-    // Apply component-specific configuration
-    if (this.componentConfig) {
-      if (typeof this.componentConfig.enabled === 'boolean') {
-        this.enabled = this.componentConfig.enabled;
-      }
-      if (
-        typeof this.componentConfig.level === 'number' &&
-        this.componentConfig.level >= 0 &&
-        this.componentConfig.level <= 4
-      ) {
-        this.level = this.componentConfig.level as LogLevel;
-      }
+  private _applyComponentConfig(): void {
+    if (!this.componentConfig) return;
+
+    if (typeof this.componentConfig.enabled === 'boolean') {
+      this.enabled = this.componentConfig.enabled;
     }
+    if (Logger.isValidLevel(this.componentConfig.level)) {
+      this.level = this.componentConfig.level;
+    }
+  }
 
-    // Apply global overrides from runtime
+  private _applyRuntimeOverrides(globalScope: any): void {
     if (typeof globalScope.PRISMWEAVE_LOG_ENABLED === 'boolean') {
       this.enabled = globalScope.PRISMWEAVE_LOG_ENABLED;
     }
-    if (
-      typeof globalScope.PRISMWEAVE_LOG_LEVEL === 'number' &&
-      globalScope.PRISMWEAVE_LOG_LEVEL >= 0 &&
-      globalScope.PRISMWEAVE_LOG_LEVEL <= 4
-    ) {
-      this.level = globalScope.PRISMWEAVE_LOG_LEVEL as LogLevel;
+    if (Logger.isValidLevel(globalScope.PRISMWEAVE_LOG_LEVEL)) {
+      this.level = globalScope.PRISMWEAVE_LOG_LEVEL;
     }
   }
 
@@ -257,39 +255,38 @@ class Logger {
     return structuredData;
   }
 
-  error(message: unknown, ...args: unknown[]): void {
-    if (this._shouldLog(Logger.LEVELS.ERROR)) {
-      console.error(...this._formatMessage(Logger.LEVELS.ERROR, message, ...args));
-      this._logStructured(Logger.LEVELS.ERROR, message, ...args);
+  // Consolidated logging methods - eliminates duplication
+  private _log(
+    level: LogLevel,
+    consoleMethod: keyof Console,
+    message: unknown,
+    ...args: unknown[]
+  ): void {
+    if (this._shouldLog(level)) {
+      const formatMethod = console[consoleMethod] as (...args: any[]) => void;
+      formatMethod.apply(console, this._formatMessage(level, message, ...args));
+      this._logStructured(level, message, ...args);
     }
+  }
+
+  error(message: unknown, ...args: unknown[]): void {
+    this._log(Logger.LEVELS.ERROR, 'error', message, ...args);
   }
 
   warn(message: unknown, ...args: unknown[]): void {
-    if (this._shouldLog(Logger.LEVELS.WARN)) {
-      console.warn(...this._formatMessage(Logger.LEVELS.WARN, message, ...args));
-      this._logStructured(Logger.LEVELS.WARN, message, ...args);
-    }
+    this._log(Logger.LEVELS.WARN, 'warn', message, ...args);
   }
 
   info(message: unknown, ...args: unknown[]): void {
-    if (this._shouldLog(Logger.LEVELS.INFO)) {
-      console.info(...this._formatMessage(Logger.LEVELS.INFO, message, ...args));
-      this._logStructured(Logger.LEVELS.INFO, message, ...args);
-    }
+    this._log(Logger.LEVELS.INFO, 'info', message, ...args);
   }
 
   debug(message: unknown, ...args: unknown[]): void {
-    if (this._shouldLog(Logger.LEVELS.DEBUG)) {
-      console.log(...this._formatMessage(Logger.LEVELS.DEBUG, message, ...args));
-      this._logStructured(Logger.LEVELS.DEBUG, message, ...args);
-    }
+    this._log(Logger.LEVELS.DEBUG, 'log', message, ...args);
   }
 
   trace(message: unknown, ...args: unknown[]): void {
-    if (this._shouldLog(Logger.LEVELS.TRACE)) {
-      console.log(...this._formatMessage(Logger.LEVELS.TRACE, message, ...args));
-      this._logStructured(Logger.LEVELS.TRACE, message, ...args);
-    }
+    this._log(Logger.LEVELS.TRACE, 'log', message, ...args);
   }
 
   // Structured logging methods
@@ -301,14 +298,13 @@ class Logger {
   }
 
   private _shouldCollectStructuredLogs(): boolean {
-    const globalScope = getGlobalScope();
-    const config = globalScope.PRISMWEAVE_LOG_CONFIG as any;
+    const config = Logger.getGlobalScope().PRISMWEAVE_LOG_CONFIG;
     return config?.structuredLogging?.enabled === true;
   }
 
   private _storeStructuredLog(data: IStructuredLogData): void {
     try {
-      const globalScope = getGlobalScope() as any;
+      const globalScope = Logger.getGlobalScope();
       if (!globalScope.PRISMWEAVE_STRUCTURED_LOGS) {
         globalScope.PRISMWEAVE_STRUCTURED_LOGS = [];
       }
@@ -338,32 +334,49 @@ class Logger {
     return contextLogger;
   }
 
-  // Performance timing with structured logging
+  // Consolidated timer methods to eliminate duplication
+  private _createTimerLabel(label: string): string {
+    return `[${this.component}] ${label}`;
+  }
+
+  time(label: string): void {
+    if (this.enabled && this._shouldLog(Logger.LEVELS.DEBUG)) {
+      console.time(this._createTimerLabel(label));
+    }
+  }
+
+  timeEnd(label: string): void {
+    if (this.enabled && this._shouldLog(Logger.LEVELS.DEBUG)) {
+      console.timeEnd(this._createTimerLabel(label));
+    }
+  }
+
   timeWithContext(label: string, contextData?: Record<string, unknown>): void {
     if (this.enabled && this._shouldLog(Logger.LEVELS.DEBUG)) {
-      const timerLabel = `[${this.component}] ${label}`;
-      console.time(timerLabel);
+      console.time(this._createTimerLabel(label));
 
+      const message = `⏱️ Timer started: ${label}`;
       if (contextData) {
-        this.debug(`⏱️ Timer started: ${label}`, contextData);
+        this.debug(message, contextData);
       } else {
-        this.debug(`⏱️ Timer started: ${label}`);
+        this.debug(message);
       }
     }
   }
 
   timeEndWithContext(label: string, contextData?: Record<string, unknown>): void {
     if (this.enabled && this._shouldLog(Logger.LEVELS.DEBUG)) {
-      const timerLabel = `[${this.component}] ${label}`;
-      console.timeEnd(timerLabel);
+      console.timeEnd(this._createTimerLabel(label));
 
+      const message = `⏱️ Timer ended: ${label}`;
       if (contextData) {
-        this.debug(`⏱️ Timer ended: ${label}`, contextData);
+        this.debug(message, contextData);
       } else {
-        this.debug(`⏱️ Timer ended: ${label}`);
+        this.debug(message);
       }
     }
   }
+
   // Utility methods
   group(label?: string, collapsed: boolean = false): void {
     if (this.enabled) {
@@ -388,18 +401,6 @@ class Logger {
     }
   }
 
-  time(label: string): void {
-    if (this.enabled && this._shouldLog(Logger.LEVELS.DEBUG)) {
-      console.time(`[${this.component}] ${label}`);
-    }
-  }
-
-  timeEnd(label: string): void {
-    if (this.enabled && this._shouldLog(Logger.LEVELS.DEBUG)) {
-      console.timeEnd(`[${this.component}] ${label}`);
-    }
-  }
-
   // Configuration methods
   setLevel(level: LogLevel): void {
     this.level = level;
@@ -407,7 +408,7 @@ class Logger {
   }
 
   setComponentLevel(component: string, level: LogLevel): void {
-    const globalScope = getGlobalScope() as any;
+    const globalScope = Logger.getGlobalScope();
     if (!globalScope.PRISMWEAVE_LOG_CONFIG) {
       globalScope.PRISMWEAVE_LOG_CONFIG = {
         enabled: true,
@@ -457,17 +458,16 @@ class Logger {
 
   // Structured log retrieval
   static getStructuredLogs(): IStructuredLogData[] {
-    const globalScope = getGlobalScope() as any;
-    return globalScope.PRISMWEAVE_STRUCTURED_LOGS || [];
+    return Logger.getGlobalScope().PRISMWEAVE_STRUCTURED_LOGS || [];
   }
 
   static clearStructuredLogs(): void {
-    const globalScope = getGlobalScope() as any;
-    globalScope.PRISMWEAVE_STRUCTURED_LOGS = [];
+    Logger.getGlobalScope().PRISMWEAVE_STRUCTURED_LOGS = [];
   }
+
   // Global configuration methods
   static setGlobalLevel(level: LogLevel): void {
-    const globalScope = getGlobalScope() as any;
+    const globalScope = Logger.getGlobalScope();
     globalScope.PRISMWEAVE_LOG_LEVEL = level;
     console.log(
       `%cPrismWeave Global Log Level set to: ${Logger.LEVEL_NAMES[level]}`,
@@ -476,7 +476,7 @@ class Logger {
   }
 
   static setGlobalEnabled(enabled: boolean): void {
-    const globalScope = getGlobalScope() as any;
+    const globalScope = Logger.getGlobalScope();
     globalScope.PRISMWEAVE_LOG_ENABLED = enabled;
     console.log(
       `%cPrismWeave Global Logging ${enabled ? 'enabled' : 'disabled'}`,
@@ -485,7 +485,7 @@ class Logger {
   }
 
   static setEnvironmentLogging(environment: Environment, enabled: boolean, level?: LogLevel): void {
-    const globalScope = getGlobalScope() as any;
+    const globalScope = Logger.getGlobalScope();
     if (!globalScope.PRISMWEAVE_ENV_LOGGING) {
       globalScope.PRISMWEAVE_ENV_LOGGING = {};
     }
@@ -506,7 +506,7 @@ class Logger {
   }
 
   static getGlobalConfiguration(): Record<string, unknown> {
-    const globalScope = getGlobalScope() as any;
+    const globalScope = Logger.getGlobalScope();
     return {
       globalEnabled: globalScope.PRISMWEAVE_LOG_ENABLED,
       globalLevel: globalScope.PRISMWEAVE_LOG_LEVEL
@@ -524,14 +524,14 @@ function createLogger(component: string): Logger {
   const logger = new Logger(component);
 
   // Check for environment-specific overrides
-  const globalScope = getGlobalScope() as any;
+  const globalScope = Logger.getGlobalScope();
   const envLogging = globalScope.PRISMWEAVE_ENV_LOGGING?.[logger.environment];
   if (envLogging) {
     if (typeof envLogging.enabled === 'boolean') {
       logger.enabled = envLogging.enabled;
     }
-    if (typeof envLogging.level === 'number' && envLogging.level >= 0 && envLogging.level <= 4) {
-      logger.level = envLogging.level as LogLevel;
+    if (Logger.isValidLevel(envLogging.level)) {
+      logger.level = envLogging.level;
     }
   }
 
