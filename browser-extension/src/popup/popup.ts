@@ -22,6 +22,68 @@ export class PrismWeavePopup {
     }
   }
 
+  // Test accessors - public methods for testing private functionality
+  public async testInitializePopup(): Promise<void> {
+    return this.initializePopup();
+  }
+
+  public async testGetCurrentTab(): Promise<void> {
+    return this.getCurrentTab();
+  }
+
+  public async testLoadSettings(): Promise<void> {
+    return this.loadSettings();
+  }
+
+  public testValidateCaptureSettings(): {
+    isValid: boolean;
+    missingSettings: string[];
+    message?: string;
+  } {
+    return this.validateCaptureSettings();
+  }
+
+  public testSetupEventListeners(): void {
+    return this.setupEventListeners();
+  }
+
+  public testUpdatePageInfo(): void {
+    return this.updatePageInfo();
+  }
+
+  public testCheckPageCapturability(): void {
+    return this.checkPageCapturability();
+  }
+
+  public async testCapturePage(): Promise<void> {
+    return this.capturePage();
+  }
+
+  public async testCaptureSelection(): Promise<void> {
+    return this.captureSelection();
+  }
+
+  public testIsPageCapturable(): boolean {
+    return this.isPageCapturable();
+  }
+
+  // Getters for testing state
+  public getCurrentTabForTest(): chrome.tabs.Tab | null {
+    return this.currentTab;
+  }
+
+  public getSettingsForTest(): Partial<ISettings> | null {
+    return this.settings;
+  }
+
+  public getIsCapturingForTest(): boolean {
+    return this.isCapturing;
+  }
+
+  public getLastCapturedContentForTest(): string | null {
+    return this.lastCapturedContent;
+  }
+
   // ...existing code...
 
   private async initializePopup(): Promise<void> {
