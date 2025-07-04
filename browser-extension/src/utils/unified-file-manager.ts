@@ -81,7 +81,26 @@ export class UnifiedFileManager {
         'node',
         'github',
         'stackoverflow',
-        'dev.to',
+        'dev',
+        'developer',
+        'mozilla',
+        'typescript',
+        'haskell',
+        'unison',
+        'testing',
+        'frontend',
+        'backend',
+        'api',
+        'web',
+        'code',
+        'engineering',
+        'computer',
+        'ai',
+        'machine-learning',
+        'ocr',
+        'document-processing',
+        'ai-assisted-programming',
+        'llm',
       ],
       business: [
         'business',
@@ -93,6 +112,9 @@ export class UnifiedFileManager {
         'management',
         'strategy',
         'linkedin',
+        'leadership',
+        'ceo',
+        'fortune',
       ],
       tutorial: [
         'tutorial',
@@ -103,9 +125,16 @@ export class UnifiedFileManager {
         'lesson',
         'walkthrough',
         'step-by-step',
+        'complete',
+        'beginner',
+        'introduction',
+        'getting-started',
+        'setup',
+        'install',
+        'configure',
       ],
-      news: ['news', 'article', 'blog', 'opinion', 'analysis', 'update', 'announcement'],
-      research: ['research', 'study', 'paper', 'academic', 'journal', 'thesis', 'analysis', 'data'],
+      news: ['news', 'article', 'blog', 'opinion', 'analysis', 'update', 'announcement', 'breaking', 'industry'],
+      research: ['research', 'study', 'paper', 'academic', 'journal', 'thesis', 'analysis', 'data', 'arxiv', 'institute'],
       design: ['design', 'ui', 'ux', 'css', 'figma', 'adobe', 'creative', 'visual', 'art'],
       tools: ['tool', 'utility', 'software', 'app', 'service', 'platform', 'extension'],
       personal: ['personal', 'diary', 'journal', 'thoughts', 'reflection', 'life', 'experience'],
@@ -569,11 +598,21 @@ export class UnifiedFileManager {
         domain = domain.substring(4);
       }
 
-      // Take only the main domain (remove subdomains for common sites)
+      // For known domains, keep meaningful subdomains
+      const meaningfulSubdomains = ['developer', 'docs', 'api', 'blog', 'news'];
       const domainParts = domain.split('.');
+      
       if (domainParts.length > 2) {
-        // Keep only the last two parts for main domain
-        domain = domainParts.slice(-2).join('.');
+        const subdomain = domainParts[0];
+        const mainDomain = domainParts.slice(-2).join('.');
+        
+        // Keep meaningful subdomains
+        if (meaningfulSubdomains.includes(subdomain.toLowerCase())) {
+          domain = `${subdomain}.${mainDomain}`;
+        } else {
+          // For other subdomains, just use main domain
+          domain = mainDomain;
+        }
       }
 
       return domain.replace(/\./g, '-');
@@ -616,22 +655,33 @@ export class UnifiedFileManager {
   }
 
   private autoDetectFolder(metadata: IDocumentMetadata): string | null {
-    const searchText = [
+    // Prepare search content from multiple sources
+    const searchSources = [
       metadata.title.toLowerCase(),
       metadata.url.toLowerCase(),
       ...metadata.tags.map(tag => tag.toLowerCase()),
-    ].join(' ');
+      ...this.extractUrlKeywords(metadata.url),
+    ];
+
+    const searchText = searchSources.join(' ');
 
     // Score each folder based on keyword matches
     const folderScores: Record<string, number> = {};
 
     Object.entries(this.folderMapping).forEach(([folder, keywords]) => {
       let score = 0;
+      
       keywords.forEach(keyword => {
-        const regex = new RegExp(`\\b${keyword}\\b`, 'gi');
-        const matches = searchText.match(regex);
+        // Check for exact word matches (word boundaries)
+        const wordBoundaryRegex = new RegExp(`\\b${keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi');
+        const matches = searchText.match(wordBoundaryRegex);
         if (matches) {
           score += matches.length;
+        }
+        
+        // Additional scoring for URL domain matches
+        if (metadata.url.toLowerCase().includes(keyword)) {
+          score += 0.5; // Bonus points for URL matches
         }
       });
 
@@ -640,10 +690,55 @@ export class UnifiedFileManager {
       }
     });
 
-    // Return folder with highest score
-    const bestFolder = Object.entries(folderScores).sort(([, a], [, b]) => b - a)[0];
+    // Return folder with highest score, but only if score is meaningful
+    const sortedFolders = Object.entries(folderScores).sort(([, a], [, b]) => b - a);
+    const bestMatch = sortedFolders[0];
 
-    return bestFolder ? bestFolder[0] : null;
+    // Require minimum score threshold to avoid false positives
+    return bestMatch && bestMatch[1] >= 1 ? bestMatch[0] : null;
+  }
+
+  /**
+   * Extract keywords from URL for enhanced folder detection
+   */
+  private extractUrlKeywords(url: string): string[] {
+    try {
+      const urlObj = new URL(url);
+      const keywords: string[] = [];
+
+      // Extract from hostname
+      const hostname = urlObj.hostname.toLowerCase();
+      
+      // Remove www prefix and split by dots
+      const domainParts = hostname.replace(/^www\./, '').split('.');
+      keywords.push(...domainParts);
+
+      // Extract meaningful parts from domain
+      if (hostname.includes('github')) keywords.push('github', 'development', 'code');
+      if (hostname.includes('stackoverflow')) keywords.push('stackoverflow', 'programming', 'development');
+      if (hostname.includes('developer')) keywords.push('developer', 'development', 'tech');
+      if (hostname.includes('mozilla')) keywords.push('mozilla', 'developer', 'web', 'tech');
+      if (hostname.includes('linkedin')) keywords.push('linkedin', 'business', 'professional');
+      if (hostname.includes('dev.to') || hostname.includes('dev')) keywords.push('dev', 'development', 'programming');
+      if (hostname.includes('blog')) keywords.push('blog', 'article');
+      if (hostname.includes('tutorial')) keywords.push('tutorial', 'guide');
+      if (hostname.includes('news')) keywords.push('news', 'article');
+      if (hostname.includes('research') || hostname.includes('arxiv')) keywords.push('research', 'academic');
+
+      // Extract from pathname
+      const pathParts = urlObj.pathname.toLowerCase().split('/').filter(part => part.length > 2);
+      keywords.push(...pathParts);
+
+      // Clean and filter keywords
+      return keywords
+        .map(keyword => keyword.replace(/[^a-z0-9]/g, ''))
+        .filter(keyword => keyword.length > 2)
+        .filter(keyword => !['com', 'org', 'net', 'www', 'http', 'https'].includes(keyword));
+        
+    } catch (error) {
+      // If URL parsing fails, return empty array
+      return [];
+    }
   }
 
   private splitFilename(filename: string): [string, string] {
