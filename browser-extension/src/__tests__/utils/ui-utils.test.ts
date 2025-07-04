@@ -183,7 +183,7 @@ describe('UIUtils - Fixed Test Suite', () => {
       // Mock setTimeout properly using Jest fake timers
       jest.useFakeTimers();
       const setTimeoutSpy = jest.spyOn(global, 'setTimeout');
-      
+
       mockDocument.getElementById.mockReturnValue(mockElement);
       mockElement.querySelector.mockReturnValue({ textContent: '' });
 
@@ -191,7 +191,7 @@ describe('UIUtils - Fixed Test Suite', () => {
 
       expect(setTimeoutSpy).toHaveBeenCalledTimes(1);
       expect(setTimeoutSpy).toHaveBeenCalledWith(expect.any(Function), 1000);
-      
+
       // Clean up
       jest.useRealTimers();
       setTimeoutSpy.mockRestore();
@@ -201,12 +201,12 @@ describe('UIUtils - Fixed Test Suite', () => {
       // Mock setTimeout properly using Jest fake timers
       jest.useFakeTimers();
       const setTimeoutSpy = jest.spyOn(global, 'setTimeout');
-      
+
       UIUtils.showProgressToast('test message', 2000);
 
       // Should call setTimeout for animation and removal
       expect(setTimeoutSpy).toHaveBeenCalled();
-      
+
       // Clean up
       jest.useRealTimers();
       setTimeoutSpy.mockRestore();
