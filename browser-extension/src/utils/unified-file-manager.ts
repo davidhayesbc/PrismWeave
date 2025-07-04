@@ -133,8 +133,29 @@ export class UnifiedFileManager {
         'install',
         'configure',
       ],
-      news: ['news', 'article', 'blog', 'opinion', 'analysis', 'update', 'announcement', 'breaking', 'industry'],
-      research: ['research', 'study', 'paper', 'academic', 'journal', 'thesis', 'analysis', 'data', 'arxiv', 'institute'],
+      news: [
+        'news',
+        'article',
+        'blog',
+        'opinion',
+        'analysis',
+        'update',
+        'announcement',
+        'breaking',
+        'industry',
+      ],
+      research: [
+        'research',
+        'study',
+        'paper',
+        'academic',
+        'journal',
+        'thesis',
+        'analysis',
+        'data',
+        'arxiv',
+        'institute',
+      ],
       design: ['design', 'ui', 'ux', 'css', 'figma', 'adobe', 'creative', 'visual', 'art'],
       tools: ['tool', 'utility', 'software', 'app', 'service', 'platform', 'extension'],
       personal: ['personal', 'diary', 'journal', 'thoughts', 'reflection', 'life', 'experience'],
@@ -601,11 +622,11 @@ export class UnifiedFileManager {
       // For known domains, keep meaningful subdomains
       const meaningfulSubdomains = ['developer', 'docs', 'api', 'blog', 'news'];
       const domainParts = domain.split('.');
-      
+
       if (domainParts.length > 2) {
         const subdomain = domainParts[0];
         const mainDomain = domainParts.slice(-2).join('.');
-        
+
         // Keep meaningful subdomains
         if (meaningfulSubdomains.includes(subdomain.toLowerCase())) {
           domain = `${subdomain}.${mainDomain}`;
@@ -670,15 +691,18 @@ export class UnifiedFileManager {
 
     Object.entries(this.folderMapping).forEach(([folder, keywords]) => {
       let score = 0;
-      
+
       keywords.forEach(keyword => {
         // Check for exact word matches (word boundaries)
-        const wordBoundaryRegex = new RegExp(`\\b${keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi');
+        const wordBoundaryRegex = new RegExp(
+          `\\b${keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`,
+          'gi'
+        );
         const matches = searchText.match(wordBoundaryRegex);
         if (matches) {
           score += matches.length;
         }
-        
+
         // Additional scoring for URL domain matches
         if (metadata.url.toLowerCase().includes(keyword)) {
           score += 0.5; // Bonus points for URL matches
@@ -708,25 +732,31 @@ export class UnifiedFileManager {
 
       // Extract from hostname
       const hostname = urlObj.hostname.toLowerCase();
-      
+
       // Remove www prefix and split by dots
       const domainParts = hostname.replace(/^www\./, '').split('.');
       keywords.push(...domainParts);
 
       // Extract meaningful parts from domain
       if (hostname.includes('github')) keywords.push('github', 'development', 'code');
-      if (hostname.includes('stackoverflow')) keywords.push('stackoverflow', 'programming', 'development');
+      if (hostname.includes('stackoverflow'))
+        keywords.push('stackoverflow', 'programming', 'development');
       if (hostname.includes('developer')) keywords.push('developer', 'development', 'tech');
       if (hostname.includes('mozilla')) keywords.push('mozilla', 'developer', 'web', 'tech');
       if (hostname.includes('linkedin')) keywords.push('linkedin', 'business', 'professional');
-      if (hostname.includes('dev.to') || hostname.includes('dev')) keywords.push('dev', 'development', 'programming');
+      if (hostname.includes('dev.to') || hostname.includes('dev'))
+        keywords.push('dev', 'development', 'programming');
       if (hostname.includes('blog')) keywords.push('blog', 'article');
       if (hostname.includes('tutorial')) keywords.push('tutorial', 'guide');
       if (hostname.includes('news')) keywords.push('news', 'article');
-      if (hostname.includes('research') || hostname.includes('arxiv')) keywords.push('research', 'academic');
+      if (hostname.includes('research') || hostname.includes('arxiv'))
+        keywords.push('research', 'academic');
 
       // Extract from pathname
-      const pathParts = urlObj.pathname.toLowerCase().split('/').filter(part => part.length > 2);
+      const pathParts = urlObj.pathname
+        .toLowerCase()
+        .split('/')
+        .filter(part => part.length > 2);
       keywords.push(...pathParts);
 
       // Clean and filter keywords
@@ -734,7 +764,6 @@ export class UnifiedFileManager {
         .map(keyword => keyword.replace(/[^a-z0-9]/g, ''))
         .filter(keyword => keyword.length > 2)
         .filter(keyword => !['com', 'org', 'net', 'www', 'http', 'https'].includes(keyword));
-        
     } catch (error) {
       // If URL parsing fails, return empty array
       return [];
