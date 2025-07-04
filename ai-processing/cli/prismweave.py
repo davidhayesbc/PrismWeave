@@ -63,21 +63,34 @@ def print_warning(message: str):
     else:
         print(f"WARNING: {message}")
 
-async def process_documents(documents_path: str, output_format: str = "table"):
-    """Process documents in the specified directory"""
+async def process_documents(documents_path: str, output_format: str = "table", single_file: bool = False):
+    """Process documents in the specified directory or a single file"""
     docs_path = Path(documents_path)
     
     if not docs_path.exists():
-        print_error(f"Documents directory not found: {documents_path}")
+        print_error(f"Path not found: {documents_path}")
         return
     
-    # Find all markdown files
-    md_files = list(docs_path.rglob("*.md"))
-    if not md_files:
-        print_warning(f"No markdown files found in {documents_path}")
-        return
-    
-    print_info(f"Found {len(md_files)} markdown files to process")
+    # Handle single file processing
+    if single_file or docs_path.is_file():
+        if not docs_path.is_file():
+            print_error(f"File not found: {documents_path}")
+            return
+        
+        if not docs_path.suffix.lower() == '.md':
+            print_error(f"File must be a markdown (.md) file: {documents_path}")
+            return
+        
+        md_files = [docs_path]
+        print_info(f"Processing single file: {docs_path.name}")
+    else:
+        # Find all markdown files in directory
+        md_files = list(docs_path.rglob("*.md"))
+        if not md_files:
+            print_warning(f"No markdown files found in {documents_path}")
+            return
+        
+        print_info(f"Found {len(md_files)} markdown files to process")
     
     async with DocumentProcessor() as processor:
         # Check if Ollama is available
@@ -286,8 +299,9 @@ def main():
     
     # Process command
     process_parser = subparsers.add_parser("process", help="Process documents with AI analysis")
-    process_parser.add_argument("path", nargs="?", default=None, help="Documents directory path")
+    process_parser.add_argument("path", nargs="?", default=None, help="Documents directory path or single file path")
     process_parser.add_argument("--format", choices=["table", "json"], default="table", help="Output format")
+    process_parser.add_argument("--single-file", action="store_true", help="Process a single markdown file instead of a directory")
     
     # Search command
     search_parser = subparsers.add_parser("search", help="Search documents")
@@ -315,7 +329,7 @@ def main():
                 config = get_config()
                 docs_path = str(config.get_documents_path())
             
-            asyncio.run(process_documents(docs_path, args.format))
+            asyncio.run(process_documents(docs_path, args.format, args.single_file))
         
         elif args.command == "search":
             asyncio.run(search_documents(args.query, args.max_results, args.type))
