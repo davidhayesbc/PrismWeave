@@ -157,7 +157,7 @@ export class UnifiedFileManager {
     const folder = this.determineFolder(metadata, options);
     const filename = this.generateFilename(metadata, options);
 
-    return `${folder}/${filename}`;
+    return `documents/${folder}/${filename}`;
   }
 
   /**
