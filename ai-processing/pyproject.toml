@@ -27,9 +27,6 @@ classifiers = [
 ]
 
 dependencies = [
-    # Core async HTTP client
-    "aiohttp>=3.8.5",
-    
     # Ollama integration
     "ollama>=0.1.7",
     

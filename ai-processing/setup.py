@@ -15,15 +15,7 @@ def run_command(command, description="Running command"):
     """Run a command and handle errors"""
     print(f"📋 {description}...")
     try:
-        result = subprocess.run(
-            command, 
-            shell=True, 
-            check=True, 
-            capture_output=True, 
-            text=True,
-            encoding='utf-8',
-            errors='replace'
-        )
+        result = subprocess.run(command, shell=True, check=True, capture_output=True, text=True)
         print(f"   ✅ Success")
         return True
     except subprocess.CalledProcessError as e:
@@ -48,13 +40,7 @@ def check_uv_installation():
     if shutil.which("uv"):
         # Check UV version
         try:
-            result = subprocess.run(
-                ["uv", "--version"], 
-                capture_output=True, 
-                text=True,
-                encoding='utf-8',
-                errors='replace'
-            )
+            result = subprocess.run(["uv", "--version"], capture_output=True, text=True)
             print(f"   ✅ UV {result.stdout.strip()} found")
             return True
         except:
@@ -123,14 +109,7 @@ def check_ollama():
     
     # Check if ollama command exists
     try:
-        result = subprocess.run(
-            "ollama --version", 
-            shell=True, 
-            capture_output=True, 
-            text=True,
-            encoding='utf-8',
-            errors='replace'
-        )
+        result = subprocess.run("ollama --version", shell=True, capture_output=True, text=True)
         print(f"   ✅ Ollama version: {result.stdout.strip()}")
     except:
         print("   ❌ Ollama not found in PATH")
@@ -139,15 +118,7 @@ def check_ollama():
     
     # Check if Ollama server is running
     try:
-        result = subprocess.run(
-            "ollama list", 
-            shell=True, 
-            capture_output=True, 
-            text=True, 
-            timeout=5,
-            encoding='utf-8',
-            errors='replace'
-        )
+        result = subprocess.run("ollama list", shell=True, capture_output=True, text=True, timeout=5)
         if result.returncode == 0:
             print("   ✅ Ollama server is running")
             models = [line.strip() for line in result.stdout.split('\n') if line.strip() and not line.startswith('NAME')]
@@ -214,21 +185,21 @@ sys.path.insert(0, 'src')
 try:
     from src.utils.config import get_config
     from src.models.ollama_client import OllamaClient
-    print("Core imports successful")
+    print("✅ Core imports successful")
 except ImportError as e:
-    print(f"Import error: {e}")
+    print(f"❌ Import error: {e}")
     sys.exit(1)
 
 # Test configuration loading
 try:
     config = get_config()
-    print("Configuration loaded")
+    print("✅ Configuration loaded")
 except Exception as e:
-    print(f"Configuration error: {e}")
+    print(f"❌ Configuration error: {e}")
     sys.exit(1)
 """
     
-    with open("test_setup.py", "w", encoding='utf-8') as f:
+    with open("test_setup.py", "w") as f:
         f.write(test_script)
     
     # Use UV to run the test
@@ -262,19 +233,13 @@ def print_next_steps():
     config_path = Path("config.yaml")
     if config_path.exists():
         try:
-            # Try to import yaml, fall back to default if not available
-            try:
-                import yaml
-                with open(config_path, encoding='utf-8') as f:
-                    config = yaml.safe_load(f)
-                docs_path = config.get('integration', {}).get('documents_path', '../PrismWeaveDocs/documents')
-                print(f"   📁 {docs_path}")
-            except ImportError:
-                print("   📁 ../PrismWeaveDocs/documents (default - yaml not available)")
-        except Exception:
+            import yaml
+            with open(config_path) as f:
+                config = yaml.safe_load(f)
+            docs_path = config.get('integration', {}).get('documents_path', '../PrismWeaveDocs/documents')
+            print(f"   📁 {docs_path}")
+        except:
             print("   📁 ../PrismWeaveDocs/documents (default)")
-    else:
-        print("   📁 ../PrismWeaveDocs/documents (default)")
     
     print("\n🔧 Configuration file: config.yaml")
     print("🔍 Logs will be saved to: logs/")
