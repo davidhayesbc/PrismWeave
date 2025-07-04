@@ -373,6 +373,14 @@ Based on the AI HX 370 NPU:
 - Check firewall settings
 - Verify `base_url` in config.yaml
 
+**GenerationResult `done_reason` Error (FIXED in v1.1)**
+```
+❌ Error: GenerationResult.__init__() got an unexpected keyword argument 'done_reason'
+```
+- **Fixed**: Updated `GenerationResult` class to handle new Ollama API fields
+- The class now gracefully handles `done_reason` and other new fields from newer Ollama versions
+- Uses `GenerationResult.from_dict()` method for robust field handling
+
 **Memory Issues**
 ```
 ❌ Error: Out of memory during processing
@@ -395,6 +403,7 @@ Based on the AI HX 370 NPU:
 ```
 - Activate virtual environment: `venv\Scripts\activate`
 - Reinstall requirements: `pip install -r requirements.txt`
+- Or use UV: `uv sync`
 
 ### Debug Mode
 
