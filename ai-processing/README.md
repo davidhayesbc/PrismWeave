@@ -1,5 +1,8 @@
 # PrismWeave AI Processing Pipeline (Phase 2)
 
+> **✨ New**: Using [UV](https://astral.sh/uv/) for faster, more reliable Python package management!  
+> 📖 **Quick Start**: See [UV_QUICKSTART.md](UV_QUICKSTART.md) for setup with UV (recommended)
+
 ## Overview
 
 The AI Processing Pipeline is the core intelligence engine of PrismWeave, providing semantic search, document analysis, and AI-powered insights using local Ollama models. This phase transforms your captured documents into a searchable, intelligent knowledge base.
@@ -30,14 +33,30 @@ ai-processing/
 
 ## 🚀 Quick Start
 
-### 1. Prerequisites
+> **New**: We now use [UV](https://astral.sh/uv/) for package management - it's 10-100x faster than pip! 
+> See **[UV_QUICKSTART.md](UV_QUICKSTART.md)** for the complete UV setup guide.
 
-- **Python 3.8+**: Required for async support and modern typing
+```bash
+# One-command setup
+cd d:\source\PrismWeave\ai-processing && python setup.py
+
+# Or with UV directly
+uv sync && uv shell && uv run python cli/prismweave.py process
+```
+
+### Traditional Setup (pip/venv)
+
+<details>
+<summary>Click here for traditional setup instructions</summary>
+
+#### 1. Prerequisites
+
+- **Python 3.9+**: Required for async support and modern typing
 - **Ollama**: Install from [ollama.ai](https://ollama.ai/)
 - **Git**: For repository integration
 - **8GB+ RAM**: Recommended for AI model processing
 
-### 2. Automated Setup
+#### 2. Automated Setup
 
 Run the automated setup script:
 
@@ -54,7 +73,7 @@ This will:
 - Create necessary directories
 - Test the installation
 
-### 3. Manual Setup (Alternative)
+#### 3. Manual Setup (Alternative)
 
 If you prefer manual setup:
 
@@ -87,44 +106,46 @@ ollama:
     embedding: "nomic-embed-text"  # Embedding model
 ```
 
+</details>
+
 ## 📊 Usage
 
 ### Process Documents
 
 Process your existing document collection:
 
-```powershell
-# Activate virtual environment
-venv\Scripts\activate
+```bash
+# UV (Recommended)
+uv run python cli/prismweave.py process
 
-# Process all documents
+# Or if environment is activated
 python cli/prismweave.py process
 
-# Process with specific options
-python cli/prismweave.py process --batch-size 10 --force-reprocess
+# With specific options  
+uv run python cli/prismweave.py process --batch-size 10 --force-reprocess
 ```
 
 ### Search Documents
 
 Perform semantic search across your documents:
 
-```powershell
+```bash
 # Basic search
-python cli/prismweave.py search "machine learning concepts"
+uv run python cli/prismweave.py search "machine learning concepts"
 
 # Advanced search with filters
-python cli/prismweave.py search "typescript patterns" --limit 10 --min-score 0.7
+uv run python cli/prismweave.py search "typescript patterns" --limit 10 --min-score 0.7
 
 # Search with context
-python cli/prismweave.py search "database optimization" --show-context
+uv run python cli/prismweave.py search "database optimization" --show-context
 ```
 
 ### System Status
 
 Check the health of your AI processing system:
 
-```powershell
-python cli/prismweave.py status
+```bash
+uv run python cli/prismweave.py status
 ```
 
 This shows:
