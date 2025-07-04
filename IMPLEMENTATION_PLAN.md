@@ -71,45 +71,170 @@ Implementation roadmap for PrismWeave: A comprehensive document management and c
 
 ## Phase 2: AI Processing Pipeline 🤖
 **Priority: High - Core value proposition**
-**Timeline: 3-4 weeks**
-**Value: Intelligent document organization and search**
+**Timeline: 4-6 weeks (expanded for comprehensive AI features)**
+**Value: Intelligent document organization, search, and analysis**
 
-### 2.1 Local LLM Integration
-- [ ] **Ollama Integration**:
-  - [ ] Model management (download/update popular models)
-  - [ ] API client for local inference
-  - [ ] Model selection based on task (small for tagging, large for content)
-  - [ ] NPU acceleration optimization for AI HX 370
+### 2.1 Environment Setup & Model Selection
+- [ ] **Development Environment**:
+  - [ ] Python virtual environment with requirements.txt
+  - [ ] Ollama installation and configuration
+  - [ ] Model evaluation framework for task-specific selection
+  - [ ] Performance monitoring tools for AI HX 370 NPU
+- [ ] **Model Strategy** (Multi-model approach for optimal performance):
+  - [ ] **Large Models** (7B-13B): `llama3.1:8b`, `mistral:7b` for complex analysis
+  - [ ] **Small Models** (1B-3B): `phi3:mini`, `qwen2:1.5b` for fast tagging/classification
+  - [ ] **Embedding Models**: `nomic-embed-text`, `mxbai-embed-large` for semantic search
+  - [ ] **Specialized Models**: `codellama:7b` for code analysis, `deepseek-coder:6.7b` for technical content
+
+### 2.2 Core AI Processing Engine
+- [ ] **Document Analysis Pipeline**:
+  - [ ] **Content Extraction**: Parse frontmatter, body content, and metadata
+  - [ ] **Content Preprocessing**: Clean markdown, extract code blocks, normalize text
+  - [ ] **Multi-pass Analysis**: Progressive refinement with different model sizes
+  - [ ] **Quality Scoring**: Assess document value and relevance (1-10 scale)
 - [ ] **Processing Tasks**:
-  - [ ] **Document Summarization**: Generate concise summaries
-  - [ ] **Topic Classification**: Auto-assign to folders
-  - [ ] **Tag Generation**: Extract relevant keywords/concepts
-  - [ ] **Content Quality Assessment**: Flag important/reference documents
+  - [ ] **Smart Summarization**: 
+    - [ ] Executive summary (2-3 sentences)
+    - [ ] Key points extraction (bullet points)
+    - [ ] Technical concept identification
+    - [ ] Code snippet summarization for technical articles
+  - [ ] **Intelligent Categorization**:
+    - [ ] Multi-label classification (tech, research, business, tutorial, etc.)
+    - [ ] Subcategory detection (programming languages, frameworks, domains)
+    - [ ] Confidence scoring for category assignments
+    - [ ] Auto-folder assignment with manual override capability
+  - [ ] **Advanced Tagging**:
+    - [ ] Technical concept extraction (APIs, frameworks, tools)
+    - [ ] Difficulty level assessment (beginner, intermediate, advanced)
+    - [ ] Content type classification (tutorial, reference, opinion, research)
+    - [ ] Related technology detection
+  - [ ] **Content Enhancement**:
+    - [ ] Missing tag suggestions based on content analysis
+    - [ ] Related document recommendations
+    - [ ] Key quote extraction for future reference
+    - [ ] Action item identification from articles
 
-### 2.2 Vector Database & Search
-- [ ] **Embedding Generation**: 
-  - [ ] Text chunking strategies for long documents
-  - [ ] Local embedding model (sentence-transformers)
-  - [ ] Vector storage (SQLite + extensions or Chroma)
-- [ ] **Semantic Search**:
-  - [ ] Query embedding and similarity search
-  - [ ] Hybrid search (semantic + keyword)
-  - [ ] Result ranking and relevance scoring
-- [ ] **Search Interface**:
-  - [ ] Command-line search tool
-  - [ ] JSON API for future integrations
+### 2.3 Vector Database & Semantic Search
+- [ ] **Embedding Infrastructure**:
+  - [ ] **Text Chunking Strategy**:
+    - [ ] Semantic chunking (by section/paragraph)
+    - [ ] Sliding window with overlap for context preservation
+    - [ ] Code block isolation for technical content
+    - [ ] Frontmatter separation for metadata search
+  - [ ] **Multi-level Embeddings**:
+    - [ ] Document-level embeddings for broad similarity
+    - [ ] Section-level embeddings for precise matching
+    - [ ] Keyword embeddings for tag-based search
+  - [ ] **Vector Storage Options**:
+    - [ ] **Primary**: Chroma DB for development and small collections (<10k docs)
+    - [ ] **Scalable**: SQLite with vector extensions for production
+    - [ ] **Hybrid**: Combination approach with metadata in SQLite, vectors in Chroma
+- [ ] **Search Engine**:
+  - [ ] **Semantic Search**:
+    - [ ] Natural language query processing
+    - [ ] Multi-vector search (title, content, tags, code)
+    - [ ] Similarity scoring with configurable thresholds
+    - [ ] Context-aware result ranking
+  - [ ] **Hybrid Search**:
+    - [ ] Keyword + semantic fusion
+    - [ ] Metadata filtering (date, author, domain, tags)
+    - [ ] Content type filtering (code-heavy, text-only, etc.)
+    - [ ] Recency bias for time-sensitive queries
+  - [ ] **Advanced Query Features**:
+    - [ ] "More like this" document recommendations
+    - [ ] Concept clustering for topic exploration
+    - [ ] Temporal search (documents from specific time periods)
+    - [ ] Cross-reference detection (documents citing similar sources)
 
-### 2.3 Batch Processing System
-- [ ] **Queue Management**: Process documents in background
-- [ ] **Progress Tracking**: Status updates and error handling
-- [ ] **Incremental Processing**: Only process new/changed documents
-- [ ] **Performance Optimization**: Efficient batch processing for AI HX 370
+### 2.4 Batch Processing & Queue Management
+- [ ] **Processing Queue System**:
+  - [ ] **Priority Queue**: New documents > updates > periodic reprocessing
+  - [ ] **Job Types**: Extract, summarize, tag, embed, categorize, relate
+  - [ ] **Batch Optimization**: Group similar tasks for model efficiency
+  - [ ] **Error Recovery**: Retry logic with exponential backoff
+- [ ] **Performance Optimization**:
+  - [ ] **Model Loading Strategy**: Keep small models loaded, lazy-load large models
+  - [ ] **Batch Processing**: Process multiple documents per model call
+  - [ ] **Parallel Processing**: Multiple worker processes for different tasks
+  - [ ] **Resource Management**: Memory monitoring, model swapping, NPU utilization
+- [ ] **Progress Tracking & Monitoring**:
+  - [ ] **Real-time Status**: Processing queue, current job, ETA
+  - [ ] **Detailed Logging**: Model performance, processing times, error rates
+  - [ ] **Health Metrics**: Token usage, memory consumption, model response times
+  - [ ] **User Notifications**: Processing complete, errors encountered, suggestions available
+
+### 2.5 Document Relationship & Knowledge Graph
+- [ ] **Content Relationship Detection**:
+  - [ ] **Citation Analysis**: Extract and link referenced sources
+  - [ ] **Topic Clustering**: Group documents by shared concepts
+  - [ ] **Temporal Relationships**: Track evolving topics over time
+  - [ ] **Author/Source Tracking**: Connect documents by origin
+- [ ] **Knowledge Graph Construction**:
+  - [ ] **Entity Extraction**: People, companies, technologies, concepts
+  - [ ] **Relationship Mapping**: Uses, implements, compares, builds-on
+  - [ ] **Graph Database**: NetworkX or lightweight graph storage
+  - [ ] **Visual Graph Export**: JSON for future visualization
+
+### 2.6 CLI Tools & API Interface
+- [ ] **Command Line Tools**:
+  - [ ] `prismweave process` - Process new/updated documents
+  - [ ] `prismweave search "query"` - Semantic search with results
+  - [ ] `prismweave summarize path/to/doc.md` - Generate summary
+  - [ ] `prismweave relate doc1.md doc2.md` - Find relationships
+  - [ ] `prismweave status` - Show processing queue and stats
+- [ ] **JSON API Server** (Optional for Phase 2):
+  - [ ] REST endpoints for search, summarization, tagging
+  - [ ] WebSocket for real-time processing updates
+  - [ ] Simple web interface for testing
+
+### 2.7 Configuration & Model Management
+- [ ] **Configuration System**:
+  - [ ] `config.yaml` with model preferences, processing settings
+  - [ ] User-customizable prompts for different tasks
+  - [ ] Performance tuning parameters (batch size, thresholds)
+  - [ ] Output format preferences (markdown, JSON, CSV)
+- [ ] **Model Management**:
+  - [ ] Automatic model downloading on first use
+  - [ ] Model performance benchmarking and selection
+  - [ ] Model update notifications and migration
+  - [ ] Fallback model configuration for reliability
+
+### 2.8 Integration with Existing Document Collection
+- [ ] **Migration Strategy for PrismWeaveDocs**:
+  - [ ] **Bulk Import**: Process all 26 existing documents
+  - [ ] **Metadata Enhancement**: Enrich existing frontmatter
+  - [ ] **Retroactive Categorization**: Move documents to appropriate folders
+  - [ ] **Tag Standardization**: Normalize and expand existing tags
+- [ ] **Incremental Processing**:
+  - [ ] **Change Detection**: Monitor file modifications
+  - [ ] **Smart Updates**: Re-process only changed content
+  - [ ] **Version Tracking**: Maintain processing history
+  - [ ] **Rollback Capability**: Undo AI-generated changes if needed
 
 ### Phase 2 Deliverables
-✅ Local AI processing with Ollama
-✅ Automatic document categorization and tagging
-✅ Semantic search capabilities
-✅ Document summarization and quality assessment
+✅ **Comprehensive AI Processing Pipeline**:
+  - ✅ Multi-model Ollama integration with task-specific selection
+  - ✅ Document summarization, categorization, and advanced tagging
+  - ✅ Intelligent content analysis with quality scoring
+  - ✅ Document relationship detection and knowledge graph construction
+
+✅ **Advanced Search & Discovery**:
+  - ✅ Semantic search with multiple vector databases
+  - ✅ Hybrid search combining keywords and meaning
+  - ✅ "More like this" recommendations
+  - ✅ Topic clustering and concept exploration
+
+✅ **Production-Ready Infrastructure**:
+  - ✅ Scalable batch processing system with queue management
+  - ✅ Performance optimization for AI HX 370 NPU
+  - ✅ Comprehensive monitoring and error handling
+  - ✅ CLI tools for power users
+
+✅ **Enhanced Document Collection**:
+  - ✅ All existing PrismWeaveDocs processed and enhanced
+  - ✅ Improved categorization and tagging
+  - ✅ Cross-document relationships identified
+  - ✅ Knowledge graph of content connections
 
 ---
 
