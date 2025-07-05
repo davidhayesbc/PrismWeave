@@ -168,6 +168,16 @@ export interface IContentExtractionData {
   images?: string[];
 }
 
+export const MESSAGE_TYPES = {
+  GET_SETTINGS: 'GET_SETTINGS',
+  UPDATE_SETTINGS: 'UPDATE_SETTINGS',
+  RESET_SETTINGS: 'RESET_SETTINGS',
+  VALIDATE_SETTINGS: 'VALIDATE_SETTINGS',
+  TEST_CONNECTION: 'TEST_CONNECTION',
+  CAPTURE_PAGE: 'CAPTURE_PAGE',
+  GET_STATUS: 'GET_STATUS',
+  TEST: 'TEST',
+};
 export interface IContentExtractionResult {
   success: boolean;
   data?: IContentExtractionData;
