@@ -1,184 +1,79 @@
-# PrismWeave AI Processing Configuration
-# Configuration settings for document processing pipeline
-
-# Ollama Configuration
+models:
+  large:
+    fallback: mistral:latest
+    max_context: 16000
+    max_tokens: 4000
+    primary: llama3.1:8b
+    temperature: 0.5
+    timeout: 120
+  medium:
+    fallback: llama3.1:8b
+    max_context: 8000
+    max_tokens: 2000
+    primary: mistral:latest
+    temperature: 0.3
+    timeout: 60
+  small:
+    fallback: mistral:latest
+    max_context: 3000
+    max_tokens: 1000
+    primary: phi3:mini
+    temperature: 0.1
+    timeout: 45
 ollama:
-  host: "http://localhost:11434"
-  timeout: 30
-  models:
-    # Large models for complex analysis (7B-13B parameters)
-    large:
-      primary: "llama3.1:8b"
-      fallback: "mistral:7b"
-      use_cases: ["summarization", "content_analysis", "relationship_detection"]
-    
-    # Small models for fast operations (1B-3B parameters)  
-    small:
-      primary: "phi3:mini"
-      fallback: "qwen2:1.5b"
-      use_cases: ["tagging", "classification", "quick_analysis"]
-    
-    # Embedding models for semantic search
-    embedding:
-      primary: "nomic-embed-text"
-      fallback: "mxbai-embed-large"
-      dimensions: 768
-    
-    # Specialized models
-    code:
-      primary: "codellama:7b"
-      fallback: "deepseek-coder:6.7b"
-      use_cases: ["code_analysis", "technical_content"]
-
-# Document Processing Settings
+  host: http://localhost:11434
+  max_retries: 2
+  retry_delay: 5
+  timeout: 45
 processing:
-  # Batch processing configuration
-  batch_size: 5
-  max_concurrent: 2
-  retry_attempts: 3
-  retry_delay: 1.0
-  
-  # Content analysis settings
-  min_content_length: 100
-  max_content_length: 50000
-  chunk_size: 1000
-  chunk_overlap: 200
-  
-  # Quality scoring thresholds
-  quality_thresholds:
-    high: 8.0
-    medium: 5.0
-    low: 2.0
-
-# Vector Database Configuration
-vector_db:
-  # Primary database type: "chroma" or "sqlite"
-  type: "chroma"
-  
-  # Chroma settings - Store in PrismWeaveDocs for data locality
-  chroma:
-    persist_directory: "../PrismWeaveDocs/.prismweave/chroma_db"
-    collection_name: "prismweave_documents"
-    
-  # SQLite settings (alternative)
-  sqlite:
-    path: "../.prismweave/vectors.db"
-    table_name: "document_embeddings"
-  
-  # Search settings
-  search:
-    max_results: 20
-    similarity_threshold: 0.7
-    rerank_results: true
-
-# Search Configuration
-search:
-  # Hybrid search weights
-  semantic_weight: 0.7
-  keyword_weight: 0.3
-  
-  # Result ranking factors
-  ranking:
-    recency_weight: 0.1
-    quality_weight: 0.3
-    relevance_weight: 0.6
-  
-  # Search result formatting
-  snippet_length: 200
-  max_snippets: 3
-
-# Document Categories and Tags
+  chunk_size: 2000
+  enable_preprocessing: true
+  max_content_length: 3000
+  min_word_count: 50
+  overlap: 200
+  remove_code_blocks: true
+  simplify_markdown: true
+  timeout: 45
 taxonomy:
+  business_tags:
+  - strategy
+  - startup
+  - management
+  - leadership
+  - finance
+  - marketing
+  - sales
+  - product
+  - growth
+  - innovation
   categories:
-    - tech
-    - research
-    - business
-    - tutorial
-    - reference
-    - news
-    - opinion
-    - unsorted
-  
-  # Automatic tag suggestions
+  - tech
+  - business
+  - research
+  - news
+  - tutorial
+  - reference
+  - unsorted
   tech_tags:
-    - programming
-    - ai
-    - web-development
-    - data-science
-    - devops
-    - security
-    - mobile
-    - cloud
-    - database
-    - frontend
-    - backend
-    - machine-learning
-  
-  difficulty_levels:
-    - beginner
-    - intermediate
-    - advanced
-    - expert
-  
-  content_types:
-    - tutorial
-    - reference
-    - opinion
-    - research
-    - news
-    - case-study
-    - documentation
-
-# Performance and Monitoring
-performance:
-  # NPU acceleration (for AI HX 370)
-  enable_npu: true
-  npu_optimization: true
-  
-  # Memory management
-  max_memory_usage: "4GB"
-  model_cache_size: 2
-  
-  # Logging and monitoring
-  log_level: "INFO"
-  log_file: "../.prismweave/processing.log"
-  metrics_enabled: true
-  
-  # Performance targets
-  targets:
-    max_processing_time: 30  # seconds per document
-    max_search_time: 2       # seconds per query
-    min_accuracy: 0.85       # for classification tasks
-
-# CLI Configuration
-cli:
-  # Default output formats
-  default_format: "markdown"
-  formats: ["json", "markdown", "csv", "table"]
-  
-  # Progress display
-  show_progress: true
-  verbose: false
-  
-  # Color output
-  use_colors: true
-
-# Integration Settings
-integration:
-  # Document repository path
-  documents_path: "../PrismWeaveDocs/documents"
-  
-  # Output paths - All in PrismWeaveDocs for cohesion
-  output:
-    summaries: "../PrismWeaveDocs/.prismweave/summaries"
-    metadata: "../PrismWeaveDocs/.prismweave/metadata"
-    graph: "../PrismWeaveDocs/.prismweave/knowledge_graph.json"
-    embeddings: "../PrismWeaveDocs/.prismweave/chroma_db"
-  
-  # File watching for auto-processing
-  watch_changes: true
-  watch_delay: 2.0  # seconds
-  
-  # Git integration
-  auto_commit_results: false
-  commit_message_template: "AI: Updated {file_count} documents"
+  - programming
+  - ai
+  - machine-learning
+  - web-development
+  - backend
+  - frontend
+  - devops
+  - database
+  - api
+  - testing
+  - security
+  - cloud
+  - docker
+  - kubernetes
+  - python
+  - javascript
+  - typescript
+  - react
+  - node
+  - aws
+  - azure
+  - gcp
