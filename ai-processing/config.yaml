@@ -55,9 +55,9 @@ vector_db:
   # Primary database type: "chroma" or "sqlite"
   type: "chroma"
   
-  # Chroma settings
+  # Chroma settings - Store in PrismWeaveDocs for data locality
   chroma:
-    persist_directory: "../.prismweave/chroma_db"
+    persist_directory: "../PrismWeaveDocs/.prismweave/chroma_db"
     collection_name: "prismweave_documents"
     
   # SQLite settings (alternative)
@@ -168,11 +168,12 @@ integration:
   # Document repository path
   documents_path: "../PrismWeaveDocs/documents"
   
-  # Output paths
+  # Output paths - All in PrismWeaveDocs for cohesion
   output:
     summaries: "../PrismWeaveDocs/.prismweave/summaries"
     metadata: "../PrismWeaveDocs/.prismweave/metadata"
     graph: "../PrismWeaveDocs/.prismweave/knowledge_graph.json"
+    embeddings: "../PrismWeaveDocs/.prismweave/chroma_db"
   
   # File watching for auto-processing
   watch_changes: true
