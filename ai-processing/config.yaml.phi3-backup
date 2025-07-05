@@ -7,33 +7,33 @@ models:
     temperature: 0.5
     timeout: 120
   medium:
-    fallback: mistral:latest
+    fallback: llama3.1:8b
     max_context: 8000
     max_tokens: 2000
-    primary: llama3.1:8b
-    temperature: 0.3
-    timeout: 90
-  small:
-    fallback: llama3.1:8b
-    max_context: 4000
-    max_tokens: 1000
     primary: mistral:latest
-    temperature: 0.1
+    temperature: 0.3
     timeout: 60
+  small:
+    fallback: mistral:latest
+    max_context: 3000
+    max_tokens: 1000
+    primary: phi3:mini
+    temperature: 0.1
+    timeout: 45
 ollama:
   host: http://localhost:11434
   max_retries: 2
   retry_delay: 5
-  timeout: 60
+  timeout: 45
 processing:
-  chunk_size: 3000
+  chunk_size: 2000
   enable_preprocessing: true
-  max_content_length: 4000
+  max_content_length: 3000
   min_word_count: 50
-  overlap: 300
+  overlap: 200
   remove_code_blocks: true
   simplify_markdown: true
-  timeout: 60
+  timeout: 45
 taxonomy:
   business_tags:
   - strategy
@@ -77,7 +77,3 @@ taxonomy:
   - aws
   - azure
   - gcp
-  - haskell
-  - unison
-  - software-methodologies
-  - transcript-tests
