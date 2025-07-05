@@ -5,7 +5,7 @@
 import { IDocumentMetadata, IFileOperationResult } from '../types/index.js';
 import { createLogger } from './logger.js';
 
-const logger = createLogger('UnifiedFileManager');
+const logger = createLogger('FileManager');
 
 interface IFolderMapping {
   [key: string]: string[];
@@ -61,7 +61,7 @@ export interface IRepositoryInfo {
   repo: string;
 }
 
-export class UnifiedFileManager {
+export class FileManager {
   private static readonly API_BASE = 'https://api.github.com';
   private static readonly USER_AGENT = 'PrismWeave-Extension/1.0';
   private readonly folderMapping: IFolderMapping;
@@ -832,7 +832,7 @@ export class UnifiedFileManager {
 
     try {
       const response = await fetch(
-        `${UnifiedFileManager.API_BASE}/repos/${repoInfo.owner}/${repoInfo.repo}/contents/${path}`,
+        `${FileManager.API_BASE}/repos/${repoInfo.owner}/${repoInfo.repo}/contents/${path}`,
         {
           method: 'GET',
           headers: this.getAuthHeaders(token),
@@ -894,7 +894,7 @@ export class UnifiedFileManager {
     }
 
     const response = await fetch(
-      `${UnifiedFileManager.API_BASE}/repos/${repoInfo.owner}/${repoInfo.repo}/contents/${path}`,
+      `${FileManager.API_BASE}/repos/${repoInfo.owner}/${repoInfo.repo}/contents/${path}`,
       {
         method: 'PUT',
         headers: {
@@ -920,7 +920,7 @@ export class UnifiedFileManager {
   private async validateToken(token: string): Promise<any> {
     logger.debug('Validating GitHub token...');
 
-    const response = await fetch(`${UnifiedFileManager.API_BASE}/user`, {
+    const response = await fetch(`${FileManager.API_BASE}/user`, {
       headers: this.getAuthHeaders(token),
     });
 
@@ -940,7 +940,7 @@ export class UnifiedFileManager {
     logger.debug('Validating repository access...');
 
     const response = await fetch(
-      `${UnifiedFileManager.API_BASE}/repos/${repoInfo.owner}/${repoInfo.repo}`,
+      `${FileManager.API_BASE}/repos/${repoInfo.owner}/${repoInfo.repo}`,
       {
         headers: this.getAuthHeaders(token),
       }
@@ -967,7 +967,7 @@ export class UnifiedFileManager {
 
     try {
       const response = await fetch(
-        `${UnifiedFileManager.API_BASE}/repos/${repoInfo.owner}/${repoInfo.repo}/contents`,
+        `${FileManager.API_BASE}/repos/${repoInfo.owner}/${repoInfo.repo}/contents`,
         {
           headers: this.getAuthHeaders(token),
         }
@@ -992,7 +992,7 @@ export class UnifiedFileManager {
     return {
       Authorization: `token ${token}`,
       Accept: 'application/vnd.github.v3+json',
-      'User-Agent': UnifiedFileManager.USER_AGENT,
+      'User-Agent': FileManager.USER_AGENT,
     };
   }
 }

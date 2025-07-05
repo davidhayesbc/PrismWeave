@@ -8,10 +8,10 @@ import {
   IDocumentMetadata,
   ISettings,
 } from '../types/index.js';
+import { FileManager, IGitHubSettings } from './file-manager.js';
 import { createLogger } from './logger.js';
 import { SettingsManager } from './settings-manager.js';
 import SharedUtils from './shared-utils.js';
-import { IGitHubSettings, UnifiedFileManager } from './unified-file-manager.js';
 
 const logger = createLogger('ContentCaptureService');
 
@@ -214,11 +214,11 @@ export class ContentCaptureService implements IContentExtractor, IDocumentProces
     ],
   };
 
-  private fileManager: UnifiedFileManager;
+  private fileManager: FileManager;
   private settingsManager: SettingsManager;
 
   constructor(settingsManager: SettingsManager) {
-    this.fileManager = new UnifiedFileManager();
+    this.fileManager = new FileManager();
     this.settingsManager = settingsManager;
   }
 

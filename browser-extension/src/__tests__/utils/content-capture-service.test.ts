@@ -4,7 +4,7 @@
 
 // Mock all external dependencies first
 jest.mock('../../utils/settings-manager');
-jest.mock('../../utils/unified-file-manager');
+jest.mock('../../utils/file-manager');
 jest.mock('../../utils/logger', () => ({
   createLogger: jest.fn(() => ({
     debug: jest.fn(),
@@ -68,8 +68,8 @@ jest.mock('../../utils/shared-utils', () => ({
 }));
 
 import { ContentCaptureService } from '../../utils/content-capture-service';
+import { FileManager } from '../../utils/file-manager';
 import { SettingsManager } from '../../utils/settings-manager';
-import { UnifiedFileManager } from '../../utils/unified-file-manager';
 
 // Mock Chrome APIs
 const mockChrome = {
@@ -104,7 +104,7 @@ const mockChrome = {
 describe('ContentCaptureService - Consolidated Manager Tests', () => {
   let service: ContentCaptureService;
   let mockSettingsManager: jest.Mocked<SettingsManager>;
-  let mockFileManager: jest.Mocked<UnifiedFileManager>;
+  let mockFileManager: jest.Mocked<FileManager>;
 
   beforeEach(() => {
     jest.clearAllMocks();

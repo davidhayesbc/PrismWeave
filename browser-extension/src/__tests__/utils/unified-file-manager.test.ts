@@ -3,13 +3,13 @@
 // Tests the metadata extraction and categorization logic
 
 import { IDocumentMetadata } from '../../types/index.js';
-import { UnifiedFileManager } from '../../utils/unified-file-manager.js';
+import { FileManager } from '../../utils/file-manager.js';
 
-describe('UnifiedFileManager - Folder Detection and File Organization', () => {
-  let fileManager: UnifiedFileManager;
+describe('FileManager - Folder Detection and File Organization', () => {
+  let fileManager: FileManager;
 
   beforeEach(() => {
-    fileManager = new UnifiedFileManager();
+    fileManager = new FileManager();
   });
 
   describe('Folder Detection (autoDetectFolder)', () => {
@@ -293,7 +293,9 @@ describe('UnifiedFileManager - Folder Detection and File Organization', () => {
       };
 
       const filename = fileManager.generateFilename(metadata);
-      expect(filename).toMatch(/^\d{4}-\d{2}-\d{2}-example-com-building-industrial-strength-software\.md$/);
+      expect(filename).toMatch(
+        /^\d{4}-\d{2}-\d{2}-example-com-building-industrial-strength-software\.md$/
+      );
     });
 
     test('should handle special characters in titles', () => {
@@ -312,7 +314,8 @@ describe('UnifiedFileManager - Folder Detection and File Organization', () => {
 
     test('should truncate long titles appropriately', () => {
       const metadata: IDocumentMetadata = {
-        title: 'This is a very long title that should be truncated because it exceeds the reasonable length limit for filenames',
+        title:
+          'This is a very long title that should be truncated because it exceeds the reasonable length limit for filenames',
         url: 'https://example.com/long-title',
         captureDate: '2025-07-03T12:00:00Z',
         tags: [],
@@ -322,7 +325,9 @@ describe('UnifiedFileManager - Folder Detection and File Organization', () => {
 
       const filename = fileManager.generateFilename(metadata);
       expect(filename.length).toBeLessThan(100); // Should be reasonably short
-      expect(filename).toMatch(/^\d{4}-\d{2}-\d{2}-example-com-this-is-a-very-long-title-that-should-be-truncated\.md$/);
+      expect(filename).toMatch(
+        /^\d{4}-\d{2}-\d{2}-example-com-this-is-a-very-long-title-that-should-be-truncated\.md$/
+      );
     });
   });
 
@@ -338,7 +343,9 @@ describe('UnifiedFileManager - Folder Detection and File Organization', () => {
       };
 
       const filePath = fileManager.generateFilePath(metadata);
-      expect(filePath).toMatch(/^documents\/tech\/\d{4}-\d{2}-\d{2}-developer-mozilla-org-javascript-best-practices\.md$/);
+      expect(filePath).toMatch(
+        /^documents\/tech\/\d{4}-\d{2}-\d{2}-developer-mozilla-org-javascript-best-practices\.md$/
+      );
     });
 
     test('should use custom folder when specified', () => {
@@ -357,7 +364,9 @@ describe('UnifiedFileManager - Folder Detection and File Organization', () => {
       };
 
       const filePath = fileManager.generateFilePath(metadata, options);
-      expect(filePath).toMatch(/^documents\/my-special-folder\/\d{4}-\d{2}-\d{2}-example-com-custom-content\.md$/);
+      expect(filePath).toMatch(
+        /^documents\/my-special-folder\/\d{4}-\d{2}-\d{2}-example-com-custom-content\.md$/
+      );
     });
 
     test('should use explicit folder when specified', () => {
@@ -375,7 +384,9 @@ describe('UnifiedFileManager - Folder Detection and File Organization', () => {
       };
 
       const filePath = fileManager.generateFilePath(metadata, options);
-      expect(filePath).toMatch(/^documents\/tutorial\/\d{4}-\d{2}-\d{2}-example-com-some-content\.md$/);
+      expect(filePath).toMatch(
+        /^documents\/tutorial\/\d{4}-\d{2}-\d{2}-example-com-some-content\.md$/
+      );
     });
   });
 
@@ -407,7 +418,7 @@ describe('UnifiedFileManager - Folder Detection and File Organization', () => {
   describe('Real-world Test Cases', () => {
     test('should correctly categorize Simon Willison LLM article', () => {
       const metadata: IDocumentMetadata = {
-        title: 'Here\'s how I use LLMs to help me write code',
+        title: "Here's how I use LLMs to help me write code",
         url: 'https://simonwillison.net/2025/Mar/11/using-llms-for-code/',
         captureDate: '2025-07-03T12:00:00Z',
         tags: ['ai-assisted-programming', 'llm', 'code'],
