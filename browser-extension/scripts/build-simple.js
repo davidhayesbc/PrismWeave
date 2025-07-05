@@ -40,13 +40,6 @@ async function buildExtension() {
         ...baseOptions,
       },
       {
-        name: 'Content Script',
-        entryPoints: ['src/content/content-script.ts'],
-        outfile: 'dist/content/content-script.js',
-        format: 'iife', // IIFE format for content script compatibility
-        ...baseOptions,
-      },
-      {
         name: 'Popup',
         entryPoints: ['src/popup/popup.ts'],
         outfile: 'dist/popup/popup.js',

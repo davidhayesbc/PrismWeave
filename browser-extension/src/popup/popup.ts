@@ -1,6 +1,6 @@
 // Handles the extension popup interface and user interactions
 
-import { IMessageData, IMessageResponse, ISettings } from '../types/index';
+import { IMessageData, IMessageResponse, ISettings, MESSAGE_TYPES } from '../types/index';
 import { createLogger } from '../utils/logger';
 
 // Initialize logger
@@ -133,7 +133,7 @@ export class PrismWeavePopup {
 
   private async loadSettings(): Promise<void> {
     try {
-      const response = await this.sendMessageToBackground('GET_SETTINGS');
+      const response = await this.sendMessageToBackground(MESSAGE_TYPES.GET_SETTINGS);
       this.settings = response.data as Partial<ISettings>;
     } catch (error) {
       logger.error('Error loading settings:', error);
@@ -230,13 +230,7 @@ export class PrismWeavePopup {
   private checkPageCapturability(): void {
     if (!this.currentTab?.url) return;
 
-    const url = this.currentTab.url;
-    const isCapturable =
-      !url.startsWith('chrome://') &&
-      !url.startsWith('chrome-extension://') &&
-      !url.startsWith('about:') &&
-      !url.startsWith('moz-extension://') &&
-      !url.startsWith('edge://');
+    const isCapturable = this.isPageCapturable();
 
     const captureBtn = document.getElementById('capture-page') as HTMLButtonElement;
     const captureSelectionBtn = document.getElementById('capture-selection') as HTMLButtonElement;
@@ -325,7 +319,7 @@ export class PrismWeavePopup {
       );
 
       const message: IMessageData = {
-        type: 'CAPTURE_PAGE',
+        type: MESSAGE_TYPES.CAPTURE_PAGE,
         data: {
           tabId: this.currentTab.id,
           tabInfo: {
@@ -778,7 +772,7 @@ export class PrismWeavePopup {
       statusElement.style.display = 'none';
       statusElement.textContent = '';
       statusElement.className = 'capture-status';
-    } // Clear the captured content when resetting
+    }
     this.lastCapturedContent = null;
   }
 
@@ -831,40 +825,6 @@ export class PrismWeavePopup {
         }
       });
     });
-  }
-  private async validateCurrentTab(): Promise<{ isValid: boolean; error?: string; tabInfo?: any }> {
-    try {
-      if (!this.currentTab?.id) {
-        return {
-          isValid: false,
-          error: 'No current tab ID available',
-        };
-      }
-
-      const response = await this.sendMessageToBackground('VALIDATE_TAB', {
-        tabId: this.currentTab.id,
-      });
-
-      if (response.success) {
-        const data = response.data as any;
-        return {
-          isValid: data.isValid,
-          error: data.isValid ? undefined : data.message,
-          tabInfo: data.tabInfo,
-        };
-      } else {
-        return {
-          isValid: false,
-          error: response.error || 'Unknown validation error',
-        };
-      }
-    } catch (error) {
-      logger.error('Error validating current tab:', error);
-      return {
-        isValid: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      };
-    }
   }
 
   private showMarkdownPreview(): void {
