@@ -30,7 +30,6 @@ except ImportError:
     detect = None
 
 from ..models.ollama_client import OllamaClient
-from ..search.semantic_search import SemanticSearch
 from ..utils.config import get_config
 
 logger = logging.getLogger(__name__)
@@ -89,9 +88,6 @@ class DocumentProcessor:
             timeout=self.config.ollama.timeout
         )
         
-        # Initialize search engine for indexing
-        self.search_engine = SemanticSearch(config=self.config)
-        
         # Processing statistics
         self.stats = {
             "processed_count": 0,
@@ -103,12 +99,10 @@ class DocumentProcessor:
     async def __aenter__(self):
         """Async context manager entry"""
         await self.ollama_client.__aenter__()
-        await self.search_engine.__aenter__()
         return self
     
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         """Async context manager exit"""
-        await self.search_engine.__aexit__(exc_type, exc_val, exc_tb)
         await self.ollama_client.__aexit__(exc_type, exc_val, exc_tb)
     
     def _extract_content_from_markdown(self, file_path: Path) -> Tuple[DocumentMetadata, str]:
@@ -468,24 +462,6 @@ Category:"""
             metadata.category = suggested_category
             metadata.quality_score = quality_score
             metadata.last_processed = time.strftime("%Y-%m-%dT%H:%M:%SZ")
-            
-            # Index document for semantic search
-            try:
-                search_metadata = {
-                    "title": metadata.title,
-                    "category": metadata.category,
-                    "tags": metadata.tags,
-                    "quality_score": metadata.quality_score,
-                    "word_count": metadata.word_count,
-                    "language": metadata.language,
-                    "document_path": str(file_path),
-                    "summary": metadata.summary
-                }
-                await self.search_engine.index_document(file_path, content, search_metadata)
-                logger.info(f"Successfully indexed document for search: {file_path.name}")
-            except Exception as e:
-                logger.warning(f"Failed to index document for search: {e}")
-                # Don't fail the whole process if indexing fails
             
             processing_time = time.time() - start_time
             
