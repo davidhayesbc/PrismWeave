@@ -63,7 +63,6 @@ global.console = {
 import {
   getServiceWorkerState,
   getServiceWorkerStatus,
-  getTurndownLibrary,
   handleInstallation,
   handleMessage,
   initializeServiceWorkers,
@@ -317,45 +316,6 @@ describe('Service Worker Comprehensive Tests - Phase 3.1', () => {
       });
     });
 
-    describe('GET_TURNDOWN_LIBRARY message processing', () => {
-      test('should successfully fetch turndown library', async () => {
-        // Arrange
-        const message: IMessageData = {
-          type: 'GET_TURNDOWN_LIBRARY',
-          timestamp: Date.now(),
-        };
-        const sender = {} as chrome.runtime.MessageSender;
-
-        // Act
-        const result = (await handleMessage(message, sender)) as any;
-
-        // Assert
-        expect(result).toBeDefined();
-        expect(result.success).toBe(true);
-        expect(result.content).toBe('/* TurndownService mock content */');
-        expect(mockChrome.runtime.getURL).toHaveBeenCalledWith('libs/turndown.min.js');
-      });
-
-      test('should handle fetch errors gracefully', async () => {
-        // Arrange
-        mockFetch.mockRejectedValue(new Error('Network error'));
-
-        const message: IMessageData = {
-          type: 'GET_TURNDOWN_LIBRARY',
-          timestamp: Date.now(),
-        };
-        const sender = {} as chrome.runtime.MessageSender;
-
-        // Act
-        const result = (await handleMessage(message, sender)) as any;
-
-        // Assert
-        expect(result).toBeDefined();
-        expect(result.success).toBe(false);
-        expect(result.error).toBe('Network error');
-      });
-    });
-
     describe('Invalid message handling', () => {
       test('should reject unknown message types', async () => {
         // Arrange
@@ -509,37 +469,6 @@ describe('Service Worker Comprehensive Tests - Phase 3.1', () => {
         );
       });
     });
-
-    describe('Network and fetch error handling', () => {
-      test('should handle fetch errors in getTurndownLibrary', async () => {
-        // Arrange
-        mockFetch.mockRejectedValue(new Error('Network error'));
-
-        // Act
-        const result = (await getTurndownLibrary()) as any;
-
-        // Assert
-        expect(result.success).toBe(false);
-        expect(result.error).toBe('Network error');
-        expect(result.timestamp).toBeDefined();
-      });
-
-      test('should handle HTTP errors in getTurndownLibrary', async () => {
-        // Arrange
-        mockFetch.mockResolvedValue({
-          ok: false,
-          status: 404,
-        } as Response);
-
-        // Act
-        const result = (await getTurndownLibrary()) as any;
-
-        // Assert
-        expect(result.success).toBe(false);
-        expect(result.error).toBe('Failed to fetch library: 404');
-        expect(result.timestamp).toBeDefined();
-      });
-    });
   });
 
   describe('Phase 3.1.4 - State Management and Integration', () => {
@@ -618,24 +547,6 @@ describe('Service Worker Comprehensive Tests - Phase 3.1', () => {
   });
 
   describe('Phase 3.1.5 - Utility Functions and Integration Patterns', () => {
-    test('should provide turndown library access functionality', async () => {
-      // Arrange
-      const mockLibraryContent = '/* TurndownService library content */';
-      mockFetch.mockResolvedValue({
-        ok: true,
-        text: () => Promise.resolve(mockLibraryContent),
-      } as Response);
-
-      // Act
-      const result = (await getTurndownLibrary()) as any;
-
-      // Assert
-      expect(result.success).toBe(true);
-      expect(result.content).toBe(mockLibraryContent);
-      expect(result.timestamp).toBeDefined();
-      expect(mockChrome.runtime.getURL).toHaveBeenCalledWith('libs/turndown.min.js');
-    });
-
     test('should handle TEST message for basic functionality verification', async () => {
       // Arrange
       const message: IMessageData = {

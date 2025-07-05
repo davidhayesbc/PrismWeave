@@ -28,6 +28,17 @@ let serviceWorkerState: IServiceWorkerState = {
   initializationError: null,
 };
 
+const MESSAGE_TYPES = {
+  GET_SETTINGS: 'GET_SETTINGS',
+  UPDATE_SETTINGS: 'UPDATE_SETTINGS',
+  RESET_SETTINGS: 'RESET_SETTINGS',
+  VALIDATE_SETTINGS: 'VALIDATE_SETTINGS',
+  TEST_CONNECTION: 'TEST_CONNECTION',
+  CAPTURE_PAGE: 'CAPTURE_PAGE',
+  GET_STATUS: 'GET_STATUS',
+  TEST: 'TEST',
+};
+
 // Initialize managers with dependency injection support for testing
 export async function initializeServiceWorkers(
   customSettingsManager?: SettingsManager,
@@ -36,7 +47,6 @@ export async function initializeServiceWorkers(
   try {
     logger.info('Initializing service worker managers...');
 
-    // Use injected dependencies or create new instances
     serviceWorkerState.settingsManager = customSettingsManager || new SettingsManager();
     serviceWorkerState.captureService =
       customCaptureService || new ContentCaptureService(serviceWorkerState.settingsManager);
@@ -59,7 +69,7 @@ initializeServiceWorkers().catch(error => {
   logger.error('Service worker startup failed:', error);
 });
 
-// Chrome extension event handlers - exported for testing
+// Chrome extension event handlers
 export async function handleInstallation(details: chrome.runtime.InstalledDetails): Promise<void> {
   try {
     logger.info('Extension installed/updated:', details.reason);
@@ -94,10 +104,10 @@ export async function handleMessage(
 
   // Validate manager initialization for data operations
   const requiresManager = [
-    'GET_SETTINGS',
-    'UPDATE_SETTINGS',
-    'RESET_SETTINGS',
-    'VALIDATE_SETTINGS',
+    MESSAGE_TYPES.GET_SETTINGS,
+    MESSAGE_TYPES.UPDATE_SETTINGS,
+    MESSAGE_TYPES.RESET_SETTINGS,
+    MESSAGE_TYPES.VALIDATE_SETTINGS,
   ];
   if (requiresManager.includes(message.type) && !serviceWorkerState.settingsManager) {
     throw new Error('Settings manager not initialized');
@@ -109,50 +119,49 @@ export async function handleMessage(
   }
 
   switch (message.type) {
-    case 'GET_SETTINGS':
+    case MESSAGE_TYPES.GET_SETTINGS:
       return await serviceWorkerState.settingsManager!.getSettings();
 
-    case 'UPDATE_SETTINGS':
+    case MESSAGE_TYPES.UPDATE_SETTINGS:
       if (!message.data || typeof message.data !== 'object') {
-        throw new Error('Invalid settings data provided');
+        const error = new Error('Invalid settings data provided');
+        logger.error(error);
+        throw error;
       }
       await serviceWorkerState.settingsManager!.updateSettings(message.data);
       return { success: true };
 
-    case 'RESET_SETTINGS':
+    case MESSAGE_TYPES.RESET_SETTINGS:
       await serviceWorkerState.settingsManager!.resetSettings();
       return { success: true };
 
-    case 'VALIDATE_SETTINGS':
+    case MESSAGE_TYPES.VALIDATE_SETTINGS:
       const currentSettings = await serviceWorkerState.settingsManager!.getSettings();
       return serviceWorkerState.settingsManager!.validateSettings(currentSettings);
 
-    case 'TEST':
+    case MESSAGE_TYPES.TEST:
       return {
         message: 'Service worker is working',
         timestamp: new Date().toISOString(),
         version: chrome.runtime.getManifest().version,
       };
 
-    case 'TEST_CONNECTION':
+    case MESSAGE_TYPES.TEST_CONNECTION:
       return await serviceWorkerState.captureService!.testGitHubConnection();
 
-    case 'CAPTURE_PAGE':
+    case MESSAGE_TYPES.CAPTURE_PAGE:
       return await serviceWorkerState.captureService!.capturePage(message.data, {
         validateSettings: true,
         includeMarkdown: true,
       });
 
-    case 'GET_STATUS':
+    case MESSAGE_TYPES.GET_STATUS:
       return getServiceWorkerStatus();
 
-    case 'GET_TURNDOWN_LIBRARY':
-      return await getTurndownLibrary();
-
-    // TEST_MARKDOWN_CONVERSION removed - use content script conversion only
-
     default:
-      throw new Error(`Unknown message type: ${message.type}`);
+      const error = new Error(`Unknown message type: ${message.type}`);
+      logger.error('Service Worker Message Unknown', error);
+      throw error;
   }
 }
 
@@ -196,33 +205,6 @@ chrome.runtime.onMessage.addListener(
     return true; // Keep message channel open for async response
   }
 );
-
-// Get TurndownService library content for alternative loading - exported for testing
-export async function getTurndownLibrary(): Promise<unknown> {
-  try {
-    logger.info('Fetching TurndownService library for content script...');
-
-    const response = await fetch(chrome.runtime.getURL('libs/turndown.min.js'));
-    if (!response.ok) {
-      throw new Error(`Failed to fetch library: ${response.status}`);
-    }
-
-    const content = await response.text();
-
-    return {
-      success: true,
-      content: content,
-      timestamp: new Date().toISOString(),
-    };
-  } catch (error) {
-    logger.error('Failed to fetch TurndownService library:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
-      timestamp: new Date().toISOString(),
-    };
-  }
-}
 
 // Get current service worker state - exported for testing
 export function getServiceWorkerState(): IServiceWorkerState {

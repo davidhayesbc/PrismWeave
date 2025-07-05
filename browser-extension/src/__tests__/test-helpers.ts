@@ -1312,10 +1312,6 @@ export const executeServiceWorkerCode = (chromeAPI?: any) => {
         /async function testGitHubConnection\(\)/g,
         'global.testGitHubConnection = async function testGitHubConnection()'
       )
-      .replace(
-        /async function getTurndownLibrary\(\)/g,
-        'global.getTurndownLibrary = async function getTurndownLibrary()'
-      )
       .replace(/var settingsManager;/, 'var settingsManager; global.settingsManager = null;')
       .replace(
         /settingsManager = new ServiceWorkerSettingsManager\(\);/g,
@@ -1431,7 +1427,6 @@ export const executeServiceWorkerCode = (chromeAPI?: any) => {
       handleMessage: (global as any).handleMessage,
       settingsManager: (global as any).settingsManager,
       testGitHubConnection: (global as any).testGitHubConnection,
-      getTurndownLibrary: (global as any).getTurndownLibrary,
     };
   } catch (error) {
     logger.error('Failed to execute service worker code:', error);
@@ -1443,9 +1438,6 @@ export const executeServiceWorkerCode = (chromeAPI?: any) => {
       handleMessage: jest.fn().mockRejectedValue(new Error('Service worker code execution failed')),
       settingsManager: null,
       testGitHubConnection: jest
-        .fn()
-        .mockRejectedValue(new Error('Service worker code execution failed')),
-      getTurndownLibrary: jest
         .fn()
         .mockRejectedValue(new Error('Service worker code execution failed')),
     };

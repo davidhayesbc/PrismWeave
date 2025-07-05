@@ -163,10 +163,7 @@ async function handleMessage(
         version: chrome.runtime.getManifest().version,
         timestamp: new Date().toISOString(),
       };
-      
-    case 'GET_TURNDOWN_LIBRARY':
-      return await getTurndownLibrary();
-      
+
     default:
       throw new Error(`Unknown message type: ${message.type}`);
   }

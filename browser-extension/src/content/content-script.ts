@@ -80,14 +80,14 @@ class PrismWeaveContent {
 
     // Add keyboard shortcut listener
     document.addEventListener('keydown', (event: KeyboardEvent) => {
-      // Ctrl+Shift+S to capture page
-      if (event.ctrlKey && event.shiftKey && event.key === 'S') {
+      // Ctrl+Alt+S to capture page
+      if (event.ctrlKey && event.altKey && event.key === 'S') {
         event.preventDefault();
         this.captureCurrentPage();
       }
 
-      // Ctrl+Shift+H to highlight content
-      if (event.ctrlKey && event.shiftKey && event.key === 'H') {
+      // Ctrl+Alt+H to highlight content
+      if (event.ctrlKey && event.altKey && event.key === 'H') {
         event.preventDefault();
         this.highlightMainContent();
       }
