@@ -53,34 +53,12 @@ export interface IDocumentMetadata {
   estimatedReadingTime?: number;
 }
 
-export interface ICaptureOptions {
-  includeImages: boolean;
-  preserveFormatting: boolean;
-  customSelectors?: string[];
-  excludeSelectors?: string[];
-  imageQuality?: number;
-}
-
-export interface IMarkdownContent {
-  content: string;
-  metadata: IDocumentMetadata;
-  frontmatter: string;
-  images?: IImageAsset[];
-}
-
 export interface IImageAsset {
   originalUrl: string;
   localPath: string;
   filename: string;
   size: number;
   mimeType: string;
-}
-
-export interface IGitCommitOptions {
-  message: string;
-  author?: string;
-  email?: string;
-  timestamp?: string;
 }
 
 export interface IFileOperationResult {
@@ -90,51 +68,6 @@ export interface IFileOperationResult {
   size?: number;
   sha?: string;
   url?: string;
-}
-
-export interface IPerformanceMetrics {
-  captureTime: number;
-  conversionTime: number;
-  commitTime: number;
-  totalTime: number;
-  memoryUsage?: number;
-}
-
-export interface IErrorInfo {
-  message: string;
-  stack?: string;
-  context: string;
-  timestamp: string;
-  url?: string;
-}
-
-export interface ILogEntry {
-  level: 'debug' | 'info' | 'warn' | 'error';
-  message: string;
-  context: string;
-  timestamp: string;
-  data?: Record<string, unknown>;
-}
-
-export interface IStorageData {
-  [key: string]: unknown;
-}
-
-export interface IElementAttributes {
-  [key: string]: string | Record<string, string> | undefined;
-  className?: string;
-  style?: Record<string, string>;
-}
-
-// Chrome extension specific types
-export interface IExtensionContext {
-  tabId?: number;
-  windowId?: number;
-  frameId?: number;
-}
-
-export interface IContentScriptMessage extends IMessageData {
-  context: IExtensionContext;
 }
 
 export interface ICaptureResult {
@@ -153,7 +86,8 @@ export interface ICaptureResult {
   };
 }
 
-// Storage type helpers
+// Storage type helpers - Note: SettingsManager has its own duplicate types
+// These are kept for consistency but SettingsManager uses local versions
 export type StorageKeys = string | string[] | Record<string, unknown> | null;
 export type StorageResult<T = Record<string, unknown>> = Promise<T>;
 
@@ -185,10 +119,3 @@ export interface IContentExtractionResult {
   extractionMethod?: 'content-script' | 'direct' | 'basic-fallback';
   timestamp?: string;
 }
-
-// Utility type helpers
-export type DeepPartial<T> = {
-  [P in keyof T]?: T[P] extends object ? DeepPartial<T[P]> : T[P];
-};
-
-export type RequiredFields<T, K extends keyof T> = T & Required<Pick<T, K>>;

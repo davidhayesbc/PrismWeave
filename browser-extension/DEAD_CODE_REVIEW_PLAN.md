@@ -1,0 +1,105 @@
+# PrismWeave Browser Extension: Dead Code Review & Removal Plan
+
+## 1. File Inventory
+
+- [x] src/background/service-worker.ts
+- [x] src/popup/popup.ts ✅ KEEP - Active popup interface
+- [x] src/types/index.ts
+- [ ] src/options/options.ts
+- [ ] src/utils/content-capture-service.ts
+- [ ] src/utils/content-cleaner.ts
+- [ ] src/utils/content-extractor-simplified.ts
+- [ ] src/utils/content-quality-analyzer.ts
+- [ ] src/utils/content-selector-strategies.ts
+- [ ] src/utils/error-handler.ts
+- [ ] src/utils/file-manager.ts
+- [ ] src/utils/global-types.ts
+- [ ] src/utils/log-config.ts
+- [ ] src/utils/logger.ts
+- [ ] src/utils/markdown-converter-core.ts
+- [ ] src/utils/markdown-converter.ts
+- [ ] src/utils/markdown/index.ts
+- [ ] src/utils/metadata-extractor.ts
+- [ ] src/utils/performance-monitor.ts
+- [ ] src/utils/settings-manager.ts
+- [ ] src/utils/shared-utils.ts
+- [ ] src/utils/test-utilities.ts
+- [ ] src/utils/ui-utils.ts
+
+### Test Files
+
+- [ ] src/**tests**/background/service-worker.test.ts
+- [-] src/**tests**/options/options.test.ts (removed as dead code)
+- [x] src/**tests**/popup.test.ts ✅ KEEP - Tests active popup code
+- [ ] src/**tests**/test-helpers.ts
+- [ ] src/**tests**/utils/content-capture-service.test.ts
+- [ ] src/**tests**/utils/content-extractor.all.test.ts
+- [ ] src/**tests**/utils/error-handler.test.ts
+- [ ] src/**tests**/utils/line-number-removal.test.ts
+- [ ] src/**tests**/utils/markdown-converter.test.ts
+- [ ] src/**tests**/utils/settings-manager.test.ts
+- [ ] src/**tests**/utils/ui-utils.test.ts
+- [ ] src/**tests**/utils/unified-file-manager.test.ts
+
+## 2. Review Process for Each File
+
+### A. For Each Production Code File
+
+1. [ ] **Enumerate all exported functions, classes, constants, and interfaces.**
+2. [ ] **For each export:**
+
+- [ ] Search for all references in the codebase (including other production
+      files and test files).
+- [ ] If the export is only referenced in test files (or not at all), mark it as
+      unused.
+- [ ] If the export is referenced in production code, keep it.
+
+3. [ ] **For each non-exported function/class:**
+
+- [ ] Check if it is called anywhere in the file or from other files.
+- [ ] If only called by tests, mark as unused.
+
+4. [ ] **Remove all unused code.**
+5. [ ] **If a file becomes empty after removals, delete it.**
+
+### B. For Each Test File
+
+1. [ ] **Identify all tests and helper functions.**
+2. [ ] **For each test:**
+
+- [ ] Determine if it tests only unused code (i.e., code not called by
+      production).
+- [ ] If so, mark the test for removal.
+
+3. [ ] **Remove all tests and helpers that only exercise unused code.**
+4. [ ] **If the test file becomes empty, delete it.**
+
+## 3. Special Considerations
+
+- [ ] **Mocks:** If a mock is only used for testing unused code, remove the
+      mock.
+- [ ] **Type Definitions:** Interfaces/types only used by unused code should
+      also be removed.
+- [ ] **Logger/Debug Utilities:** If debug or logger helpers are only referenced
+      in tests, remove them.
+- [ ] **Component/Feature Flags:** Remove any feature toggles or config entries
+      that are only used by unused code.
+
+## 4. Validation
+
+- [ ] After each removal, run the build and all remaining tests to ensure no
+      accidental breakage.
+- [ ] Commit changes with clear messages indicating dead code removal.
+
+## 5. Documentation
+
+- [ ] Document all major removals in a `DEAD_CODE_REMOVAL.md` (optional) for
+      future reference.
+
+---
+
+**Next Steps:**
+
+- [ ] Begin with a file inventory and proceed file-by-file as outlined above.
+- [ ] For each file, document what was removed and why (in commit messages or a
+      summary log).
