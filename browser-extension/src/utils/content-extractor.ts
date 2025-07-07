@@ -3,11 +3,11 @@
 // Main orchestrator that uses specialized modules for different tasks
 
 import { IDocumentMetadata } from '../types/index.js';
-import { ContentCleaner, ICleaningOptions } from './content-cleaner';
-import { ContentQualityAnalyzer, IQualityOptions } from './content-quality-analyzer';
-import { ContentSelectorManager } from './content-selector-strategies';
-import { createLogger } from './logger';
-import { MetadataExtractor } from './metadata-extractor';
+import { ContentCleaner, ICleaningOptions } from './content-cleaner.js';
+import { ContentQualityAnalyzer, IQualityOptions } from './content-quality-analyzer.js';
+import { ContentSelectorManager } from './content-selector-strategies.js';
+import { createLogger } from './logger.js';
+import { MetadataExtractor } from './metadata-extractor.js';
 
 export interface IContentResult {
   content: string;

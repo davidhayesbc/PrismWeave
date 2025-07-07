@@ -9,17 +9,30 @@
       service worker integration)
 - [x] src/utils/content-capture-service.ts ✅ KEEP - Core service for content
       extraction, processing, and GitHub operations (active in service worker)
-- [x] src/utils/content-cleaner.ts - **KEEP** - Used by content-extractor-simplified.ts which is imported in content-script.ts and tested
-- [x] src/utils/content-extractor-simplified.ts - **KEEP** - Main content extraction orchestrator used in content-script.ts and comprehensively tested
-- [x] src/utils/content-quality-analyzer.ts - **KEEP** - Used by content-extractor-simplified.ts for content quality assessment
-- [x] src/utils/content-selector-strategies.ts - **KEEP** - ContentSelectorManager used by content-extractor-simplified.ts for content selection
-- [x] src/utils/error-handler.ts - **REMOVE** - Only used in its own test file, no production usage found
-- [x] src/utils/file-manager.ts - **REMOVE** - Only used in its own test file, no production usage found
-- [x] src/utils/global-types.ts - **KEEP** - Provides global type definitions and getGlobalScope() used by logger, ui-utils, shared-utils, and performance-monitor
-- [ ] src/utils/log-config.ts
-- [ ] src/utils/logger.ts
-- [ ] src/utils/markdown-converter-core.ts
-- [ ] src/utils/markdown-converter.ts
+- [x] src/utils/content-cleaner.ts - **KEEP** - Used by content-extractor.ts
+      which is imported in content-script.ts and tested
+- [x] src/utils/content-extractor.ts - **KEEP** - Main content extraction
+      orchestrator used in content-script.ts and comprehensively tested
+- [x] src/utils/content-quality-analyzer.ts - **KEEP** - Used by
+      content-extractor.ts for content quality assessment
+- [x] src/utils/content-selector-strategies.ts - **KEEP** -
+      ContentSelectorManager used by content-extractor.ts for content selection
+- [x] src/utils/error-handler.ts - **REMOVE** - Only used in its own test file,
+      no production usage found
+- [x] src/utils/file-manager.ts - **KEEP** - Used by ContentCaptureService for
+      GitHub operations and file management
+- [x] src/utils/global-types.ts - **KEEP** - Provides global type definitions
+      and getGlobalScope() used by logger, ui-utils, shared-utils, and
+      performance-monitor
+- [x] src/utils/log-config.ts - **KEEP** - Used by logger.ts for centralized
+      logging configuration
+- [x] src/utils/logger.ts - **KEEP** - Core logging utility used throughout the
+      entire extension (20+ imports)
+- [x] src/utils/markdown-converter.ts - **KEEP** - Browser-specific markdown
+      converter adapter with comprehensive test coverage
+- [x] src/utils/markdown-converter-core.ts - **KEEP** - Base class extended by
+      MarkdownConverter, provides core conversion logic and interfaces used in
+      production
 - [ ] src/utils/markdown/index.ts
 - [ ] src/utils/metadata-extractor.ts
 - [ ] src/utils/performance-monitor.ts
@@ -27,21 +40,6 @@
 - [ ] src/utils/shared-utils.ts
 - [ ] src/utils/test-utilities.ts
 - [ ] src/utils/ui-utils.ts
-
-### Test Files
-
-- [ ] src/**tests**/background/service-worker.test.ts
-- [-] src/**tests**/options/options.test.ts (removed as dead code)
-- [x] src/**tests**/popup.test.ts ✅ KEEP - Tests active popup code
-- [ ] src/**tests**/test-helpers.ts
-- [ ] src/**tests**/utils/content-capture-service.test.ts
-- [ ] src/**tests**/utils/content-extractor.all.test.ts
-- [ ] src/**tests**/utils/error-handler.test.ts
-- [ ] src/**tests**/utils/line-number-removal.test.ts
-- [ ] src/**tests**/utils/markdown-converter.test.ts
-- [ ] src/**tests**/utils/settings-manager.test.ts
-- [ ] src/**tests**/utils/ui-utils.test.ts
-- [ ] src/**tests**/utils/unified-file-manager.test.ts
 
 ## 2. Review Process for Each File
 
