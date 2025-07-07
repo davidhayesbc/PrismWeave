@@ -33,8 +33,10 @@
 - [x] src/utils/markdown-converter-core.ts - **KEEP** - Base class extended by
       MarkdownConverter, provides core conversion logic and interfaces used in
       production
-- [ ] src/utils/markdown/index.ts
-- [ ] src/utils/metadata-extractor.ts
+- [x] src/utils/markdown/index.ts - **REMOVE** - Re-export index file with no
+      actual imports in production code
+- [x] src/utils/metadata-extractor.ts - **REMOVE** - Only used by
+      ContentExtractor which is not used in production code
 - [ ] src/utils/performance-monitor.ts
 - [ ] src/utils/settings-manager.ts
 - [ ] src/utils/shared-utils.ts
