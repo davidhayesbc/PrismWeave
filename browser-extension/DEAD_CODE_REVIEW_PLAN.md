@@ -5,15 +5,17 @@
 - [x] src/background/service-worker.ts
 - [x] src/popup/popup.ts ✅ KEEP - Active popup interface
 - [x] src/types/index.ts
-- [ ] src/options/options.ts
-- [ ] src/utils/content-capture-service.ts
-- [ ] src/utils/content-cleaner.ts
-- [ ] src/utils/content-extractor-simplified.ts
-- [ ] src/utils/content-quality-analyzer.ts
-- [ ] src/utils/content-selector-strategies.ts
-- [ ] src/utils/error-handler.ts
-- [ ] src/utils/file-manager.ts
-- [ ] src/utils/global-types.ts
+- [x] src/options/options.ts ✅ KEEP - Active options page (manifest.json +
+      service worker integration)
+- [x] src/utils/content-capture-service.ts ✅ KEEP - Core service for content
+      extraction, processing, and GitHub operations (active in service worker)
+- [x] src/utils/content-cleaner.ts - **KEEP** - Used by content-extractor-simplified.ts which is imported in content-script.ts and tested
+- [x] src/utils/content-extractor-simplified.ts - **KEEP** - Main content extraction orchestrator used in content-script.ts and comprehensively tested
+- [x] src/utils/content-quality-analyzer.ts - **KEEP** - Used by content-extractor-simplified.ts for content quality assessment
+- [x] src/utils/content-selector-strategies.ts - **KEEP** - ContentSelectorManager used by content-extractor-simplified.ts for content selection
+- [x] src/utils/error-handler.ts - **REMOVE** - Only used in its own test file, no production usage found
+- [x] src/utils/file-manager.ts - **REMOVE** - Only used in its own test file, no production usage found
+- [x] src/utils/global-types.ts - **KEEP** - Provides global type definitions and getGlobalScope() used by logger, ui-utils, shared-utils, and performance-monitor
 - [ ] src/utils/log-config.ts
 - [ ] src/utils/logger.ts
 - [ ] src/utils/markdown-converter-core.ts
