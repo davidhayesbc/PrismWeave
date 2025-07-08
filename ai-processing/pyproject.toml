@@ -92,7 +92,7 @@ performance = [
 ]
 
 [project.scripts]
-prismweave = "cli.prismweave:main"
+prismweave = "cli.prismweave:cli"
 
 [project.urls]
 Homepage = "https://github.com/davidhayesbc/PrismWeave"

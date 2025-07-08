@@ -1,83 +1,48 @@
-models:
-  large:
-    fallback: mistral:latest
-    max_context: 16000
-    max_tokens: 4000
-    primary: llama3.1:8b
-    temperature: 0.5
-    timeout: 120
-  medium:
-    fallback: mistral:latest
-    max_context: 8000
-    max_tokens: 2000
-    primary: llama3.1:8b
-    temperature: 0.3
-    timeout: 90
-  small:
-    fallback: llama3.1:8b
-    max_context: 4000
-    max_tokens: 1000
-    primary: mistral:latest
-    temperature: 0.1
-    timeout: 60
+# PrismWeave AI Processing Configuration
+# Merged configuration containing only settings used by the CLI tool
+
+# Ollama Server Configuration
 ollama:
   host: http://localhost:11434
-  max_retries: 2
-  retry_delay: 5
   timeout: 60
+  
+  # Model mapping - simplified structure (no complex fallbacks)
+  models:
+    large: "llama3.1:8b"           # Complex analysis, long-form generation
+    medium: "phi3:mini"            # Standard document processing  
+    small: "phi3:mini"             # Quick tasks, tagging, classification
+    embedding: "nomic-embed-text"  # Vector embeddings for search
+
+# Document Processing Configuration
 processing:
+  max_concurrent: 2
   chunk_size: 3000
-  enable_preprocessing: true
-  max_content_length: 4000
+  chunk_overlap: 300
+  min_chunk_size: 100
+  
+  # Processing timeouts
+  summary_timeout: 120
+  tagging_timeout: 60
+  categorization_timeout: 30
+  
+  # Content filtering
   min_word_count: 50
-  overlap: 300
-  remove_code_blocks: true
-  simplify_markdown: true
-  timeout: 60
-taxonomy:
-  business_tags:
-  - strategy
-  - startup
-  - management
-  - leadership
-  - finance
-  - marketing
-  - sales
-  - product
-  - growth
-  - innovation
-  categories:
-  - tech
-  - business
-  - research
-  - news
-  - tutorial
-  - reference
-  - unsorted
-  tech_tags:
-  - programming
-  - ai
-  - machine-learning
-  - web-development
-  - backend
-  - frontend
-  - devops
-  - database
-  - api
-  - testing
-  - security
-  - cloud
-  - docker
-  - kubernetes
-  - python
-  - javascript
-  - typescript
-  - react
-  - node
-  - aws
-  - azure
-  - gcp
-  - haskell
-  - unison
-  - software-methodologies
-  - transcript-tests
+  max_word_count: 50000
+  
+  # Output settings
+  max_summary_length: 500
+  max_tags: 10
+
+# Vector Database Configuration
+vector:
+  collection_name: "documents"
+  persist_directory: "../../PrismWeaveDocs/.prismweave/chroma_db"
+  embedding_function: "sentence-transformers"
+  
+  # Search settings
+  max_results: 20
+  similarity_threshold: 0.6
+
+# Logging Configuration
+log_level: "INFO"
+log_file: null

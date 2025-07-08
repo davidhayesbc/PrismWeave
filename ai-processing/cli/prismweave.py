@@ -1,630 +1,437 @@
 #!/usr/bin/env python3
 """
-PrismWeave CLI - Command line interface for document processing and search
+PrismWeave CLI - Simplified AI Document Processing Interface
+Clean, straightforward interface without complex fallback mechanisms
 """
 
 import asyncio
+import logging
 import sys
-import time
 from pathlib import Path
-from typing import List, Optional, Dict, Any
+from typing import List, Optional
 import json
-import argparse
 
 try:
     import click
     from rich.console import Console
     from rich.table import Table
-    from rich.progress import Progress, SpinnerColumn, TextColumn
+    from rich.progress import Progress, TaskID
+    from rich.logging import RichHandler
     from rich.panel import Panel
-    from rich.text import Text
-except ImportError:
-    click = None
-    Console = None
-    Table = None
-    Progress = None
-    Panel = None
-    Text = None
+except ImportError as e:
+    print(f"ERROR: Required dependencies not installed: {e}")
+    print("Please install with: pip install click rich")
+    sys.exit(1)
 
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 
-from src.processors.document_processor import DocumentProcessor
-from src.search.semantic_search import SemanticSearch
-from src.rag.rag_synthesizer import RAGSynthesizer, RAGQuery
-from src.utils.config import get_config, reload_config
+try:
+    from src.models.ollama_client_simplified import OllamaClient
+    from src.processors.document_processor_simplified import DocumentProcessor
+    from src.utils.semantic_search import SemanticSearch
+    from src.utils.config_simplified import get_config, load_config, Config
+except ImportError as e:
+    print(f"ERROR: PrismWeave modules not found: {e}")
+    print("Please ensure you're running from the correct directory and modules are available")
+    sys.exit(1)
 
-console = Console() if Console else None
+# Setup rich console
+console = Console()
 
-def print_error(message: str):
-    """Print error message"""
-    if console:
-        console.print(f"[red]✗[/red] {message}")
-    else:
-        print(f"ERROR: {message}")
+# Setup logging
+def setup_logging(level: str = "INFO"):
+    """Setup logging with rich handler"""
+    logging.basicConfig(
+        level=getattr(logging, level.upper()),
+        format="%(message)s",
+        datefmt="[%X]",
+        handlers=[RichHandler(console=console, rich_tracebacks=True)]
+    )
 
-def print_warning(message: str):
-    """Print warning message"""
-    if console:
-        console.print(f"[yellow]⚠[/yellow] {message}")
-    else:
-        print(f"WARNING: {message}")
-
-def print_info(message: str):
-    """Print info message"""
-    if console:
-        console.print(f"[blue]ℹ[/blue] {message}")
-    else:
-        print(f"INFO: {message}")
-
-def print_success(message: str):
-    """Print success message"""
-    if console:
-        console.print(f"[green]✓[/green] {message}")
-    else:
-        print(f"SUCCESS: {message}")
-
-async def process_documents(documents_path: str, output_format: str = "table", single_file: bool = False):
-    """Process documents in the specified directory or a single file"""
-    docs_path = Path(documents_path)
+@click.group()
+@click.option('--config', '-c', type=click.Path(exists=True), help='Configuration file path')
+@click.option('--log-level', default='INFO', help='Logging level')
+@click.pass_context
+def cli(ctx, config, log_level):
+    """PrismWeave AI Processing - Simplified Interface"""
+    ctx.ensure_object(dict)
     
-    if not docs_path.exists():
-        print_error(f"Path not found: {documents_path}")
-        return
+    # Setup logging
+    setup_logging(log_level)
     
-    # Handle single file processing
-    if single_file or docs_path.is_file():
-        if not docs_path.is_file():
-            print_error(f"File not found: {documents_path}")
-            return
-        
-        if not docs_path.suffix.lower() == '.md':
-            print_error(f"File must be a markdown (.md) file: {documents_path}")
-            return
-        
-        md_files = [docs_path]
-        print_info(f"Processing single file: {docs_path.name}")
+    # Load configuration
+    if config:
+        ctx.obj['config'] = load_config(Path(config))
     else:
-        # Find all markdown files in directory
-        md_files = list(docs_path.rglob("*.md"))
-        if not md_files:
-            print_warning(f"No markdown files found in {documents_path}")
-            return
-        
-        print_info(f"Found {len(md_files)} markdown files to process")
+        ctx.obj['config'] = get_config()
     
-    async with DocumentProcessor() as processor:
-        # Check if Ollama is available
-        health = await processor.health_check()
-        if not health["ollama_available"]:
-            print_error("Ollama server not available. Please start Ollama and try again.")
-            return
+    # Validate configuration
+    issues = ctx.obj['config'].validate()
+    if issues:
+        console.print("[red]Configuration issues found:[/red]")
+        for issue in issues:
+            console.print(f"  - {issue}")
+        raise click.Abort()
+
+@cli.command()
+@click.pass_context
+def health(ctx):
+    """Check system health and model availability"""
+    async def _health():
+        config = ctx.obj['config']
         
-        print_info(f"Available models: {', '.join(health['models_available'])}")
+        console.print("[blue]Checking PrismWeave AI Health...[/blue]")
         
-        # Process documents
-        if console and Progress:
-            with Progress(
-                SpinnerColumn(),
-                TextColumn("[progress.description]{task.description}"),
-                console=console
-            ) as progress:
-                task = progress.add_task("Processing documents...", total=len(md_files))
+        try:
+            async with OllamaClient(host=config.ollama.host, timeout=config.ollama.timeout) as client:
+                health_info = await client.health_check()
                 
-                results = []
-                for file_path in md_files:
-                    progress.update(task, description=f"Processing {file_path.name}")
-                    result = await processor.process_document(file_path)
-                    results.append(result)
+                # Display health information
+                table = Table(title="System Health")
+                table.add_column("Component", style="cyan")
+                table.add_column("Status", style="green")
+                table.add_column("Details")
+                
+                # Server status
+                server_status = "✅ Available" if health_info["server_available"] else "❌ Unavailable"
+                table.add_row("Ollama Server", server_status, config.ollama.host)
+                
+                # Models status
+                models_status = f"✅ {health_info['models_count']} models" if health_info["models_count"] > 0 else "❌ No models"
+                table.add_row("Models", models_status, ", ".join(health_info["available_models"][:3]))
+                
+                # Configuration
+                table.add_row("Configuration", "✅ Valid" if config.is_valid() else "❌ Invalid", f"Log level: {config.log_level}")
+                
+                console.print(table)
+                
+                # Check configured models
+                if health_info["server_available"]:
+                    console.print("\n[blue]Checking configured models...[/blue]")
+                    
+                    model_table = Table(title="Configured Models")
+                    model_table.add_column("Purpose", style="cyan")
+                    model_table.add_column("Model", style="yellow")
+                    model_table.add_column("Status", style="green")
+                    
+                    for purpose, model_name in config.ollama.models.items():
+                        available = await client.model_exists(model_name)
+                        status = "✅ Available" if available else "❌ Not found"
+                        model_table.add_row(purpose.title(), model_name, status)
+                    
+                    console.print(model_table)
+        except Exception as e:
+            console.print(f"[red]Health check failed: {e}[/red]")
+    
+    asyncio.run(_health())
+
+@cli.command()
+@click.argument('path', type=click.Path(exists=True))
+@click.option('--output', '-o', type=click.Path(), help='Output file for results')
+@click.option('--recursive', '-r', is_flag=True, help='Process directories recursively')
+@click.pass_context
+def process(ctx, path, output, recursive):
+    """Process documents and generate AI analysis"""
+    async def _process():
+        config = ctx.obj['config']
+        path_obj = Path(path)
+        
+        # Collect files to process
+        if path_obj.is_file():
+            files = [path_obj]
+        elif path_obj.is_dir():
+            pattern = "**/*.md" if recursive else "*.md"
+            files = list(path_obj.glob(pattern))
+        else:
+            console.print(f"[red]Invalid path: {path_obj}[/red]")
+            return
+        
+        if not files:
+            console.print("[yellow]No markdown files found[/yellow]")
+            return
+        
+        console.print(f"[blue]Processing {len(files)} files...[/blue]")
+        
+        try:
+            processor = DocumentProcessor()
+            results = []
+            
+            with Progress() as progress:
+                task = progress.add_task("Processing files...", total=len(files))
+                
+                for file_path in files:
+                    try:
+                        progress.update(task, description=f"Processing {file_path.name}")
+                        analysis, metadata = await processor.process_file(file_path)
+                        
+                        result = {
+                            'file': str(file_path),
+                            'analysis': {
+                                'summary': analysis.summary,
+                                'tags': analysis.tags,
+                                'category': analysis.category,
+                                'word_count': analysis.word_count,
+                                'reading_time': analysis.reading_time,
+                                'language': analysis.language,
+                                'readability_score': analysis.readability_score,
+                                'key_topics': analysis.key_topics,
+                                'confidence': analysis.confidence
+                            },
+                            'metadata': metadata
+                        }
+                        results.append(result)
+                        
+                        # Display progress
+                        console.print(f"  ✅ {file_path.name} - {analysis.category} - {len(analysis.tags)} tags")
+                        
+                    except Exception as e:
+                        console.print(f"  ❌ {file_path.name} - Error: {e}")
+                        results.append({
+                            'file': str(file_path),
+                            'error': str(e)
+                        })
+                    
                     progress.advance(task)
-        else:
-            print_info("Processing documents...")
-            results = await processor.process_batch(md_files)
-        
-        # Display results
-        successful = [r for r in results if r.success]
-        failed = [r for r in results if not r.success]
-        
-        print_success(f"Successfully processed {len(successful)} documents")
-        if failed:
-            print_error(f"Failed to process {len(failed)} documents")
-        
-        if output_format == "json":
-            output = {
-                "summary": {
-                    "total_documents": len(md_files),
-                    "successful": len(successful),
-                    "failed": len(failed),
-                    "processing_time": sum(r.processing_time for r in results)
-                },
-                "results": [
-                    {
-                        "document": r.document_path,
-                        "success": r.success,
-                        "category": r.suggested_category,
-                        "quality_score": r.quality_score,
-                        "tags": r.suggested_tags,
-                        "summary": r.generated_summary[:200] + "..." if len(r.generated_summary) > 200 else r.generated_summary,
-                        "processing_time": r.processing_time,
-                        "error": r.error
-                    }
-                    for r in results
-                ]
-            }
-            print(json.dumps(output, indent=2, default=str))
-        
-        elif output_format == "table" and console and Table:
-            table = Table(title="Document Processing Results")
-            table.add_column("Document", style="cyan")
-            table.add_column("Category", style="magenta")
-            table.add_column("Quality", style="green")
-            table.add_column("Tags", style="blue")
-            table.add_column("Status", style="yellow")
             
-            for result in results[:20]:  # Limit to first 20 for display
-                doc_name = Path(result.document_path).name
-                category = result.suggested_category if result.success else "error"
-                quality = f"{result.quality_score:.1f}" if result.success else "N/A"
-                tags = ", ".join(result.suggested_tags[:3]) if result.success and result.suggested_tags else "None"
-                status = "✓" if result.success else "✗"
+            # Display summary
+            successful = sum(1 for r in results if 'analysis' in r)
+            console.print(f"\n[green]Processed {successful}/{len(files)} files successfully[/green]")
+            
+            # Save results if output specified
+            if output:
+                output_path = Path(output)
+                output_path.parent.mkdir(parents=True, exist_ok=True)
                 
-                table.add_row(doc_name, category, quality, tags, status)
-            
-            console.print(table)
-            
-            if len(results) > 20:
-                print_info(f"Showing first 20 results. Total: {len(results)}")
-        
-        else:
-            # Simple text output
-            for result in results:
-                if result.success:
-                    print(f"✓ {Path(result.document_path).name} -> {result.suggested_category} (Quality: {result.quality_score:.1f})")
-                else:
-                    print(f"✗ {Path(result.document_path).name} -> Error: {result.error}")
-
-async def search_documents(query: str, max_results: int = 10, search_type: str = "semantic"):
-    """Search documents using semantic search"""
-    print_info(f"Searching for: '{query}'")
-    
-    async with SemanticSearch() as search_engine:
-        # Check if search engine is ready
-        health = await search_engine.health_check()
-        if not health["search_engine_ready"]:
-            print_error("Search engine not ready. Please process documents first.")
-            return
-        
-        if health["indexed_documents"] == 0:
-            print_warning("No documents indexed. Please run 'prismweave process' first.")
-            return
-        
-        print_info(f"Searching {health['indexed_documents']} indexed documents")
-        
-        # Perform search
-        response = await search_engine.search(
-            query=query,
-            max_results=max_results,
-            search_type=search_type
-        )
-        
-        if not response.results:
-            print_warning("No results found")
-            return
-        
-        print_success(f"Found {len(response.results)} results in {response.search_time:.2f}s")
-        
-        if console and Table:
-            table = Table(title=f"Search Results for '{query}'")
-            table.add_column("Rank", style="dim")
-            table.add_column("Document", style="cyan")
-            table.add_column("Score", style="green")
-            table.add_column("Snippet", style="white")
-            
-            for result in response.results:
-                doc_name = Path(result.document_path).name
-                score = f"{result.similarity_score:.3f}"
-                snippet = result.snippet[:100] + "..." if len(result.snippet) > 100 else result.snippet
+                with open(output_path, 'w', encoding='utf-8') as f:
+                    json.dump(results, f, indent=2, default=str)
                 
-                table.add_row(str(result.rank), doc_name, score, snippet)
-            
-            console.print(table)
-        else:
-            # Simple text output
-            for result in response.results:
-                print(f"{result.rank}. {Path(result.document_path).name} (Score: {result.similarity_score:.3f})")
-                print(f"   {result.snippet[:150]}...")
-                print()
-
-async def rag_query(args):
-    """Handle RAG question answering"""
-    print_info(f"Processing RAG query: {args.question}")
+                console.print(f"Results saved to: {output_path}")
+        except Exception as e:
+            console.print(f"[red]Processing failed: {e}[/red]")
     
-    try:
-        async with RAGSynthesizer() as rag:
-            # Build RAG query
-            query = RAGQuery(
-                question=args.question,
-                synthesis_style=args.style,
-                max_context_documents=args.max_docs
+    asyncio.run(_process())
+
+@cli.command()
+@click.argument('query')
+@click.option('--limit', '-l', default=5, help='Maximum number of results')
+@click.option('--threshold', '-t', default=0.7, help='Similarity threshold')
+@click.pass_context
+def search(ctx, query, limit, threshold):
+    """Search documents using semantic similarity"""
+    async def _search():
+        config = ctx.obj['config']
+        
+        console.print(f"[blue]Searching for: '{query}'[/blue]")
+        
+        try:
+            search_engine = SemanticSearch(config.vector)
+            results = await search_engine.search(
+                query=query,
+                max_results=limit,
+                similarity_threshold=threshold
             )
             
-            # Add filters if specified
-            if args.category:
-                query.context_types = args.category
-            
-            if args.tags:
-                query.required_tags = [tag.strip() for tag in args.tags.split(',')]
-            
-            # Execute query
-            response = await rag.query(query)
+            if not results:
+                console.print("[yellow]No matching documents found[/yellow]")
+                return
             
             # Display results
-            if args.format == "json":
-                result = {
-                    "question": response.question,
-                    "answer": response.answer,
-                    "confidence": response.confidence_score,
-                    "processing_time": response.processing_time,
-                    "model": response.synthesis_model,
-                    "context_documents": response.context_document_count,
-                    "sources": [
-                        {
-                            "title": src.title,
-                            "path": src.document_path,
-                            "similarity": src.similarity_score
-                        } for src in response.sources
-                    ]
-                }
-                print(json.dumps(result, indent=2))
-            else:
-                # Rich text display
-                if console and Panel:
-                    # Question panel
-                    console.print(Panel(
-                        response.question,
-                        title="❓ Question",
-                        border_style="blue"
-                    ))
-                    
-                    # Answer panel
-                    console.print(Panel(
-                        response.answer,
-                        title="💡 Answer",
-                        border_style="green"
-                    ))
-                    
-                    # Metadata
-                    metadata_text = f"""
-🤖 Model: {response.synthesis_model}
-📊 Confidence: {response.confidence_score:.2f}
-📚 Context Documents: {response.context_document_count}
-⏱️  Processing Time: {response.processing_time:.2f}s
-                    """.strip()
-                    
-                    console.print(Panel(
-                        metadata_text,
-                        title="📋 Metadata",
-                        border_style="cyan"
-                    ))
-                    
-                    # Sources table
-                    if response.sources and Table:
-                        sources_table = Table(title="📖 Sources")
-                        sources_table.add_column("Title", style="cyan")
-                        sources_table.add_column("Similarity", style="green")
-                        sources_table.add_column("Path", style="dim")
-                        
-                        for src in response.sources[:5]:  # Show top 5 sources
-                            sources_table.add_row(
-                                src.title,
-                                f"{src.similarity_score:.3f}",
-                                str(Path(src.document_path).name)
-                            )
-                        
-                        console.print(sources_table)
+            table = Table(title=f"Search Results for '{query}'")
+            table.add_column("Document", style="cyan")
+            table.add_column("Similarity", style="green")
+            table.add_column("Summary")
+            
+            for result in results:
+                similarity = f"{result.get('similarity', 0):.3f}"
+                title = result.get('metadata', {}).get('title', 'Unknown')
+                summary = result.get('metadata', {}).get('summary', 'No summary available')
                 
-                else:
-                    # Simple text output
-                    print(f"\nQuestion: {response.question}")
-                    print(f"\nAnswer:\n{response.answer}")
-                    print(f"\nMetadata:")
-                    print(f"  Model: {response.synthesis_model}")
-                    print(f"  Confidence: {response.confidence_score:.2f}")
-                    print(f"  Context Documents: {response.context_document_count}")
-                    print(f"  Processing Time: {response.processing_time:.2f}s")
-                    
-                    if response.sources:
-                        print(f"\nTop Sources:")
-                        for i, src in enumerate(response.sources[:3], 1):
-                            print(f"  {i}. {src.title} (similarity: {src.similarity_score:.3f})")
-
-    except Exception as e:
-        print_error(f"RAG query failed: {str(e)}")
-
-async def technical_query(args):
-    """Handle technical questions"""
-    print_info(f"Processing technical query: {args.question}")
-    
-    try:
-        async with RAGSynthesizer() as rag:
-            # Parse technologies if provided
-            technologies = []
-            if args.technologies:
-                technologies = [tech.strip() for tech in args.technologies.split(',')]
+                table.add_row(title, similarity, summary[:100] + "..." if len(summary) > 100 else summary)
             
-            # Execute technical query
-            response = await rag.technical_query(args.question, technologies)
+            console.print(table)
             
-            # Display results
-            if args.format == "json":
-                result = {
-                    "question": response.question,
-                    "answer": response.answer,
-                    "confidence": response.confidence_score,
-                    "processing_time": response.processing_time,
-                    "model": response.synthesis_model,
-                    "context_documents": response.context_document_count,
-                    "technologies": technologies,
-                    "sources": [
-                        {
-                            "title": src.title,
-                            "path": src.document_path,
-                            "similarity": src.similarity_score,
-                            "tags": src.metadata.get('tags', [])
-                        } for src in response.sources
-                    ]
-                }
-                print(json.dumps(result, indent=2))
-            else:
-                # Rich text display for technical content
-                if console and Panel:
-                    console.print(Panel(
-                        response.question,
-                        title="🔧 Technical Question",
-                        border_style="blue"
-                    ))
-                    
-                    console.print(Panel(
-                        response.answer,
-                        title="⚙️ Technical Answer",
-                        border_style="green"
-                    ))
-                    
-                    if technologies:
-                        tech_text = ", ".join(technologies)
-                        console.print(Panel(
-                            tech_text,
-                            title="🏷️ Focus Technologies",
-                            border_style="yellow"
-                        ))
-                else:
-                    print(f"\n🔧 Technical Question: {response.question}")
-                    if technologies:
-                        print(f"🏷️ Focus Technologies: {', '.join(technologies)}")
-                    print(f"\n⚙️ Technical Answer:\n{response.answer}")
-
-    except Exception as e:
-        print_error(f"Technical query failed: {str(e)}")
-
-async def research_synthesis(args):
-    """Handle research synthesis"""
-    print_info(f"Synthesizing research on: {args.topic}")
+        except Exception as e:
+            console.print(f"[red]Search failed: {e}[/red]")
     
-    try:
-        async with RAGSynthesizer() as rag:
-            # Execute research synthesis
-            response = await rag.research_synthesis(args.topic)
+    asyncio.run(_search())
+
+@cli.command()
+@click.argument('question')
+@click.option('--context-docs', '-n', default=3, help='Number of context documents to use')
+@click.pass_context
+def ask(ctx, question, context_docs):
+    """Ask a question using RAG (Retrieval Augmented Generation)"""
+    async def _ask():
+        config = ctx.obj['config']
+        
+        console.print(f"[blue]Question: {question}[/blue]")
+        
+        try:
+            # Search for relevant context
+            search_engine = SemanticSearch(config.vector)
+            context_results = await search_engine.search(
+                query=question,
+                max_results=context_docs,
+                similarity_threshold=0.5
+            )
             
-            # Display results
-            if args.format == "json":
-                result = {
-                    "topic": args.topic,
-                    "synthesis": response.answer,
-                    "confidence": response.confidence_score,
-                    "processing_time": response.processing_time,
-                    "model": response.synthesis_model,
-                    "research_documents": response.context_document_count,
-                    "sources": [
-                        {
-                            "title": src.title,
-                            "path": src.document_path,
-                            "similarity": src.similarity_score,
-                            "category": src.metadata.get('category'),
-                            "tags": src.metadata.get('tags', [])
-                        } for src in response.sources
-                    ]
-                }
-                print(json.dumps(result, indent=2))
-            else:
-                # Rich text display for research
-                if console and Panel:
-                    console.print(Panel(
-                        args.topic,
-                        title="🔬 Research Topic",
-                        border_style="blue"
-                    ))
-                    
-                    console.print(Panel(
-                        response.answer,
-                        title="📊 Research Synthesis",
-                        border_style="green"
-                    ))
-                    
-                    synthesis_metadata = f"""
-📚 Research Documents Analyzed: {response.context_document_count}
-🤖 Synthesis Model: {response.synthesis_model}
-📊 Confidence: {response.confidence_score:.2f}
-⏱️  Processing Time: {response.processing_time:.2f}s
-                    """.strip()
-                    
-                    console.print(Panel(
-                        synthesis_metadata,
-                        title="📋 Synthesis Metadata",
-                        border_style="cyan"
-                    ))
-                else:
-                    print(f"\n🔬 Research Topic: {args.topic}")
-                    print(f"\n📊 Research Synthesis:\n{response.answer}")
-                    print(f"\n📚 Research Documents Analyzed: {response.context_document_count}")
-
-    except Exception as e:
-        print_error(f"Research synthesis failed: {str(e)}")
-
-async def show_status():
-    """Show system status and statistics"""
-    config = get_config()
-    
-    print_info("PrismWeave AI Processing Status")
-    print()
-    
-    # Test Ollama connection
-    async with DocumentProcessor() as processor:
-        health = await processor.health_check()
-        
-        if console and Panel:
-            # Ollama status
-            ollama_status = "🟢 Connected" if health["ollama_available"] else "🔴 Disconnected"
-            console.print(Panel(
-                f"[bold]Ollama Server:[/bold] {ollama_status}\n"
-                f"[bold]Available Models:[/bold] {len(health.get('models_available', []))}\n"
-                f"[bold]Models:[/bold] {', '.join(health.get('models_available', [])[:3])}{'...' if len(health.get('models_available', [])) > 3 else ''}",
-                title="AI Engine Status"
-            ))
-        else:
-            print(f"Ollama Server: {'Connected' if health['ollama_available'] else 'Disconnected'}")
-            print(f"Available Models: {', '.join(health.get('models_available', []))}")
-        
-        # Processing statistics
-        stats = processor.get_statistics()
-        if console and Panel:
-            console.print(Panel(
-                f"[bold]Processed Documents:[/bold] {stats['processed_count']}\n"
-                f"[bold]Processing Errors:[/bold] {stats['error_count']}\n"
-                f"[bold]Average Processing Time:[/bold] {stats.get('average_processing_time', 0):.2f}s",
-                title="Processing Statistics"
-            ))
-        else:
-            print(f"\nProcessing Statistics:")
-            print(f"  Processed Documents: {stats['processed_count']}")
-            print(f"  Processing Errors: {stats['error_count']}")
-            print(f"  Average Processing Time: {stats.get('average_processing_time', 0):.2f}s")
-    
-    # Search engine status
-    async with SemanticSearch() as search_engine:
-        search_health = await search_engine.health_check()
-        search_stats = search_engine.get_statistics()
-        
-        if console and Panel:
-            console.print(Panel(
-                f"[bold]Search Engine:[/bold] {'🟢 Ready' if search_health['search_engine_ready'] else '🔴 Not Ready'}\n"
-                f"[bold]Indexed Documents:[/bold] {search_health['indexed_documents']}\n"
-                f"[bold]Total Searches:[/bold] {search_stats['total_searches']}\n"
-                f"[bold]Average Search Time:[/bold] {search_stats.get('average_search_time', 0):.3f}s",
-                title="Search Engine Status"
-            ))
-        else:
-            print(f"\nSearch Engine: {'Ready' if search_health['search_engine_ready'] else 'Not Ready'}")
-            print(f"  Indexed Documents: {search_health['indexed_documents']}")
-            print(f"  Total Searches: {search_stats['total_searches']}")
-            print(f"  Average Search Time: {search_stats.get('average_search_time', 0):.3f}s")
-
-def main():
-    """Main CLI entry point"""
-    parser = argparse.ArgumentParser(description="PrismWeave AI Document Processing CLI")
-    subparsers = parser.add_subparsers(dest="command", help="Available commands")
-    
-    # Process command
-    process_parser = subparsers.add_parser("process", help="Process documents with AI analysis")
-    process_parser.add_argument("path", nargs="?", default=None, help="Documents directory path or single file path")
-    process_parser.add_argument("--format", choices=["table", "json"], default="table", help="Output format")
-    process_parser.add_argument("--single-file", action="store_true", help="Process a single markdown file instead of a directory")
-    
-    # Search command
-    search_parser = subparsers.add_parser("search", help="Search documents")
-    search_parser.add_argument("query", help="Search query")
-    search_parser.add_argument("--max-results", type=int, default=10, help="Maximum results to return")
-    search_parser.add_argument("--type", choices=["semantic", "hybrid", "keyword"], default="semantic", help="Search type")
-    
-    # RAG Query command
-    rag_parser = subparsers.add_parser("ask", help="Ask questions using RAG (Retrieval Augmented Generation)")
-    rag_parser.add_argument("question", help="Question to ask")
-    rag_parser.add_argument("--style", choices=["brief", "comprehensive", "technical"], default="comprehensive", help="Response style")
-    rag_parser.add_argument("--category", action="append", help="Filter by document categories (can be used multiple times)")
-    rag_parser.add_argument("--tags", help="Comma-separated list of required tags")
-    rag_parser.add_argument("--max-docs", type=int, default=10, help="Maximum context documents to use")
-    rag_parser.add_argument("--format", choices=["text", "json"], default="text", help="Output format")
-    
-    # Technical Query command
-    tech_parser = subparsers.add_parser("tech", help="Ask technical questions with technology focus")
-    tech_parser.add_argument("question", help="Technical question to ask")
-    tech_parser.add_argument("--technologies", help="Comma-separated list of technologies to focus on")
-    tech_parser.add_argument("--format", choices=["text", "json"], default="text", help="Output format")
-    
-    # Research Synthesis command
-    research_parser = subparsers.add_parser("research", help="Synthesize research on a topic")
-    research_parser.add_argument("topic", help="Research topic to synthesize")
-    research_parser.add_argument("--format", choices=["text", "json"], default="text", help="Output format")
-    
-    # Status command
-    subparsers.add_parser("status", help="Show system status")
-    
-    # Config command
-    config_parser = subparsers.add_parser("config", help="Show configuration")
-    config_parser.add_argument("--reload", action="store_true", help="Reload configuration")
-    
-    args = parser.parse_args()
-    
-    if not args.command:
-        parser.print_help()
-        return
-    
-    try:
-        if args.command == "process":
-            docs_path = args.path
-            if not docs_path:
-                config = get_config()
-                docs_path = str(config.get_documents_path())
+            if not context_results:
+                console.print("[yellow]No relevant documents found for context[/yellow]")
+                return
             
-            asyncio.run(process_documents(docs_path, args.format, args.single_file))
-        
-        elif args.command == "search":
-            asyncio.run(search_documents(args.query, args.max_results, args.type))
-        
-        elif args.command == "ask":
-            asyncio.run(rag_query(args))
-        
-        elif args.command == "tech":
-            asyncio.run(technical_query(args))
-        
-        elif args.command == "research":
-            asyncio.run(research_synthesis(args))
-        
-        elif args.command == "status":
-            asyncio.run(show_status())
-        
-        elif args.command == "config":
-            if args.reload:
-                config = reload_config()
-                print_success("Configuration reloaded")
-            else:
-                config = get_config()
+            # Build context from search results
+            context_texts = []
+            for result in context_results:
+                doc_title = result.get('metadata', {}).get('title', 'Unknown')
+                doc_content = result.get('content', '')
+                context_texts.append(f"Document: {doc_title}\n{doc_content}")
             
-            print_info("Current Configuration:")
-            print(f"  Ollama Host: {config.ollama.host}")
-            print(f"  Documents Path: {config.get_documents_path()}")
-            print(f"  Vector DB Type: {config.vector_db.type}")
-            print(f"  Processing Batch Size: {config.processing.batch_size}")
+            context = "\n\n---\n\n".join(context_texts)
+            
+            # Generate answer using large model
+            async with OllamaClient(host=config.ollama.host, timeout=config.ollama.timeout) as client:
+                large_model = config.get_model('large')
+                
+                prompt = f"""Based on the following context documents, answer this question: {question}
+
+Context:
+{context}
+
+Please provide a comprehensive answer based on the information in the context documents. If the context doesn't contain enough information to answer the question, say so.
+
+Answer:"""
+                
+                console.print("[blue]Generating answer...[/blue]")
+                
+                result = await client.generate(
+                    model=large_model,
+                    prompt=prompt,
+                    options={'temperature': 0.3}  # Lower temperature for more factual responses
+                )
+                
+                # Display answer
+                console.print(f"\n[green]Answer:[/green]")
+                console.print(result.response)
+                
+                # Show context sources
+                console.print(f"\n[dim]Based on {len(context_results)} documents:[/dim]")
+                for result in context_results:
+                    title = result.get('metadata', {}).get('title', 'Unknown')
+                    similarity = result.get('similarity', 0)
+                    console.print(f"  - {title} (similarity: {similarity:.3f})")
+        
+        except Exception as e:
+            console.print(f"[red]Question answering failed: {e}[/red]")
     
-    except KeyboardInterrupt:
-        print_info("Operation cancelled by user")
-    except Exception as e:
-        print_error(f"Command failed: {e}")
-        import traceback
-        traceback.print_exc()
+    asyncio.run(_ask())
+
+@cli.command()
+@click.option('--model', help='Specific model to list/pull')
+@click.option('--pull', is_flag=True, help='Pull/download the model')
+@click.pass_context
+def models(ctx, model, pull):
+    """List available models or pull a specific model"""
+    async def _models():
+        config = ctx.obj['config']
+        
+        try:
+            async with OllamaClient(host=config.ollama.host, timeout=config.ollama.timeout) as client:
+                if pull and model:
+                    console.print(f"[blue]Pulling model: {model}[/blue]")
+                    success = await client.pull_model(model)
+                    if success:
+                        console.print(f"[green]Successfully pulled {model}[/green]")
+                    else:
+                        console.print(f"[red]Failed to pull {model}[/red]")
+                    return
+                
+                # List models
+                console.print("[blue]Listing available models...[/blue]")
+                models_list = await client.list_models()
+                
+                if not models_list:
+                    console.print("[yellow]No models found[/yellow]")
+                    return
+                
+                table = Table(title="Available Models")
+                table.add_column("Name", style="cyan")
+                table.add_column("Size", style="green")
+                table.add_column("Modified", style="yellow")
+                
+                for model_info in models_list:
+                    size_gb = model_info.size / (1024**3)
+                    table.add_row(
+                        model_info.name,
+                        f"{size_gb:.1f} GB",
+                        model_info.modified
+                    )
+                
+                console.print(table)
+        except Exception as e:
+            console.print(f"[red]Models command failed: {e}[/red]")
+    
+    asyncio.run(_models())
+
+@cli.command()
+@click.pass_context
+def config_show(ctx):
+    """Show current configuration"""
+    config = ctx.obj['config']
+    
+    console.print("[blue]Current Configuration:[/blue]")
+    
+    # Ollama configuration
+    console.print("\n[cyan]Ollama:[/cyan]")
+    console.print(f"  Host: {config.ollama.host}")
+    console.print(f"  Timeout: {config.ollama.timeout}s")
+    console.print(f"  Models:")
+    for purpose, model in config.ollama.models.items():
+        console.print(f"    {purpose}: {model}")
+    
+    # Processing configuration
+    console.print("\n[cyan]Processing:[/cyan]")
+    console.print(f"  Max concurrent: {config.processing.max_concurrent}")
+    console.print(f"  Chunk size: {config.processing.chunk_size}")
+    console.print(f"  Summary timeout: {config.processing.summary_timeout}s")
+    
+    # Vector configuration
+    console.print("\n[cyan]Vector Database:[/cyan]")
+    console.print(f"  Collection: {config.vector.collection_name}")
+    console.print(f"  Directory (relative): {config.vector.persist_directory}")
+    
+    # Calculate and display absolute path
+    persist_path = Path(config.vector.persist_directory)
+    if persist_path.is_absolute():
+        abs_path = persist_path
+    else:
+        abs_path = Path.cwd() / persist_path
+    console.print(f"  Directory (absolute): {abs_path.resolve()}")
+    
+    # Check if directory exists
+    if abs_path.exists():
+        console.print(f"  Status: ✅ Directory exists")
+    else:
+        console.print(f"  Status: ⚠️  Directory does not exist")
+    
+    console.print(f"  Max results: {config.vector.max_results}")
+    console.print(f"  Similarity threshold: {config.vector.similarity_threshold}")
+    
+    # Validation
+    issues = config.validate()
+    if issues:
+        console.print("\n[red]Configuration Issues:[/red]")
+        for issue in issues:
+            console.print(f"  - {issue}")
+    else:
+        console.print("\n[green]✅ Configuration is valid[/green]")
+
+
+def run_async_command(func):
+    """Decorator to run async commands"""
+    def wrapper(*args, **kwargs):
+        return asyncio.run(func(*args, **kwargs))
+    return wrapper
 
 if __name__ == "__main__":
-    main()
-
-def uv_main():
-    """Entry point for UV compatibility"""
-    main()
+    cli()
