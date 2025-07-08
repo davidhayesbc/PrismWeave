@@ -85,7 +85,6 @@ globalScope.PRISMWEAVE_LOG_CONFIG = {
     MarkdownConverter: { enabled: true, level: 2 },
     ContentExtractor: { enabled: true, level: 2 },
     ContentCaptureService: { enabled: true, level: 3 },
-    PerformanceMonitor: { enabled: true, level: 1 },
     UIUtils: { enabled: true, level: 1 },
   },
 };

@@ -37,7 +37,7 @@
       actual imports in production code
 - [x] src/utils/metadata-extractor.ts - **REMOVE** - Only used by
       ContentExtractor which is not used in production code
-- [ ] src/utils/performance-monitor.ts
+- [x] src/utils/performance-monitor.ts - **REMOVE** - No production usage found, not imported by any production files, only defines global interface and log config that are unused
 - [ ] src/utils/settings-manager.ts
 - [ ] src/utils/shared-utils.ts
 - [ ] src/utils/test-utilities.ts

@@ -65,13 +65,6 @@ export interface ISharedUtils {
   generateFilename: (title: string, url: string, pattern?: string) => string;
 }
 
-// Performance monitor types
-export interface IPerformanceMonitor {
-  startTimer: (operation: string) => string | null;
-  endTimer: (timerId: string | null, metadata?: Record<string, unknown>) => unknown;
-  getMetrics: () => unknown;
-}
-
 // Main global scope interface that all utilities should use
 export interface IPrismWeaveGlobalScope {
   // Enhanced logging system
@@ -89,7 +82,6 @@ export interface IPrismWeaveGlobalScope {
   SharedUtils?: ISharedUtils;
   UIUtils?: IUIUtils;
   UIEnhancer?: IUIEnhancer;
-  PerformanceMonitor?: IPerformanceMonitor;
 
   // Chrome extension globals
   TurndownService?: any;
