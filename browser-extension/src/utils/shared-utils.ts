@@ -245,8 +245,8 @@ class SharedUtils {
 
 // Export to global scope using centralized approach
 const globalScope = getGlobalScope();
-if (globalScope.SharedUtils === undefined) {
-  globalScope.SharedUtils = {
+if ((globalScope as any).SharedUtils === undefined) {
+  (globalScope as any).SharedUtils = {
     isValidUrl: SharedUtils.isValidUrl.bind(SharedUtils),
     sanitizeForFilename: SharedUtils.sanitizeForFilename.bind(SharedUtils),
     generateFilename: SharedUtils.generateFilename.bind(SharedUtils),

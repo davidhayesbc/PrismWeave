@@ -37,7 +37,7 @@ interface ILoggerStatic {
 // Use global scope that works in both window and service worker contexts
 const globalScope = getGlobalScope();
 
-globalScope.PRISMWEAVE_LOG_CONFIG = {
+(globalScope as any).PRISMWEAVE_LOG_CONFIG = {
   // Global logging toggle - set to false to disable all logging
   enabled: true,
 
@@ -91,8 +91,8 @@ globalScope.PRISMWEAVE_LOG_CONFIG = {
 
 // Apply global configuration when logger becomes available
 setTimeout(() => {
-  if (globalScope.PrismWeaveLogger) {
-    const config = globalScope.PRISMWEAVE_LOG_CONFIG as any;
+  if ((globalScope as any).PrismWeaveLogger) {
+    const config = (globalScope as any).PRISMWEAVE_LOG_CONFIG as any;
     logger.info('🔧 PrismWeave Enhanced Logging Configuration Loaded');
     logger.info('Logging enabled:', config?.enabled);
     logger.info('Global log level:', config?.level);

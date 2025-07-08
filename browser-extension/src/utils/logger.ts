@@ -126,7 +126,7 @@ class Logger {
 
   private _initializeConfiguration(): void {
     const globalScope = Logger.getGlobalScope();
-    const globalConfig = globalScope.PRISMWEAVE_LOG_CONFIG;
+    const globalConfig = (globalScope as any).PRISMWEAVE_LOG_CONFIG;
 
     // Environment-based defaults
     const environmentDefaults = {
@@ -166,11 +166,11 @@ class Logger {
   }
 
   private _applyRuntimeOverrides(globalScope: any): void {
-    if (typeof globalScope.PRISMWEAVE_LOG_ENABLED === 'boolean') {
-      this.enabled = globalScope.PRISMWEAVE_LOG_ENABLED;
+    if (typeof (globalScope as any).PRISMWEAVE_LOG_ENABLED === 'boolean') {
+      this.enabled = (globalScope as any).PRISMWEAVE_LOG_ENABLED;
     }
-    if (Logger.isValidLevel(globalScope.PRISMWEAVE_LOG_LEVEL)) {
-      this.level = globalScope.PRISMWEAVE_LOG_LEVEL;
+    if (Logger.isValidLevel((globalScope as any).PRISMWEAVE_LOG_LEVEL)) {
+      this.level = (globalScope as any).PRISMWEAVE_LOG_LEVEL;
     }
   }
 
@@ -305,15 +305,15 @@ class Logger {
   private _storeStructuredLog(data: IStructuredLogData): void {
     try {
       const globalScope = Logger.getGlobalScope();
-      if (!globalScope.PRISMWEAVE_STRUCTURED_LOGS) {
-        globalScope.PRISMWEAVE_STRUCTURED_LOGS = [];
+      if (!(globalScope as any).PRISMWEAVE_STRUCTURED_LOGS) {
+        (globalScope as any).PRISMWEAVE_STRUCTURED_LOGS = [];
       }
 
-      globalScope.PRISMWEAVE_STRUCTURED_LOGS.push(data);
+      (globalScope as any).PRISMWEAVE_STRUCTURED_LOGS.push(data);
 
       // Keep only last 100 structured logs to prevent memory issues
-      if (globalScope.PRISMWEAVE_STRUCTURED_LOGS.length > 100) {
-        globalScope.PRISMWEAVE_STRUCTURED_LOGS.shift();
+      if ((globalScope as any).PRISMWEAVE_STRUCTURED_LOGS.length > 100) {
+        (globalScope as any).PRISMWEAVE_STRUCTURED_LOGS.shift();
       }
     } catch (error) {
       // Silently fail structured logging to prevent recursion
@@ -409,18 +409,18 @@ class Logger {
 
   setComponentLevel(component: string, level: LogLevel): void {
     const globalScope = Logger.getGlobalScope();
-    if (!globalScope.PRISMWEAVE_LOG_CONFIG) {
-      globalScope.PRISMWEAVE_LOG_CONFIG = {
+    if (!(globalScope as any).PRISMWEAVE_LOG_CONFIG) {
+      (globalScope as any).PRISMWEAVE_LOG_CONFIG = {
         enabled: true,
         level: Logger.LEVELS.INFO,
         components: {},
       };
     }
-    if (!globalScope.PRISMWEAVE_LOG_CONFIG.components) {
-      globalScope.PRISMWEAVE_LOG_CONFIG.components = {};
+    if (!(globalScope as any).PRISMWEAVE_LOG_CONFIG.components) {
+      (globalScope as any).PRISMWEAVE_LOG_CONFIG.components = {};
     }
 
-    globalScope.PRISMWEAVE_LOG_CONFIG.components[component] = {
+    (globalScope as any).PRISMWEAVE_LOG_CONFIG.components[component] = {
       enabled: true,
       level: level,
     };
@@ -468,7 +468,7 @@ class Logger {
   // Global configuration methods
   static setGlobalLevel(level: LogLevel): void {
     const globalScope = Logger.getGlobalScope();
-    globalScope.PRISMWEAVE_LOG_LEVEL = level;
+    (globalScope as any).PRISMWEAVE_LOG_LEVEL = level;
     console.log(
       `%cPrismWeave Global Log Level set to: ${Logger.LEVEL_NAMES[level]}`,
       'color: #4444ff; font-weight: bold;'
@@ -477,7 +477,7 @@ class Logger {
 
   static setGlobalEnabled(enabled: boolean): void {
     const globalScope = Logger.getGlobalScope();
-    globalScope.PRISMWEAVE_LOG_ENABLED = enabled;
+    (globalScope as any).PRISMWEAVE_LOG_ENABLED = enabled;
     console.log(
       `%cPrismWeave Global Logging ${enabled ? 'enabled' : 'disabled'}`,
       enabled ? 'color: #44ff44; font-weight: bold;' : 'color: #ff4444; font-weight: bold;'
@@ -486,11 +486,11 @@ class Logger {
 
   static setEnvironmentLogging(environment: Environment, enabled: boolean, level?: LogLevel): void {
     const globalScope = Logger.getGlobalScope();
-    if (!globalScope.PRISMWEAVE_ENV_LOGGING) {
-      globalScope.PRISMWEAVE_ENV_LOGGING = {};
+    if (!(globalScope as any).PRISMWEAVE_ENV_LOGGING) {
+      (globalScope as any).PRISMWEAVE_ENV_LOGGING = {};
     }
 
-    globalScope.PRISMWEAVE_ENV_LOGGING[environment] = {
+    (globalScope as any).PRISMWEAVE_ENV_LOGGING[environment] = {
       enabled,
       level: level || Logger.LEVELS.INFO,
     };
@@ -508,13 +508,13 @@ class Logger {
   static getGlobalConfiguration(): Record<string, unknown> {
     const globalScope = Logger.getGlobalScope();
     return {
-      globalEnabled: globalScope.PRISMWEAVE_LOG_ENABLED,
-      globalLevel: globalScope.PRISMWEAVE_LOG_LEVEL
-        ? Logger.LEVEL_NAMES[globalScope.PRISMWEAVE_LOG_LEVEL]
+      globalEnabled: (globalScope as any).PRISMWEAVE_LOG_ENABLED,
+      globalLevel: (globalScope as any).PRISMWEAVE_LOG_LEVEL
+        ? Logger.LEVEL_NAMES[(globalScope as any).PRISMWEAVE_LOG_LEVEL]
         : undefined,
-      config: globalScope.PRISMWEAVE_LOG_CONFIG,
-      environmentLogging: globalScope.PRISMWEAVE_ENV_LOGGING,
-      structuredLogsCount: globalScope.PRISMWEAVE_STRUCTURED_LOGS?.length || 0,
+      config: (globalScope as any).PRISMWEAVE_LOG_CONFIG,
+      environmentLogging: (globalScope as any).PRISMWEAVE_ENV_LOGGING,
+      structuredLogsCount: (globalScope as any).PRISMWEAVE_STRUCTURED_LOGS?.length || 0,
     };
   }
 }
@@ -525,7 +525,7 @@ function createLogger(component: string): Logger {
 
   // Check for environment-specific overrides
   const globalScope = Logger.getGlobalScope();
-  const envLogging = globalScope.PRISMWEAVE_ENV_LOGGING?.[logger.environment];
+  const envLogging = (globalScope as any).PRISMWEAVE_ENV_LOGGING?.[logger.environment];
   if (envLogging) {
     if (typeof envLogging.enabled === 'boolean') {
       logger.enabled = envLogging.enabled;
@@ -536,11 +536,11 @@ function createLogger(component: string): Logger {
   }
 
   // Apply global overrides (these take precedence)
-  if (globalScope.PRISMWEAVE_LOG_ENABLED !== undefined) {
-    logger.enabled = globalScope.PRISMWEAVE_LOG_ENABLED;
+  if ((globalScope as any).PRISMWEAVE_LOG_ENABLED !== undefined) {
+    logger.enabled = (globalScope as any).PRISMWEAVE_LOG_ENABLED;
   }
-  if (globalScope.PRISMWEAVE_LOG_LEVEL !== undefined) {
-    logger.level = globalScope.PRISMWEAVE_LOG_LEVEL;
+  if ((globalScope as any).PRISMWEAVE_LOG_LEVEL !== undefined) {
+    logger.level = (globalScope as any).PRISMWEAVE_LOG_LEVEL;
   }
 
   return logger;
@@ -581,7 +581,7 @@ export type {
 
 // Export to global scope
 const globalScope = getGlobalScope();
-globalScope.PrismWeaveLogger = {
+(globalScope as any).PrismWeaveLogger = {
   createLogger,
   Logger,
   enableDebugMode,
