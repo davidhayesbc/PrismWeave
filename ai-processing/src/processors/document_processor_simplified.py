@@ -109,46 +109,43 @@ class DocumentProcessor:
             timeout=self.config.ollama.timeout
         ) as client:
             
-            # Run AI analysis tasks
-            summary_task = self._generate_summary(client, clean_text)
-            tags_task = self._suggest_tags(client, clean_text, combined_metadata)
-            category_task = self._categorize_document(client, clean_text, combined_metadata)
-            topics_task = self._extract_key_topics(client, clean_text)
+            # Run AI analysis tasks SEQUENTIALLY to avoid overwhelming Ollama
+            summary = "Summary generation failed"
+            tags = []
+            category = "uncategorized"
+            key_topics = []
             
-            # Execute all AI tasks concurrently
             try:
-                summary, tags, category, key_topics = await asyncio.gather(
-                    summary_task,
-                    tags_task, 
-                    category_task,
-                    topics_task,
-                    return_exceptions=True
-                )
-                
-                # Handle any exceptions in results
-                if isinstance(summary, Exception):
-                    logger.error(f"Summary generation failed: {summary}")
-                    summary = "Summary generation failed"
-                
-                if isinstance(tags, Exception):
-                    logger.error(f"Tag generation failed: {tags}")
-                    tags = []
-                
-                if isinstance(category, Exception):
-                    logger.error(f"Categorization failed: {category}")
-                    category = "uncategorized"
-                
-                if isinstance(key_topics, Exception):
-                    logger.error(f"Topic extraction failed: {key_topics}")
-                    key_topics = []
-                
+                # Summary generation
+                logger.debug("Starting summary generation...")
+                summary = await self._generate_summary(client, clean_text)
+                logger.debug("Summary generation completed")
             except Exception as e:
-                logger.error(f"AI processing failed: {e}")
-                # Return basic analysis without AI insights
-                summary = f"Document with {word_count} words"
-                tags = []
-                category = "uncategorized"
-                key_topics = []
+                logger.error(f"Summary generation failed: {e}")
+            
+            try:
+                # Tag generation
+                logger.debug("Starting tag generation...")
+                tags = await self._suggest_tags(client, clean_text, combined_metadata)
+                logger.debug("Tag generation completed")
+            except Exception as e:
+                logger.error(f"Tag generation failed: {e}")
+            
+            try:
+                # Category classification
+                logger.debug("Starting categorization...")
+                category = await self._categorize_document(client, clean_text, combined_metadata)
+                logger.debug("Categorization completed")
+            except Exception as e:
+                logger.error(f"Categorization failed: {e}")
+            
+            try:
+                # Topic extraction
+                logger.debug("Starting topic extraction...")
+                key_topics = await self._extract_key_topics(client, clean_text)
+                logger.debug("Topic extraction completed")
+            except Exception as e:
+                logger.error(f"Topic extraction failed: {e}")
         
         # Calculate confidence based on successful AI operations
         successful_operations = sum([
@@ -193,7 +190,8 @@ class DocumentProcessor:
         """Generate document summary using AI"""
         model = get_model_for_purpose('medium')
         
-        prompt = f"""Summarize the following text in 2-3 concise sentences. Focus on the main points and key information:
+        # More concise prompt for faster processing
+        prompt = f"""Write a 2-sentence summary of this text:
 
 {text}
 
@@ -201,7 +199,11 @@ Summary:"""
         
         try:
             result = await asyncio.wait_for(
-                client.generate(model=model, prompt=prompt),
+                client.generate(
+                    model=model, 
+                    prompt=prompt, 
+                    options={'temperature': 0.3}  # Lower temperature for consistency
+                ),
                 timeout=self.config.processing.summary_timeout
             )
             
@@ -227,19 +229,22 @@ Summary:"""
         
         # Include existing tags from metadata if available
         existing_tags = metadata.get('tags', [])
-        context = f"Existing tags: {', '.join(existing_tags)}" if existing_tags else ""
+        context = f"Existing tags: {', '.join(existing_tags)}\n\n" if existing_tags else ""
         
-        prompt = f"""Analyze the following text and suggest 5-8 relevant tags. Return only the tags separated by commas, no explanation.
+        # Simplified prompt for faster processing
+        prompt = f"""{context}Generate 5 relevant tags for this text. Output format: tag1, tag2, tag3, tag4, tag5
 
-{context}
-
-Text: {text}
+{text}
 
 Tags:"""
         
         try:
             result = await asyncio.wait_for(
-                client.generate(model=model, prompt=prompt),
+                client.generate(
+                    model=model, 
+                    prompt=prompt,
+                    options={'temperature': 0.1}  # Very low temperature for consistent tags
+                ),
                 timeout=self.config.processing.tagging_timeout
             )
             
@@ -270,15 +275,20 @@ Tags:"""
             "business", "personal", "entertainment", "education", "health"
         ]
         
-        prompt = f"""Classify the following text into ONE of these categories: {', '.join(categories)}
+        # Simplified prompt for faster processing
+        prompt = f"""Classify this text into ONE category. Categories: {', '.join(categories)}
 
-Text: {text}
+{text}
 
 Category:"""
         
         try:
             result = await asyncio.wait_for(
-                client.generate(model=model, prompt=prompt),
+                client.generate(
+                    model=model, 
+                    prompt=prompt,
+                    options={'temperature': 0.1}  # Very low temperature for consistent classification
+                ),
                 timeout=self.config.processing.categorization_timeout
             )
             
@@ -310,15 +320,20 @@ Category:"""
         """Extract key topics/concepts from the document"""
         model = get_model_for_purpose('small')
         
-        prompt = f"""Extract 3-5 key topics or main concepts from this text. Return only the topics separated by commas:
+        # Simplified prompt for faster processing
+        prompt = f"""Extract 3 key topics from this text. Output format: topic1, topic2, topic3
 
 {text}
 
-Key topics:"""
+Topics:"""
         
         try:
             result = await asyncio.wait_for(
-                client.generate(model=model, prompt=prompt),
+                client.generate(
+                    model=model, 
+                    prompt=prompt,
+                    options={'temperature': 0.1}  # Very low temperature for consistent topics
+                ),
                 timeout=self.config.processing.categorization_timeout
             )
             

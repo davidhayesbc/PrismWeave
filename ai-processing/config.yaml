@@ -15,15 +15,15 @@ ollama:
 
 # Document Processing Configuration
 processing:
-  max_concurrent: 2
+  max_concurrent: 1          # Reduced to prevent Ollama overload
   chunk_size: 3000
   chunk_overlap: 300
   min_chunk_size: 100
   
-  # Processing timeouts
-  summary_timeout: 120
-  tagging_timeout: 60
-  categorization_timeout: 30
+  # Processing timeouts - increased for better reliability
+  summary_timeout: 180        # Increased from 120
+  tagging_timeout: 120        # Increased from 60
+  categorization_timeout: 90  # Increased from 30
   
   # Content filtering
   min_word_count: 50
