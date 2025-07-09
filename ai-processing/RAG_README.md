@@ -35,8 +35,8 @@ graph TB
 # Navigate to the AI processing directory
 cd ai-processing
 
-# Run the automated setup
-python setup_rag.py
+# Run the CLI with setup
+python cli/prismweave.py --setup
 ```
 
 This will:
@@ -326,7 +326,7 @@ async def ask_ai(question: str) -> str:
 
 ## 🚀 Next Steps
 
-1. **Run the setup**: `python setup_rag.py`
+1. **Setup the system**: `python cli/prismweave.py --setup`
 2. **Process your documents**: `python cli/prismweave.py process`
 3. **Start asking questions**: `python cli/prismweave.py ask "Your question here"`
 4. **Explore advanced features**: Try different styles and filters

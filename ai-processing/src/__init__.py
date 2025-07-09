@@ -4,9 +4,9 @@ Core module for document analysis and semantic search
 """
 
 from .models.ollama_client import OllamaClient
-from .processors.document_processor import DocumentProcessor
+from .processors.langchain_document_processor import LangChainDocumentProcessor as DocumentProcessor
 from .search.semantic_search import SemanticSearch
-from .utils.config import Config
+from .utils.config_simplified import Config
 
 __version__ = "0.1.0"
 __author__ = "PrismWeave Team"

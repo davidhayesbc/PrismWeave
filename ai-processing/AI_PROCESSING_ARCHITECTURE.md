@@ -49,7 +49,7 @@ ai-processing/
 │   │
 │   ├── 📁 processors/          # Document analysis engines
 │   │   ├── 📄 __init__.py
-│   │   └── 📄 document_processor.py # Main processing logic
+│   │   └── 📄 langchain_document_processor.py # Main processing logic
 │   │
 │   ├── 📁 search/              # Semantic search components
 │   │   ├── 📄 __init__.py
@@ -64,7 +64,7 @@ ai-processing/
 │
 ├── 📁 tests/                   # Test suite
 │   ├── 📄 test_ollama_client.py
-│   ├── 📄 test_document_processor.py
+│   ├── 📄 test_langchain_document_processor.py
 │   └── 📄 test_semantic_search.py
 │
 ├── 📁 logs/                    # Processing logs
@@ -180,7 +180,7 @@ embeddings = await client.embed(
 - Comprehensive error logging and debugging
 - Support for both HTTP and direct Ollama communication
 
-### 3. Document Processor (`src/processors/document_processor.py`)
+### 3. LangChain Document Processor (`src/processors/langchain_document_processor.py`)
 
 **Purpose**: The heart of the AI analysis pipeline that processes markdown documents and extracts intelligence using AI models.
 
@@ -728,7 +728,7 @@ def _generate_snippet(self, document: str, query: str, max_length: int = 200) ->
 ### Adding Custom Processors
 
 ```python
-from src.processors.document_processor import DocumentProcessor, ProcessingResult
+from src.processors.langchain_document_processor import LangChainDocumentProcessor as DocumentProcessor, ProcessingResult
 from pathlib import Path
 
 class CustomAnalysisProcessor(DocumentProcessor):
@@ -898,7 +898,7 @@ python cli/prismweave.py process --force-reprocess
 ```python
 # Comprehensive health check
 async def detailed_health_check():
-    from src.processors.document_processor import DocumentProcessor
+    from src.processors.langchain_document_processor import LangChainDocumentProcessor as DocumentProcessor
     from src.search.semantic_search import SemanticSearch
     
     async with DocumentProcessor() as processor:

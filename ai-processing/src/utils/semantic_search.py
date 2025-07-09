@@ -14,7 +14,7 @@ import chromadb
 from chromadb.config import Settings
 
 from .config_simplified import VectorConfig
-from ..models.ollama_client_simplified import OllamaClient
+from ..models.ollama_client import OllamaClient
 
 logger = logging.getLogger(__name__)
 

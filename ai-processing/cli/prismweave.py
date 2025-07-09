@@ -28,7 +28,7 @@ except ImportError as e:
 sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 
 try:
-    from src.models.ollama_client_simplified import OllamaClient
+    from src.models.ollama_client import OllamaClient
     from src.processors.langchain_document_processor import LangChainDocumentProcessor as DocumentProcessor
     from src.search.semantic_search import SemanticSearch
     from src.utils.vector_verification import VectorVerifier, quick_health_check, get_embeddings_summary

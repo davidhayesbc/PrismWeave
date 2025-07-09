@@ -13,7 +13,7 @@ import json
 
 from .semantic_search import SemanticSearch
 from .config_simplified import get_vector_config, get_model_for_purpose
-from ..models.ollama_client_simplified import OllamaClient
+from ..models.ollama_client import OllamaClient
 
 logger = logging.getLogger(__name__)
 

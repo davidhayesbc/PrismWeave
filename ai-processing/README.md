@@ -309,14 +309,14 @@ Your markdown content here...
 ```python
 # Core components
 from src.models.ollama_client import OllamaClient
-from src.processors.document_processor import DocumentProcessor
+from src.processors.langchain_document_processor import LangChainDocumentProcessor as DocumentProcessor
 from src.search.semantic_search import SemanticSearch
 from src.utils.config import get_config
 
 # Example usage
 config = get_config()
 client = OllamaClient(config.ollama)
-processor = DocumentProcessor(client, config.processing)
+processor = DocumentProcessor(config)
 ```
 
 ### Adding Custom Processors

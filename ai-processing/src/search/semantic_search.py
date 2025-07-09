@@ -27,7 +27,7 @@ except ImportError:
     chromadb = None
     Settings = None
 
-from ..models.ollama_client_simplified import OllamaClient
+from ..models.ollama_client import OllamaClient
 from ..utils.config_simplified import get_config
 
 logger = logging.getLogger(__name__)
@@ -171,7 +171,7 @@ class SemanticSearch:
     
     def _extract_text_chunks(self, content: str, file_path: Optional[Path] = None, 
                             chunk_size: int = None, overlap: int = None) -> List[str]:
-        """Extract text chunks for embedding using enhanced LangChain splitters"""
+        """Extract text chunks for embedding using LangChain splitters"""
         try:
             # Import LangChain document processor
             from ..processors.langchain_document_processor import LangChainDocumentProcessor
@@ -209,200 +209,29 @@ class SemanticSearch:
                 return [chunk.strip() for chunk in chunks if chunk.strip()]
             
             # Final fallback to basic RecursiveCharacterTextSplitter
-            try:
-                from langchain_text_splitters import RecursiveCharacterTextSplitter
-                
-                chunk_size = chunk_size or self.processing_config.chunk_size
-                overlap = overlap or self.processing_config.chunk_overlap
-                
-                splitter = RecursiveCharacterTextSplitter(
-                    chunk_size=chunk_size,
-                    chunk_overlap=overlap,
-                    separators=["\n\n", "\n", " ", ""],
-                    length_function=len,
-                    is_separator_regex=False,
-                )
-                
-                chunks = splitter.split_text(content)
-                logger.debug(f"Used fallback RecursiveCharacterTextSplitter: {len(chunks)} chunks")
-                return [chunk.strip() for chunk in chunks if chunk.strip()]
-            except ImportError:
-                logger.warning("LangChain text splitters not available, using basic chunking")
-                return self._enhanced_basic_chunking(content, file_path, chunk_size, overlap)
+            from langchain_text_splitters import RecursiveCharacterTextSplitter
+            
+            chunk_size = chunk_size or self.processing_config.chunk_size
+            overlap = overlap or self.processing_config.chunk_overlap
+            
+            splitter = RecursiveCharacterTextSplitter(
+                chunk_size=chunk_size,
+                chunk_overlap=overlap,
+                separators=["\n\n", "\n", " ", ""],
+                length_function=len,
+                is_separator_regex=False,
+            )
+            
+            chunks = splitter.split_text(content)
+            logger.debug(f"Used RecursiveCharacterTextSplitter: {len(chunks)} chunks")
+            return [chunk.strip() for chunk in chunks if chunk.strip()]
             
         except ImportError as e:
-            logger.warning(f"LangChain not available ({e}), using enhanced basic chunking")
-            return self._enhanced_basic_chunking(content, file_path, chunk_size, overlap)
+            logger.error(f"LangChain not available: {e}")
+            raise RuntimeError("LangChain is required for text chunking") from e
         except Exception as e:
-            logger.error(f"Error in LangChain chunking ({e}), falling back to basic chunking")
-            return self._enhanced_basic_chunking(content, file_path, chunk_size, overlap)
-    
-    def _enhanced_basic_chunking(self, content: str, file_path: Optional[Path] = None,
-                                chunk_size: int = None, overlap: int = None) -> List[str]:
-        """Enhanced basic text chunking with file-type awareness"""
-        chunk_size = chunk_size or self.processing_config.chunk_size
-        overlap = overlap or self.processing_config.chunk_overlap
-        
-        if len(content) <= chunk_size:
-            return [content]
-        
-        # Determine content type for smarter splitting
-        file_ext = file_path.suffix.lower() if file_path else '.txt'
-        
-        # File-type specific separators for better chunking
-        if file_ext in ['.py']:
-            # Python files - respect function, class, and import boundaries
-            separators = [
-                '\nclass ',           # Class definitions
-                '\ndef ',             # Function definitions
-                '\nasync def ',       # Async function definitions
-                '\nfrom ',            # Import statements
-                '\nimport ',          # Import statements
-                '\n\n',               # Double newlines (paragraphs)
-                '\n    def ',         # Indented methods
-                '\n    async def ',   # Indented async methods
-                '\n',                 # Single newlines
-                ' ',                  # Spaces
-                ''                    # Character-level fallback
-            ]
-        elif file_ext in ['.js', '.ts', '.jsx', '.tsx']:
-            # JavaScript/TypeScript files
-            separators = [
-                '\nclass ',           # Class definitions
-                '\nfunction ',        # Function definitions
-                '\nconst ',           # Const declarations
-                '\nlet ',             # Let declarations
-                '\nvar ',             # Var declarations
-                '\nimport ',          # ES6 imports
-                '\nexport ',          # ES6 exports
-                '\n\n',               # Double newlines
-                '\n',                 # Single newlines
-                ' ',                  # Spaces
-                ''                    # Character-level fallback
-            ]
-        elif file_ext in ['.md', '.markdown']:
-            # Markdown files - respect header boundaries
-            separators = [
-                '\n# ',               # H1 headers
-                '\n## ',              # H2 headers
-                '\n### ',             # H3 headers
-                '\n#### ',            # H4 headers
-                '\n##### ',           # H5 headers
-                '\n###### ',          # H6 headers
-                '\n\n',               # Double newlines (paragraphs)
-                '\n',                 # Single newlines
-                '. ',                 # Sentence boundaries
-                ' ',                  # Spaces
-                ''                    # Character-level fallback
-            ]
-        elif file_ext in ['.json']:
-            # JSON files - respect object boundaries
-            separators = [
-                '\n  },\n',           # End of nested objects
-                '\n},\n',             # End of main objects
-                '\n[\n',              # Array starts
-                '\n],\n',             # Array ends
-                '\n\n',               # Double newlines
-                '\n',                 # Single newlines
-                ' ',                  # Spaces
-                ''                    # Character-level fallback
-            ]
-        elif file_ext in ['.yaml', '.yml']:
-            # YAML files - respect key boundaries
-            separators = [
-                '\n---\n',            # Document separators
-                '\n- ',               # List items
-                '\n  ',               # Indented content
-                '\n\n',               # Double newlines
-                '\n',                 # Single newlines
-                ' ',                  # Spaces
-                ''                    # Character-level fallback
-            ]
-        else:
-            # Default text splitting with smart boundaries
-            separators = [
-                '\n\n',               # Paragraph breaks
-                '\n',                 # Line breaks
-                '. ',                 # Sentence boundaries
-                '! ',                 # Exclamation sentence boundaries
-                '? ',                 # Question sentence boundaries
-                ' ',                  # Word boundaries
-                ''                    # Character-level fallback
-            ]
-        
-        # Split using prioritized separators
-        chunks = []
-        start = 0
-        
-        while start < len(content):
-            end = min(start + chunk_size, len(content))
-            chunk = content[start:end]
-            
-            # Try to break at appropriate boundaries
-            if end < len(content):
-                best_break = -1
-                best_separator = ""
-                
-                # Try separators in order of preference
-                for separator in separators:
-                    if not separator:  # Character-level fallback
-                        break
-                    
-                    break_point = chunk.rfind(separator)
-                    if break_point > start + chunk_size // 3:  # At least 1/3 into chunk
-                        best_break = break_point + len(separator)
-                        best_separator = separator
-                        break
-                
-                if best_break > -1:
-                    chunk = content[start:start + best_break]
-                    end = start + best_break
-                    logger.debug(f"Split at '{best_separator.strip() or 'char-level'}' boundary")
-            
-            chunk_text = chunk.strip()
-            if chunk_text:
-                chunks.append(chunk_text)
-            
-            start = end - overlap
-            
-            if start >= len(content):
-                break
-        
-        logger.debug(f"Enhanced basic chunking for {file_ext} created {len(chunks)} chunks")
-        return [chunk for chunk in chunks if chunk.strip()]
-    
-    def _basic_chunk_text(self, content: str, chunk_size: int = None, overlap: int = None) -> List[str]:
-        """Fallback basic text chunking when LangChain is not available"""
-        chunk_size = chunk_size or self.processing_config.chunk_size
-        overlap = overlap or self.processing_config.chunk_overlap
-        
-        if len(content) <= chunk_size:
-            return [content]
-        
-        chunks = []
-        start = 0
-        
-        while start < len(content):
-            end = min(start + chunk_size, len(content))
-            chunk = content[start:end]
-            
-            # Try to break at sentence boundary
-            if end < len(content):
-                last_period = chunk.rfind('.')
-                last_newline = chunk.rfind('\n')
-                break_point = max(last_period, last_newline)
-                
-                if break_point > start + chunk_size // 2:
-                    chunk = content[start:start + break_point + 1]
-                    end = start + break_point + 1
-            
-            chunks.append(chunk.strip())
-            start = end - overlap
-            
-            if start >= len(content):
-                break
-        
-        return [chunk for chunk in chunks if chunk.strip()]
+            logger.error(f"Error in LangChain chunking: {e}")
+            raise RuntimeError(f"Text chunking failed: {e}") from e
     
     async def index_document(self, file_path: Path, content: str, metadata: Dict[str, Any]) -> bool:
         """Index a document for search"""
