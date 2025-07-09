@@ -1,0 +1,71 @@
+### Test PrismWeave RAG API Endpoints
+### Use this file with the "REST Client" VS Code extension
+
+@baseUrl = http://localhost:8000
+
+### Health Check
+GET {{baseUrl}}/health
+
+### Get RAG Status
+GET {{baseUrl}}/rag/status
+
+### List Available Models (OpenAI compatible)
+GET {{baseUrl}}/v1/models
+
+### Test RAG Question (Direct endpoint)
+POST {{baseUrl}}/rag/ask
+Content-Type: application/json
+
+{
+  "question": "What are the best practices for TypeScript development?",
+  "style": "comprehensive",
+  "context_docs": 10
+}
+
+### Chat Completion with RAG (OpenAI compatible)
+POST {{baseUrl}}/v1/chat/completions
+Content-Type: application/json
+
+{
+  "model": "prismweave-rag",
+  "messages": [
+    {
+      "role": "user", 
+      "content": "How do I implement RAG with Ollama and Python?"
+    }
+  ],
+  "temperature": 0.7,
+  "context_docs": 8,
+  "synthesis_style": "technical"
+}
+
+### Update RAG Configuration
+POST {{baseUrl}}/rag/config
+Content-Type: application/json
+
+{
+  "enabled": true,
+  "context_docs": 15,
+  "synthesis_style": "comprehensive",
+  "similarity_threshold": 0.7
+}
+
+### Technical Query Test
+POST {{baseUrl}}/rag/ask
+Content-Type: application/json
+
+{
+  "question": "Show me examples of async/await patterns in TypeScript",
+  "style": "technical",
+  "context_docs": 5
+}
+
+### Brief Answer Test  
+POST {{baseUrl}}/rag/ask
+Content-Type: application/json
+
+{
+  "question": "What is RAG in AI?",
+  "style": "brief",
+  "context_docs": 3
+}

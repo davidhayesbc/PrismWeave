@@ -1,0 +1,27 @@
+# Open WebUI Configuration for PrismWeave RAG
+# This shows how to configure Open WebUI to use your PrismWeave RAG server
+
+version: "3"
+
+# Open WebUI with PrismWeave RAG Backend
+services:
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:main
+    container_name: open-webui-prismweave
+    ports:
+      - "3000:8080"
+    environment:
+      # Configure to use your PrismWeave RAG server as OpenAI-compatible backend
+      - OPENAI_API_BASE_URL=http://host.docker.internal:8000/v1
+      - OPENAI_API_KEY=prismweave-rag-key  # Can be any value since we don't enforce auth
+      - DEFAULT_MODELS=prismweave-rag
+      - WEBUI_NAME=PrismWeave RAG Assistant
+      - WEBUI_URL=http://localhost:3000
+    volumes:
+      - open-webui:/app/backend/data
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"  # Allows container to reach host machine
+
+volumes:
+  open-webui:

@@ -1,8 +1,15 @@
 # PrismWeave AI Processing Requirements
 # Core dependencies for local LLM integration and document processing
+# Install with: uv pip install -r requirements.txt
 
 # Ollama integration
 ollama>=0.1.7
+
+# LangChain ecosystem for enhanced text processing
+langchain>=0.1.0
+langchain-text-splitters>=0.0.1
+langchain-community>=0.0.1
+langchain-core>=0.1.0
 
 # Vector database and embeddings
 chromadb>=0.4.15

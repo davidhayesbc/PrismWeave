@@ -27,8 +27,8 @@ except ImportError:
     chromadb = None
     Settings = None
 
-from ..models.ollama_client import OllamaClient
-from ..utils.config import get_config
+from ..models.ollama_client_simplified import OllamaClient
+from ..utils.config_simplified import get_config
 
 logger = logging.getLogger(__name__)
 
@@ -55,11 +55,22 @@ class SemanticSearch:
     """Main semantic search engine"""
     
     def __init__(self, config=None):
-        self.config = config or get_config()
-        self.ollama_client = OllamaClient(
-            host=self.config.ollama.host,
-            timeout=self.config.ollama.timeout
-        )
+        # Handle both full config and vector config
+        if config is None:
+            full_config = get_config()
+            self.config = full_config.vector
+            self.ollama_client = OllamaClient()
+        elif hasattr(config, 'ollama'):
+            # Full config object
+            self.config = config.vector
+            self.ollama_client = OllamaClient(
+                host=config.ollama.host,
+                timeout=config.ollama.timeout
+            )
+        else:
+            # Vector config only
+            self.config = config
+            self.ollama_client = OllamaClient()
         
         # Vector database setup
         self.chroma_client = None
@@ -156,8 +167,206 @@ class SemanticSearch:
         """Generate unique document ID"""
         return hashlib.md5(file_path.encode()).hexdigest()
     
-    def _extract_text_chunks(self, content: str, chunk_size: int = None, overlap: int = None) -> List[str]:
-        """Extract text chunks for embedding"""
+    def _extract_text_chunks(self, content: str, file_path: Optional[Path] = None, 
+                            chunk_size: int = None, overlap: int = None) -> List[str]:
+        """Extract text chunks for embedding using enhanced LangChain splitters"""
+        try:
+            # Import LangChain document processor
+            from ..processors.langchain_document_processor import LangChainDocumentProcessor
+            
+            # Create processor instance
+            processor = LangChainDocumentProcessor(self.config)
+            
+            # Use the enhanced document processor directly with content
+            if file_path:
+                # Get the appropriate splitter for the file type
+                splitter = processor.get_splitter_for_file(file_path)
+                
+                if hasattr(splitter, 'split_text'):
+                    chunks = splitter.split_text(content)
+                    logger.debug(f"Used {type(splitter).__name__} for {file_path.suffix} file: {len(chunks)} chunks")
+                    return [chunk.strip() for chunk in chunks if chunk.strip()]
+            
+            # Fallback to content-based detection for appropriate splitter
+            content_type = processor.detect_content_type(content, file_path or Path("temp.txt"))
+            
+            # Get splitter based on content type
+            splitter_map = {
+                'python_code': processor.splitters.get('.py'),
+                'javascript_code': processor.splitters.get('.js'),
+                'markdown': processor.splitters.get('.md'),
+                'code_mixed': processor.splitters.get('.py'),  # Use Python splitter for mixed code
+                'default': processor.splitters.get('default')
+            }
+            
+            splitter = splitter_map.get(content_type, processor.splitters.get('default'))
+            
+            if splitter and hasattr(splitter, 'split_text'):
+                chunks = splitter.split_text(content)
+                logger.debug(f"Used {type(splitter).__name__} for {content_type} content: {len(chunks)} chunks")
+                return [chunk.strip() for chunk in chunks if chunk.strip()]
+            
+            # Final fallback to basic RecursiveCharacterTextSplitter
+            from langchain_text_splitters import RecursiveCharacterTextSplitter
+            
+            chunk_size = chunk_size or 1000  # Default chunk size
+            overlap = overlap or 200  # Default overlap
+            
+            splitter = RecursiveCharacterTextSplitter(
+                chunk_size=chunk_size,
+                chunk_overlap=overlap,
+                separators=["\n\n", "\n", " ", ""],
+                length_function=len,
+                is_separator_regex=False,
+            )
+            
+            chunks = splitter.split_text(content)
+            logger.debug(f"Used fallback RecursiveCharacterTextSplitter: {len(chunks)} chunks")
+            return [chunk.strip() for chunk in chunks if chunk.strip()]
+            
+        except ImportError as e:
+            logger.warning(f"LangChain not available ({e}), using enhanced basic chunking")
+            return self._enhanced_basic_chunking(content, file_path, chunk_size, overlap)
+        except Exception as e:
+            logger.error(f"Error in LangChain chunking ({e}), falling back to basic chunking")
+            return self._enhanced_basic_chunking(content, file_path, chunk_size, overlap)
+    
+    def _enhanced_basic_chunking(self, content: str, file_path: Optional[Path] = None,
+                                chunk_size: int = None, overlap: int = None) -> List[str]:
+        """Enhanced basic text chunking with file-type awareness"""
+        chunk_size = chunk_size or self.config.processing.chunk_size
+        overlap = overlap or self.config.processing.chunk_overlap
+        
+        if len(content) <= chunk_size:
+            return [content]
+        
+        # Determine content type for smarter splitting
+        file_ext = file_path.suffix.lower() if file_path else '.txt'
+        
+        # File-type specific separators for better chunking
+        if file_ext in ['.py']:
+            # Python files - respect function, class, and import boundaries
+            separators = [
+                '\nclass ',           # Class definitions
+                '\ndef ',             # Function definitions
+                '\nasync def ',       # Async function definitions
+                '\nfrom ',            # Import statements
+                '\nimport ',          # Import statements
+                '\n\n',               # Double newlines (paragraphs)
+                '\n    def ',         # Indented methods
+                '\n    async def ',   # Indented async methods
+                '\n',                 # Single newlines
+                ' ',                  # Spaces
+                ''                    # Character-level fallback
+            ]
+        elif file_ext in ['.js', '.ts', '.jsx', '.tsx']:
+            # JavaScript/TypeScript files
+            separators = [
+                '\nclass ',           # Class definitions
+                '\nfunction ',        # Function definitions
+                '\nconst ',           # Const declarations
+                '\nlet ',             # Let declarations
+                '\nvar ',             # Var declarations
+                '\nimport ',          # ES6 imports
+                '\nexport ',          # ES6 exports
+                '\n\n',               # Double newlines
+                '\n',                 # Single newlines
+                ' ',                  # Spaces
+                ''                    # Character-level fallback
+            ]
+        elif file_ext in ['.md', '.markdown']:
+            # Markdown files - respect header boundaries
+            separators = [
+                '\n# ',               # H1 headers
+                '\n## ',              # H2 headers
+                '\n### ',             # H3 headers
+                '\n#### ',            # H4 headers
+                '\n##### ',           # H5 headers
+                '\n###### ',          # H6 headers
+                '\n\n',               # Double newlines (paragraphs)
+                '\n',                 # Single newlines
+                '. ',                 # Sentence boundaries
+                ' ',                  # Spaces
+                ''                    # Character-level fallback
+            ]
+        elif file_ext in ['.json']:
+            # JSON files - respect object boundaries
+            separators = [
+                '\n  },\n',           # End of nested objects
+                '\n},\n',             # End of main objects
+                '\n[\n',              # Array starts
+                '\n],\n',             # Array ends
+                '\n\n',               # Double newlines
+                '\n',                 # Single newlines
+                ' ',                  # Spaces
+                ''                    # Character-level fallback
+            ]
+        elif file_ext in ['.yaml', '.yml']:
+            # YAML files - respect key boundaries
+            separators = [
+                '\n---\n',            # Document separators
+                '\n- ',               # List items
+                '\n  ',               # Indented content
+                '\n\n',               # Double newlines
+                '\n',                 # Single newlines
+                ' ',                  # Spaces
+                ''                    # Character-level fallback
+            ]
+        else:
+            # Default text splitting with smart boundaries
+            separators = [
+                '\n\n',               # Paragraph breaks
+                '\n',                 # Line breaks
+                '. ',                 # Sentence boundaries
+                '! ',                 # Exclamation sentence boundaries
+                '? ',                 # Question sentence boundaries
+                ' ',                  # Word boundaries
+                ''                    # Character-level fallback
+            ]
+        
+        # Split using prioritized separators
+        chunks = []
+        start = 0
+        
+        while start < len(content):
+            end = min(start + chunk_size, len(content))
+            chunk = content[start:end]
+            
+            # Try to break at appropriate boundaries
+            if end < len(content):
+                best_break = -1
+                best_separator = ""
+                
+                # Try separators in order of preference
+                for separator in separators:
+                    if not separator:  # Character-level fallback
+                        break
+                    
+                    break_point = chunk.rfind(separator)
+                    if break_point > start + chunk_size // 3:  # At least 1/3 into chunk
+                        best_break = break_point + len(separator)
+                        best_separator = separator
+                        break
+                
+                if best_break > -1:
+                    chunk = content[start:start + best_break]
+                    end = start + best_break
+                    logger.debug(f"Split at '{best_separator.strip() or 'char-level'}' boundary")
+            
+            chunk_text = chunk.strip()
+            if chunk_text:
+                chunks.append(chunk_text)
+            
+            start = end - overlap
+            
+            if start >= len(content):
+                break
+        
+        logger.debug(f"Enhanced basic chunking for {file_ext} created {len(chunks)} chunks")
+        return [chunk for chunk in chunks if chunk.strip()]
+    
+    def _basic_chunk_text(self, content: str, chunk_size: int = None, overlap: int = None) -> List[str]:
+        """Fallback basic text chunking when LangChain is not available"""
         chunk_size = chunk_size or self.config.processing.chunk_size
         overlap = overlap or self.config.processing.chunk_overlap
         
@@ -194,8 +403,8 @@ class SemanticSearch:
         try:
             doc_id = self._generate_document_id(str(file_path))
             
-            # Extract text chunks
-            chunks = self._extract_text_chunks(content)
+            # Extract text chunks using LangChain-enhanced chunking
+            chunks = self._extract_text_chunks(content, file_path)
             if not chunks:
                 logger.warning(f"No content chunks extracted from {file_path}")
                 return False
@@ -219,7 +428,10 @@ class SemanticSearch:
                         **metadata,
                         "chunk_index": i,
                         "chunk_text": chunks[i][:200] + "..." if len(chunks[i]) > 200 else chunks[i],
-                        "document_path": str(file_path)
+                        "document_path": str(file_path),
+                        "file_type": file_path.suffix.lower(),
+                        "chunk_size": len(chunks[i]),
+                        "total_chunks": len(chunks)
                     }
                     for i in range(len(chunks))
                 ]
@@ -245,11 +457,12 @@ class SemanticSearch:
                 "title": metadata.get("title", file_path.stem),
                 "metadata": metadata,
                 "chunk_count": len(chunks),
-                "indexed_at": time.time()
+                "indexed_at": time.time(),
+                "file_type": file_path.suffix.lower()
             }
             
             self.stats["indexed_documents"] += 1
-            logger.info(f"Successfully indexed document: {file_path}")
+            logger.info(f"Successfully indexed document with LangChain chunking: {file_path} ({len(chunks)} chunks)")
             return True
             
         except Exception as e:
@@ -547,6 +760,15 @@ class SemanticSearch:
             health["search_engine_ready"] = False
         
         return health
+
+    # Compatibility methods for CLI
+    async def add_document(self, document_id: str, content: str, metadata: Dict[str, Any]) -> bool:
+        """Add document to search index (compatibility method)"""
+        return await self.index_document(Path(document_id), content, metadata)
+
+    async def close(self):
+        """Close search engine (compatibility method)"""
+        await self.cleanup()
 
 # Convenience functions
 async def quick_search(query: str, max_results: int = 10) -> List[SearchResult]:

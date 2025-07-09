@@ -43,6 +43,21 @@ vector:
   max_results: 20
   similarity_threshold: 0.6
 
+# API Server Configuration  
+api:
+  host: "127.0.0.1"
+  port: 8000
+  cors_origins: ["*"]
+  rag_enabled: true
+  openai_compatible: true
+  
+  # RAG-specific API settings
+  rag:
+    default_context_docs: 10
+    default_synthesis_style: "comprehensive"
+    max_context_docs: 20
+    enable_source_citations: true
+
 # Logging Configuration
 log_level: "INFO"
 log_file: null

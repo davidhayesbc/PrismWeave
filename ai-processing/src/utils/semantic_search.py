@@ -101,14 +101,28 @@ class SemanticSearch:
                 logger.error(f"Failed to generate embedding for {document_id}")
                 return False
             
+            # Extract embedding from nested format: [[embedding]] -> [embedding]
             embedding = embeddings[0]
+            if isinstance(embedding[0], list):
+                embedding = embedding[0]
+            
+            # Convert datetime objects to strings for ChromaDB compatibility
+            clean_metadata = {}
+            for key, value in metadata.items():
+                if hasattr(value, 'isoformat'):  # datetime objects
+                    clean_metadata[key] = value.isoformat()
+                elif isinstance(value, (str, int, float, bool)) or value is None:
+                    clean_metadata[key] = value
+                else:
+                    # Convert other types to string
+                    clean_metadata[key] = str(value)
             
             # Add to collection
             self._collection.add(
                 ids=[document_id],
                 embeddings=[embedding],
                 documents=[content],
-                metadatas=[metadata]
+                metadatas=[clean_metadata]
             )
             
             logger.info(f"Successfully added document: {document_id}")
@@ -147,7 +161,11 @@ class SemanticSearch:
                 logger.error("Failed to generate query embedding")
                 return []
             
+            # Handle nested embedding format from Ollama API
             query_embedding = query_embeddings[0]
+            if isinstance(query_embedding, list) and len(query_embedding) == 1 and isinstance(query_embedding[0], list):
+                # Handle nested format: [[[embedding]]] -> [embedding]
+                query_embedding = query_embedding[0]
             
             # Search collection
             results = self._collection.query(
