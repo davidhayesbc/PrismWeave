@@ -629,6 +629,47 @@ class SemanticSearch:
         """Add document to search index (compatibility method)"""
         return await self.index_document(Path(document_id), content, metadata)
 
+    async def list_documents(self, limit: int = 10) -> List[Dict[str, Any]]:
+        """List documents in the vector database"""
+        try:
+            if not self.collection:
+                logger.warning("No collection available for listing documents")
+                return []
+            
+            # Get documents from ChromaDB
+            # ChromaDB get() without ids returns all documents
+            results = self.collection.get(
+                limit=limit,
+                include=['metadatas', 'documents']
+            )
+            
+            documents = []
+            if results and 'ids' in results:
+                for i, doc_id in enumerate(results['ids']):
+                    doc_info = {
+                        'id': doc_id,
+                        'metadata': results.get('metadatas', [{}])[i] if i < len(results.get('metadatas', [])) else {},
+                        'content_preview': results.get('documents', [''])[i][:200] if i < len(results.get('documents', [])) else ''
+                    }
+                    documents.append(doc_info)
+            
+            logger.debug(f"Retrieved {len(documents)} documents from collection")
+            return documents
+            
+        except Exception as e:
+            logger.error(f"Failed to list documents: {e}")
+            return []
+
+    async def get_document_count(self) -> int:
+        """Get total number of documents in the vector database"""
+        try:
+            if not self.collection:
+                return 0
+            return self.collection.count()
+        except Exception as e:
+            logger.error(f"Failed to get document count: {e}")
+            return 0
+
     async def close(self):
         """Close search engine (compatibility method)"""
         await self.cleanup()

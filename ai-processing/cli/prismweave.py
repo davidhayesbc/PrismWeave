@@ -338,7 +338,7 @@ def search(ctx, query, limit, threshold):
                 table.add_column("Summary")
                 
                 for result in search_response.results:
-                    similarity = f"{result.similarity:.3f}"
+                    similarity = f"{result.similarity_score:.3f}"
                     title = result.metadata.get('title', 'Unknown')
                     summary = result.metadata.get('summary', 'No summary available')
                     
