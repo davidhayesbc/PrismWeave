@@ -41,7 +41,7 @@ vector:
   
   # Search settings
   max_results: 20
-  similarity_threshold: 0.6
+  similarity_threshold: 0.3
 
 # API Server Configuration  
 api:

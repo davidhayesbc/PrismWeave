@@ -148,9 +148,9 @@ class VectorVerifier:
             if not self._search_engine:
                 return False
             
-            # Try to get basic stats
-            stats = await self._search_engine.get_collection_stats()
-            return stats.get('initialized', False)
+            # Try to get basic document count
+            count = await self._search_engine.get_document_count()
+            return count >= 0  # Collection is accessible if we can get a count
         except Exception as e:
             logger.error(f"Database accessibility check failed: {e}")
             return False
@@ -337,40 +337,80 @@ class VectorVerifier:
             if not self._search_engine:
                 await self.initialize()
             
-            # Try to retrieve the document
-            documents = await self._search_engine.list_documents(limit=1000)
-            document = next((doc for doc in documents if doc['id'] == document_id), None)
+            # Generate the expected MD5 hash for the document ID
+            # The actual stored ID uses MD5 hash + chunk index pattern
+            import hashlib
+            expected_hash = hashlib.md5(document_id.encode()).hexdigest()
+            logger.debug(f"Looking for document {document_id} with expected hash {expected_hash}")
             
-            if not document:
+            # Try to retrieve the document chunks
+            documents = await self._search_engine.list_documents(limit=1000)
+            
+            # Find documents that match the expected hash pattern
+            matching_docs = [
+                doc for doc in documents 
+                if doc['id'].startswith(expected_hash + '_') or doc['id'] == document_id
+            ]
+            
+            if not matching_docs:
+                logger.warning(f"No documents found for {document_id} (hash: {expected_hash})")
+                logger.debug(f"Available document IDs: {[d['id'] for d in documents[:10]]}")
                 return {
                     'found': False,
-                    'error': 'Document not found in vector database'
+                    'error': f'Document not found in vector database (expected hash: {expected_hash})'
                 }
+            
+            logger.info(f"Found {len(matching_docs)} chunks for document {document_id}")
+            
+            # Use the first chunk for testing
+            document = matching_docs[0]
             
             # Test search functionality with document content
             if document.get('content_preview'):
                 search_query = document['content_preview'][:50]  # Use first 50 chars
-                search_results = await self._search_engine.search(
+                logger.debug(f"Testing searchability with query: {search_query}")
+                
+                search_response = await self._search_engine.search(
                     query=search_query,
                     max_results=5
                 )
                 
-                # Check if the document appears in its own search results
+                # Handle both SearchResponse and List[SearchResult] return types
+                if hasattr(search_response, 'results'):
+                    # New interface: SearchResponse object
+                    search_results = search_response.results
+                    results_count = len(search_response.results)
+                else:
+                    # Old interface: List[SearchResult] directly
+                    search_results = search_response
+                    results_count = len(search_response)
+                
+                # Check if any of the document chunks appear in search results
+                # Compare by document path in metadata rather than exact ID match
+                document_path = document.get('metadata', {}).get('document_path', document_id)
                 found_in_search = any(
-                    result.document_id == document_id 
+                    # Handle both SearchResult interfaces
+                    (hasattr(result, 'document_path') and result.document_path == document_path) or
+                    (hasattr(result, 'document_id') and result.metadata.get('document_path') == document_path) or
+                    (hasattr(result, 'document_id') and result.document_id.startswith(document_path))
                     for result in search_results
                 )
+                
+                logger.debug(f"Search returned {results_count} results, document found: {found_in_search}")
                 
                 return {
                     'found': True,
                     'document': document,
+                    'chunk_count': len(matching_docs),
                     'searchable': found_in_search,
-                    'search_results_count': len(search_results)
+                    'search_results_count': results_count,
+                    'document_path': document_path
                 }
             else:
                 return {
                     'found': True,
                     'document': document,
+                    'chunk_count': len(matching_docs),
                     'searchable': None,
                     'note': 'No content available for search test'
                 }
