@@ -319,30 +319,32 @@ def search(ctx, query, limit, threshold):
         
         try:
             search_engine = SemanticSearch(config.vector)
-            results = await search_engine.search(
-                query=query,
-                max_results=limit,
-                similarity_threshold=threshold
-            )
             
-            if not results:
-                console.print("[yellow]No matching documents found[/yellow]")
-                return
-            
-            # Display results
-            table = Table(title=f"Search Results for '{query}'")
-            table.add_column("Document", style="cyan")
-            table.add_column("Similarity", style="green")
-            table.add_column("Summary")
-            
-            for result in results:
-                similarity = f"{result.similarity:.3f}"
-                title = result.metadata.get('title', 'Unknown')
-                summary = result.metadata.get('summary', 'No summary available')
+            async with search_engine:
+                search_response = await search_engine.search(
+                    query=query,
+                    max_results=limit,
+                    similarity_threshold=threshold
+                )
                 
-                table.add_row(title, similarity, summary[:100] + "..." if len(summary) > 100 else summary)
-            
-            console.print(table)
+                if not search_response.results:
+                    console.print("[yellow]No matching documents found[/yellow]")
+                    return
+                
+                # Display results
+                table = Table(title=f"Search Results for '{query}' ({search_response.total_results} results)")
+                table.add_column("Document", style="cyan")
+                table.add_column("Similarity", style="green")
+                table.add_column("Summary")
+                
+                for result in search_response.results:
+                    similarity = f"{result.similarity:.3f}"
+                    title = result.metadata.get('title', 'Unknown')
+                    summary = result.metadata.get('summary', 'No summary available')
+                    
+                    table.add_row(title, similarity, summary[:100] + "..." if len(summary) > 100 else summary)
+                
+                console.print(table)
             
         except Exception as e:
             console.print(f"[red]Search failed: {e}[/red]")

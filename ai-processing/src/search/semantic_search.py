@@ -33,6 +33,7 @@ from ..utils.config_simplified import get_config
 logger = logging.getLogger(__name__)
 
 @dataclass
+@dataclass
 class SearchResult:
     """Single search result"""
     document_path: str
@@ -401,12 +402,23 @@ class SemanticSearch:
                     )):
                         similarity = 1 - distance  # Convert distance to similarity
                         if similarity >= similarity_threshold:
+                            # Debug logging to check for None values
+                            logger.debug(f"Processing search result {i}: metadata={metadata}, doc_length={len(doc) if doc else 'None'}")
+                            
+                            # Safe metadata access
+                            document_path = metadata.get('document_path', 'Unknown') if metadata else 'Unknown'
+                            title = metadata.get('title', 'Untitled') if metadata else 'Untitled'
+                            chunk_text = metadata.get('chunk_text', '') if metadata else ''
+                            
+                            # Safe snippet creation
+                            snippet = chunk_text or (doc[:200] if doc else '')
+                            
                             results.append(SearchResult(
-                                document_path=metadata['document_path'],
-                                title=metadata.get('title', 'Untitled'),
+                                document_path=document_path,
+                                title=title,
                                 similarity_score=similarity,
-                                snippet=metadata.get('chunk_text', doc[:200]),
-                                metadata=metadata,
+                                snippet=snippet,
+                                metadata=metadata or {},
                                 rank=i + 1
                             ))
             
@@ -443,7 +455,9 @@ class SemanticSearch:
             return results[:max_results]
             
         except Exception as e:
+            import traceback
             logger.error(f"Semantic search failed: {e}")
+            logger.error(f"Full traceback: {traceback.format_exc()}")
             return []
     
     async def _hybrid_search(
