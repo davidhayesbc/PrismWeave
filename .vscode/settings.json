@@ -23,6 +23,9 @@
     },
     {
       "file": ".github/instructions/copilot-instructions-typescript.md"
+    },
+    {
+      "file": ".github/instructions/copilot-instructions-ai-processing.md"
     }
   ],
   
