@@ -55,22 +55,26 @@ class SemanticSearch:
     """Main semantic search engine"""
     
     def __init__(self, config=None):
-        # Handle both full config and vector config
+        # Always work with full config object
         if config is None:
-            full_config = get_config()
-            self.config = full_config.vector
-            self.ollama_client = OllamaClient()
+            self.full_config = get_config()
         elif hasattr(config, 'ollama'):
             # Full config object
-            self.config = config.vector
-            self.ollama_client = OllamaClient(
-                host=config.ollama.host,
-                timeout=config.ollama.timeout
-            )
+            self.full_config = config
         else:
-            # Vector config only
-            self.config = config
-            self.ollama_client = OllamaClient()
+            # Vector config only - load full config
+            self.full_config = get_config()
+        
+        # Store references to sub-configs for convenience
+        self.config = self.full_config.vector
+        self.processing_config = self.full_config.processing
+        self.ollama_config = self.full_config.ollama
+        
+        # Initialize Ollama client with full config
+        self.ollama_client = OllamaClient(
+            host=self.ollama_config.host,
+            timeout=self.ollama_config.timeout
+        )
         
         # Vector database setup
         self.chroma_client = None
@@ -105,12 +109,11 @@ class SemanticSearch:
             # Initialize Ollama client
             await self.ollama_client.__aenter__()
             
-            # Set up embedding model
-            embedding_config = self.config.get_model_config('embedding')
-            self.embedding_model = embedding_config.get('primary', 'nomic-embed-text')
+            # Set up embedding model from ollama config
+            self.embedding_model = self.ollama_config.models.get('embedding', 'nomic-embed-text')
             
             # Initialize vector database
-            if self.config.vector_db.type == "chroma":
+            if self.config.persist_directory:
                 await self._init_chroma()
             else:
                 logger.info("Using in-memory vector storage")
@@ -137,8 +140,7 @@ class SemanticSearch:
             return
         
         try:
-            chroma_config = self.config.vector_db.chroma
-            persist_dir = Path(chroma_config.get('persist_directory', './.prismweave/chroma_db'))
+            persist_dir = Path(self.config.persist_directory)
             persist_dir.mkdir(parents=True, exist_ok=True)
             
             self.chroma_client = chromadb.PersistentClient(
@@ -146,7 +148,7 @@ class SemanticSearch:
                 settings=Settings(anonymized_telemetry=False)
             )
             
-            collection_name = chroma_config.get('collection_name', 'prismweave_documents')
+            collection_name = self.config.collection_name
             self.collection = self.chroma_client.get_or_create_collection(
                 name=collection_name,
                 metadata={"description": "PrismWeave document embeddings"}
@@ -174,8 +176,8 @@ class SemanticSearch:
             # Import LangChain document processor
             from ..processors.langchain_document_processor import LangChainDocumentProcessor
             
-            # Create processor instance
-            processor = LangChainDocumentProcessor(self.config)
+            # Create processor instance with full config
+            processor = LangChainDocumentProcessor(self.full_config)
             
             # Use the enhanced document processor directly with content
             if file_path:
@@ -207,22 +209,26 @@ class SemanticSearch:
                 return [chunk.strip() for chunk in chunks if chunk.strip()]
             
             # Final fallback to basic RecursiveCharacterTextSplitter
-            from langchain_text_splitters import RecursiveCharacterTextSplitter
-            
-            chunk_size = chunk_size or 1000  # Default chunk size
-            overlap = overlap or 200  # Default overlap
-            
-            splitter = RecursiveCharacterTextSplitter(
-                chunk_size=chunk_size,
-                chunk_overlap=overlap,
-                separators=["\n\n", "\n", " ", ""],
-                length_function=len,
-                is_separator_regex=False,
-            )
-            
-            chunks = splitter.split_text(content)
-            logger.debug(f"Used fallback RecursiveCharacterTextSplitter: {len(chunks)} chunks")
-            return [chunk.strip() for chunk in chunks if chunk.strip()]
+            try:
+                from langchain_text_splitters import RecursiveCharacterTextSplitter
+                
+                chunk_size = chunk_size or self.processing_config.chunk_size
+                overlap = overlap or self.processing_config.chunk_overlap
+                
+                splitter = RecursiveCharacterTextSplitter(
+                    chunk_size=chunk_size,
+                    chunk_overlap=overlap,
+                    separators=["\n\n", "\n", " ", ""],
+                    length_function=len,
+                    is_separator_regex=False,
+                )
+                
+                chunks = splitter.split_text(content)
+                logger.debug(f"Used fallback RecursiveCharacterTextSplitter: {len(chunks)} chunks")
+                return [chunk.strip() for chunk in chunks if chunk.strip()]
+            except ImportError:
+                logger.warning("LangChain text splitters not available, using basic chunking")
+                return self._enhanced_basic_chunking(content, file_path, chunk_size, overlap)
             
         except ImportError as e:
             logger.warning(f"LangChain not available ({e}), using enhanced basic chunking")
@@ -234,8 +240,8 @@ class SemanticSearch:
     def _enhanced_basic_chunking(self, content: str, file_path: Optional[Path] = None,
                                 chunk_size: int = None, overlap: int = None) -> List[str]:
         """Enhanced basic text chunking with file-type awareness"""
-        chunk_size = chunk_size or self.config.processing.chunk_size
-        overlap = overlap or self.config.processing.chunk_overlap
+        chunk_size = chunk_size or self.processing_config.chunk_size
+        overlap = overlap or self.processing_config.chunk_overlap
         
         if len(content) <= chunk_size:
             return [content]
@@ -367,8 +373,8 @@ class SemanticSearch:
     
     def _basic_chunk_text(self, content: str, chunk_size: int = None, overlap: int = None) -> List[str]:
         """Fallback basic text chunking when LangChain is not available"""
-        chunk_size = chunk_size or self.config.processing.chunk_size
-        overlap = overlap or self.config.processing.chunk_overlap
+        chunk_size = chunk_size or self.processing_config.chunk_size
+        overlap = overlap or self.processing_config.chunk_overlap
         
         if len(content) <= chunk_size:
             return [content]
@@ -423,9 +429,22 @@ class SemanticSearch:
             if self.collection:
                 # ChromaDB storage
                 chunk_ids = [f"{doc_id}_{i}" for i in range(len(chunks))]
+                
+                # Clean metadata to ensure ChromaDB compatibility (only str, int, float, bool, None)
+                clean_metadata = {}
+                for key, value in metadata.items():
+                    if isinstance(value, (str, int, float, bool)) or value is None:
+                        clean_metadata[key] = value
+                    elif isinstance(value, list):
+                        # Convert lists to comma-separated strings
+                        clean_metadata[key] = ", ".join(str(item) for item in value)
+                    else:
+                        # Convert other types to string
+                        clean_metadata[key] = str(value)
+                
                 chunk_metadatas = [
                     {
-                        **metadata,
+                        **clean_metadata,
                         "chunk_index": i,
                         "chunk_text": chunks[i][:200] + "..." if len(chunks[i]) > 200 else chunks[i],
                         "document_path": str(file_path),
@@ -479,8 +498,8 @@ class SemanticSearch:
         """Perform semantic search"""
         start_time = time.time()
         
-        max_results = max_results or self.config.vector_db.search.get("max_results", 20)
-        similarity_threshold = similarity_threshold or self.config.vector_db.search.get("similarity_threshold", 0.7)
+        max_results = max_results or self.config.max_results
+        similarity_threshold = similarity_threshold or self.config.similarity_threshold
         
         try:
             if search_type == "semantic":
@@ -613,8 +632,9 @@ class SemanticSearch:
             keyword_results = await self._keyword_search(query, max_results)
             
             # Combine and re-rank results
-            semantic_weight = self.config.search.semantic_weight
-            keyword_weight = self.config.search.keyword_weight
+            # Use default weights since SearchConfig is not used in simplified config
+            semantic_weight = 0.7
+            keyword_weight = 0.3
             
             combined_results = {}
             
