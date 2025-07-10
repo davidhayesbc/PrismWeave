@@ -14,7 +14,7 @@ __author__ = "PrismWeave Team"
 # Main API exports
 __all__ = [
     "OllamaClient",
-    "DocumentProcessor", 
+    "DocumentProcessor",
     "SemanticSearch",
     "Config"
 ]

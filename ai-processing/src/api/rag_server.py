@@ -5,6 +5,7 @@ FastAPI server that provides RAG-enabled chat completions compatible with OpenAI
 Can be used with Open WebUI, VS Code, and other clients
 """
 
+import argparse
 import asyncio
 import logging
 import json
@@ -31,7 +32,7 @@ try:
     from src.rag.rag_synthesizer import RAGSynthesizer, RAGQuery
     from src.models.ollama_client import OllamaClient
     from src.utils.config_simplified import get_config
-    
+
     # Try to import LangChain RAG (optional enhancement)
     LANGCHAIN_AVAILABLE = False
     try:
@@ -40,7 +41,7 @@ try:
         print("✅ LangChain integration available")
     except ImportError:
         print("ℹ️ LangChain not available - using standard RAG implementation")
-        
+
 except ImportError as e:
     print(f"ERROR: PrismWeave modules not found: {e}")
     print("Please ensure you're running from the correct directory and modules are available")
@@ -135,30 +136,32 @@ async def startup():
     """Initialize RAG components on server startup"""
     try:
         logger.info("Starting PrismWeave RAG API Server...")
-        
+
         # Initialize standard RAG synthesizer
         state.rag_synthesizer = RAGSynthesizer()
         await state.rag_synthesizer.initialize()
-        
+
         # Initialize LangChain RAG if available
         if LANGCHAIN_AVAILABLE:
             try:
-                from src.rag.langchain_rag import LangChainRAGContext
-                state.langchain_rag = LangChainRAGContext()
-                await state.langchain_rag.__aenter__()
-                logger.info("LangChain RAG initialized successfully")
-            except Exception as e:
-                logger.warning(f"LangChain RAG initialization failed: {e}")
+                # Import here to avoid conflicts with outer scope
+                from src.rag.langchain_rag import LangChainRAGContext as LCRAGContext  # pylint: disable=import-outside-toplevel
+                state.langchain_rag = LCRAGContext()
+                async with state.langchain_rag:
+                    logger.info("LangChain RAG initialized successfully")
+            except Exception as e:  # pylint: disable=broad-exception-caught
+                logger.warning("LangChain RAG initialization failed: %s", e)
                 state.langchain_rag = None
-        
+
         # Initialize Ollama client
         state.ollama_client = OllamaClient()
-        await state.ollama_client.__aenter__()
-        
+        async with state.ollama_client:
+            pass
+
         logger.info("RAG API Server initialized successfully")
-        
-    except Exception as e:
-        logger.error(f"Failed to initialize RAG API Server: {e}")
+
+    except Exception as e:  # pylint: disable=broad-exception-caught
+        logger.error("Failed to initialize RAG API Server: %s", e)
         raise
 
 @app.on_event("shutdown")
@@ -170,8 +173,8 @@ async def shutdown():
         if state.ollama_client:
             await state.ollama_client.__aexit__(None, None, None)
         logger.info("RAG API Server shutdown complete")
-    except Exception as e:
-        logger.error(f"Error during shutdown: {e}")
+    except Exception as e:  # pylint: disable=broad-exception-caught
+        logger.error("Error during shutdown: %s", e)
 
 # OpenAI-compatible endpoints
 @app.post("/v1/chat/completions", response_model=ChatCompletionResponse)
@@ -185,12 +188,12 @@ async def create_chat_completion(request: ChatCompletionRequest):
         user_messages = [msg for msg in request.messages if msg.role == "user"]
         if not user_messages:
             raise HTTPException(status_code=400, detail="No user message found")
-        
+
         latest_message = user_messages[-1].content
-        
+
         # Generate response ID
         response_id = f"chatcmpl-{datetime.now().strftime('%Y%m%d%H%M%S')}"
-        
+
         if state.rag_enabled and state.rag_synthesizer:
             # Use RAG for enhanced response
             rag_query = RAGQuery(
@@ -198,10 +201,10 @@ async def create_chat_completion(request: ChatCompletionRequest):
                 max_context_documents=state.rag_config["context_docs"],
                 synthesis_style=state.rag_config["synthesis_style"]
             )
-            
+
             rag_response = await state.rag_synthesizer.query(rag_query)
             response_content = rag_response.answer
-            
+
             # Add source information if available
             if rag_response.sources:
                 source_info = f"\n\n**Sources** ({len(rag_response.sources)} documents):\n"
@@ -209,17 +212,17 @@ async def create_chat_completion(request: ChatCompletionRequest):
                     title = source.metadata.get('title', 'Unknown')
                     source_info += f"{i}. {title}\n"
                 response_content += source_info
-                
+
         else:
             # Fallback to direct Ollama
             model_name = state.config.ollama.models.get('large', 'llama3.1:8b')
-            
+
             # Build conversation context
             conversation = ""
             for msg in request.messages:
                 conversation += f"{msg.role}: {msg.content}\n"
             conversation += "assistant:"
-            
+
             result = await state.ollama_client.generate(
                 model=model_name,
                 prompt=conversation,
@@ -229,7 +232,7 @@ async def create_chat_completion(request: ChatCompletionRequest):
                 }
             )
             response_content = result.response
-        
+
         # Create OpenAI-compatible response
         response = ChatCompletionResponse(
             id=response_id,
@@ -241,19 +244,19 @@ async def create_chat_completion(request: ChatCompletionRequest):
                 )
             ]
         )
-        
+
         return response
-        
+
     except Exception as e:
-        logger.error(f"Chat completion failed: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error("Chat completion failed: %s", e)
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 @app.get("/v1/models")
 async def list_models():
     """List available models (OpenAI-compatible)"""
     try:
         models = []
-        
+
         # Add RAG-enabled model
         models.append({
             "id": "prismweave-rag",
@@ -264,24 +267,24 @@ async def list_models():
             "root": "prismweave-rag",
             "parent": None
         })
-        
+
         # Add configured Ollama models
         for purpose, model_name in state.config.ollama.models.items():
             models.append({
                 "id": f"{model_name}-{purpose}",
-                "object": "model", 
+                "object": "model",
                 "created": int(datetime.now().timestamp()),
                 "owned_by": "ollama",
                 "permission": [],
                 "root": model_name,
                 "parent": None
             })
-        
+
         return {"object": "list", "data": models}
-        
+
     except Exception as e:
-        logger.error(f"Failed to list models: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error("Failed to list models: %s", e)
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 # PrismWeave-specific endpoints
 @app.get("/rag/status", response_model=RAGStatusResponse)
@@ -295,28 +298,28 @@ async def get_rag_status():
                 # Try a simple operation to check if vector DB is accessible
                 await state.rag_synthesizer.search_engine.get_document_count()
                 vector_status = "healthy"
-            except:
+            except Exception:  # pylint: disable=broad-exception-caught
                 vector_status = "error"
-        
+
         # Get available models
         available_models = []
         if state.ollama_client:
             try:
                 models_info = await state.ollama_client.list_models()
                 available_models = [model.name for model in models_info]
-            except:
+            except Exception:  # pylint: disable=broad-exception-caught
                 available_models = ["unknown"]
-        
+
         return RAGStatusResponse(
             rag_enabled=state.rag_enabled,
             vector_db_status=vector_status,
             available_models=available_models,
             current_config=state.rag_config
         )
-        
+
     except Exception as e:
-        logger.error(f"Failed to get RAG status: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error("Failed to get RAG status: %s", e)
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 @app.post("/rag/config")
 async def update_rag_config(config: RAGConfigRequest):
@@ -328,12 +331,12 @@ async def update_rag_config(config: RAGConfigRequest):
             "synthesis_style": config.synthesis_style,
             "similarity_threshold": config.similarity_threshold
         }
-        
+
         return {"status": "success", "message": "RAG configuration updated", "config": state.rag_config}
-        
+
     except Exception as e:
-        logger.error(f"Failed to update RAG config: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error("Failed to update RAG config: %s", e)
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 @app.post("/rag/ask")
 async def ask_rag_question(request: Dict[str, Any]):
@@ -342,23 +345,23 @@ async def ask_rag_question(request: Dict[str, Any]):
         question = request.get("question")
         if not question:
             raise HTTPException(status_code=400, detail="Question is required")
-        
+
         style = request.get("style", "comprehensive")
         context_docs = request.get("context_docs", 10)
-        
+
         if not state.rag_synthesizer:
             raise HTTPException(status_code=503, detail="RAG system not available")
-        
+
         # Create RAG query
         rag_query = RAGQuery(
             question=question,
             max_context_documents=context_docs,
             synthesis_style=style
         )
-        
+
         # Get response
         rag_response = await state.rag_synthesizer.query(rag_query)
-        
+
         # Format response
         return {
             "question": rag_response.question,
@@ -375,10 +378,10 @@ async def ask_rag_question(request: Dict[str, Any]):
                 for source in rag_response.sources[:5]  # Limit to top 5 sources
             ]
         }
-        
+
     except Exception as e:
-        logger.error(f"RAG question failed: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error("RAG question failed: %s", e)
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 @app.get("/health")
 async def health_check():
@@ -390,25 +393,25 @@ async def health_check():
             "ollama_client": "healthy" if state.ollama_client else "unavailable",
             "vector_db": "unknown"
         }
-        
+
         # Check vector DB
         if state.rag_synthesizer and state.rag_synthesizer.search_engine:
             try:
                 await state.rag_synthesizer.search_engine.get_document_count()
                 checks["vector_db"] = "healthy"
-            except:
+            except Exception:  # pylint: disable=broad-exception-caught
                 checks["vector_db"] = "error"
-        
+
         all_healthy = all(status in ["healthy", "unknown"] for status in checks.values())
-        
+
         return {
             "status": "healthy" if all_healthy else "degraded",
             "timestamp": datetime.now().isoformat(),
             "checks": checks
         }
-        
-    except Exception as e:
-        logger.error(f"Health check failed: {e}")
+
+    except Exception as e:  # pylint: disable=broad-exception-caught
+        logger.error("Health check failed: %s", e)
         return {
             "status": "error",
             "timestamp": datetime.now().isoformat(),
@@ -418,21 +421,19 @@ async def health_check():
 # Development server startup
 def main():
     """Run the development server"""
-    import argparse
-    
     parser = argparse.ArgumentParser(description="PrismWeave RAG API Server")
     parser.add_argument("--host", default="127.0.0.1", help="Host to bind to")
     parser.add_argument("--port", type=int, default=8000, help="Port to bind to")
     parser.add_argument("--reload", action="store_true", help="Enable auto-reload for development")
     parser.add_argument("--log-level", default="info", help="Log level")
-    
+
     args = parser.parse_args()
-    
+
     print(f"Starting PrismWeave RAG API Server on {args.host}:{args.port}")
     print(f"OpenAI-compatible endpoint: http://{args.host}:{args.port}/v1/chat/completions")
     print(f"RAG status endpoint: http://{args.host}:{args.port}/rag/status")
     print(f"Health check: http://{args.host}:{args.port}/health")
-    
+
     uvicorn.run(
         "rag_server:app",
         host=args.host,

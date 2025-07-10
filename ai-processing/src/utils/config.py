@@ -53,7 +53,7 @@ class SearchConfig:
 
 class Config:
     """Main configuration class for PrismWeave AI processing"""
-    
+
     def __init__(self, config_path: Optional[str] = None):
         self.config_path = config_path or self._find_config_file()
         self._raw_config: Dict[str, Any] = {}
@@ -61,25 +61,25 @@ class Config:
         self.processing: ProcessingConfig = ProcessingConfig()
         self.vector_db: VectorDBConfig = VectorDBConfig()
         self.search: SearchConfig = SearchConfig()
-        
+
         self.load_config()
-    
+
     def _find_config_file(self) -> str:
         """Find the configuration file in the project"""
         possible_paths = [
             "config.yaml",
-            "../config.yaml", 
+            "../config.yaml",
             "../../config.yaml",
             os.path.expanduser("~/.prismweave/config.yaml")
         ]
-        
+
         for path in possible_paths:
             if os.path.exists(path):
                 return path
-        
+
         # Return default path if none found
         return "config.yaml"
-    
+
     def load_config(self) -> None:
         """Load configuration from YAML file"""
         try:
@@ -90,13 +90,13 @@ class Config:
             else:
                 logger.warning(f"Configuration file not found: {self.config_path}")
                 self._raw_config = {}
-            
+
             self._parse_config()
-            
+
         except Exception as e:
             logger.error(f"Failed to load configuration: {e}")
             self._raw_config = {}
-    
+
     def _parse_config(self) -> None:
         """Parse raw configuration into structured objects"""
         try:
@@ -107,7 +107,7 @@ class Config:
                 timeout=ollama_config.get('timeout', 30),
                 models=ollama_config.get('models', {})
             )
-            
+
             # Parse processing configuration
             proc_config = self._raw_config.get('processing', {})
             self.processing = ProcessingConfig(
@@ -123,7 +123,7 @@ class Config:
                     "high": 8.0, "medium": 5.0, "low": 2.0
                 })
             )
-            
+
             # Parse vector database configuration
             vdb_config = self._raw_config.get('vector_db', {})
             self.vector_db = VectorDBConfig(
@@ -132,7 +132,7 @@ class Config:
                 sqlite=vdb_config.get('sqlite', {}),
                 search=vdb_config.get('search', {})
             )
-            
+
             # Parse search configuration
             search_config = self._raw_config.get('search', {})
             self.search = SearchConfig(
@@ -144,29 +144,29 @@ class Config:
                 snippet_length=search_config.get('snippet_length', 200),
                 max_snippets=search_config.get('max_snippets', 3)
             )
-            
+
         except Exception as e:
             logger.error(f"Failed to parse configuration: {e}")
-    
+
     def get(self, key: str, default: Any = None) -> Any:
         """Get a configuration value by key"""
         return self._raw_config.get(key, default)
-    
+
     def get_model_config(self, model_type: str) -> Dict[str, Any]:
         """Get model configuration for a specific type"""
         return self.ollama.models.get(model_type, {})
-    
+
     def get_documents_path(self) -> Path:
         """Get the documents directory path"""
         docs_path = self.get('integration', {}).get('documents_path', '../PrismWeaveDocs/documents')
         return Path(docs_path).resolve()
-    
+
     def get_output_path(self, output_type: str) -> Path:
         """Get output directory path for specific type"""
         output_config = self.get('integration', {}).get('output', {})
         output_path = output_config.get(output_type, f'../.prismweave/{output_type}')
         return Path(output_path).resolve()
-    
+
     def save_config(self, output_path: Optional[str] = None) -> None:
         """Save current configuration to file"""
         save_path = output_path or self.config_path

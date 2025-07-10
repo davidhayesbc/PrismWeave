@@ -55,16 +55,16 @@ def setup_logging(level: str = "INFO"):
 def cli(ctx, config, log_level):
     """PrismWeave AI Processing - Simplified Interface"""
     ctx.ensure_object(dict)
-    
+
     # Setup logging
     setup_logging(log_level)
-    
+
     # Load configuration
     if config:
         ctx.obj['config'] = load_config(Path(config))
     else:
         ctx.obj['config'] = get_config()
-    
+
     # Validate configuration
     issues = ctx.obj['config'].validate()
     if issues:
@@ -79,53 +79,53 @@ def health(ctx):
     """Check system health and model availability"""
     async def _health():
         config = ctx.obj['config']
-        
+
         console.print("[blue]Checking PrismWeave AI Health...[/blue]")
-        
+
         try:
             async with OllamaClient(host=config.ollama.host, timeout=config.ollama.timeout) as client:
                 health_info = await client.health_check()
-                
+
                 # Display health information
                 table = Table(title="System Health")
                 table.add_column("Component", style="cyan")
                 table.add_column("Status", style="green")
                 table.add_column("Details")
-                
+
                 # Server status
                 server_available = health_info.get("status") == "healthy"
                 server_status = "✅ Available" if server_available else "❌ Unavailable"
                 table.add_row("Ollama Server", server_status, config.ollama.host)
-                
+
                 # Models status
                 models_count = health_info.get("models_available", 0)
                 available_models = health_info.get("models", [])
                 models_status = f"✅ {models_count} models" if models_count > 0 else "❌ No models"
                 table.add_row("Models", models_status, ", ".join(available_models[:3]))
-                
+
                 # Configuration
                 table.add_row("Configuration", "✅ Valid" if config.is_valid() else "❌ Invalid", f"Log level: {config.log_level}")
-                
+
                 console.print(table)
-                
+
                 # Check configured models
                 if server_available:
                     console.print("\n[blue]Checking configured models...[/blue]")
-                    
+
                     model_table = Table(title="Configured Models")
                     model_table.add_column("Purpose", style="cyan")
                     model_table.add_column("Model", style="yellow")
                     model_table.add_column("Status", style="green")
-                    
+
                     for purpose, model_name in config.ollama.models.items():
                         available = await client.model_exists(model_name)
                         status = "✅ Available" if available else "❌ Not found"
                         model_table.add_row(purpose.title(), model_name, status)
-                    
+
                     console.print(model_table)
         except Exception as e:
             console.print(f"[red]Health check failed: {e}[/red]")
-    
+
     asyncio.run(_health())
 
 @cli.command()
@@ -140,7 +140,7 @@ def process(ctx, path, output, recursive, add_to_vector, verify_embeddings):
     async def _process():
         config = ctx.obj['config']
         path_obj = Path(path)
-        
+
         # Collect files to process
         if path_obj.is_file():
             files = [path_obj]
@@ -150,32 +150,32 @@ def process(ctx, path, output, recursive, add_to_vector, verify_embeddings):
         else:
             console.print(f"[red]Invalid path: {path_obj}[/red]")
             return
-        
+
         if not files:
             console.print("[yellow]No markdown files found[/yellow]")
             return
-        
+
         console.print(f"[blue]Processing {len(files)} files...[/blue]")
-        
+
         try:
             processor = DocumentProcessor()
             results = []
             embedding_results = {}
-            
+
             # Initialize vector search if needed
             search_engine = None
             if add_to_vector:
                 search_engine = SemanticSearch(config)
                 await search_engine.initialize()
-            
+
             with Progress() as progress:
                 task = progress.add_task("Processing files...", total=len(files))
-                
+
                 for file_path in files:
                     try:
                         progress.update(task, description=f"Processing {file_path.name}")
                         analysis, metadata = await processor.process_file(file_path)
-                        
+
                         result = {
                             'file': str(file_path),
                             'analysis': {
@@ -192,16 +192,16 @@ def process(ctx, path, output, recursive, add_to_vector, verify_embeddings):
                             'metadata': metadata
                         }
                         results.append(result)
-                        
+
                         # Add to vector database if requested
                         if add_to_vector and search_engine:
                             # Create document ID from file path
                             document_id = str(file_path.relative_to(path_obj.parent if path_obj.is_file() else path_obj))
-                            
+
                             # Read file content for embedding
                             with open(file_path, 'r', encoding='utf-8') as f:
                                 content = f.read()
-                            
+
                             # Combine metadata with analysis
                             embedding_metadata = {
                                 **metadata,
@@ -213,15 +213,15 @@ def process(ctx, path, output, recursive, add_to_vector, verify_embeddings):
                                 'confidence': analysis.confidence,
                                 'processed_at': datetime.now().isoformat()
                             }
-                            
+
                             embedding_success = await search_engine.add_document(
                                 document_id=document_id,
                                 content=content,
                                 metadata=embedding_metadata
                             )
-                            
+
                             embedding_results[document_id] = embedding_success
-                            
+
                             if embedding_success:
                                 console.print(f"  ✅ {file_path.name} - {analysis.category} - {len(analysis.tags)} tags - [green]embedded[/green]")
                             else:
@@ -229,55 +229,55 @@ def process(ctx, path, output, recursive, add_to_vector, verify_embeddings):
                         else:
                             # Display progress without embedding info
                             console.print(f"  ✅ {file_path.name} - {analysis.category} - {len(analysis.tags)} tags")
-                        
+
                     except Exception as e:
                         console.print(f"  ❌ {file_path.name} - Error: {e}")
                         results.append({
                             'file': str(file_path),
                             'error': str(e)
                         })
-                    
+
                     progress.advance(task)
-            
+
             # Display summary
             successful = sum(1 for r in results if 'analysis' in r)
             console.print(f"\n[green]Document analysis completed ({successful}/{len(files)} files successfully)[/green]")
-            
+
             # Display embedding summary
             if add_to_vector:
                 embedded_count = sum(1 for success in embedding_results.values() if success)
                 console.print(f"[blue]Vector database: {embedded_count}/{len(embedding_results)} documents embedded[/blue]")
-            
+
             # Verify embeddings if requested
             if verify_embeddings and add_to_vector and embedding_results:
                 console.print("\n[blue]Verifying embeddings...[/blue]")
-                
+
                 verification_results = {}
                 async with VectorVerifier() as verifier:
                     for doc_id, was_embedded in embedding_results.items():
                         if was_embedded:
                             verification = await verifier.verify_document_embedding(doc_id)
                             verification_results[doc_id] = verification
-                
+
                 # Display verification results
                 verified_count = sum(1 for v in verification_results.values() if v.get('found', False))
                 searchable_count = sum(1 for v in verification_results.values() if v.get('searchable', False))
-                
+
                 console.print(f"[green]Verification: {verified_count}/{len(verification_results)} documents found in vector DB[/green]")
                 console.print(f"[green]Searchability: {searchable_count}/{len(verification_results)} documents searchable[/green]")
-                
+
                 # Show any verification issues
                 for doc_id, verification in verification_results.items():
                     if not verification.get('found', False):
                         console.print(f"  ❌ {doc_id}: {verification.get('error', 'Not found')}")
                     elif verification.get('searchable') is False:
                         console.print(f"  ⚠️ {doc_id}: Found but not searchable")
-            
+
             # Save results if output specified
             if output:
                 output_path = Path(output)
                 output_path.parent.mkdir(parents=True, exist_ok=True)
-                
+
                 output_data = {
                     'processing_results': results,
                     'embedding_results': embedding_results if add_to_vector else None,
@@ -290,19 +290,19 @@ def process(ctx, path, output, recursive, add_to_vector, verify_embeddings):
                         'processed_at': datetime.now().isoformat()
                     }
                 }
-                
+
                 with open(output_path, 'w', encoding='utf-8') as f:
                     json.dump(output_data, f, indent=2, default=str)
-                
+
                 console.print(f"Results saved to: {output_path}")
-                
+
             # Clean up
             if search_engine:
                 await search_engine.close()
-                
+
         except Exception as e:
             console.print(f"[red]Processing failed: {e}[/red]")
-    
+
     asyncio.run(_process())
 
 @cli.command()
@@ -314,41 +314,41 @@ def search(ctx, query, limit, threshold):
     """Search documents using semantic similarity"""
     async def _search():
         config = ctx.obj['config']
-        
+
         console.print(f"[blue]Searching for: '{query}'[/blue]")
-        
+
         try:
             search_engine = SemanticSearch(config)
-            
+
             async with search_engine:
                 search_response = await search_engine.search(
                     query=query,
                     max_results=limit,
                     similarity_threshold=threshold
                 )
-                
+
                 if not search_response.results:
                     console.print("[yellow]No matching documents found[/yellow]")
                     return
-                
+
                 # Display results
                 table = Table(title=f"Search Results for '{query}' ({search_response.total_results} results)")
                 table.add_column("Document", style="cyan")
                 table.add_column("Similarity", style="green")
                 table.add_column("Summary")
-                
+
                 for result in search_response.results:
                     similarity = f"{result.similarity_score:.3f}"
                     title = result.metadata.get('title', 'Unknown')
                     summary = result.metadata.get('summary', 'No summary available')
-                    
+
                     table.add_row(title, similarity, summary[:100] + "..." if len(summary) > 100 else summary)
-                
+
                 console.print(table)
-            
+
         except Exception as e:
             console.print(f"[red]Search failed: {e}[/red]")
-    
+
     asyncio.run(_search())
 
 @cli.command()
@@ -359,37 +359,37 @@ def ask(ctx, question, context_docs):
     """Ask a question using RAG (Retrieval Augmented Generation)"""
     async def _ask():
         config = ctx.obj['config']
-        
+
         console.print(f"[blue]Question: {question}[/blue]")
-        
+
         try:
             # Search for relevant context
             search_engine = SemanticSearch(config)
             await search_engine.initialize()
-            
+
             search_response = await search_engine.search(
                 query=question,
                 max_results=context_docs,
                 similarity_threshold=0.5
             )
-            
+
             if not search_response.results:
                 console.print("[yellow]No relevant documents found for context[/yellow]")
                 return
-            
+
             # Build context from search results
             context_texts = []
             for result in search_response.results:
                 doc_title = result.metadata.get('title', 'Unknown')
                 doc_content = result.snippet  # Use snippet instead of content
                 context_texts.append(f"Document: {doc_title}\n{doc_content}")
-            
+
             context = "\n\n---\n\n".join(context_texts)
-            
+
             # Generate answer using large model
             async with OllamaClient(host=config.ollama.host, timeout=config.ollama.timeout) as client:
                 large_model = config.get_model('large')
-                
+
                 prompt = f"""Based on the following context documents, answer this question: {question}
 
 Context:
@@ -398,29 +398,29 @@ Context:
 Please provide a comprehensive answer based on the information in the context documents. If the context doesn't contain enough information to answer the question, say so.
 
 Answer:"""
-                
+
                 console.print("[blue]Generating answer...[/blue]")
-                
+
                 result = await client.generate(
                     model=large_model,
                     prompt=prompt,
                     options={'temperature': 0.3}  # Lower temperature for more factual responses
                 )
-                
+
                 # Display answer
                 console.print(f"\n[green]Answer:[/green]")
                 console.print(result.response)
-                
+
                 # Show context sources
                 console.print(f"\n[dim]Based on {len(search_response.results)} documents:[/dim]")
                 for result in search_response.results:
                     title = result.metadata.get('title', 'Unknown')
                     similarity = result.similarity_score
                     console.print(f"  - {title} (similarity: {similarity:.3f})")
-        
+
         except Exception as e:
             console.print(f"[red]Question answering failed: {e}[/red]")
-    
+
     asyncio.run(_ask())
 
 @cli.command()
@@ -431,7 +431,7 @@ def models(ctx, model, pull):
     """List available models or pull a specific model"""
     async def _models():
         config = ctx.obj['config']
-        
+
         try:
             async with OllamaClient(host=config.ollama.host, timeout=config.ollama.timeout) as client:
                 if pull and model:
@@ -442,20 +442,20 @@ def models(ctx, model, pull):
                     else:
                         console.print(f"[red]Failed to pull {model}[/red]")
                     return
-                
+
                 # List models
                 console.print("[blue]Listing available models...[/blue]")
                 models_dict = await client.list_models()
-                
+
                 if not models_dict:
                     console.print("[yellow]No models found[/yellow]")
                     return
-                
+
                 table = Table(title="Available Models")
                 table.add_column("Name", style="cyan")
                 table.add_column("Size", style="green")
                 table.add_column("Modified", style="yellow")
-                
+
                 for model_name, model_info in models_dict.items():
                     size_gb = model_info.get('size', 0) / (1024**3)
                     table.add_row(
@@ -463,11 +463,11 @@ def models(ctx, model, pull):
                         f"{size_gb:.1f} GB",
                         model_info.get('modified_at', 'Unknown')
                     )
-                
+
                 console.print(table)
         except Exception as e:
             console.print(f"[red]Models command failed: {e}[/red]")
-    
+
     asyncio.run(_models())
 
 @cli.command()
@@ -475,9 +475,9 @@ def models(ctx, model, pull):
 def config_show(ctx):
     """Show current configuration"""
     config = ctx.obj['config']
-    
+
     console.print("[blue]Current Configuration:[/blue]")
-    
+
     # Ollama configuration
     console.print("\n[cyan]Ollama:[/cyan]")
     console.print(f"  Host: {config.ollama.host}")
@@ -485,18 +485,18 @@ def config_show(ctx):
     console.print(f"  Models:")
     for purpose, model in config.ollama.models.items():
         console.print(f"    {purpose}: {model}")
-    
+
     # Processing configuration
     console.print("\n[cyan]Processing:[/cyan]")
     console.print(f"  Max concurrent: {config.processing.max_concurrent}")
     console.print(f"  Chunk size: {config.processing.chunk_size}")
     console.print(f"  Summary timeout: {config.processing.summary_timeout}s")
-    
+
     # Vector configuration
     console.print("\n[cyan]Vector Database:[/cyan]")
     console.print(f"  Collection: {config.vector.collection_name}")
     console.print(f"  Directory (relative): {config.vector.persist_directory}")
-    
+
     # Calculate and display absolute path
     persist_path = Path(config.vector.persist_directory)
     if persist_path.is_absolute():
@@ -504,16 +504,16 @@ def config_show(ctx):
     else:
         abs_path = Path.cwd() / persist_path
     console.print(f"  Directory (absolute): {abs_path.resolve()}")
-    
+
     # Check if directory exists
     if abs_path.exists():
         console.print(f"  Status: ✅ Directory exists")
     else:
         console.print(f"  Status: ⚠️  Directory does not exist")
-    
+
     console.print(f"  Max results: {config.vector.max_results}")
     console.print(f"  Similarity threshold: {config.vector.similarity_threshold}")
-    
+
     # Validation
     issues = config.validate()
     if issues:
@@ -529,11 +529,11 @@ def vector_health(ctx):
     """Check vector database health and embeddings status"""
     async def _vector_health():
         console.print("[blue]Checking Vector Database Health...[/blue]")
-        
+
         try:
             async with VectorVerifier() as verifier:
                 health_report = await verifier.comprehensive_health_check()
-                
+
                 # Overall status
                 health_score = verifier._calculate_health_score(
                     health_report.database_accessible,
@@ -542,45 +542,45 @@ def vector_health(ctx):
                     health_report.embedding_model_available,
                     health_report.integrity_check_passed
                 )
-                
+
                 status_color = "green" if health_score >= 80 else "yellow" if health_score >= 50 else "red"
                 console.print(f"\n[{status_color}]Overall Health Score: {health_score:.1f}/100[/{status_color}]")
-                
+
                 # Detailed health table
                 table = Table(title="Vector Database Health Report")
                 table.add_column("Component", style="cyan")
                 table.add_column("Status", style="green")
                 table.add_column("Details")
-                
+
                 # Database accessibility
                 db_status = "✅ Accessible" if health_report.database_accessible else "❌ Inaccessible"
                 table.add_row("Database", db_status, f"ChromaDB connection")
-                
+
                 # Collection existence
                 collection_status = "✅ Exists" if health_report.collection_exists else "❌ Missing"
                 table.add_row("Collection", collection_status, f"'{ctx.obj['config'].vector.collection_name}'")
-                
+
                 # Document count
                 doc_status = f"✅ {health_report.document_count} documents" if health_report.document_count > 0 else "⚠️ Empty"
                 table.add_row("Documents", doc_status, f"Size: {health_report.database_size_mb:.1f} MB")
-                
+
                 # Embedding model
                 model_status = "✅ Available" if health_report.embedding_model_available else "❌ Missing"
                 from src.utils.config_simplified import get_model_for_purpose
                 model_name = get_model_for_purpose('embedding')
                 table.add_row("Embedding Model", model_status, model_name)
-                
+
                 # Integrity check
                 integrity_status = "✅ Passed" if health_report.integrity_check_passed else "❌ Failed"
                 table.add_row("Integrity", integrity_status, "Database consistency check")
-                
+
                 # Last updated
                 if health_report.last_updated:
                     last_updated = datetime.fromisoformat(health_report.last_updated).strftime("%Y-%m-%d %H:%M")
                     table.add_row("Last Updated", "📅", last_updated)
-                
+
                 console.print(table)
-                
+
                 # Performance metrics
                 if health_report.performance_metrics:
                     console.print("\n[cyan]Performance Metrics:[/cyan]")
@@ -589,7 +589,7 @@ def vector_health(ctx):
                             console.print(f"  {metric}: {value:.2f}")
                         else:
                             console.print(f"  {metric}: {value}")
-                
+
                 # Sample documents
                 if health_report.sample_documents:
                     console.print(f"\n[cyan]Sample Documents ({len(health_report.sample_documents)}):[/cyan]")
@@ -598,21 +598,21 @@ def vector_health(ctx):
                         metadata = doc.get('metadata', {})
                         title = metadata.get('title', metadata.get('filename', 'No title'))
                         console.print(f"  • {doc_id}: {title}")
-                
+
                 # Issues and recommendations
                 if health_report.issues:
                     console.print("\n[red]Issues Found:[/red]")
                     for issue in health_report.issues:
                         console.print(f"  ❌ {issue}")
-                
+
                 if health_report.recommendations:
                     console.print("\n[yellow]Recommendations:[/yellow]")
                     for rec in health_report.recommendations:
                         console.print(f"  💡 {rec}")
-                
+
         except Exception as e:
             console.print(f"[red]Vector health check failed: {e}[/red]")
-    
+
     asyncio.run(_vector_health())
 
 @cli.command()
@@ -623,21 +623,21 @@ def vector_list(ctx, limit, verbose):
     """List documents in the vector database"""
     async def _vector_list():
         console.print(f"[blue]Listing Vector Database Documents (limit: {limit})...[/blue]")
-        
+
         try:
             config = ctx.obj['config']
             search_engine = SemanticSearch(config)
-            
+
             async with search_engine:
                 documents = await search_engine.list_documents(limit=limit)
                 total_count = await search_engine.get_document_count()
-                
+
                 if not documents:
                     console.print("[yellow]No documents found in vector database[/yellow]")
                     return
-                
+
                 console.print(f"\n[green]Found {len(documents)} documents (total: {total_count})[/green]")
-                
+
                 if verbose:
                     # Detailed table
                     table = Table(title="Vector Database Documents (Detailed)")
@@ -645,12 +645,12 @@ def vector_list(ctx, limit, verbose):
                     table.add_column("Title", style="green", max_width=40)
                     table.add_column("Metadata", max_width=50)
                     table.add_column("Content Preview", max_width=60)
-                    
+
                     for doc in documents:
                         doc_id = doc.get('id', 'Unknown')
                         metadata = doc.get('metadata', {})
                         title = metadata.get('title', metadata.get('filename', 'No title'))
-                        
+
                         # Format metadata
                         meta_items = []
                         if metadata.get('category'):
@@ -660,10 +660,10 @@ def vector_list(ctx, limit, verbose):
                             meta_items.append(f"Tags: {', '.join(tags)}")
                         if metadata.get('word_count'):
                             meta_items.append(f"Words: {metadata['word_count']}")
-                        
+
                         meta_str = '\n'.join(meta_items) if meta_items else 'No metadata'
                         content_preview = doc.get('content_preview', 'No content preview')
-                        
+
                         table.add_row(doc_id, title, meta_str, content_preview)
                 else:
                     # Simple table
@@ -672,21 +672,21 @@ def vector_list(ctx, limit, verbose):
                     table.add_column("Title", style="green")
                     table.add_column("Category", style="yellow")
                     table.add_column("Word Count", style="blue")
-                    
+
                     for doc in documents:
                         doc_id = doc.get('id', 'Unknown')
                         metadata = doc.get('metadata', {})
                         title = metadata.get('title', metadata.get('filename', 'No title'))
                         category = metadata.get('category', 'uncategorized')
                         word_count = str(metadata.get('word_count', 'N/A'))
-                        
+
                         table.add_row(doc_id, title, category, word_count)
-                
+
                 console.print(table)
-                
+
         except Exception as e:
             console.print(f"[red]Vector list failed: {e}[/red]")
-    
+
     asyncio.run(_vector_list())
 
 @cli.command()
@@ -696,22 +696,22 @@ def vector_verify(ctx, document_id):
     """Verify that a specific document is properly embedded"""
     async def _vector_verify():
         console.print(f"[blue]Verifying document embedding: {document_id}[/blue]")
-        
+
         try:
             async with VectorVerifier() as verifier:
                 result = await verifier.verify_document_embedding(document_id)
-                
+
                 if result.get('found'):
                     console.print(f"[green]✅ Document found in vector database[/green]")
-                    
+
                     doc = result.get('document', {})
                     metadata = doc.get('metadata', {})
-                    
+
                     # Document details
                     table = Table(title=f"Document: {document_id}")
                     table.add_column("Property", style="cyan")
                     table.add_column("Value", style="green")
-                    
+
                     table.add_row("ID", document_id)
                     if metadata.get('title'):
                         table.add_row("Title", metadata['title'])
@@ -721,13 +721,13 @@ def vector_verify(ctx, document_id):
                         table.add_row("Tags", ', '.join(metadata['tags'][:5]))
                     if metadata.get('word_count'):
                         table.add_row("Word Count", str(metadata['word_count']))
-                    
+
                     content_preview = doc.get('content_preview', '')
                     if content_preview:
                         table.add_row("Content Preview", content_preview)
-                    
+
                     console.print(table)
-                    
+
                     # Search test results
                     if result.get('searchable') is not None:
                         if result['searchable']:
@@ -739,10 +739,10 @@ def vector_verify(ctx, document_id):
                 else:
                     error = result.get('error', 'Unknown error')
                     console.print(f"[red]❌ Document not found: {error}[/red]")
-                    
+
         except Exception as e:
             console.print(f"[red]Document verification failed: {e}[/red]")
-    
+
     asyncio.run(_vector_verify())
 
 @cli.command()
@@ -755,56 +755,56 @@ def vector_export(ctx, output):
             output_path = Path(f"vector_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json")
         else:
             output_path = Path(output)
-        
+
         console.print(f"[blue]Exporting vector database info to: {output_path}[/blue]")
-        
+
         try:
             async with VectorVerifier() as verifier:
                 success = await verifier.export_embeddings_info(output_path)
-                
+
                 if success:
                     file_size = output_path.stat().st_size / 1024  # KB
                     console.print(f"[green]✅ Export completed: {output_path} ({file_size:.1f} KB)[/green]")
                 else:
                     console.print(f"[red]❌ Export failed[/red]")
-                    
+
         except Exception as e:
             console.print(f"[red]Export failed: {e}[/red]")
-    
+
     asyncio.run(_vector_export())
 
 @cli.command()
-@click.pass_context  
+@click.pass_context
 def vector_stats(ctx):
     """Show quick vector database statistics"""
     async def _vector_stats():
         console.print("[blue]Vector Database Statistics...[/blue]")
-        
+
         try:
             summary = await get_embeddings_summary()
-            
+
             if 'error' in summary:
                 console.print(f"[red]Error getting stats: {summary['error']}[/red]")
                 return
-            
+
             table = Table(title="Vector Database Quick Stats")
             table.add_column("Metric", style="cyan")
             table.add_column("Value", style="green")
-            
+
             table.add_row("Documents", str(summary.get('document_count', 0)))
             table.add_row("Database Size", f"{summary.get('database_size_mb', 0):.1f} MB")
-            
+
             accessible = summary.get('database_accessible', False)
             table.add_row("Accessible", "✅ Yes" if accessible else "❌ No")
-            
+
             model_available = summary.get('embedding_model_available', False)
             table.add_row("Embedding Model", "✅ Available" if model_available else "❌ Missing")
-            
+
             console.print(table)
-            
+
         except Exception as e:
             console.print(f"[red]Stats failed: {e}[/red]")
-    
+
     asyncio.run(_vector_stats())
 
 
