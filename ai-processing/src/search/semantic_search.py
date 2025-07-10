@@ -33,7 +33,6 @@ from ..utils.config_simplified import get_config
 logger = logging.getLogger(__name__)
 
 @dataclass
-@dataclass
 class SearchResult:
     """Single search result"""
     document_path: str
@@ -602,7 +601,8 @@ class SemanticSearch:
         
         try:
             # Check Ollama availability
-            health["ollama_available"] = await self.ollama_client.is_available()
+            health_status = await self.ollama_client.health_check()
+            health["ollama_available"] = health_status.get("status") == "healthy"
             
             # Check embedding model
             if health["ollama_available"]:

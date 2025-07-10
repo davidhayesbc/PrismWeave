@@ -30,7 +30,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent / 'src'))
 try:
     from src.rag.rag_synthesizer import RAGSynthesizer, RAGQuery
     from src.models.ollama_client import OllamaClient
-    from src.utils.config import get_config
+    from src.utils.config_simplified import get_config
     
     # Try to import LangChain RAG (optional enhancement)
     LANGCHAIN_AVAILABLE = False

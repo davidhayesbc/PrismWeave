@@ -1,14 +1,12 @@
 #!/usr/bin/env python3
 """
 PrismWeave CLI - Simplified AI Document Processing Interface
-Clean, straightforward interface without complex fallback mechanisms
 """
 
 import asyncio
 import logging
 import sys
 from pathlib import Path
-from typing import List, Optional
 from datetime import datetime
 import json
 
@@ -16,12 +14,11 @@ try:
     import click
     from rich.console import Console
     from rich.table import Table
-    from rich.progress import Progress, TaskID
+    from rich.progress import Progress
     from rich.logging import RichHandler
-    from rich.panel import Panel
 except ImportError as e:
     print(f"ERROR: Required dependencies not installed: {e}")
-    print("Please install with: pip install click rich")
+    print("Please install with: uv")
     sys.exit(1)
 
 # Add src to path for imports
@@ -31,8 +28,8 @@ try:
     from src.models.ollama_client import OllamaClient
     from src.processors.langchain_document_processor import LangChainDocumentProcessor as DocumentProcessor
     from src.search.semantic_search import SemanticSearch
-    from src.utils.vector_verification import VectorVerifier, quick_health_check, get_embeddings_summary
-    from src.utils.config_simplified import get_config, load_config, Config
+    from src.utils.vector_verification import VectorVerifier, get_embeddings_summary
+    from src.utils.config_simplified import get_config, load_config
 except ImportError as e:
     print(f"ERROR: PrismWeave modules not found: {e}")
     print("Please ensure you're running from the correct directory and modules are available")
@@ -96,12 +93,15 @@ def health(ctx):
                 table.add_column("Details")
                 
                 # Server status
-                server_status = "✅ Available" if health_info["server_available"] else "❌ Unavailable"
+                server_available = health_info.get("status") == "healthy"
+                server_status = "✅ Available" if server_available else "❌ Unavailable"
                 table.add_row("Ollama Server", server_status, config.ollama.host)
                 
                 # Models status
-                models_status = f"✅ {health_info['models_count']} models" if health_info["models_count"] > 0 else "❌ No models"
-                table.add_row("Models", models_status, ", ".join(health_info["available_models"][:3]))
+                models_count = health_info.get("models_available", 0)
+                available_models = health_info.get("models", [])
+                models_status = f"✅ {models_count} models" if models_count > 0 else "❌ No models"
+                table.add_row("Models", models_status, ", ".join(available_models[:3]))
                 
                 # Configuration
                 table.add_row("Configuration", "✅ Valid" if config.is_valid() else "❌ Invalid", f"Log level: {config.log_level}")
@@ -109,7 +109,7 @@ def health(ctx):
                 console.print(table)
                 
                 # Check configured models
-                if health_info["server_available"]:
+                if server_available:
                     console.print("\n[blue]Checking configured models...[/blue]")
                     
                     model_table = Table(title="Configured Models")
@@ -165,7 +165,7 @@ def process(ctx, path, output, recursive, add_to_vector, verify_embeddings):
             # Initialize vector search if needed
             search_engine = None
             if add_to_vector:
-                search_engine = SemanticSearch(config.vector)
+                search_engine = SemanticSearch(config)
                 await search_engine.initialize()
             
             with Progress() as progress:
@@ -318,7 +318,7 @@ def search(ctx, query, limit, threshold):
         console.print(f"[blue]Searching for: '{query}'[/blue]")
         
         try:
-            search_engine = SemanticSearch(config.vector)
+            search_engine = SemanticSearch(config)
             
             async with search_engine:
                 search_response = await search_engine.search(
@@ -364,22 +364,24 @@ def ask(ctx, question, context_docs):
         
         try:
             # Search for relevant context
-            search_engine = SemanticSearch(config.vector)
-            context_results = await search_engine.search(
+            search_engine = SemanticSearch(config)
+            await search_engine.initialize()
+            
+            search_response = await search_engine.search(
                 query=question,
                 max_results=context_docs,
                 similarity_threshold=0.5
             )
             
-            if not context_results:
+            if not search_response.results:
                 console.print("[yellow]No relevant documents found for context[/yellow]")
                 return
             
             # Build context from search results
             context_texts = []
-            for result in context_results:
-                doc_title = result.get('metadata', {}).get('title', 'Unknown')
-                doc_content = result.get('content', '')
+            for result in search_response.results:
+                doc_title = result.metadata.get('title', 'Unknown')
+                doc_content = result.snippet  # Use snippet instead of content
                 context_texts.append(f"Document: {doc_title}\n{doc_content}")
             
             context = "\n\n---\n\n".join(context_texts)
@@ -410,10 +412,10 @@ Answer:"""
                 console.print(result.response)
                 
                 # Show context sources
-                console.print(f"\n[dim]Based on {len(context_results)} documents:[/dim]")
-                for result in context_results:
-                    title = result.get('metadata', {}).get('title', 'Unknown')
-                    similarity = result.get('similarity', 0)
+                console.print(f"\n[dim]Based on {len(search_response.results)} documents:[/dim]")
+                for result in search_response.results:
+                    title = result.metadata.get('title', 'Unknown')
+                    similarity = result.similarity_score
                     console.print(f"  - {title} (similarity: {similarity:.3f})")
         
         except Exception as e:
@@ -443,9 +445,9 @@ def models(ctx, model, pull):
                 
                 # List models
                 console.print("[blue]Listing available models...[/blue]")
-                models_list = await client.list_models()
+                models_dict = await client.list_models()
                 
-                if not models_list:
+                if not models_dict:
                     console.print("[yellow]No models found[/yellow]")
                     return
                 
@@ -454,12 +456,12 @@ def models(ctx, model, pull):
                 table.add_column("Size", style="green")
                 table.add_column("Modified", style="yellow")
                 
-                for model_info in models_list:
-                    size_gb = model_info.size / (1024**3)
+                for model_name, model_info in models_dict.items():
+                    size_gb = model_info.get('size', 0) / (1024**3)
                     table.add_row(
-                        model_info.name,
+                        model_name,
                         f"{size_gb:.1f} GB",
-                        model_info.modified
+                        model_info.get('modified_at', 'Unknown')
                     )
                 
                 console.print(table)
@@ -624,7 +626,7 @@ def vector_list(ctx, limit, verbose):
         
         try:
             config = ctx.obj['config']
-            search_engine = SemanticSearch(config.vector)
+            search_engine = SemanticSearch(config)
             
             async with search_engine:
                 documents = await search_engine.list_documents(limit=limit)

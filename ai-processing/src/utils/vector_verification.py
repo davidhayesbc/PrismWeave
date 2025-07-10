@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from datetime import datetime
 import json
 
-from .semantic_search import SemanticSearch
+from ..search.semantic_search import SemanticSearch
 from .config_simplified import get_vector_config, get_model_for_purpose
 from ..models.ollama_client import OllamaClient
 

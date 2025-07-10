@@ -53,7 +53,7 @@ except ImportError:
     detect = None
 
 from ..models.ollama_client import OllamaClient
-from ..utils.config import get_config
+from ..utils.config_simplified import get_config
 
 logger = logging.getLogger(__name__)
 

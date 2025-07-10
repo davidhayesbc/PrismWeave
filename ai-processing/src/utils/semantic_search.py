@@ -359,16 +359,16 @@ class SemanticSearch:
 # Convenience functions
 async def quick_search(query: str, max_results: int = 5) -> List[SearchResult]:
     """Quick search with default configuration"""
-    from .config_simplified import get_vector_config
+    from .config_simplified import get_config
     
-    config = get_vector_config()
+    config = get_config()
     async with SemanticSearch(config) as search:
         return await search.search(query, max_results)
 
 async def quick_add_document(document_id: str, content: str, metadata: Dict[str, Any]) -> bool:
     """Quick document addition with default configuration"""
-    from .config_simplified import get_vector_config
+    from .config_simplified import get_config
     
-    config = get_vector_config()
+    config = get_config()
     async with SemanticSearch(config) as search:
         return await search.add_document(document_id, content, metadata)

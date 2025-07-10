@@ -12,7 +12,7 @@ from datetime import datetime
 
 from ..models.ollama_client import OllamaClient
 from ..search.semantic_search import SemanticSearch, SearchResult
-from ..utils.config import get_config
+from ..utils.config_simplified import get_config
 
 
 @dataclass

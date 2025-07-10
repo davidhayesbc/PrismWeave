@@ -7,7 +7,7 @@ Enhanced RAG system using LangChain for better retrieval and generation
 import asyncio
 import logging
 from pathlib import Path
-from typing import Dict, List, Optional, Any, Tuple
+from typing import Dict, List, Optional, Any
 from datetime import datetime
 import sys
 
@@ -16,7 +16,7 @@ try:
     from langchain.vectorstores import Chroma
     from langchain.embeddings import OllamaEmbeddings
     from langchain.llms import Ollama
-    from langchain.chains import ConversationalRetrievalChain, RetrievalQA
+    from langchain.chains import ConversationalRetrievalChain
     from langchain.memory import ConversationBufferWindowMemory
     from langchain.retrievers import EnsembleRetriever, MultiQueryRetriever
     from langchain.retrievers.document_compressors import LLMChainExtractor
@@ -24,7 +24,6 @@ try:
     from langchain.prompts import PromptTemplate
     from langchain.schema.runnable import RunnablePassthrough
     from langchain.schema.output_parser import StrOutputParser
-    from langchain.callbacks.manager import CallbackManagerForRetrieverRun
 except ImportError as e:
     print(f"LangChain not installed. Install with: pip install langchain langchain-community")
     print(f"Error: {e}")
@@ -34,7 +33,7 @@ except ImportError as e:
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / 'src'))
 
 try:
-    from src.utils.config import get_config
+    from src.utils.config_simplified import get_config
     from src.search.semantic_search import SemanticSearch
 except ImportError as e:
     print(f"PrismWeave modules not found: {e}")

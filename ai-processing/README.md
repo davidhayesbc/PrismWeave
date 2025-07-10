@@ -1,445 +1,480 @@
-# PrismWeave AI Processing Pipeline (Phase 2)
+# PrismWeave AI Processing Pipeline
 
-> **✨ New**: Using [UV](https://astral.sh/uv/) for faster, more reliable Python package management!  
-> 📖 **Quick Start**: See [UV_QUICKSTART.md](UV_QUICKSTART.md) for setup with UV (recommended)
+[![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-blue.svg)](https://python.org)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Tests](https://img.shields.io/badge/tests-pytest-green.svg)](https://pytest.org)
 
-## Overview
+A comprehensive AI processing pipeline for document management, analysis, and content generation using local LLMs and vector search. Part of the PrismWeave document management ecosystem.
 
-The AI Processing Pipeline is the core intelligence engine of PrismWeave, providing semantic search, document analysis, and AI-powered insights using local Ollama models. This phase transforms your captured documents into a searchable, intelligent knowledge base.
+## 🚀 Features
 
-## 🎯 Key Features
+### Document Analysis & Processing
+- **Automatic Summarization**: Generate concise document summaries
+- **Smart Tagging**: AI-powered tag generation for organization
+- **Content Categorization**: Automatic topic classification
+- **Metadata Extraction**: Title, author, keywords, and more
+- **Language Detection**: Multi-language document support
+- **Readability Analysis**: Content accessibility scoring
 
-- **Local AI Processing**: Uses Ollama for privacy-focused, offline AI capabilities
-- **Multi-Model Strategy**: Optimized model selection for different tasks
-- **Semantic Search**: Vector-based document similarity and retrieval
-- **Document Analysis**: Automated summarization, tagging, and categorization
-- **NPU Acceleration**: Optimized for AI HX 370 NPU hardware
-- **Batch Processing**: Efficient processing of large document collections
-- **Rich CLI**: Beautiful command-line interface with progress indicators
+### Vector Search & Embeddings
+- **Semantic Search**: Meaning-based document retrieval
+- **Vector Database**: ChromaDB integration for fast similarity search
+- **Batch Processing**: Efficient embedding generation
+- **Multi-model Support**: Various embedding models available
+- **Similarity Scoring**: Relevance ranking and threshold filtering
 
-## 🏗️ Architecture
+### RAG (Retrieval Augmented Generation)
+- **Context-Aware Responses**: Question answering with document context
+- **Source Citations**: Traceable responses with document references
+- **Flexible Synthesis**: Multiple response styles and formats
+- **OpenAI-Compatible API**: Standard API endpoints for integration
 
+### Local AI Integration
+- **Ollama Integration**: Local LLM processing for privacy
+- **NPU Optimization**: Hardware acceleration support (AI HX 370)
+- **Model Management**: Automatic model downloading and switching
+- **Batch Processing**: Efficient document processing workflows
+
+## 📋 Requirements
+
+### System Requirements
+- **Python**: 3.9 or higher
+- **Memory**: 8GB RAM minimum (16GB+ recommended for large models)
+- **Storage**: 10GB+ free space for models and vector database
+- **OS**: Windows 10/11, macOS 10.14+, or Linux
+
+### AI Hardware (Optional)
+- **NPU Support**: Intel AI HX 370 or compatible NPU for acceleration
+- **GPU**: NVIDIA GPU with CUDA support (optional)
+
+### Dependencies
+- **Ollama**: Local LLM server (automatically managed)
+- **ChromaDB**: Vector database for embeddings
+- **Sentence Transformers**: Text embedding models
+- **FastAPI**: API server for RAG endpoints
+
+## 🛠️ Installation
+
+### 1. Clone and Setup
+```bash
+git clone https://github.com/davidhayesbc/PrismWeave.git
+cd PrismWeave/ai-processing
 ```
-ai-processing/
-├── src/
-│   ├── models/          # AI model integrations
-│   ├── processors/      # Document analysis engines
-│   ├── search/         # Semantic search components
-│   └── utils/          # Configuration and utilities
-├── cli/                # Command-line interface
-├── tests/             # Test suite
-└── logs/              # Processing logs
+
+### 2. Install Dependencies
+Using UV (recommended):
+```bash
+# Install UV package manager
+pip install uv
+
+# Install dependencies
+uv sync
+
+# Activate virtual environment
+source .venv/bin/activate  # Linux/Mac
+# or
+.venv\Scripts\activate  # Windows
+```
+
+Using pip:
+```bash
+pip install -e .
+
+# Development dependencies
+pip install -e .[dev]
+```
+
+### 3. Install Ollama
+**Windows/Mac**:
+Download from [ollama.com](https://ollama.com)
+
+**Linux**:
+```bash
+curl -fsSL https://ollama.com/install.sh | sh
+```
+
+### 4. Pull Required Models
+```bash
+# Core models for PrismWeave
+ollama pull llama3.1:8b        # Large model for complex tasks
+ollama pull phi3:mini          # Fast model for quick processing  
+ollama pull nomic-embed-text   # Embedding model for search
 ```
 
 ## 🚀 Quick Start
 
-> **New**: We now use [UV](https://astral.sh/uv/) for package management - it's 10-100x faster than pip! 
-> See **[UV_QUICKSTART.md](UV_QUICKSTART.md)** for the complete UV setup guide.
-
+### 1. Check System Health
 ```bash
-# One-command setup
-cd d:\source\PrismWeave\ai-processing && python setup.py
-
-# Or with UV directly
-uv sync && uv shell && uv run python cli/prismweave.py process
+prismweave health
 ```
 
-### Traditional Setup (pip/venv)
+### 2. Process Documents
+```bash
+# Process a single document
+prismweave process document.md
 
-<details>
-<summary>Click here for traditional setup instructions</summary>
+# Process directory recursively with vector database
+prismweave process documents/ --recursive --add-to-vector
 
-#### 1. Prerequisites
-
-- **Python 3.9+**: Required for async support and modern typing
-- **Ollama**: Install from [ollama.ai](https://ollama.ai/)
-- **Git**: For repository integration
-- **8GB+ RAM**: Recommended for AI model processing
-
-#### 2. Automated Setup
-
-Run the automated setup script:
-
-```powershell
-cd d:\source\PrismWeave\ai-processing
-python setup.py
+# Process and verify embeddings
+prismweave process documents/ --recursive --add-to-vector --verify-embeddings
 ```
 
-This will:
-- Create a Python virtual environment
-- Install all dependencies
-- Check Ollama installation
-- Download recommended AI models
-- Create necessary directories
-- Test the installation
+### 3. Search Documents
+```bash
+# Semantic search
+prismweave search "machine learning techniques"
 
-#### 3. Manual Setup (Alternative)
-
-If you prefer manual setup:
-
-```powershell
-# Create virtual environment
-python -m venv venv
-venv\Scripts\activate
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Install Ollama (if not already installed)
-# Download from https://ollama.ai/
-
-# Pull recommended models
-ollama pull phi3:mini
-ollama pull nomic-embed-text
+# Limit results and adjust threshold
+prismweave search "AI applications" --limit 10 --threshold 0.8
 ```
 
-### 4. Configuration
+### 4. Ask Questions (RAG)
+```bash
+# Question answering with document context
+prismweave ask "What are the key benefits of local AI processing?"
 
-Edit `config.yaml` to customize settings:
+# Use more context documents
+prismweave ask "Explain the architecture" --context-docs 5
+```
+
+### 5. Vector Database Management
+```bash
+# Check vector database health
+prismweave vector-health
+
+# List documents in vector database
+prismweave vector-list --limit 20 --verbose
+
+# Verify specific document
+prismweave vector-verify "documents/ai-guide.md"
+
+# Export vector database info
+prismweave vector-export --output embeddings_backup.json
+```
+
+## 📁 Project Structure
+
+```
+ai-processing/
+├── cli/                    # Command-line interface
+│   └── prismweave.py      # Main CLI application
+├── src/                   # Core source code
+│   ├── api/              # FastAPI server and endpoints
+│   ├── models/           # AI model interfaces (Ollama)
+│   ├── processors/       # Document processing logic
+│   ├── rag/              # RAG implementation
+│   ├── search/           # Vector search and embeddings
+│   └── utils/            # Utilities and configuration
+├── tests/                # Unit and integration tests
+├── docker/               # Docker configurations
+├── scripts/              # Automation scripts
+├── config.yaml           # Configuration file
+├── pyproject.toml        # Python project configuration
+└── README.md             # This file
+```
+
+## ⚙️ Configuration
+
+The system uses a YAML configuration file (`config.yaml`) for all settings:
 
 ```yaml
+# Ollama Server Configuration
 ollama:
-  base_url: "http://localhost:11434"
-  models:
-    analysis: "phi3:mini"          # Fast model for analysis
-    summarization: "phi3:mini"     # Summarization model
-    embedding: "nomic-embed-text"  # Embedding model
-```
-
-</details>
-
-## 📊 Usage
-
-### Process Documents
-
-Process your existing document collection:
-
-```bash
-# UV (Recommended)
-uv run python cli/prismweave.py process
-
-# Or if environment is activated
-python cli/prismweave.py process
-
-# With specific options  
-uv run python cli/prismweave.py process --batch-size 10 --force-reprocess
-```
-
-### Search Documents
-
-Perform semantic search across your documents:
-
-```bash
-# Basic search
-uv run python cli/prismweave.py search "machine learning concepts"
-
-# Advanced search with filters
-uv run python cli/prismweave.py search "typescript patterns" --limit 10 --min-score 0.7
-
-# Search with context
-uv run python cli/prismweave.py search "database optimization" --show-context
-```
-
-### System Status
-
-Check the health of your AI processing system:
-
-```bash
-uv run python cli/prismweave.py status
-```
-
-This shows:
-- Ollama server status
-- Available models
-- Document collection statistics
-- Processing performance metrics
-- Storage usage
-
-### Configuration Management
-
-View and update configuration:
-
-```powershell
-# Show current configuration
-python cli/prismweave.py config show
-
-# Set configuration values
-python cli/prismweave.py config set ollama.models.analysis "llama3.2:3b"
-
-# Reset to defaults
-python cli/prismweave.py config reset
-```
-
-## 🎛️ Configuration Options
-
-### Ollama Settings
-
-```yaml
-ollama:
-  base_url: "http://localhost:11434"
+  host: http://localhost:11434
   timeout: 60
   models:
-    analysis: "phi3:mini"
-    summarization: "phi3:mini" 
-    embedding: "nomic-embed-text"
-    fallback: "phi3:mini"
-```
+    large: "llama3.1:8b"           # Complex analysis
+    medium: "phi3:mini"            # Standard processing
+    small: "phi3:mini"             # Quick tasks
+    embedding: "nomic-embed-text"  # Vector embeddings
 
-### Processing Settings
-
-```yaml
+# Document Processing
 processing:
-  batch_size: 5
-  max_workers: 3
-  chunk_size: 1000
-  overlap: 200
-  enable_summaries: true
-  enable_tags: true
-  enable_categories: true
-```
+  max_concurrent: 1
+  chunk_size: 3000
+  chunk_overlap: 300
+  summary_timeout: 180
+  max_tags: 10
 
-### Search Settings
-
-```yaml
-search:
-  vector_db: "chroma"  # or "inmemory"
-  embedding_model: "nomic-embed-text"
-  similarity_threshold: 0.6
+# Vector Database
+vector:
+  collection_name: "documents"
+  persist_directory: "../../PrismWeaveDocs/.prismweave/chroma_db"
   max_results: 20
-  enable_hybrid: true
+  similarity_threshold: 0.3
+
+# API Server
+api:
+  host: "127.0.0.1"
+  port: 8000
+  rag_enabled: true
+  openai_compatible: true
 ```
 
-## 🧠 AI Models
-
-### Recommended Models
-
-| Model | Size | Purpose | Use Case |
-|-------|------|---------|----------|
-| `phi3:mini` | ~2.3GB | Analysis, Tagging | Fast general-purpose processing |
-| `nomic-embed-text` | ~274MB | Embeddings | Semantic search vectors |
-| `llama3.2:3b` | ~2GB | Summarization | High-quality summaries |
-| `qwen2.5:7b` | ~4.4GB | Analysis | Advanced reasoning (optional) |
-
-### Model Strategy
-
-- **Small Models (< 3GB)**: For tagging, classification, quick analysis
-- **Medium Models (3-7GB)**: For summarization, content generation
-- **Embedding Models**: Specialized for vector generation
-- **NPU Optimization**: Models optimized for AI HX 370 acceleration
-
-### Installing Additional Models
-
-```powershell
-# List available models
-ollama list
-
-# Pull a specific model
-ollama pull llama3.2:3b
-
-# Remove unused models
-ollama rm old-model-name
+### View Current Configuration
+```bash
+prismweave config-show
 ```
 
-## 📁 Document Processing
+## 🔌 API Server
 
-### Input Formats
+### Start RAG Server
+```bash
+# Start API server
+python scripts/start_rag_server.py
 
-The system processes markdown files with YAML frontmatter:
-
-```markdown
----
-title: "Document Title"
-url: "https://source-url.com"
-tags: ["tag1", "tag2"]
-capture_date: "2025-01-15"
----
-
-# Document Content
-
-Your markdown content here...
+# Or use the CLI
+prismweave api-server
 ```
 
-### Processing Pipeline
+### API Endpoints
+- `POST /v1/chat/completions` - OpenAI-compatible chat endpoint
+- `POST /v1/embeddings` - Generate embeddings
+- `GET /health` - Health check
+- `GET /models` - List available models
+- `POST /search` - Semantic document search
 
-1. **Frontmatter Extraction**: Parses YAML metadata
-2. **Content Analysis**: AI-powered content understanding
-3. **Summarization**: Generates concise summaries
-4. **Tagging**: Automatic tag generation and enhancement
-5. **Categorization**: Document classification
-6. **Embedding Generation**: Vector representations for search
-7. **Storage**: Saves to vector database
+### Example API Usage
+```python
+import requests
 
-### Output Structure
+# RAG question answering
+response = requests.post("http://localhost:8000/v1/chat/completions", 
+    json={
+        "model": "llama3.1:8b",
+        "messages": [{"role": "user", "content": "What is machine learning?"}],
+        "rag_enabled": True
+    }
+)
 
+# Document search
+search_response = requests.post("http://localhost:8000/search",
+    json={
+        "query": "artificial intelligence",
+        "limit": 5,
+        "threshold": 0.7
+    }
+)
 ```
-.prismweave/
-├── chroma_db/          # Vector database
-├── summaries/          # Generated summaries
-├── metadata/           # Enhanced metadata
-└── embeddings/         # Vector embeddings
+
+## 🧪 Testing
+
+### Run Tests
+```bash
+# All tests
+pytest
+
+# With coverage
+pytest --cov=src --cov-report=html
+
+# Specific test categories
+pytest -m unit          # Unit tests only
+pytest -m integration   # Integration tests only
+pytest -m "not slow"    # Skip slow tests
 ```
 
-## 🔍 Search Capabilities
+### Test Structure
+```
+tests/
+├── unit/              # Unit tests
+├── integration/       # Integration tests
+├── fixtures/          # Test data and fixtures
+└── conftest.py        # Pytest configuration
+```
 
-### Semantic Search
+## 📊 Performance & Monitoring
 
-- **Vector Similarity**: Uses embedding models for semantic understanding
-- **Hybrid Search**: Combines semantic and keyword matching
-- **Context Awareness**: Understands document relationships
-- **Relevance Scoring**: Ranked results with confidence scores
+### Model Performance
+- **Phi3 Mini**: ~1-2 seconds per document (tagging, categorization)
+- **Llama3.1 8B**: ~5-10 seconds per document (summarization, analysis)
+- **Embedding Generation**: ~0.5-1 second per document
 
-### Search Types
+### Memory Usage
+- **Base Memory**: ~2GB for ChromaDB and embeddings
+- **Phi3 Mini**: ~2GB additional when loaded
+- **Llama3.1 8B**: ~8GB additional when loaded
 
-1. **Semantic**: `"concepts related to machine learning"`
-2. **Keyword**: `"exact phrase matching"`
-3. **Hybrid**: Combines both approaches
-4. **Filtered**: By tags, dates, categories
-
-### Advanced Features
-
-- **Multi-document Context**: Search across related documents
-- **Temporal Search**: Find documents by time periods
-- **Tag-based Filtering**: Narrow results by categories
-- **Similarity Clustering**: Group related documents
+### Optimization Tips
+1. **Batch Processing**: Process multiple documents together
+2. **Model Management**: Use smaller models for quick tasks
+3. **Concurrent Processing**: Adjust `max_concurrent` based on hardware
+4. **Vector Database**: Regular maintenance and optimization
 
 ## 🔧 Development
 
-### Project Structure
+### Development Setup
+```bash
+# Install development dependencies
+pip install -e .[dev]
 
+# Install pre-commit hooks
+pre-commit install
+
+# Run linting
+flake8 src/ cli/
+black src/ cli/
+isort src/ cli/
+
+# Type checking
+mypy src/ cli/
+```
+
+### Code Quality
+- **Black**: Code formatting
+- **isort**: Import sorting
+- **flake8**: Linting
+- **mypy**: Type checking
+- **pytest**: Testing
+
+### Contributing
+1. Fork the repository
+2. Create a feature branch
+3. Run tests and linting
+4. Submit a pull request
+
+## 📚 Usage Examples
+
+### Document Processing Pipeline
 ```python
-# Core components
-from src.models.ollama_client import OllamaClient
-from src.processors.langchain_document_processor import LangChainDocumentProcessor as DocumentProcessor
+from src.processors.langchain_document_processor import LangChainDocumentProcessor
 from src.search.semantic_search import SemanticSearch
-from src.utils.config import get_config
+from pathlib import Path
 
-# Example usage
-config = get_config()
-client = OllamaClient(config.ollama)
-processor = DocumentProcessor(config)
+# Initialize processor
+processor = LangChainDocumentProcessor()
+
+# Process document
+analysis, metadata = await processor.process_file(Path("document.md"))
+
+# Add to vector database
+search_engine = SemanticSearch()
+await search_engine.add_document(
+    document_id="doc1",
+    content=document_content,
+    metadata=metadata
+)
 ```
 
-### Adding Custom Processors
-
+### RAG Implementation
 ```python
-from src.processors.base_processor import BaseProcessor
+from src.rag.rag_engine import RAGEngine
+from src.models.ollama_client import OllamaClient
 
-class CustomProcessor(BaseProcessor):
-    async def process_document(self, document_path: Path) -> ProcessingResult:
-        # Your custom processing logic
-        pass
+# Initialize RAG engine
+rag = RAGEngine()
+
+# Ask question with context
+response = await rag.ask_question(
+    question="What are the key benefits?",
+    context_docs=5,
+    model="llama3.1:8b"
+)
 ```
 
-### Testing
+### Custom Document Analysis
+```python
+from src.processors.document_analyzer import DocumentAnalyzer
 
-```powershell
-# Run all tests
-python -m pytest tests/
+analyzer = DocumentAnalyzer()
 
-# Run specific test categories
-python -m pytest tests/test_processors.py -v
-
-# Run with coverage
-python -m pytest --cov=src tests/
+# Custom analysis
+result = await analyzer.analyze_document(
+    content="Your document content here",
+    include_summary=True,
+    include_tags=True,
+    include_category=True
+)
 ```
 
-## 📊 Performance
-
-### Benchmarks
-
-Based on the AI HX 370 NPU:
-
-- **Document Processing**: ~50 documents/minute
-- **Search Queries**: <500ms response time
-- **Embedding Generation**: ~2 seconds/document
-- **Memory Usage**: ~4GB for 1000 documents
-
-### Optimization Tips
-
-1. **Batch Processing**: Process documents in batches of 5-10
-2. **Model Selection**: Use smaller models for simple tasks
-3. **Caching**: Enable result caching for repeated operations
-4. **NPU Utilization**: Ensure NPU drivers are installed
-
-## 🐛 Troubleshooting
+## 🆘 Troubleshooting
 
 ### Common Issues
 
-**Ollama Connection Errors**
-```
-❌ Error: Failed to connect to Ollama server
-```
-- Ensure Ollama is running: `ollama serve`
-- Check firewall settings
-- Verify `base_url` in config.yaml
+**1. Ollama Connection Failed**
+```bash
+# Check if Ollama is running
+curl http://localhost:11434/api/tags
 
-**GenerationResult `done_reason` Error (FIXED in v1.1)**
+# Restart Ollama service
+ollama serve
 ```
-❌ Error: GenerationResult.__init__() got an unexpected keyword argument 'done_reason'
-```
-- **Fixed**: Updated `GenerationResult` class to handle new Ollama API fields
-- The class now gracefully handles `done_reason` and other new fields from newer Ollama versions
-- Uses `GenerationResult.from_dict()` method for robust field handling
 
-**Memory Issues**
-```
-❌ Error: Out of memory during processing
-```
-- Reduce `batch_size` in configuration
-- Use smaller AI models
-- Increase system virtual memory
+**2. Model Not Found**
+```bash
+# List available models
+ollama list
 
-**Slow Processing**
+# Pull missing model
+ollama pull llama3.1:8b
 ```
-⚠️ Warning: Processing is slower than expected
-```
-- Check NPU driver installation
-- Reduce model size
-- Optimize batch processing settings
 
-**Import Errors**
+**3. Vector Database Issues**
+```bash
+# Check vector database health
+prismweave vector-health
+
+# Verify specific document
+prismweave vector-verify "document-id"
 ```
-❌ Error: No module named 'ollama'
-```
-- Activate virtual environment: `venv\Scripts\activate`
-- Reinstall requirements: `pip install -r requirements.txt`
-- Or use UV: `uv sync`
+
+**4. Memory Issues**
+- Reduce `max_concurrent` in config
+- Use smaller models for batch processing
+- Restart Ollama to clear memory
 
 ### Debug Mode
+```bash
+# Enable debug logging
+prismweave --log-level DEBUG command
 
-Enable debug logging in `config.yaml`:
-
-```yaml
-logging:
-  level: DEBUG
-  file: logs/prismweave.log
-  console: true
+# Check system health
+prismweave health
 ```
 
-### Getting Help
+## 🔗 Integration
 
-1. Check logs in `logs/prismweave.log`
-2. Run `python cli/prismweave.py status` for system diagnostics
-3. Verify Ollama models: `ollama list`
-4. Test configuration: `python cli/prismweave.py config show`
+### VS Code Extension
+The AI processing pipeline integrates with the PrismWeave VS Code extension:
+- Document analysis triggers
+- Search integration
+- Content generation assistance
 
-## 🚀 What's Next?
+### Browser Extension
+Processes documents captured by the browser extension:
+- Automatic analysis of captured pages
+- Tag generation for organization
+- Content summarization
 
-After Phase 2 is working:
+## 📝 License
 
-- **Phase 3**: VS Code extension with AI-powered document management
-- **Phase 4**: Advanced content generation and research tools
-- **Phase 5**: Real-time document watching and smart recommendations
+This project is licensed under the MIT License - see the [LICENSE](../LICENSE) file for details.
+
+## 🤝 Contributing
+
+Contributions are welcome! Please see our [Contributing Guidelines](../CONTRIBUTING.md) for details.
 
 ## 📞 Support
 
-For issues specific to the PrismWeave AI processing pipeline:
+- **Issues**: [GitHub Issues](https://github.com/davidhayesbc/PrismWeave/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/davidhayesbc/PrismWeave/discussions)
+- **Documentation**: [Project Wiki](https://github.com/davidhayesbc/PrismWeave/wiki)
 
-1. Check the troubleshooting section above
-2. Review logs in `logs/prismweave.log`
-3. Verify your configuration with `config show`
-4. Test with a small document subset first
+## 🚧 Roadmap
+
+### Upcoming Features
+- [ ] Additional embedding models
+- [ ] GPU acceleration support
+- [ ] Multi-language processing
+- [ ] Advanced analytics dashboard
+- [ ] Plugin system for custom processors
+
+### Performance Improvements
+- [ ] Streaming processing for large documents
+- [ ] Distributed processing support
+- [ ] Advanced caching mechanisms
+- [ ] Memory optimization for large collections
 
 ---
 
-**Happy AI-powered document processing! 🤖📚**
+*Built with ❤️ for the PrismWeave document management ecosystem*
