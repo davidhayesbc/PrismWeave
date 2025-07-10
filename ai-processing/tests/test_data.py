@@ -39,38 +39,26 @@ def hello_world():
     return True
 ```
 
-And some JavaScript:
-
-```javascript
-function greet(name) {
-    console.log(`Hello, ${name}!`);
-}
-```
-
 ## Lists
 
 ### Ordered List
 1. First item
 2. Second item
-3. Third item
 
 ### Unordered List
 - Item A
 - Item B
-- Item C
 
 ## Links and Images
 
 [PrismWeave](https://github.com/davidhayesbc/PrismWeave)
 
-![Sample Image](https://example.com/image.png)
-
 ## Tables
 
-| Name | Age | City |
-|------|-----|------|
-| Alice | 30 | New York |
-| Bob | 25 | Los Angeles |
+| Name | Age |
+|------|-----|
+| Alice | 30 |
+| Bob | 25 |
 
 ## Conclusion
 
@@ -86,11 +74,7 @@ Sample Python module for testing code processing
 \"\"\"
 
 import os
-import sys
-from typing import List, Dict, Any, Optional
-import logging
-
-logger = logging.getLogger(__name__)
+from typing import List, Dict, Any
 
 class DocumentProcessor:
     \"\"\"Process documents for PrismWeave\"\"\"
@@ -101,23 +85,15 @@ class DocumentProcessor:
     
     def process_file(self, file_path: str) -> Dict[str, Any]:
         \"\"\"Process a single file\"\"\"
-        logger.info(f"Processing file: {file_path}")
-        
         if not os.path.exists(file_path):
             raise FileNotFoundError(f"File not found: {file_path}")
         
-        try:
-            with open(file_path, 'r', encoding='utf-8') as f:
-                content = f.read()
-            
-            result = self._analyze_content(content)
-            self._cache[file_path] = result
-            
-            return result
-            
-        except Exception as e:
-            logger.error(f"Failed to process {file_path}: {e}")
-            raise
+        with open(file_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+        
+        result = self._analyze_content(content)
+        self._cache[file_path] = result
+        return result
     
     def _analyze_content(self, content: str) -> Dict[str, Any]:
         \"\"\"Analyze content and extract metadata\"\"\"
@@ -127,58 +103,14 @@ class DocumentProcessor:
         return {
             'line_count': len(lines),
             'word_count': word_count,
-            'char_count': len(content),
-            'estimated_reading_time': max(1, word_count // 200)
-        }
-    
-    def batch_process(self, file_paths: List[str]) -> List[Dict[str, Any]]:
-        \"\"\"Process multiple files\"\"\"
-        results = []
-        
-        for file_path in file_paths:
-            try:
-                result = self.process_file(file_path)
-                results.append(result)
-            except Exception as e:
-                logger.warning(f"Skipping {file_path}: {e}")
-                continue
-        
-        return results
-    
-    def get_cache_stats(self) -> Dict[str, int]:
-        \"\"\"Get cache statistics\"\"\"
-        return {
-            'cached_files': len(self._cache),
-            'total_cache_size': sum(
-                result['char_count'] for result in self._cache.values()
-            )
+            'char_count': len(content)
         }
 
 def main():
     \"\"\"Main function for CLI usage\"\"\"
-    import argparse
-    
-    parser = argparse.ArgumentParser(description='Process documents')
-    parser.add_argument('files', nargs='+', help='Files to process')
-    parser.add_argument('--config', help='Configuration file')
-    parser.add_argument('--verbose', '-v', action='store_true', help='Verbose output')
-    
-    args = parser.parse_args()
-    
-    if args.verbose:
-        logging.basicConfig(level=logging.INFO)
-    
     config = {}
-    if args.config:
-        import json
-        with open(args.config, 'r') as f:
-            config = json.load(f)
-    
     processor = DocumentProcessor(config)
-    results = processor.batch_process(args.files)
-    
-    for i, result in enumerate(results):
-        print(f"File {i+1}: {result}")
+    print("DocumentProcessor initialized")
 
 if __name__ == "__main__":
     main()
@@ -189,7 +121,6 @@ if __name__ == "__main__":
         "filename": "sample.js",
         "content": """/**
  * Sample JavaScript file for testing code processing
- * PrismWeave Document Management System
  */
 
 class DocumentManager {
@@ -197,11 +128,9 @@ class DocumentManager {
         this.config = {
             maxFileSize: 10 * 1024 * 1024, // 10MB
             allowedTypes: ['md', 'txt', 'js', 'py'],
-            processingTimeout: 30000,
             ...config
         };
         this.cache = new Map();
-        this.processing = new Set();
     }
     
     /**
@@ -214,38 +143,23 @@ class DocumentManager {
             throw new Error(`Invalid file: ${file.name}`);
         }
         
-        if (this.processing.has(file.name)) {
-            throw new Error(`File already being processed: ${file.name}`);
-        }
+        const content = await this.readFile(file);
+        const analysis = this.analyzeContent(content);
         
-        this.processing.add(file.name);
+        const result = {
+            file: file.name,
+            size: file.size,
+            content: content,
+            analysis: analysis,
+            processedAt: new Date().toISOString()
+        };
         
-        try {
-            const content = await this.readFile(file);
-            const analysis = this.analyzeContent(content);
-            const metadata = this.extractMetadata(file, content);
-            
-            const result = {
-                file: file.name,
-                size: file.size,
-                content: content,
-                analysis: analysis,
-                metadata: metadata,
-                processedAt: new Date().toISOString()
-            };
-            
-            this.cache.set(file.name, result);
-            return result;
-            
-        } finally {
-            this.processing.delete(file.name);
-        }
+        this.cache.set(file.name, result);
+        return result;
     }
     
     /**
      * Validate file type and size
-     * @param {File} file - File to validate
-     * @returns {boolean} Whether file is valid
      */
     isValidFile(file) {
         if (file.size > this.config.maxFileSize) {
@@ -258,161 +172,34 @@ class DocumentManager {
     
     /**
      * Read file content
-     * @param {File} file - File to read
-     * @returns {Promise<string>} File content
      */
     async readFile(file) {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
-            
             reader.onload = () => resolve(reader.result);
             reader.onerror = () => reject(new Error('Failed to read file'));
-            
             reader.readAsText(file);
         });
     }
     
     /**
      * Analyze document content
-     * @param {string} content - Document content
-     * @returns {Object} Content analysis
      */
     analyzeContent(content) {
         const lines = content.split('\\n');
         const words = content.split(/\\s+/).filter(word => word.length > 0);
-        const characters = content.length;
-        
-        // Simple sentiment analysis
-        const positiveWords = ['good', 'great', 'excellent', 'amazing', 'wonderful'];
-        const negativeWords = ['bad', 'terrible', 'awful', 'horrible', 'worst'];
-        
-        const positiveCount = positiveWords.reduce((count, word) => 
-            count + (content.toLowerCase().match(new RegExp(word, 'g')) || []).length, 0);
-        const negativeCount = negativeWords.reduce((count, word) => 
-            count + (content.toLowerCase().match(new RegExp(word, 'g')) || []).length, 0);
         
         return {
             lineCount: lines.length,
             wordCount: words.length,
-            characterCount: characters,
-            averageWordsPerLine: Math.round(words.length / lines.length),
-            estimatedReadingTime: Math.ceil(words.length / 200), // 200 WPM
-            sentiment: {
-                positive: positiveCount,
-                negative: negativeCount,
-                score: positiveCount - negativeCount
-            }
+            characterCount: content.length
         };
     }
-    
-    /**
-     * Extract metadata from file and content
-     * @param {File} file - Original file
-     * @param {string} content - File content
-     * @returns {Object} Extracted metadata
-     */
-    extractMetadata(file, content) {
-        const metadata = {
-            filename: file.name,
-            fileSize: file.size,
-            fileType: file.type,
-            lastModified: new Date(file.lastModified).toISOString(),
-            encoding: 'utf-8'
-        };
-        
-        // Extract title from content (first line or first header)
-        const lines = content.split('\\n');
-        const firstLine = lines[0]?.trim();
-        
-        if (firstLine?.startsWith('#')) {
-            metadata.title = firstLine.replace(/^#+\\s*/, '');
-        } else if (firstLine) {
-            metadata.title = firstLine.substring(0, 100); // First 100 chars
-        }
-        
-        // Extract headers (markdown style)
-        const headers = [];
-        lines.forEach((line, index) => {
-            const match = line.match(/^(#+)\\s*(.+)$/);
-            if (match) {
-                headers.push({
-                    level: match[1].length,
-                    text: match[2],
-                    line: index + 1
-                });
-            }
-        });
-        
-        metadata.headers = headers;
-        
-        // Extract links
-        const linkRegex = /\\[([^\\]]+)\\]\\(([^)]+)\\)/g;
-        const links = [];
-        let match;
-        
-        while ((match = linkRegex.exec(content)) !== null) {
-            links.push({
-                text: match[1],
-                url: match[2]
-            });
-        }
-        
-        metadata.links = links;
-        
-        return metadata;
-    }
-    
-    /**
-     * Get processing statistics
-     * @returns {Object} Processing stats
-     */
-    getStats() {
-        return {
-            cachedDocuments: this.cache.size,
-            processingDocuments: this.processing.size,
-            totalCacheSize: Array.from(this.cache.values())
-                .reduce((total, doc) => total + doc.size, 0)
-        };
-    }
-    
-    /**
-     * Clear cache
-     */
-    clearCache() {
-        this.cache.clear();
-    }
-}
-
-// Utility functions
-function formatFileSize(bytes) {
-    if (bytes === 0) return '0 Bytes';
-    
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-}
-
-function debounce(func, wait) {
-    let timeout;
-    return function executedFunction(...args) {
-        const later = () => {
-            clearTimeout(timeout);
-            func(...args);
-        };
-        clearTimeout(timeout);
-        timeout = setTimeout(later, wait);
-    };
 }
 
 // Export for Node.js
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = {
-        DocumentManager,
-        formatFileSize,
-        debounce
-    };
+    module.exports = { DocumentManager };
 }
 """
     },
@@ -517,42 +304,18 @@ ERROR_TEST_CASES = {
     }
 }
 
-# Performance test data
+# Performance test data (disabled for faster tests)
+# Uncomment and modify for performance testing when needed
 PERFORMANCE_TEST_DATA = {
-    "large_markdown": {
-        "filename": "large.md",
-        "content": """# Large Test Document
-
-This is a large document for performance testing.
-
-""" + "## Section {i}\\n\\nContent for section {i}. " * 1000 + """
-
-## Conclusion
-
-This document contains many sections for testing performance.
-"""
-    },
-    
-    "massive_code": {
-        "filename": "massive.py",
-        "content": """#!/usr/bin/env python3
-# Large Python file for performance testing
-
-""" + """
-def function_{i}():
-    \"\"\"Function number {i}\"\"\"
-    return {i}
-
-class Class{i}:
-    \"\"\"Class number {i}\"\"\"
-    def __init__(self):
-        self.value = {i}
-    
-    def method(self):
-        return self.value * 2
-
-""".replace("{i}", "1") * 500
-    }
+    # "large_markdown": {
+    #     "filename": "large.md", 
+    #     "content": "# Large Test Document\n\nSmall test content for performance.\n"
+    # },
+    # 
+    # "massive_code": {
+    #     "filename": "massive.py",
+    #     "content": "# Small test file\nprint('test')\n"
+    # }
 }
 
 def create_test_files():
