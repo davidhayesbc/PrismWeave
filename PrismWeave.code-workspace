@@ -32,6 +32,9 @@
 			},
 			{
 				"file": ".github/instructions/copilot-instructions-typescript.md"
+			},
+			{
+				"file": "ai-processing/copilot-instructions.md"
 			}
 		],
 		"typescript.format.enable": false,

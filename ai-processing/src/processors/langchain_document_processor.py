@@ -52,8 +52,24 @@ except ImportError:
     textstat = None
     detect = None
 
-from ..models.ollama_client import OllamaClient
-from ..utils.config_simplified import get_config
+# Import dependencies
+try:
+    # Try relative imports first (when running as package)
+    from ..models.ollama_client import OllamaClient
+    from ..utils.config_simplified import get_config
+except ImportError:
+    # Fallback to direct imports (when running tests or standalone)
+    try:
+        from models.ollama_client import OllamaClient
+        from utils.config_simplified import get_config
+    except ImportError:
+        # Further fallback for test environment
+        import sys
+        from pathlib import Path
+        src_path = Path(__file__).parent.parent
+        sys.path.insert(0, str(src_path))
+        from models.ollama_client import OllamaClient
+        from utils.config_simplified import get_config
 
 logger = logging.getLogger(__name__)
 

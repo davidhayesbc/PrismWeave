@@ -6,17 +6,14 @@ Can be used with Open WebUI, VS Code, and other clients
 """
 
 import argparse
-import asyncio
 import logging
-import json
 from datetime import datetime
-from typing import Dict, List, Optional, Any, AsyncGenerator
+from typing import Dict, List, Optional, Any
 from pathlib import Path
 import sys
 
 try:
-    from fastapi import FastAPI, HTTPException, Request
-    from fastapi.responses import StreamingResponse
+    from fastapi import FastAPI, HTTPException
     from fastapi.middleware.cors import CORSMiddleware
     from pydantic import BaseModel, Field
     import uvicorn
