@@ -103,7 +103,7 @@
   "python.analysis.extraPaths": [
     "./ai-processing/src"
   ],
-  "python.defaultInterpreterPath": "./ai-processing/.venv/bin/python",
+  "python.defaultInterpreterPath": "./ai-processing/.venv/Scripts/python.exe",
   "python.testing.pytestEnabled": true,
   "python.testing.unittestEnabled": false,
   "python.testing.pytestArgs": [

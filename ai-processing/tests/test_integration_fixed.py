@@ -15,8 +15,6 @@ import yaml
 import sys
 sys.path.append(str(Path(__file__).parent.parent / "src"))
 
-from .test_data import create_test_files, cleanup_test_files
-
 from src.utils.config_simplified import Config, get_config, load_config, set_config
 from src.models.ollama_client import OllamaClient
 from src.processors.langchain_document_processor import LangChainDocumentProcessor
@@ -63,7 +61,7 @@ def temp_config_file():
 @pytest.fixture
 def integration_config(temp_config_file):
     """Load configuration for integration tests"""
-    return Config.from_file(Path(temp_config_file))
+    return Config.from_file(temp_config_file)
 
 
 @pytest.fixture
@@ -72,7 +70,7 @@ def mock_ollama_client():
     client = AsyncMock(spec=OllamaClient)
     
     # Mock embedding generation
-    client.embed.return_value = [[0.1, 0.2, 0.3, 0.4, 0.5] * 10]  # Small vector for testing
+    client.embed.return_value = [[0.1, 0.2, 0.3, 0.4, 0.5] * 256]  # 1280-dim vector
     
     # Mock text generation
     client.generate.return_value = "This is a mocked response from Ollama"
@@ -103,7 +101,7 @@ class TestIntegrationWorkflow:
 
     @pytest.mark.asyncio
     async def test_basic_document_processing(
-        self, integration_config, mock_ollama_client, monkeypatch, test_data_dir
+        self, integration_config, mock_ollama_client, monkeypatch
     ):
         """Test basic document processing workflow"""
         # Use helper to create mock
@@ -112,16 +110,15 @@ class TestIntegrationWorkflow:
         
         processor = LangChainDocumentProcessor(integration_config)
         
-        # Process a test file
-        test_file = Path(test_data_dir) / "simple.md"
+        # Process a small document
+        sample_doc = SAMPLE_DOCUMENTS[0]
         
-        result = await processor.process_document(test_file)
+        result = await processor.process_document(sample_doc["content"])
         
         # Verify result structure
-        assert result is not None
-        assert hasattr(result, 'chunks')
-        assert isinstance(result.chunks, list)
-        assert len(result.chunks) > 0
+        assert "chunks" in result
+        assert isinstance(result["chunks"], list)
+        assert len(result["chunks"]) > 0
         
         # Verify stats were updated
         assert processor.stats["total_documents"] > 0
@@ -129,7 +126,7 @@ class TestIntegrationWorkflow:
 
     @pytest.mark.asyncio
     async def test_large_document_processing(
-        self, integration_config, mock_ollama_client, monkeypatch, test_data_dir
+        self, integration_config, mock_ollama_client, monkeypatch
     ):
         """Test processing of large documents"""
         # Use helper to create mock
@@ -138,27 +135,18 @@ class TestIntegrationWorkflow:
         
         processor = LangChainDocumentProcessor(integration_config)
         
-        # Create a temporary larger document
-        large_content = "This is a test sentence. " * 15  # Should create multiple chunks but not hang
-        temp_file = Path(test_data_dir) / "large_test.md"
+        # Create a larger document
+        large_content = "This is a test sentence. " * 200  # Smaller test document
         
-        # Ensure directory exists
-        temp_file.parent.mkdir(parents=True, exist_ok=True)
+        result = await processor.process_document(large_content)
         
-        with open(temp_file, 'w', encoding='utf-8') as f:
-            f.write(large_content)
-        
-        result = await processor.process_document(temp_file)
-        
-        # Verify processing worked
-        assert result is not None
-        assert hasattr(result, 'chunks')
-        assert len(result.chunks) >= 1  # Should have at least one chunk
-        assert result.processing_stats['total_length'] > 300  # Verify it's a larger document
+        # Verify chunking worked
+        assert "chunks" in result
+        assert len(result["chunks"]) > 1  # Should be split into multiple chunks
 
     @pytest.mark.asyncio
     async def test_special_characters_processing(
-        self, integration_config, mock_ollama_client, monkeypatch, test_data_dir
+        self, integration_config, mock_ollama_client, monkeypatch
     ):
         """Test processing documents with special characters"""
         # Use helper to create mock
@@ -167,26 +155,18 @@ class TestIntegrationWorkflow:
         
         processor = LangChainDocumentProcessor(integration_config)
         
-        # Create document with special characters
+        # Document with special characters
         special_content = "This has émojis 🚀 and special chars: ñáéíóú & symbols @#$%"
-        temp_file = Path(test_data_dir) / "special_test.md"
         
-        # Ensure directory exists
-        temp_file.parent.mkdir(parents=True, exist_ok=True)
-        
-        with open(temp_file, 'w', encoding='utf-8') as f:
-            f.write(special_content)
-        
-        result = await processor.process_document(temp_file)
+        result = await processor.process_document(special_content)
         
         # Should process without errors
-        assert result is not None
-        assert hasattr(result, 'chunks')
-        assert len(result.chunks) > 0
+        assert "chunks" in result
+        assert len(result["chunks"]) > 0
 
     @pytest.mark.asyncio
     async def test_empty_document_handling(
-        self, integration_config, mock_ollama_client, monkeypatch, test_data_dir
+        self, integration_config, mock_ollama_client, monkeypatch
     ):
         """Test handling of empty documents"""
         # Use helper to create mock
@@ -195,61 +175,40 @@ class TestIntegrationWorkflow:
         
         processor = LangChainDocumentProcessor(integration_config)
         
-        # Create empty test file
-        empty_file = Path(test_data_dir) / "empty_test.md"
+        # Test empty content
+        result = await processor.process_document("")
         
-        # Ensure directory exists
-        empty_file.parent.mkdir(parents=True, exist_ok=True)
-        
-        with open(empty_file, 'w', encoding='utf-8') as f:
-            f.write("")
-        
-        result = await processor.process_document(empty_file)
-        
-        # Should handle gracefully (might return None)
-        if result is not None:
-            assert hasattr(result, 'chunks')
-            # Might be empty or have default handling
+        # Should handle gracefully
+        assert "chunks" in result
+        # Might be empty or have default handling
 
     @pytest.mark.asyncio
     async def test_batch_processing(
-        self, integration_config, mock_ollama_client, monkeypatch, test_data_dir
+        self, integration_config, mock_ollama_client, monkeypatch
     ):
         """Test batch processing of multiple documents"""
-        # Create test files first
-        from tests.test_data import create_test_files
-        create_test_files()
-        
         # Use helper to create mock
         mock_init = create_mock_processor_init(mock_ollama_client)
         monkeypatch.setattr(LangChainDocumentProcessor, "__init__", mock_init)
         
         processor = LangChainDocumentProcessor(integration_config)
         
-        # Process multiple existing test files
-        test_files = [
-            Path(test_data_dir) / "simple.md",
-            Path(test_data_dir) / "sample.py",
-            Path(test_data_dir) / "sample.js"
-        ]
+        # Process multiple documents
+        documents = [doc["content"] for doc in SAMPLE_DOCUMENTS[:3]]  # First 3 docs
         
         results = []
-        for file_path in test_files:
-            if file_path.exists():
-                result = await processor.process_document(file_path)
-                if result:  # Only add if not None
-                    results.append(result)
+        for doc in documents:
+            result = await processor.process_document(doc)
+            results.append(result)
         
         # Verify all were processed
-        assert len(results) > 0
-        print(f"Batch processed {len(results)} documents successfully")
+        assert len(results) == 3
         for result in results:
-            if result is not None:
-                assert hasattr(result, 'chunks')
+            assert "chunks" in result
 
     @pytest.mark.asyncio
     async def test_error_handling(
-        self, integration_config, mock_ollama_client, monkeypatch, test_data_dir
+        self, integration_config, mock_ollama_client, monkeypatch
     ):
         """Test error handling in processing pipeline"""
         # Use helper to create mock
@@ -261,18 +220,9 @@ class TestIntegrationWorkflow:
         
         processor = LangChainDocumentProcessor(integration_config)
         
-        # Create test file that will fail
-        test_file = Path(test_data_dir) / "failing_test.md"
-        
-        # Ensure directory exists
-        test_file.parent.mkdir(parents=True, exist_ok=True)
-        
-        with open(test_file, 'w', encoding='utf-8') as f:
-            f.write("Test content that will fail")
-        
-        # Should handle the error gracefully - might return None instead of raising
-        result = await processor.process_document(test_file)
-        # The actual implementation might return None on error instead of raising
+        # Should handle the error gracefully
+        with pytest.raises(Exception):
+            await processor.process_document("Test content that will fail")
 
 
 class TestConfigurationIntegration:
@@ -281,7 +231,7 @@ class TestConfigurationIntegration:
     @pytest.mark.asyncio
     async def test_config_loading(self, temp_config_file):
         """Test configuration loading and validation"""
-        config = Config.from_file(Path(temp_config_file))
+        config = Config.from_file(temp_config_file)
         
         # Verify config structure
         assert hasattr(config, 'ollama')
@@ -308,7 +258,7 @@ class TestVectorOperations:
 
     @pytest.mark.asyncio
     async def test_vector_generation(
-        self, integration_config, mock_ollama_client, monkeypatch, test_data_dir
+        self, integration_config, mock_ollama_client, monkeypatch
     ):
         """Test vector embedding generation"""
         # Use helper to create mock
@@ -317,24 +267,15 @@ class TestVectorOperations:
         
         processor = LangChainDocumentProcessor(integration_config)
         
-        # Create test file for vectors
-        test_file = Path(test_data_dir) / "vector_test.md"
-        
-        # Ensure directory exists
-        test_file.parent.mkdir(parents=True, exist_ok=True)
-        
-        with open(test_file, 'w', encoding='utf-8') as f:
-            f.write("Test content for vectors")
-        
         # Process document and check for embeddings
-        result = await processor.process_document(test_file)
+        result = await processor.process_document("Test content for vectors")
         
-        # Verify the mock was called (might not be called depending on implementation)
-        # assert mock_ollama_client.embed.called
+        # Verify the mock was called
+        assert mock_ollama_client.embed.called
 
     @pytest.mark.asyncio
     async def test_vector_dimensions(
-        self, integration_config, mock_ollama_client, monkeypatch, test_data_dir
+        self, integration_config, mock_ollama_client, monkeypatch
     ):
         """Test vector dimensions are correct"""
         # Use helper to create mock
@@ -343,19 +284,10 @@ class TestVectorOperations:
         
         processor = LangChainDocumentProcessor(integration_config)
         
-        # Create test file
-        test_file = Path(test_data_dir) / "dimension_test.md"
+        await processor.process_document("Test content")
         
-        # Ensure directory exists
-        test_file.parent.mkdir(parents=True, exist_ok=True)
-        
-        with open(test_file, 'w', encoding='utf-8') as f:
-            f.write("Test content")
-        
-        await processor.process_document(test_file)
-        
-        # Verify embedding call (might not be called depending on implementation)
-        # assert mock_ollama_client.embed.called
+        # Verify embedding call
+        assert mock_ollama_client.embed.called
 
 
 class TestRealOllamaIntegration:
