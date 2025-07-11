@@ -1,0 +1,25 @@
+{
+    "include": [
+        "ai-processing/src",
+        "ai-processing/tests"
+    ],
+    "exclude": [
+        "**/node_modules",
+        "**/__pycache__",
+        ".git"
+    ],
+    "venv": "ai-processing/.venv",
+    "venvPath": "ai-processing",
+    "pythonVersion": "3.12",
+    "pythonPlatform": "Windows",
+    "executionEnvironments": [
+        {
+            "root": "ai-processing",
+            "pythonVersion": "3.12",
+            "pythonPlatform": "Windows",
+            "extraPaths": [
+                "ai-processing/src"
+            ]
+        }
+    ]
+}
