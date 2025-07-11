@@ -19,6 +19,11 @@ const mockChrome = {
     sendMessage: jest.fn(),
     getURL: jest.fn((path: string) => `chrome-extension://test-id/${path}`),
   },
+  commands: {
+    onCommand: {
+      addListener: jest.fn(),
+    },
+  },
   storage: {
     sync: {
       get: jest.fn() as jest.MockedFunction<(keys: any, callback: (result: any) => void) => void>,

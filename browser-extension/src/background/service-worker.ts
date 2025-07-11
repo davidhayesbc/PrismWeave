@@ -172,6 +172,107 @@ chrome.runtime.onInstalled.addListener(async (details: chrome.runtime.InstalledD
   await handleInstallation(details);
 });
 
+// Handle keyboard shortcuts from manifest commands
+chrome.commands.onCommand.addListener(async (command: string) => {
+  try {
+    logger.info('Command received:', command);
+
+    switch (command) {
+      case 'capture-page':
+        await handleCapturePageCommand();
+        break;
+      default:
+        logger.warn('Unknown command:', command);
+    }
+  } catch (error) {
+    logger.error('Error handling command:', command, error);
+  }
+});
+
+// Handle capture page command from keyboard shortcut
+async function handleCapturePageCommand(): Promise<void> {
+  try {
+    // Get the active tab
+    const tabs = await new Promise<chrome.tabs.Tab[]>(resolve => {
+      chrome.tabs.query({ active: true, currentWindow: true }, resolve);
+    });
+
+    if (!tabs || tabs.length === 0 || !tabs[0].id) {
+      throw new Error('No active tab found');
+    }
+
+    const activeTab = tabs[0];
+    const tabId = activeTab.id;
+
+    if (!tabId) {
+      throw new Error('Active tab has no ID');
+    }
+
+    logger.info('Capturing page via keyboard shortcut:', activeTab.url);
+
+    // Check if capture service is available
+    if (!serviceWorkerState.captureService) {
+      throw new Error('Capture service not initialized');
+    }
+
+    // Capture the page
+    const result = await serviceWorkerState.captureService.capturePage(
+      {
+        url: activeTab.url || '',
+        title: activeTab.title || '',
+        source: 'keyboard-shortcut',
+      },
+      {
+        validateSettings: true,
+        includeMarkdown: true,
+      }
+    );
+
+    if (result.success) {
+      logger.info('Page captured successfully via keyboard shortcut');
+
+      // Send notification to content script if available
+      try {
+        await chrome.tabs.sendMessage(tabId, {
+          type: 'SHOW_NOTIFICATION',
+          data: {
+            message: 'Page captured successfully!',
+            type: 'success',
+          },
+        });
+      } catch (notificationError) {
+        // Content script might not be loaded, that's ok
+        logger.debug('Could not send notification to content script:', notificationError);
+      }
+    } else {
+      throw new Error('Capture failed - invalid result');
+    }
+  } catch (error) {
+    logger.error('Failed to capture page via keyboard shortcut:', error);
+
+    // Try to show error notification
+    try {
+      const tabs = await new Promise<chrome.tabs.Tab[]>(resolve => {
+        chrome.tabs.query({ active: true, currentWindow: true }, resolve);
+      });
+
+      if (tabs && tabs.length > 0 && tabs[0].id) {
+        const tabId = tabs[0].id;
+        await chrome.tabs.sendMessage(tabId, {
+          type: 'SHOW_NOTIFICATION',
+          data: {
+            message: 'Capture failed: ' + (error as Error).message,
+            type: 'error',
+          },
+        });
+      }
+    } catch (notificationError) {
+      // Ignore notification errors
+      logger.debug('Could not send error notification:', notificationError);
+    }
+  }
+}
+
 chrome.runtime.onMessage.addListener(
   (
     message: IMessageData,
