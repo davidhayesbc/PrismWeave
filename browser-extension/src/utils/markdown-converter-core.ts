@@ -164,6 +164,38 @@ export class MarkdownConverterCore {
       replacement: () => '',
     });
 
+    // Enhanced paragraph handling with proper spacing
+    this.turndownService.addRule('enhancedParagraphs', {
+      filter: 'p',
+      replacement: (content: string, node: any) => {
+        const trimmed = content.trim();
+        if (!trimmed) return '';
+
+        // Ensure proper paragraph spacing
+        return `\n\n${trimmed}\n\n`;
+      },
+    });
+
+    // Ensure div elements that contain paragraphs are treated as block elements
+    this.turndownService.addRule('divBlocks', {
+      filter: (node: any) => {
+        if (node.tagName !== 'DIV') return false;
+
+        // Check if this div contains paragraph-like content
+        const hasBlockContent = node.querySelector('p, h1, h2, h3, h4, h5, h6, ul, ol, blockquote');
+        const hasSignificantText = node.textContent && node.textContent.trim().length > 50;
+
+        return hasBlockContent || hasSignificantText;
+      },
+      replacement: (content: string) => {
+        const trimmed = content.trim();
+        if (!trimmed) return '';
+
+        // Add spacing around div blocks that contain substantial content
+        return `\n\n${trimmed}\n\n`;
+      },
+    });
+
     // Tables - add custom table support
     this.turndownService.addRule('tables', {
       filter: 'table',
@@ -337,8 +369,11 @@ export class MarkdownConverterCore {
     // Remove comments
     cleaned = cleaned.replace(/<!--[\s\S]*?-->/g, '');
 
-    // Clean up whitespace
-    cleaned = cleaned.replace(/\s+/g, ' ').trim();
+    // Preserve paragraph structure: normalize line breaks but keep HTML structure intact
+    // Replace excessive whitespace but preserve line breaks between block elements
+    cleaned = cleaned.replace(/[ \t]+/g, ' '); // Only collapse spaces and tabs
+    cleaned = cleaned.replace(/\n\s*\n\s*\n/g, '\n\n'); // Limit to double line breaks
+    cleaned = cleaned.trim();
 
     return cleaned;
   }
@@ -346,11 +381,24 @@ export class MarkdownConverterCore {
   private postprocessMarkdown(markdown: string): string {
     if (!markdown) return '';
 
-    // Clean up extra whitespace
-    let cleaned = markdown.replace(/\n\s*\n\s*\n/g, '\n\n');
+    // Clean up excessive whitespace while preserving paragraph structure
+    let cleaned = markdown.replace(/\n\s*\n\s*\n\s*\n/g, '\n\n\n'); // Max triple line breaks
+    cleaned = cleaned.replace(/\n\s*\n\s*\n/g, '\n\n'); // Normalize to double line breaks for paragraphs
+
+    // Ensure proper spacing around headers
+    cleaned = cleaned.replace(/\n(#{1,6}\s[^\n]+)\n/g, '\n\n$1\n\n');
+
+    // Ensure proper spacing around lists
+    cleaned = cleaned.replace(/\n(\s*[-*+]\s[^\n]+)/g, '\n\n$1');
+    cleaned = cleaned.replace(/\n(\s*\d+\.\s[^\n]+)/g, '\n\n$1');
 
     // Remove leading/trailing whitespace
     cleaned = cleaned.trim();
+
+    // Ensure the document ends with a single newline
+    if (cleaned && !cleaned.endsWith('\n')) {
+      cleaned += '\n';
+    }
 
     return cleaned;
   }

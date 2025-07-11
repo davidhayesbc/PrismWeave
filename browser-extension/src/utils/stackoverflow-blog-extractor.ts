@@ -126,26 +126,28 @@ export class StackOverflowBlogExtractor {
    * Extract main content using aggressive DOM analysis
    */
   private extractMainContent(): string {
-    // Strategy 1: Look for article content specifically
-    let content = this.tryArticleContent();
+    // NEW: First try HTML-preserving extraction for better paragraph handling
+    let content = this.tryArticleContentHTML();
     if (content && content.length > 500) {
+      this.logger.debug('Using article HTML content');
       return content;
     }
 
-    // Strategy 2: Find content by proximity to title
-    content = this.tryContentNearTitle();
+    content = this.tryContentNearTitleHTML();
     if (content && content.length > 500) {
+      this.logger.debug('Using content near title HTML');
       return content;
     }
 
-    // Strategy 3: Analyze all text blocks and pick the best one
-    content = this.tryLargestValidTextBlock();
+    content = this.tryLargestValidTextBlockHTML();
     if (content && content.length > 500) {
+      this.logger.debug('Using largest valid text block HTML');
       return content;
     }
 
-    // Strategy 4: Last resort - extract everything and clean aggressively
-    return this.tryAggressiveExtraction();
+    // Last resort: aggressive extraction with HTML paragraphs
+    this.logger.debug('Falling back to aggressive HTML extraction');
+    return this.tryAggressiveExtractionHTML();
   }
 
   /**
@@ -240,6 +242,81 @@ export class StackOverflowBlogExtractor {
   }
 
   /**
+   * Last resort: extract everything and clean very aggressively - HTML version
+   */
+  private tryAggressiveExtractionHTML(): string {
+    this.logger.debug('Trying aggressive HTML extraction...');
+
+    // NEW: First try to find the main content area more intelligently
+    const contentSelectors = [
+      'main',
+      '[role="main"]',
+      '.main-content',
+      '.content',
+      '.post-content',
+      '.entry-content',
+      '.article-body',
+    ];
+
+    for (const selector of contentSelectors) {
+      const element = document.querySelector(selector);
+      if (element) {
+        const htmlContent = this.extractHTMLFromElement(element);
+        const textLength = this.extractTextFromElement(element).length;
+        if (textLength > 500) {
+          this.logger.debug(`Found content using selector: ${selector}, length: ${textLength}`);
+          return htmlContent;
+        }
+      }
+    }
+
+    // NEW: Try to extract all content sections (like SO blog's multiple ##sections)
+    const allSections = document.querySelectorAll('h2, h3, p, div[class*="content"]');
+    const contentBlocks: string[] = [];
+    let currentSection = '';
+
+    for (const element of allSections) {
+      const tagName = element.tagName.toLowerCase();
+
+      if (tagName === 'h2' || tagName === 'h3') {
+        // Save previous section if it has content
+        if (currentSection.trim().length > 50) {
+          contentBlocks.push(currentSection.trim());
+        }
+        // Start new section with header
+        const headerText = element.textContent?.trim() || '';
+        if (headerText.length > 0 && !this.isPromotionalLine(headerText)) {
+          currentSection = `<h${tagName.charAt(1)}>${this.escapeHtml(headerText)}</h${tagName.charAt(1)}>\n\n`;
+        }
+      } else if (tagName === 'p') {
+        // Add paragraph to current section
+        const pText = element.textContent?.trim() || '';
+        if (pText.length > 20 && !this.isPromotionalLine(pText) && !this.isNavigationLine(pText)) {
+          currentSection += `<p>${this.escapeHtml(pText)}</p>\n\n`;
+        }
+      }
+    }
+
+    // Add final section
+    if (currentSection.trim().length > 50) {
+      contentBlocks.push(currentSection.trim());
+    }
+
+    if (contentBlocks.length > 0) {
+      const combinedContent = contentBlocks.join('\n\n');
+      if (combinedContent.length > 500) {
+        this.logger.debug(
+          `Assembled content from ${contentBlocks.length} sections, total length: ${combinedContent.length}`
+        );
+        return combinedContent;
+      }
+    }
+
+    // Fallback to the original aggressive extraction
+    return this.tryAggressiveExtraction();
+  }
+
+  /**
    * Last resort: extract everything and clean very aggressively
    */
   private tryAggressiveExtraction(): string {
@@ -285,7 +362,13 @@ export class StackOverflowBlogExtractor {
       }
     }
 
-    return paragraphs.join('\n\n');
+    // Convert paragraphs to HTML format
+    const htmlParagraphs = paragraphs
+      .filter(p => p.length > 20) // Only keep substantial paragraphs
+      .map(p => `<p>${this.escapeHtml(p)}</p>`)
+      .join('\n');
+
+    return htmlParagraphs;
   }
 
   /**
@@ -333,6 +416,231 @@ export class StackOverflowBlogExtractor {
     text = text.replace(/\s+/g, ' ').trim();
 
     return text;
+  }
+
+  /**
+   * Try to find content within article tags - HTML version
+   */
+  private tryArticleContentHTML(): string {
+    const articles = document.querySelectorAll('article');
+
+    for (const article of articles) {
+      // Skip if it's clearly navigation or sidebar
+      const classList = article.className.toLowerCase();
+      if (
+        classList.includes('nav') ||
+        classList.includes('sidebar') ||
+        classList.includes('promo') ||
+        classList.includes('ad')
+      ) {
+        continue;
+      }
+
+      // NEW: For Stack Overflow blog, look for the main content structure
+      const htmlContent = this.extractHTMLFromElement(article);
+      const textContent = this.extractTextFromElement(article);
+
+      this.logger.debug(`Article candidate: ${textContent.length} chars, classes: ${classList}`);
+
+      // NEW: More lenient content validation for SO blog structure
+      if (textContent.length > 200 && this.isValidBlogContent(textContent)) {
+        this.logger.debug('Found valid article content');
+        return htmlContent;
+      }
+    }
+
+    // NEW: If no article tags work, try looking for content sections directly
+    const contentAreas = document.querySelectorAll(
+      '[class*="content"], [class*="post"], [class*="entry"]'
+    );
+    for (const area of contentAreas) {
+      const htmlContent = this.extractHTMLFromElement(area);
+      const textContent = this.extractTextFromElement(area);
+
+      if (textContent.length > 200 && this.isValidBlogContent(textContent)) {
+        this.logger.debug('Found valid content area');
+        return htmlContent;
+      }
+    }
+
+    return '';
+  }
+
+  /**
+   * Try to find content near the main title - HTML version
+   */
+  private tryContentNearTitleHTML(): string {
+    const h1 = document.querySelector('h1');
+    if (!h1) return '';
+
+    // Look for content containers near the title
+    let parent = h1.parentElement;
+    let attempts = 0;
+
+    while (parent && attempts < 5) {
+      const htmlContent = this.extractHTMLFromElement(parent);
+      const textContent = this.extractTextFromElement(parent);
+      if (this.isValidBlogContent(textContent)) {
+        return htmlContent;
+      }
+      parent = parent.parentElement;
+      attempts++;
+    }
+
+    // Try siblings of the title
+    const nextElements = this.getNextSiblings(h1, 10);
+    for (const element of nextElements) {
+      const htmlContent = this.extractHTMLFromElement(element);
+      const textContent = this.extractTextFromElement(element);
+      if (this.isValidBlogContent(textContent)) {
+        return htmlContent;
+      }
+    }
+
+    return '';
+  }
+
+  /**
+   * Analyze all substantial text blocks and pick the best one - HTML version
+   */
+  private tryLargestValidTextBlockHTML(): string {
+    const candidates: Array<{
+      element: Element;
+      content: string;
+      htmlContent: string;
+      score: number;
+    }> = [];
+
+    // Get all potential content containers
+    const selectors = ['div', 'section', 'main', 'article'];
+
+    for (const selector of selectors) {
+      const elements = document.querySelectorAll(selector);
+
+      for (const element of elements) {
+        const textContent = this.extractTextFromElement(element);
+        const htmlContent = this.extractHTMLFromElement(element);
+
+        if (textContent.length > 200) {
+          const score = this.scoreContentBlock(element, textContent);
+          candidates.push({ element, content: textContent, htmlContent, score });
+        }
+      }
+    }
+
+    // Sort by score and return the best
+    candidates.sort((a, b) => b.score - a.score);
+
+    if (candidates.length > 0 && candidates[0].score > 50) {
+      return candidates[0].htmlContent;
+    }
+
+    return '';
+  }
+
+  /**
+   * Extract clean HTML from an element, removing unwanted parts but preserving structure
+   */
+  private extractHTMLFromElement(element: Element): string {
+    // Clone the element to avoid modifying the original
+    const clone = element.cloneNode(true) as Element;
+
+    // Remove unwanted elements - expanded for Stack Overflow blog
+    const unwantedSelectors = [
+      'nav',
+      'header',
+      'footer',
+      'aside',
+      '.nav',
+      '.navigation',
+      '.menu',
+      '.sidebar',
+      '.promo',
+      '.promotion',
+      '.advertisement',
+      '.ad',
+      '.social',
+      '.share',
+      '.sharing',
+      '.comments',
+      '.comment-form',
+      '.related',
+      '.related-posts',
+      'script',
+      'style',
+      'noscript',
+      // NEW: Stack Overflow specific unwanted elements
+      '[class*="teams"]',
+      '[class*="talent"]',
+      '[class*="hiring"]',
+      '[class*="subscribe"]',
+      '[class*="newsletter"]',
+      '[class*="products"]',
+      '[href*="stackoverflow.co"]',
+      '.so-header',
+      '.so-footer',
+      // Remove empty or very short elements that might be promotional
+      'div:empty',
+      'p:empty',
+      'span:empty',
+    ];
+
+    for (const selector of unwantedSelectors) {
+      try {
+        const elements = clone.querySelectorAll(selector);
+        elements.forEach(el => el.remove());
+      } catch (error) {
+        // Some selectors might be invalid, continue with others
+        this.logger.debug(`Failed to remove elements with selector: ${selector}`);
+      }
+    }
+
+    // NEW: Remove elements with promotional text content
+    const allElements = clone.querySelectorAll('*');
+    allElements.forEach(el => {
+      const text = el.textContent?.toLowerCase() || '';
+      if (
+        text.includes('stack overflow for teams') ||
+        text.includes('hire top talent') ||
+        text.includes('subscribe to') ||
+        text.includes('newsletter') ||
+        (text.length < 200 && (text.includes('products') || text.includes('pricing')))
+      ) {
+        el.remove();
+      }
+    });
+
+    // Get the HTML content
+    let html = clone.innerHTML;
+
+    // Clean up the HTML while preserving paragraph structure
+    html = this.cleanHTMLContent(html);
+
+    return html;
+  }
+
+  /**
+   * Clean HTML content while preserving paragraph structure
+   */
+  private cleanHTMLContent(html: string): string {
+    // Remove empty paragraphs and divs
+    html = html.replace(/<p[^>]*>\s*<\/p>/gi, '');
+    html = html.replace(/<div[^>]*>\s*<\/div>/gi, '');
+
+    // Remove excessive nested divs (keep content but remove wrapper)
+    html = html.replace(/<div[^>]*>(\s*<p[^>]*>.*?<\/p>\s*)<\/div>/gi, '$1');
+
+    // Ensure paragraph breaks are preserved
+    html = html.replace(/(<\/p>)(\s*)(<p[^>]*>)/gi, '$1\n\n$3');
+
+    // Clean up excessive whitespace but preserve line breaks
+    html = html.replace(/[ \t]+/g, ' ');
+    html = html.replace(/\n\s*\n\s*\n/g, '\n\n');
+
+    // Remove attributes from paragraph tags to clean up
+    html = html.replace(/<p[^>]*>/gi, '<p>');
+
+    return html.trim();
   }
 
   /**
@@ -385,18 +693,38 @@ export class StackOverflowBlogExtractor {
    * Check if content looks like valid blog content
    */
   private isValidBlogContent(content: string): boolean {
-    if (content.length < 300) return false;
+    // NEW: More lenient validation for Stack Overflow blog structure
+    if (content.length < 200) return false; // Reduced from 300
 
-    // Should have reasonable sentence structure
+    // Should have some sentence structure
     const sentences = content.split(/[.!?]+/).length;
-    if (sentences < 5) return false;
+    if (sentences < 3) return false; // Reduced from 5
 
-    // Should not be primarily promotional
-    const promoWords = ['teams', 'advertising', 'promote', 'talent'];
+    // NEW: Check for actual article content vs navigation
+    const contentIndicators = [
+      /\b(the|this|that|these|those|when|where|how|why|what)\b/i,
+      /\b(development|software|programming|code|application|system)\b/i,
+      /\b(you|your|we|our|they|their)\b/i,
+    ];
+
+    const hasContentIndicators = contentIndicators.some(pattern => pattern.test(content));
+    if (!hasContentIndicators) {
+      this.logger.debug('Content lacks article indicators');
+      return false;
+    }
+
+    // Should not be primarily promotional (more lenient)
+    const promoWords = ['teams', 'advertising', 'promote', 'talent', 'subscription', 'pricing'];
     const promoCount = promoWords.filter(word => content.toLowerCase().includes(word)).length;
     const promoRatio = promoCount / (content.length / 1000);
 
-    return promoRatio < 1; // Less than 1 promo word per 1000 characters
+    const isValid = promoRatio < 2; // Increased from 1 to be more lenient
+
+    if (!isValid) {
+      this.logger.debug(`Content rejected due to promotional ratio: ${promoRatio}`);
+    }
+
+    return isValid;
   }
 
   /**
@@ -552,5 +880,14 @@ export class StackOverflowBlogExtractor {
     const wordsPerMinute = 200;
     const words = content.split(/\s+/).length;
     return Math.ceil(words / wordsPerMinute);
+  }
+
+  /**
+   * Escape HTML characters to prevent XSS
+   */
+  private escapeHtml(text: string): string {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
   }
 }

@@ -65,6 +65,100 @@ if (!window.location.href.includes('stackoverflow.blog')) {
     const articles = document.querySelectorAll('article');
     console.log(`📰 Found ${articles.length} article element(s)`);
 
+    if (articles.length > 0) {
+      const article = articles[0];
+
+      // Test HTML extraction with paragraph preservation
+      console.log('\n🔍 Testing paragraph structure preservation...');
+      const clone = article.cloneNode(true);
+
+      // Remove unwanted elements (simulating our cleaner)
+      const unwantedSelectors = [
+        'nav',
+        'header',
+        'footer',
+        'aside',
+        '.nav',
+        '.navigation',
+        '.menu',
+        '.sidebar',
+        '.promo',
+        '.promotion',
+        '.advertisement',
+        '.ad',
+        '.social',
+        '.share',
+        '.sharing',
+        '.comments',
+        '.comment-form',
+        '.related',
+        '.related-posts',
+        'script',
+        'style',
+        'noscript',
+      ];
+
+      unwantedSelectors.forEach(selector => {
+        const elements = clone.querySelectorAll(selector);
+        elements.forEach(el => el.remove());
+      });
+
+      const htmlContent = clone.innerHTML;
+
+      // Count paragraphs
+      const paragraphCount = (htmlContent.match(/<p[^>]*>/gi) || []).length;
+      console.log(`📝 Found ${paragraphCount} paragraph tags in extracted HTML`);
+
+      // Show first 300 chars of HTML content
+      console.log('🏷️ HTML content preview (first 300 chars):');
+      console.log(htmlContent.substring(0, 300) + '...');
+
+      // Test if paragraphs have content
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = htmlContent;
+      const paragraphs = tempDiv.querySelectorAll('p');
+      let substantialParagraphs = 0;
+
+      paragraphs.forEach((p, index) => {
+        const text = p.textContent?.trim() || '';
+        if (text.length > 20) {
+          substantialParagraphs++;
+          if (index < 3) {
+            console.log(`  📄 P${index + 1}: "${text.substring(0, 80)}..."`);
+          }
+        }
+      });
+
+      console.log(`✅ Found ${substantialParagraphs} substantial paragraphs`);
+
+      // Test Turndown conversion if available
+      if (typeof TurndownService !== 'undefined') {
+        console.log('\n🔄 Testing markdown conversion...');
+        const turndownService = new TurndownService({
+          headingStyle: 'atx',
+          bulletListMarker: '-',
+          codeBlockStyle: 'fenced',
+        });
+
+        const markdown = turndownService.turndown(htmlContent);
+        const paragraphBreaks = (markdown.match(/\n\n/g) || []).length;
+
+        console.log(`📝 Markdown generated: ${markdown.length} characters`);
+        console.log(`📄 Paragraph breaks in markdown: ${paragraphBreaks}`);
+        console.log('📖 Markdown preview (first 300 chars):');
+        console.log(markdown.substring(0, 300) + '...');
+
+        if (paragraphBreaks < 2) {
+          console.warn('⚠️ Warning: Very few paragraph breaks detected in markdown');
+          console.log('This suggests formatting might still be lost');
+        } else {
+          console.log('✅ Good paragraph structure detected in markdown');
+        }
+      } else {
+        console.log('📦 TurndownService not available in global scope');
+      }
+    }
+
     // Check for main content
     const mainContent = document.querySelector('main');
     console.log(
@@ -91,11 +185,12 @@ if (!window.location.href.includes('stackoverflow.blog')) {
       console.log('✅ No obvious promotional content detected');
     }
 
-    console.log('\n🎯 To test the full extraction:');
+    console.log('\n🎯 To test the full extraction with improved formatting:');
     console.log('1. Make sure the PrismWeave extension is loaded');
     console.log('2. Press Ctrl+Alt+S to capture this page');
     console.log('3. Check the browser console for "StackOverflowBlogExtractor" logs');
-    console.log('4. Verify the captured content in your repository');
+    console.log('4. Verify the captured markdown has proper paragraph breaks (\\n\\n)');
+    console.log('5. Look for preserved paragraph structure in your repository');
   } catch (error) {
     console.error('❌ Error during testing:', error);
   }
