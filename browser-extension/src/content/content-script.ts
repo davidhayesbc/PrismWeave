@@ -2,8 +2,16 @@
 // Content script for PrismWeave browser extension
 // Handles keyboard shortcuts and page content extraction
 
-import { IMessageData, IMessageResponse, MESSAGE_TYPES } from '../types/index.js';
+import {
+  IContentExtractionData,
+  IContentExtractionResult,
+  IMessageData,
+  IMessageResponse,
+  MESSAGE_TYPES,
+} from '../types/index.js';
+import { ContentExtractor } from '../utils/content-extractor.js';
 import { createLogger } from '../utils/logger.js';
+import { MarkdownConverter } from '../utils/markdown-converter.js';
 
 console.log('PrismWeave content script loading...');
 
@@ -256,8 +264,104 @@ async function handleMessage(
         domain: window.location.hostname,
       };
 
+    case 'SHOW_NOTIFICATION':
+      if (message.data && typeof message.data.message === 'string') {
+        const notificationType = (message.data.type as 'success' | 'error' | 'info') || 'info';
+        showNotification(message.data.message, notificationType);
+        logger.info('Notification shown:', message.data.message);
+      }
+      return { success: true };
+
+    case 'EXTRACT_AND_CONVERT_TO_MARKDOWN':
+      // This is called by the service worker for content extraction
+      try {
+        const extractedContent = await extractPageContentWithUtilities(message.data);
+        return {
+          success: true,
+          data: extractedContent,
+          extractionMethod: 'content-script',
+          timestamp: new Date().toISOString(),
+        } as IContentExtractionResult;
+      } catch (error) {
+        logger.error('Content extraction failed:', error);
+        return {
+          success: false,
+          error: (error as Error).message,
+          extractionMethod: 'content-script',
+          timestamp: new Date().toISOString(),
+        } as IContentExtractionResult;
+      }
+
     default:
       throw new Error(`Unknown message type: ${message.type}`);
+  }
+}
+
+// Extract page content using existing utilities
+async function extractPageContentWithUtilities(options?: any): Promise<IContentExtractionData> {
+  try {
+    logger.info('Extracting page content using ContentExtractor...');
+
+    // Initialize utilities
+    const contentExtractor = new ContentExtractor();
+    const markdownConverter = new MarkdownConverter();
+
+    // Extract content using the existing utility
+    const extractorOptions = {
+      customSelectors: options?.customSelectors,
+      cleanHtml: options?.cleanHtml !== false,
+      preserveFormatting: options?.preserveFormatting === true,
+      waitForDynamicContent: options?.waitForDynamicContent !== false,
+    };
+
+    const contentResult = await contentExtractor.extractContent(extractorOptions);
+
+    // Convert to markdown
+    const markdownResult = markdownConverter.convertToMarkdown(contentResult.content, {
+      preserveFormatting: options?.preserveFormatting === true,
+      includeMetadata: true,
+      generateFrontmatter: true,
+    });
+
+    // Extract images using the utility
+    const images = contentExtractor.extractImages();
+    const imageUrls = images.map(img => img.src);
+
+    // Get page structure for additional metadata
+    const pageStructure = contentExtractor.getPageStructure();
+
+    // Prepare the result data
+    const extractionData: IContentExtractionData = {
+      html: contentResult.content,
+      title: contentResult.metadata.title,
+      url: window.location.href,
+      metadata: {
+        ...contentResult.metadata,
+        extractedAt: new Date().toISOString(),
+        domain: window.location.hostname,
+        wordCount: contentResult.wordCount,
+        readingTime: contentResult.readingTime,
+        headings: pageStructure.headings,
+        sections: pageStructure.sections,
+        paragraphs: pageStructure.paragraphs,
+        qualityScore: contentExtractor.getContentQualityScore(),
+        isPaywallPresent: contentExtractor.isPaywallPresent(),
+      },
+      markdown: markdownResult.markdown,
+      frontmatter: markdownResult.frontmatter,
+      images: imageUrls,
+    };
+
+    logger.info('Content extraction completed successfully using utilities', {
+      wordCount: contentResult.wordCount,
+      imageCount: imageUrls.length,
+      markdownLength: markdownResult.markdown.length,
+    });
+
+    return extractionData;
+  } catch (error) {
+    logger.error('Page content extraction failed with utilities:', error);
+    throw error;
   }
 }
 
