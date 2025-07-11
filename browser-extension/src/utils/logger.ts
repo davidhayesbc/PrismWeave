@@ -101,13 +101,39 @@ class Logger {
   }
 
   private _isDevelopmentEnvironment(): boolean {
-    // Check multiple indicators for development environment
-    return (
-      (typeof process !== 'undefined' && process.env.NODE_ENV === 'development') ||
-      (typeof chrome !== 'undefined' && chrome.runtime?.getManifest()?.version?.includes('dev')) ||
-      (typeof window !== 'undefined' && window.location?.hostname === 'localhost') ||
-      (typeof globalThis !== 'undefined' && (globalThis as any).PRISMWEAVE_DEV_MODE === true)
-    );
+    try {
+      // Check multiple indicators for development environment
+      return (
+        (typeof process !== 'undefined' && process.env.NODE_ENV === 'development') ||
+        this._safeCheckChromeDevMode() ||
+        (typeof window !== 'undefined' && window.location?.hostname === 'localhost') ||
+        (typeof globalThis !== 'undefined' && (globalThis as any).PRISMWEAVE_DEV_MODE === true)
+      );
+    } catch (error) {
+      // If any check fails (e.g., extension context invalidated), default to production
+      return false;
+    }
+  }
+
+  private _safeCheckChromeDevMode(): boolean {
+    try {
+      // Safely check Chrome extension context
+      if (typeof chrome === 'undefined' || !chrome.runtime) {
+        return false;
+      }
+
+      // Check if extension context is still valid
+      if (chrome.runtime.lastError) {
+        return false;
+      }
+
+      // Try to access manifest
+      const manifest = chrome.runtime.getManifest();
+      return manifest?.version?.includes('dev') || false;
+    } catch (error) {
+      // Extension context invalidated or other Chrome API error
+      return false;
+    }
   }
 
   private _getComponentConfig(componentName: string): IComponentLogConfig | null {

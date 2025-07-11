@@ -237,8 +237,56 @@ async function handleCapturePageShortcut(): Promise<void> {
       });
 
       if (response.success) {
-        showNotification('Page captured successfully!', 'success');
-        logger.info('Page captured successfully via keyboard shortcut');
+        // Extract the document URL from the response if available
+        const responseData = response.data as any;
+        // The commitUrl is in the nested data object: response.data.data.commitUrl
+        const documentUrl =
+          responseData?.data?.commitUrl || responseData?.data?.url || responseData?.data?.htmlUrl;
+
+        // Enhanced debugging for the URL extraction
+        console.log('🔍 PrismWeave: Detailed capture response analysis:');
+        console.log('  📦 Full Response:', response);
+        console.log('  📦 Response Type:', typeof response);
+        console.log('  📦 Response Keys:', response ? Object.keys(response) : 'none');
+        console.log('  📦 Response Data:', responseData);
+        console.log('  📦 Response Data Type:', typeof responseData);
+        console.log('  📦 Response Data Keys:', responseData ? Object.keys(responseData) : 'none');
+        console.log('  📦 Response Data JSON:', JSON.stringify(responseData, null, 2));
+        console.log('  🔗 Document URL:', documentUrl);
+        console.log(
+          '  ✅ Has commitUrl:',
+          !!responseData?.data?.commitUrl,
+          '→',
+          responseData?.data?.commitUrl
+        );
+        console.log('  ✅ Has url:', !!responseData?.data?.url, '→', responseData?.data?.url);
+        console.log(
+          '  ✅ Has htmlUrl:',
+          !!responseData?.data?.htmlUrl,
+          '→',
+          responseData?.data?.htmlUrl
+        );
+
+        if (documentUrl) {
+          showNotification(
+            'Page captured successfully! Click to view.',
+            'success',
+            10000, // 10 seconds for easier testing
+            documentUrl
+          );
+        } else {
+          showNotification(
+            'Page captured successfully!',
+            'success',
+            10000 // 10 seconds for easier testing
+          );
+        }
+
+        logger.info('Page captured successfully via keyboard shortcut', {
+          documentUrl,
+          hasClickableLink: !!documentUrl,
+          responseData: responseData,
+        });
       } else {
         throw new Error(response.error || 'Capture failed');
       }
@@ -335,9 +383,23 @@ async function extractPageContentWithUtilities(options?: any): Promise<IContentE
   try {
     logger.info('Extracting page content using ContentExtractor...');
 
-    // Initialize utilities
-    const contentExtractor = new ContentExtractor();
-    const markdownConverter = new MarkdownConverter();
+    // Initialize utilities with error handling for extension context invalidation
+    let contentExtractor: ContentExtractor;
+    let markdownConverter: MarkdownConverter;
+
+    try {
+      contentExtractor = new ContentExtractor();
+      markdownConverter = new MarkdownConverter();
+    } catch (error) {
+      // If utilities fail to initialize (e.g., extension context invalidated),
+      // fall back to basic content extraction
+      if (error instanceof Error && error.message.includes('Extension context invalidated')) {
+        logger.warn('Extension context invalidated, falling back to basic extraction');
+        showNotification('Extension reloaded - using basic capture mode', 'info', 3000);
+        return await basicContentExtraction();
+      }
+      throw error;
+    }
 
     // Extract content using the existing utility
     const extractorOptions = {
@@ -394,7 +456,90 @@ async function extractPageContentWithUtilities(options?: any): Promise<IContentE
     return extractionData;
   } catch (error) {
     logger.error('Page content extraction failed with utilities:', error);
+
+    // If the main extraction failed, try basic fallback
+    if (error instanceof Error && error.message.includes('Extension context invalidated')) {
+      logger.warn('Falling back to basic content extraction due to extension context invalidation');
+      showNotification('Extension reloaded - using basic capture mode', 'info', 3000);
+      return await basicContentExtraction();
+    }
+
     throw error;
+  }
+}
+
+// Basic content extraction fallback for when extension context is invalidated
+async function basicContentExtraction(): Promise<IContentExtractionData> {
+  try {
+    // Basic content selectors
+    const contentSelectors = [
+      'article',
+      'main',
+      '[role="main"]',
+      '.content',
+      '.post',
+      '.entry',
+      '#content',
+    ];
+
+    let contentElement: Element | null = null;
+
+    // Try to find main content element
+    for (const selector of contentSelectors) {
+      contentElement = document.querySelector(selector);
+      if (
+        contentElement &&
+        contentElement.textContent &&
+        contentElement.textContent.trim().length > 100
+      ) {
+        break;
+      }
+    }
+
+    // Fall back to body if no content area found
+    if (!contentElement) {
+      contentElement = document.body;
+    }
+
+    const html = contentElement?.innerHTML || '';
+    const textContent = contentElement?.textContent || '';
+    const title = document.title || 'Untitled';
+
+    // Basic word count
+    const wordCount = textContent.split(/\s+/).filter(word => word.length > 0).length;
+
+    // Basic image extraction
+    const images = Array.from(document.images)
+      .map(img => img.src)
+      .filter(src => src && !src.startsWith('data:'));
+
+    // Simple markdown conversion (very basic)
+    let markdown = textContent;
+    if (title) {
+      markdown = `# ${title}\n\n${textContent}`;
+    }
+
+    const extractionData: IContentExtractionData = {
+      html,
+      title,
+      url: window.location.href,
+      metadata: {
+        extractedAt: new Date().toISOString(),
+        domain: window.location.hostname,
+        wordCount,
+        readingTime: Math.ceil(wordCount / 200),
+        extractionMethod: 'basic-fallback',
+      },
+      markdown,
+      frontmatter: `---\ntitle: ${title}\nurl: ${window.location.href}\ncaptured: ${new Date().toISOString()}\n---\n`,
+      images,
+    };
+
+    return extractionData;
+  } catch (error) {
+    throw new Error(
+      `Basic content extraction failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+    );
   }
 }
 
@@ -416,7 +561,12 @@ function sendMessageToBackground(type: string, data?: any): Promise<IMessageResp
 }
 
 // Show user notification
-function showNotification(message: string, type: 'success' | 'error' | 'info' = 'info'): void {
+function showNotification(
+  message: string,
+  type: 'success' | 'error' | 'info' = 'info',
+  duration: number = 4000,
+  clickUrl?: string
+): void {
   // Create or update notification element
   let notification = document.getElementById('prismweave-notification');
 
@@ -439,6 +589,7 @@ function showNotification(message: string, type: 'success' | 'error' | 'info' = 
       opacity: 0;
       transform: translateX(100%);
       transition: all 0.3s ease;
+      ${clickUrl ? 'cursor: pointer;' : ''}
     `;
     document.body.appendChild(notification);
   }
@@ -453,25 +604,124 @@ function showNotification(message: string, type: 'success' | 'error' | 'info' = 
   notification.style.backgroundColor = colors[type];
   notification.textContent = message;
 
+  // Add click handler if URL is provided
+  if (clickUrl) {
+    console.log('🔗 PrismWeave: Setting up clickable notification with URL:', clickUrl);
+    notification.style.cursor = 'pointer';
+
+    // Clear any existing event listeners
+    notification.onclick = null;
+    notification.onmouseenter = null;
+    notification.onmouseleave = null;
+
+    // Add multiple event listeners for debugging
+    notification.addEventListener(
+      'click',
+      event => {
+        console.log('🖱️ PrismWeave: Click event fired!', {
+          event,
+          target: event.target,
+          currentTarget: event.currentTarget,
+          clickUrl,
+          timestamp: new Date().toISOString(),
+        });
+
+        event.preventDefault();
+        event.stopPropagation();
+
+        console.log('🚀 PrismWeave: Attempting to open URL:', clickUrl);
+
+        try {
+          // Try to open the URL
+          const newWindow = window.open(clickUrl, '_blank', 'noopener,noreferrer');
+
+          if (newWindow) {
+            console.log('✅ PrismWeave: Successfully opened URL in new window');
+            // Hide notification immediately after successful click
+            hideNotification(notification);
+          } else {
+            console.log('❌ PrismWeave: window.open failed, trying alternative method');
+            // Try alternative method
+            const link = document.createElement('a');
+            link.href = clickUrl;
+            link.target = '_blank';
+            link.rel = 'noopener noreferrer';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            console.log('🔄 PrismWeave: Used alternative link click method');
+            hideNotification(notification);
+          }
+        } catch (error) {
+          console.error('💥 PrismWeave: Error opening URL:', error);
+          // Show user-friendly error
+          showNotification('Could not open link. Check browser popup settings.', 'error', 3000);
+        }
+      },
+      { passive: false }
+    );
+
+    // Also add the onclick for backwards compatibility
+    notification.onclick = event => {
+      console.log('🖱️ PrismWeave: onclick handler fired (fallback)');
+    };
+
+    // Add hover effect for clickable notifications with better visual feedback
+    notification.onmouseenter = () => {
+      console.log('🎯 PrismWeave: Mouse entered notification');
+      notification!.style.transform = 'scale(1.05)';
+      notification!.style.boxShadow = '0 8px 20px rgba(0, 0, 0, 0.3)';
+      notification!.style.backgroundColor = '#059669'; // Slightly darker green on hover
+    };
+    notification.onmouseleave = () => {
+      console.log('🎯 PrismWeave: Mouse left notification');
+      notification!.style.transform = 'scale(1)';
+      notification!.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15)';
+      notification!.style.backgroundColor = colors[type]; // Reset to original color
+    };
+
+    // Add visual indicator that it's clickable
+    notification.title = `Click to open: ${clickUrl}`;
+
+    // Make the notification more obviously clickable
+    notification.style.border = '2px solid rgba(255, 255, 255, 0.3)';
+    notification.style.transition = 'all 0.2s ease';
+
+    console.log('🔗 PrismWeave: Clickable notification setup complete');
+  } else {
+    console.log('ℹ️ PrismWeave: No click URL provided, notification will not be clickable');
+    // Remove click handler if no URL
+    notification.onclick = null;
+    notification.onmouseenter = null;
+    notification.onmouseleave = null;
+    notification.style.cursor = 'default';
+    notification.title = '';
+  }
+
   // Show notification
   requestAnimationFrame(() => {
     notification!.style.opacity = '1';
     notification!.style.transform = 'translateX(0)';
   });
 
-  // Hide notification after 4 seconds
+  // Hide notification after specified duration
   setTimeout(() => {
-    if (notification) {
-      notification.style.opacity = '0';
-      notification.style.transform = 'translateX(100%)';
+    hideNotification(notification);
+  }, duration);
+}
 
-      setTimeout(() => {
-        if (notification && notification.parentNode) {
-          notification.parentNode.removeChild(notification);
-        }
-      }, 300);
-    }
-  }, 4000);
+// Helper function to hide notification
+function hideNotification(notification: HTMLElement | null): void {
+  if (notification) {
+    notification.style.opacity = '0';
+    notification.style.transform = 'translateX(100%)';
+
+    setTimeout(() => {
+      if (notification && notification.parentNode) {
+        notification.parentNode.removeChild(notification);
+      }
+    }, 300);
+  }
 }
 
 // Initialize when DOM is ready
