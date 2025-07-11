@@ -143,6 +143,41 @@ export class BlogPlatformStrategy implements ISelectorStrategy {
 }
 
 /**
+ * Strategy for Stack Overflow blog and technical sites
+ */
+export class StackOverflowBlogStrategy implements ISelectorStrategy {
+  isApplicable(url: string): boolean {
+    return url.includes('stackoverflow.blog') || url.includes('stackoverflow.com/blog');
+  }
+
+  getSelectors(): IContentSelector[] {
+    return [
+      {
+        name: 'stackoverflow-blog-specific',
+        selectors: [
+          // Stack Overflow blog uses these structures
+          '.blog-post-content',
+          '.post-content',
+          '.entry-content',
+          '.article-content',
+          'article .content',
+          'article main',
+          '[data-testid="post-content"]',
+          // Generic article selectors for SO blog
+          'article',
+          'main article',
+          '.main-content article',
+          // Fallback patterns
+          '[class*="post"][class*="content"]',
+          '[class*="article"][class*="content"]',
+          '[id*="post"][id*="content"]',
+        ],
+      },
+    ];
+  }
+}
+
+/**
  * Strategy for documentation and technical sites - Enhanced with Docker-specific patterns
  */
 export class DocumentationStrategy implements ISelectorStrategy {
@@ -198,6 +233,7 @@ export class DocumentationStrategy implements ISelectorStrategy {
  */
 export class ContentSelectorManager {
   private strategies: ISelectorStrategy[] = [
+    new StackOverflowBlogStrategy(),
     new BlogPlatformStrategy(),
     new DocumentationStrategy(),
     new GeneralContentStrategy(), // Always last as fallback

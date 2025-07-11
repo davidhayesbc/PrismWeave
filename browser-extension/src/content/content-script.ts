@@ -12,6 +12,7 @@ import {
 import { ContentExtractor } from '../utils/content-extractor.js';
 import { createLogger } from '../utils/logger.js';
 import { MarkdownConverter } from '../utils/markdown-converter.js';
+import { StackOverflowBlogExtractor } from '../utils/stackoverflow-blog-extractor.js';
 
 console.log('PrismWeave content script loading...');
 
@@ -383,6 +384,72 @@ async function extractPageContentWithUtilities(options?: any): Promise<IContentE
   try {
     logger.info('Extracting page content using ContentExtractor...');
 
+    // Check if this is a Stack Overflow blog and use dedicated extractor
+    const soExtractor = new StackOverflowBlogExtractor();
+    if (soExtractor.isStackOverflowBlog()) {
+      logger.info('Detected Stack Overflow blog, using specialized extractor...');
+
+      const soResult = soExtractor.extractBlogContent();
+      if (soResult && soResult.content.length > 500) {
+        logger.info('Successfully extracted SO blog content', {
+          contentLength: soResult.content.length,
+          title: soResult.title,
+          author: soResult.author,
+        });
+
+        // Convert to markdown using our converter
+        const markdownConverter = new MarkdownConverter();
+        const markdownResult = markdownConverter.convertToMarkdown(soResult.content, {
+          preserveFormatting: true,
+          generateFrontmatter: true,
+        });
+
+        // Prepare frontmatter with SO-specific metadata
+        const frontmatter = [
+          '---',
+          `title: "${soResult.title.replace(/"/g, '\\"')}"`,
+          `url: "${window.location.href}"`,
+          `domain: "${window.location.hostname}"`,
+          `extracted_at: "${new Date().toISOString()}"`,
+          soResult.author ? `author: "${soResult.author.replace(/"/g, '\\"')}"` : '',
+          soResult.publishDate ? `published: "${soResult.publishDate}"` : '',
+          soResult.readingTime ? `reading_time: ${soResult.readingTime}` : '',
+          soResult.tags.length > 0
+            ? `tags: [${soResult.tags.map(tag => `"${tag.replace(/"/g, '\\"')}"`).join(', ')}]`
+            : '',
+          'source: "stackoverflow.blog"',
+          '---',
+        ]
+          .filter(line => line.length > 0)
+          .join('\n');
+
+        return {
+          html: soResult.content,
+          title: soResult.title,
+          url: window.location.href,
+          metadata: {
+            title: soResult.title,
+            url: window.location.href,
+            domain: window.location.hostname,
+            extractedAt: new Date().toISOString(),
+            author: soResult.author,
+            publishDate: soResult.publishDate,
+            tags: soResult.tags,
+            readingTime: soResult.readingTime,
+            wordCount: soResult.content.split(/\s+/).length,
+            source: 'stackoverflow.blog',
+          },
+          markdown: markdownResult.markdown,
+          frontmatter: frontmatter,
+          images: [], // SO extractor doesn't extract images yet, but could be added
+        };
+      } else {
+        logger.warn(
+          'SO extractor failed or returned insufficient content, falling back to generic extractor'
+        );
+      }
+    }
+
     // Initialize utilities with error handling for extension context invalidation
     let contentExtractor: ContentExtractor;
     let markdownConverter: MarkdownConverter;
@@ -407,16 +474,74 @@ async function extractPageContentWithUtilities(options?: any): Promise<IContentE
       cleanHtml: options?.cleanHtml !== false,
       preserveFormatting: options?.preserveFormatting === true,
       waitForDynamicContent: options?.waitForDynamicContent !== false,
+      // Enhanced cleaning for Stack Overflow blog
+      removeAds: true,
+      removeNavigation: true,
+      excludeSelectors: [
+        // Specific elements to exclude from Stack Overflow blog
+        '.s-navigation',
+        '.s-topbar',
+        '.js-header',
+        '.js-footer',
+        '.recent-articles',
+        '.latest-podcast',
+        '.add-to-discussion',
+        '.blog-sidebar',
+        '.blog-nav',
+        '.site-header',
+        '.site-footer',
+        '.products-nav',
+        // Generic promotional content
+        '[href*="/teams/"]',
+        '[href*="/advertising/"]',
+        '[href*="/talent/"]',
+        '.promo',
+        '.newsletter',
+        '.subscribe',
+        '.signup',
+        '.cta',
+        '.call-to-action',
+        // Our own notification elements
+        '#prismweave-notification',
+        '[id*="prismweave"]',
+        '[class*="prismweave"]',
+      ],
     };
 
     const contentResult = await contentExtractor.extractContent(extractorOptions);
 
-    // Convert to markdown
+    // Convert to markdown with enhanced cleaning
     const markdownResult = markdownConverter.convertToMarkdown(contentResult.content, {
       preserveFormatting: options?.preserveFormatting === true,
       includeMetadata: true,
       generateFrontmatter: true,
     });
+
+    // Post-process markdown to remove any remaining unwanted content
+    let cleanedMarkdown = markdownResult.markdown;
+
+    // Remove our own "Capturing page..." text and similar notifications
+    cleanedMarkdown = cleanedMarkdown.replace(/Capturing page\.\.\./gi, '');
+    cleanedMarkdown = cleanedMarkdown.replace(/PrismWeave[^.\n]*\./gi, '');
+
+    // Remove Stack Overflow promotional content patterns
+    const removePatterns = [
+      /Products\s*\n+\s*\*\*Stack Overflow for Teams\*\*[^]*?technologists\./gi,
+      /\[Blog\]\(\/\)/gi,
+      /\[\]\(https:\/\/stackoverflow\.com\)/gi,
+      /\[.*?\]\(\/feed\)/gi,
+      /Recent articles\s*\n+.*?\d{4}/gims,
+      /Latest Podcast\s*\n+.*?\d{4}/gims,
+      /Add to the discussion\s*\n+.*?take part in the discussion\./gims,
+      /Login with your.*?account to take part/gi,
+    ];
+
+    removePatterns.forEach(pattern => {
+      cleanedMarkdown = cleanedMarkdown.replace(pattern, '');
+    });
+
+    // Clean up excessive whitespace
+    cleanedMarkdown = cleanedMarkdown.replace(/\n{3,}/g, '\n\n').trim();
 
     // Extract images using the utility
     const images = contentExtractor.extractImages();
@@ -442,7 +567,7 @@ async function extractPageContentWithUtilities(options?: any): Promise<IContentE
         qualityScore: contentExtractor.getContentQualityScore(),
         isPaywallPresent: contentExtractor.isPaywallPresent(),
       },
-      markdown: markdownResult.markdown,
+      markdown: cleanedMarkdown,
       frontmatter: markdownResult.frontmatter,
       images: imageUrls,
     };
@@ -450,7 +575,7 @@ async function extractPageContentWithUtilities(options?: any): Promise<IContentE
     logger.info('Content extraction completed successfully using utilities', {
       wordCount: contentResult.wordCount,
       imageCount: imageUrls.length,
-      markdownLength: markdownResult.markdown.length,
+      markdownLength: cleanedMarkdown.length,
     });
 
     return extractionData;
@@ -567,31 +692,50 @@ function showNotification(
   duration: number = 4000,
   clickUrl?: string
 ): void {
+  // Skip notification if we're in a problematic context (like about:blank or sandboxed frame)
+  try {
+    if (!document.body || window.location.href === 'about:blank') {
+      console.log(
+        '🚫 PrismWeave: Skipping notification in problematic context:',
+        window.location.href
+      );
+      return;
+    }
+  } catch (error) {
+    console.log('🚫 PrismWeave: Skipping notification due to context error:', error);
+    return;
+  }
+
   // Create or update notification element
   let notification = document.getElementById('prismweave-notification');
 
   if (!notification) {
-    notification = document.createElement('div');
-    notification.id = 'prismweave-notification';
-    notification.style.cssText = `
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      z-index: 10000;
-      padding: 12px 16px;
-      border-radius: 4px;
-      color: white;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      font-size: 14px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-      max-width: 300px;
-      word-wrap: break-word;
-      opacity: 0;
-      transform: translateX(100%);
-      transition: all 0.3s ease;
-      ${clickUrl ? 'cursor: pointer;' : ''}
-    `;
-    document.body.appendChild(notification);
+    try {
+      notification = document.createElement('div');
+      notification.id = 'prismweave-notification';
+      notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 10000;
+        padding: 12px 16px;
+        border-radius: 4px;
+        color: white;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        font-size: 14px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        max-width: 300px;
+        word-wrap: break-word;
+        opacity: 0;
+        transform: translateX(100%);
+        transition: all 0.3s ease;
+        ${clickUrl ? 'cursor: pointer;' : ''}
+      `;
+      document.body.appendChild(notification);
+    } catch (error) {
+      console.error('🚫 PrismWeave: Failed to create notification element:', error);
+      return;
+    }
   }
 
   // Set notification style based on type
@@ -700,8 +844,10 @@ function showNotification(
 
   // Show notification
   requestAnimationFrame(() => {
-    notification!.style.opacity = '1';
-    notification!.style.transform = 'translateX(0)';
+    if (notification) {
+      notification.style.opacity = '1';
+      notification.style.transform = 'translateX(0)';
+    }
   });
 
   // Hide notification after specified duration

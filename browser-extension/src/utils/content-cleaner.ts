@@ -82,6 +82,43 @@ export class ContentCleaner {
         '.article-meta',
       ],
     },
+    {
+      name: 'stackoverflow-specific',
+      selectors: [
+        // Stack Overflow blog specific unwanted elements
+        '.s-navigation',
+        '.s-topbar',
+        '.js-header',
+        '.js-footer',
+        '.recent-articles',
+        '.latest-podcast',
+        '.add-to-discussion',
+        '.blog-sidebar',
+        '.blog-nav',
+        '.site-header',
+        '.site-footer',
+        '.products-nav',
+        '[href*="/teams/"]',
+        '[href*="/advertising/"]',
+        '[href*="/talent/"]',
+        // Generic promotional content patterns
+        '[class*="promo"]',
+        '[class*="subscribe"]',
+        '[class*="newsletter"]',
+        '[class*="signup"]',
+        '[class*="cta"]',
+        '[class*="call-to-action"]',
+        // Recent/related content sections
+        '.recent',
+        '.related',
+        '.more-posts',
+        '.latest',
+        // Login/account related
+        '.login',
+        '.account',
+        '.user-menu',
+      ],
+    },
   ];
 
   private readonly adKeywords = [
@@ -96,6 +133,18 @@ export class ContentCleaner {
     'shop now',
     'buy now',
     'subscribe now',
+    // Stack Overflow specific promotional phrases
+    'stack overflow for teams',
+    'capture, share, & collaborate',
+    'promote your product',
+    "engage the world's technology talent",
+    'advertising',
+    'talent',
+    'employer brand',
+    'add to the discussion',
+    'login with your stackoverflow.com account',
+    'recent articles',
+    'latest podcast',
   ];
 
   /**

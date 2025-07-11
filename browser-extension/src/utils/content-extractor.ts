@@ -105,6 +105,15 @@ export class ContentExtractor {
       }
     }
 
+    // For Stack Overflow blog, use specific content extraction
+    if (url.includes('stackoverflow.blog')) {
+      const soContent = this.findStackOverflowBlogContent();
+      if (soContent) {
+        this.logger.debug('Found Stack Overflow blog content');
+        return soContent;
+      }
+    }
+
     // Use selector manager to find content
     const element = this.selectorManager.findContentElement(url, document);
     if (element) {
@@ -122,6 +131,115 @@ export class ContentExtractor {
     // Final fallback to body
     this.logger.debug('Using body as final fallback');
     return document.body;
+  }
+
+  /**
+   * Specific content extraction for Stack Overflow blog
+   */
+  private findStackOverflowBlogContent(): Element | null {
+    // Try to find the actual article content, avoiding navigation and promotional content
+    const contentSelectors = [
+      // Main article content
+      'article',
+      'main article',
+      '.content article',
+      '.main-content article',
+      '.blog-content article',
+      '.post-content',
+      '.article-content',
+      '.entry-content',
+      // Look for content that follows the date/title pattern
+      '.blog-post-content',
+      '.content-main',
+      '.main-article',
+      // Find content near the published date
+      '[class*="date"] ~ *',
+      '[class*="publish"] ~ *',
+      // Content after author information
+      '[class*="author"] ~ *',
+      '.author ~ *',
+    ];
+
+    for (const selector of contentSelectors) {
+      try {
+        const element = document.querySelector(selector);
+        if (element && this.isStackOverflowContent(element)) {
+          return element;
+        }
+      } catch (error) {
+        this.logger.warn('Invalid SO selector:', selector, error);
+      }
+    }
+
+    // Fallback: Find the largest text block that's not navigation
+    const textBlocks = Array.from(document.querySelectorAll('div, section, article'))
+      .filter(el => {
+        const text = el.textContent?.trim() || '';
+        const className = el.className.toLowerCase();
+        const id = el.id.toLowerCase();
+
+        // Must have substantial text
+        if (text.length < 500) return false;
+
+        // Exclude navigation and promotional content
+        const excludeTerms = [
+          'nav',
+          'menu',
+          'header',
+          'footer',
+          'sidebar',
+          'promo',
+          'subscribe',
+          'teams',
+          'advertising',
+        ];
+        if (excludeTerms.some(term => className.includes(term) || id.includes(term))) {
+          return false;
+        }
+
+        // Exclude if it contains too much promotional text
+        const promoTerms = [
+          'stack overflow for teams',
+          'promote your product',
+          'advertising',
+          'talent',
+        ];
+        const promoCount = promoTerms.filter(term => text.toLowerCase().includes(term)).length;
+        if (promoCount > 1) return false;
+
+        return true;
+      })
+      .sort((a, b) => (b.textContent?.length || 0) - (a.textContent?.length || 0));
+
+    return textBlocks.length > 0 ? textBlocks[0] : null;
+  }
+
+  /**
+   * Validate if element contains Stack Overflow blog content
+   */
+  private isStackOverflowContent(element: Element): boolean {
+    const text = element.textContent?.trim() || '';
+
+    // Must have substantial content
+    if (text.length < 300) return false;
+
+    // Should not be primarily promotional
+    const promoTerms = [
+      'stack overflow for teams',
+      'promote your product',
+      'advertising',
+      'talent',
+    ];
+    const promoCount = promoTerms.filter(term => text.toLowerCase().includes(term)).length;
+    const promoRatio = promoCount / (text.length / 1000); // Promo density per 1000 chars
+
+    if (promoRatio > 2) return false; // Too much promotional content
+
+    // Should have typical article structure
+    const paragraphs = element.querySelectorAll('p').length;
+    const headings = element.querySelectorAll('h1, h2, h3, h4, h5, h6').length;
+
+    return paragraphs >= 2 || headings >= 1;
   }
 
   /**
