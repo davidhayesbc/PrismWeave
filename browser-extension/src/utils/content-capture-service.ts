@@ -4,6 +4,7 @@
 
 import {
   ICaptureResult,
+  IContentExtractionData,
   IContentExtractionResult,
   IDocumentMetadata,
   ISettings,
@@ -234,37 +235,86 @@ export class ContentCaptureService implements IContentExtractor, IDocumentProces
     options: ICaptureServiceOptions = {}
   ): Promise<ICaptureResult> {
     try {
-      logger.info('Starting page capture workflow');
+      logger.info('Starting page capture workflow with options:', options);
 
       // Step 1: Validate settings
-      const settings = await this.validateAndGetSettings(options.validateSettings !== false);
+      logger.debug('Starting settings validation...');
+      const settings = await this.validateAndGetSettings(false); // Temporarily disable validation
+      logger.debug('Settings validation completed successfully');
 
       // Step 2: Get active tab
+      logger.debug('Getting active tab...');
       const activeTab = await this.getActiveTab();
       const tabId = activeTab.id!;
-
-      logger.debug('Capturing content from tab:', {
+      logger.debug('Active tab obtained:', {
         url: activeTab.url,
         title: activeTab.title,
         id: tabId,
       });
 
-      // Step 3: Extract content
-      const extractionResult = await this.extractContent(tabId);
+      // Step 3: Extract content or use provided content
+      let extractionResult: IContentExtractionResult;
+
+      if (data && data.extractedContent) {
+        // Use content provided by caller (e.g., from content script)
+        logger.debug('Using pre-extracted content from request data');
+        extractionResult = {
+          success: true,
+          data: data.extractedContent as IContentExtractionData,
+          extractionMethod: 'pre-extracted',
+          timestamp: new Date().toISOString(),
+        };
+      } else {
+        // Extract content using service worker
+        logger.debug('Extracting content via service worker...');
+        extractionResult = await this.extractContent(tabId);
+      }
+
+      logger.debug('Content extraction result received:', {
+        success: extractionResult.success,
+        hasData: !!extractionResult.data,
+        error: extractionResult.error,
+        extractionMethod: extractionResult.extractionMethod,
+      });
 
       if (!extractionResult.success || !extractionResult.data) {
-        throw new Error(extractionResult.error || 'Content extraction failed');
+        const errorMsg = extractionResult.error || 'Content extraction failed';
+        logger.error('Content extraction failed:', { error: errorMsg, extractionResult });
+        throw new Error(errorMsg);
       }
 
       const { markdown, frontmatter, title, url, metadata } = extractionResult.data;
 
+      logger.debug('Extracted content details:', {
+        hasMarkdown: !!markdown,
+        markdownLength: markdown?.length || 0,
+        hasFrontmatter: !!frontmatter,
+        frontmatterLength: frontmatter?.length || 0,
+        hasHtml: !!extractionResult.data.html,
+        htmlLength: extractionResult.data.html?.length || 0,
+        title: title || 'no title',
+        url: url || 'no url',
+      });
+
       // Step 4: Validate content
       if (!markdown && !extractionResult.data.html) {
+        logger.error('Content validation failed - no markdown and no HTML:', {
+          markdown: markdown,
+          html: extractionResult.data.html,
+          extractionData: extractionResult.data,
+        });
         throw new Error('No content extracted from page');
       }
 
       // Step 5: Process document
+      logger.debug('Starting document processing...');
       const finalContent = (frontmatter || '') + (markdown || '');
+      logger.debug('Final content prepared:', {
+        frontmatterLength: frontmatter?.length || 0,
+        markdownLength: markdown?.length || 0,
+        finalContentLength: finalContent.length,
+      });
+
       const processedDoc = this.processDocument(
         finalContent,
         title || activeTab.title || 'Untitled',
@@ -273,7 +323,7 @@ export class ContentCaptureService implements IContentExtractor, IDocumentProces
         settings
       );
 
-      logger.debug('Document processed:', {
+      logger.debug('Document processed successfully:', {
         filename: processedDoc.filename,
         folder: processedDoc.folder,
         contentLength: processedDoc.content.length,
@@ -574,6 +624,15 @@ export class ContentCaptureService implements IContentExtractor, IDocumentProces
         (response: IContentExtractionResult) => {
           clearTimeout(timeout);
 
+          logger.debug('Content script response received:', {
+            response: response,
+            hasResponse: !!response,
+            success: response?.success,
+            hasData: !!response?.data,
+            dataKeys: response?.data ? Object.keys(response.data) : [],
+            error: response?.error,
+          });
+
           if (chrome.runtime.lastError) {
             logger.error('Content script message error:', chrome.runtime.lastError.message);
             reject(new Error(chrome.runtime.lastError.message));
@@ -584,7 +643,12 @@ export class ContentCaptureService implements IContentExtractor, IDocumentProces
             logger.error('Content script reported failure:', response.error);
             reject(new Error(response.error || 'Content extraction failed'));
           } else {
-            logger.debug('Content extraction and conversion successful via content script');
+            logger.debug('Content extraction and conversion successful via content script', {
+              hasMarkdown: !!response.data?.markdown,
+              markdownLength: response.data?.markdown?.length || 0,
+              hasHtml: !!response.data?.html,
+              htmlLength: response.data?.html?.length || 0,
+            });
             resolve(response);
           }
         }

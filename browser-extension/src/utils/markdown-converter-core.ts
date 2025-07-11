@@ -118,7 +118,7 @@ export class MarkdownConverterCore {
       filter: (node: any) => {
         if (node.nodeType !== 1) return false;
 
-        const className = (node.className || '').toLowerCase();
+        const className = (node.className?.toString() || '').toLowerCase();
         const id = (node.id || '').toLowerCase();
         const text = (node.textContent || '').toLowerCase().trim();
 

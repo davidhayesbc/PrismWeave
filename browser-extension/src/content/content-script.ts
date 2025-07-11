@@ -45,8 +45,8 @@ const logger = createLogger('ContentScript');
 const KEYBOARD_SHORTCUTS: IKeyboardShortcut[] = [
   {
     ctrlKey: true,
-    shiftKey: true,
-    altKey: false,
+    shiftKey: false,
+    altKey: true,
     metaKey: false,
     key: 'S',
     action: 'capture-page',
@@ -200,18 +200,51 @@ async function handleCapturePageShortcut(): Promise<void> {
     // Show user feedback
     showNotification('Capturing page...', 'info');
 
-    // Send capture request to service worker
-    const response = await sendMessageToBackground(MESSAGE_TYPES.CAPTURE_PAGE, {
+    // Extract content first
+    logger.info('Extracting content for keyboard shortcut capture...');
+    const extractedContent = await extractPageContentWithUtilities();
+    logger.info('Content extracted successfully for keyboard shortcut', {
+      hasMarkdown: !!extractedContent.markdown,
+      markdownLength: extractedContent.markdown?.length || 0,
+      hasHtml: !!extractedContent.html,
+      htmlLength: extractedContent.html?.length || 0,
+      hasTitle: !!extractedContent.title,
+      title: extractedContent.title || 'no title',
+      keys: Object.keys(extractedContent),
+    });
+
+    // Send capture request with extracted content to service worker
+    const messageData = {
       url: window.location.href,
       title: document.title,
       source: 'keyboard-shortcut',
+      extractedContent: extractedContent, // Include the extracted content
+    };
+
+    logger.debug('Sending CAPTURE_PAGE message with data:', {
+      hasExtractedContent: !!messageData.extractedContent,
+      extractedContentKeys: Object.keys(messageData.extractedContent),
+      extractedContentMarkdownLength: messageData.extractedContent.markdown?.length || 0,
     });
 
-    if (response.success) {
-      showNotification('Page captured successfully!', 'success');
-      logger.info('Page captured successfully via keyboard shortcut');
-    } else {
-      throw new Error(response.error || 'Capture failed');
+    try {
+      logger.info('About to send CAPTURE_PAGE message to service worker...');
+      const response = await sendMessageToBackground(MESSAGE_TYPES.CAPTURE_PAGE, messageData);
+      logger.info('Received response from service worker:', {
+        success: response.success,
+        error: response.error,
+        hasData: !!response.data,
+      });
+
+      if (response.success) {
+        showNotification('Page captured successfully!', 'success');
+        logger.info('Page captured successfully via keyboard shortcut');
+      } else {
+        throw new Error(response.error || 'Capture failed');
+      }
+    } catch (messageError) {
+      logger.error('Error sending message to service worker:', messageError);
+      throw messageError;
     }
   } catch (error) {
     logger.error('Page capture failed:', error);

@@ -116,6 +116,6 @@ export interface IContentExtractionResult {
   success: boolean;
   data?: IContentExtractionData;
   error?: string;
-  extractionMethod?: 'content-script' | 'direct' | 'basic-fallback';
+  extractionMethod?: 'content-script' | 'direct' | 'basic-fallback' | 'pre-extracted';
   timestamp?: string;
 }

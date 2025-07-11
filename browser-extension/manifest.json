@@ -31,15 +31,6 @@
     "128": "icons/icon128.png"
   },
   "options_page": "options/options.html",
-  "commands": {
-    "capture-page": {
-      "suggested_key": {
-        "default": "Ctrl+Shift+S",
-        "mac": "Command+Shift+S"
-      },
-      "description": "Capture current page to PrismWeave"
-    }
-  },
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
