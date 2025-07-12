@@ -453,7 +453,7 @@ export class StackOverflowBlogExtractor {
     const contentAreas = document.querySelectorAll(
       '[class*="content"], [class*="post"], [class*="entry"]'
     );
-    for (const area of contentAreas) {
+    for (const area of Array.from(contentAreas)) {
       const htmlContent = this.extractHTMLFromElement(area);
       const textContent = this.extractTextFromElement(area);
 
@@ -517,7 +517,7 @@ export class StackOverflowBlogExtractor {
     for (const selector of selectors) {
       const elements = document.querySelectorAll(selector);
 
-      for (const element of elements) {
+      for (const element of Array.from(elements)) {
         const textContent = this.extractTextFromElement(element);
         const htmlContent = this.extractHTMLFromElement(element);
 
