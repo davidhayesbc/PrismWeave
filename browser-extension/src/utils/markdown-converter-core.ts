@@ -94,6 +94,214 @@ export class MarkdownConverterCore {
 
     // Add all custom rules
     this.addAllCustomRules();
+
+    // Add site-specific rules based on current URL
+    this.addSiteSpecificRules();
+  }
+
+  /**
+   * Add site-specific conversion rules based on the current page
+   */
+  private addSiteSpecificRules(): void {
+    if (typeof window !== 'undefined' && window.location) {
+      const url = window.location.href;
+      
+      if (url.includes('substack.com')) {
+        this.addSubstackSpecificRules();
+      }
+    }
+  }
+
+  /**
+   * Add Substack-specific conversion rules for better content handling
+   */
+  private addSubstackSpecificRules(): void {
+    if (!this.turndownService) return;
+
+    logger.debug('Adding Substack-specific conversion rules');
+
+    // Handle Substack's subscription callouts and paywalls
+    this.turndownService.addRule('substackPaywall', {
+      filter: (node: any) => {
+        if (node.nodeType !== 1) return false;
+        
+        const text = (node.textContent || '').toLowerCase();
+        const className = (node.className?.toString() || '').toLowerCase();
+        
+        // Remove subscription prompts and paywall content
+        const paywallPatterns = [
+          'upgrade to paid',
+          'subscribe now',
+          'get full access',
+          'become a paid subscriber',
+          'upgrade your subscription',
+          'subscribe to continue',
+          'paywall',
+          'subscription'
+        ];
+        
+        const hasPaywallText = paywallPatterns.some(pattern => text.includes(pattern));
+        const hasPaywallClass = className.includes('paywall') || 
+                               className.includes('subscription') ||
+                               className.includes('upgrade');
+        
+        return hasPaywallText || hasPaywallClass;
+      },
+      replacement: () => '',
+    });
+
+    // Handle Substack author bylines and metadata better
+    this.turndownService.addRule('substackByline', {
+      filter: (node: any) => {
+        if (node.nodeType !== 1) return false;
+        
+        const className = (node.className?.toString() || '').toLowerCase();
+        const text = (node.textContent || '').trim();
+        
+        // Identify author information and publication details
+        const isByline = className.includes('byline') || 
+                        className.includes('author') ||
+                        className.includes('publication') ||
+                        text.match(/^by\s+\w+/i) ||
+                        text.match(/\w+\s+\d{1,2},?\s+\d{4}/); // Date patterns
+        
+        return isByline && text.length < 200; // Keep short bylines
+      },
+      replacement: (content: string) => {
+        const trimmed = content.trim();
+        if (!trimmed) return '';
+        
+        // Format as italic byline
+        return `\n\n*${trimmed}*\n\n`;
+      },
+    });
+
+    // Enhanced handling for Substack's image captions
+    this.turndownService.addRule('substackImageCaptions', {
+      filter: (node: any) => {
+        if (node.nodeType !== 1) return false;
+        
+        const className = (node.className?.toString() || '').toLowerCase();
+        const isCaption = className.includes('caption') || 
+                         className.includes('image-caption') ||
+                         node.tagName === 'FIGCAPTION';
+        
+        return isCaption;
+      },
+      replacement: (content: string) => {
+        const trimmed = content.trim();
+        if (!trimmed) return '';
+        
+        // Format captions as italic text
+        return `\n\n*${trimmed}*\n\n`;
+      },
+    });
+
+    // Handle Substack's embedded content (tweets, videos, etc.)
+    this.turndownService.addRule('substackEmbeds', {
+      filter: (node: any) => {
+        if (node.nodeType !== 1) return false;
+        
+        const className = (node.className?.toString() || '').toLowerCase();
+        const hasEmbedClass = className.includes('embed') || 
+                             className.includes('tweet') ||
+                             className.includes('video') ||
+                             className.includes('iframe');
+        
+        // Check for embedded content patterns
+        const hasEmbedContent = node.querySelector('iframe') || 
+                               node.querySelector('[data-tweet-id]') ||
+                               node.querySelector('video');
+        
+        return hasEmbedClass || hasEmbedContent;
+      },
+      replacement: (content: string, node: any) => {
+        // Try to extract useful information about the embed
+        const iframe = node.querySelector('iframe');
+        const tweetId = node.querySelector('[data-tweet-id]');
+        const video = node.querySelector('video');
+        
+        if (iframe && iframe.src) {
+          const src = iframe.src;
+          if (src.includes('youtube.com') || src.includes('youtu.be')) {
+            return `\n\n[Embedded YouTube Video](${src})\n\n`;
+          } else if (src.includes('twitter.com')) {
+            return `\n\n[Embedded Tweet](${src})\n\n`;
+          } else {
+            return `\n\n[Embedded Content](${src})\n\n`;
+          }
+        }
+        
+        if (tweetId) {
+          const id = tweetId.getAttribute('data-tweet-id');
+          return `\n\n[Tweet](https://twitter.com/i/web/status/${id})\n\n`;
+        }
+        
+        if (video && video.src) {
+          return `\n\n[Embedded Video](${video.src})\n\n`;
+        }
+        
+        // Fallback: include any text content
+        const text = node.textContent?.trim();
+        if (text && text.length > 10) {
+          return `\n\n*[Embedded Content: ${text.substring(0, 100)}...]*\n\n`;
+        }
+        
+        return `\n\n*[Embedded Content]*\n\n`;
+      },
+    });
+
+    // Handle Substack's highlighting and emphasis
+    this.turndownService.addRule('substackHighlights', {
+      filter: (node: any) => {
+        if (node.nodeType !== 1) return false;
+        
+        const className = (node.className?.toString() || '').toLowerCase();
+        return className.includes('highlight') || 
+               className.includes('mark') ||
+               node.tagName === 'MARK';
+      },
+      replacement: (content: string) => {
+        const trimmed = content.trim();
+        if (!trimmed) return '';
+        
+        // Use markdown highlighting (bold + italic)
+        return `***${trimmed}***`;
+      },
+    });
+
+    // Clean up Substack-specific navigation and promotional elements
+    this.turndownService.addRule('substackNavigation', {
+      filter: (node: any) => {
+        if (node.nodeType !== 1) return false;
+        
+        const className = (node.className?.toString() || '').toLowerCase();
+        const text = (node.textContent || '').toLowerCase();
+        
+        // Remove common Substack navigation elements
+        const navPatterns = [
+          'substack-nav',
+          'publication-header',
+          'subscribe-widget',
+          'recommend',
+          'share-button',
+          'like-button',
+          'comment-button',
+          'related-posts',
+          'footer',
+          'sidebar'
+        ];
+        
+        const hasNavClass = navPatterns.some(pattern => className.includes(pattern));
+        const hasNavText = text.includes('share this post') || 
+                          text.includes('like this post') ||
+                          text.includes('related posts') ||
+                          text.includes('recommend');
+        
+        return hasNavClass || hasNavText;
+      },
+      replacement: () => '',
+    });
   }
 
   // Helper method to get TurndownService options - should be used by wrappers

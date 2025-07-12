@@ -114,6 +114,15 @@ export class ContentExtractor {
       }
     }
 
+    // For Substack, use enhanced content extraction
+    if (url.includes('substack.com')) {
+      const substackContent = this.findSubstackContent();
+      if (substackContent) {
+        this.logger.debug('Found Substack content using enhanced extraction');
+        return substackContent;
+      }
+    }
+
     // Use selector manager to find content
     const element = this.selectorManager.findContentElement(url, document);
     if (element) {
@@ -212,6 +221,219 @@ export class ContentExtractor {
       .sort((a, b) => (b.textContent?.length || 0) - (a.textContent?.length || 0));
 
     return textBlocks.length > 0 ? textBlocks[0] : null;
+  }
+
+  /**
+   * Enhanced content extraction for Substack posts - 2025 structure analysis
+   */
+  private findSubstackContent(): Element | null {
+    // Enhanced Substack content selectors based on current structure analysis
+    const contentSelectors = [
+      // Primary Substack content containers (highest priority)
+      '.available-content',
+      '.available-content .body.markup',
+      '.available-content .markup',
+      '.post-content .available-content',
+      '.post .available-content',
+      '.post-header + .available-content',
+      
+      // Direct content access
+      '.body.markup',
+      '.markup',
+      '.post-body',
+      '.post-content',
+      
+      // Article structure
+      'article .available-content',
+      'article .body.markup',
+      'article .markup',
+      'article .post-content',
+      
+      // Main content structure
+      'main .available-content',
+      'main .markup',
+      '[role="main"] .available-content',
+      '[role="main"] .markup',
+      
+      // Data attributes and component selectors
+      '[data-testid="post-content"]',
+      '[data-testid="available-content"]',
+      '[data-component="post-content"]',
+      
+      // Fallback patterns
+      '[class*="available-content"]',
+      '[class*="post-content"]',
+      '[class*="body"][class*="markup"]',
+      '.publication-content',
+      '.newsletter-content',
+    ];
+
+    for (const selector of contentSelectors) {
+      try {
+        const element = document.querySelector(selector);
+        if (element && this.isValidSubstackContent(element)) {
+          this.logger.debug('Found Substack content with selector:', selector);
+          return element;
+        }
+      } catch (error) {
+        this.logger.warn('Invalid Substack selector:', selector, error);
+      }
+    }
+
+    // Advanced fallback: Find content by structure analysis
+    const substackStructureContent = this.findSubstackContentByStructure();
+    if (substackStructureContent) {
+      this.logger.debug('Found Substack content using structure analysis');
+      return substackStructureContent;
+    }
+
+    this.logger.warn('No suitable Substack content found');
+    return null;
+  }
+
+  /**
+   * Find Substack content using structure analysis when selectors fail
+   */
+  private findSubstackContentByStructure(): Element | null {
+    // Look for elements that contain the typical Substack article structure:
+    // - A title/heading at the top
+    // - Multiple paragraphs with substantial text
+    // - Minimal navigation/promotional content
+
+    const candidates = Array.from(document.querySelectorAll('div, section, article, main'))
+      .filter(el => {
+        const text = el.textContent?.trim() || '';
+        const className = el.className.toLowerCase();
+        
+        // Must have substantial text content
+        if (text.length < 1000) return false;
+        
+        // Look for article-like structure
+        const paragraphs = el.querySelectorAll('p').length;
+        const headings = el.querySelectorAll('h1, h2, h3, h4, h5, h6').length;
+        
+        // Should have multiple paragraphs or headings
+        if (paragraphs < 3 && headings < 2) return false;
+        
+        // Prefer elements with content-related classes
+        const contentTerms = ['content', 'post', 'article', 'body', 'markup', 'available'];
+        const hasContentClass = contentTerms.some(term => className.includes(term));
+        
+        // Exclude navigation and promotional areas
+        const excludeTerms = [
+          'nav', 'menu', 'header', 'footer', 'sidebar', 'subscribe', 
+          'related', 'recommendation', 'comment', 'discussion', 'share'
+        ];
+        const hasExcludeClass = excludeTerms.some(term => className.includes(term));
+        
+        if (hasExcludeClass && !hasContentClass) return false;
+        
+        // Check for good content indicators in text
+        const hasGoodIndicators = text.toLowerCase().includes('published') || 
+                                  text.toLowerCase().includes('written') ||
+                                  text.toLowerCase().includes('author') ||
+                                  text.includes('\n\n'); // Multiple paragraphs
+        
+        return hasContentClass || hasGoodIndicators;
+      })
+      .sort((a, b) => {
+        // Score by content quality
+        const scoreA = this.scoreSubstackElement(a);
+        const scoreB = this.scoreSubstackElement(b);
+        return scoreB - scoreA;
+      });
+
+    return candidates.length > 0 ? candidates[0] : null;
+  }
+
+  /**
+   * Score Substack elements for content quality
+   */
+  private scoreSubstackElement(element: Element): number {
+    let score = 0;
+    const text = element.textContent?.trim() || '';
+    const className = element.className.toLowerCase();
+    
+    // Base score from text length
+    score += Math.min(text.length / 20, 300);
+    
+    // Bonus for content-related classes
+    const contentBonuses = [
+      { term: 'available-content', bonus: 200 },
+      { term: 'markup', bonus: 150 },
+      { term: 'post-content', bonus: 120 },
+      { term: 'body', bonus: 100 },
+      { term: 'article', bonus: 80 },
+      { term: 'content', bonus: 60 },
+    ];
+    
+    contentBonuses.forEach(({ term, bonus }) => {
+      if (className.includes(term)) {
+        score += bonus;
+      }
+    });
+    
+    // Penalty for navigation terms
+    const navPenalties = [
+      'nav', 'menu', 'header', 'footer', 'sidebar', 'subscribe',
+      'related', 'recommendation', 'comment', 'share'
+    ];
+    
+    navPenalties.forEach(term => {
+      if (className.includes(term)) {
+        score -= 100;
+      }
+    });
+    
+    // Bonus for paragraph structure
+    const paragraphs = element.querySelectorAll('p').length;
+    score += paragraphs * 15;
+    
+    // Bonus for headings
+    const headings = element.querySelectorAll('h1, h2, h3, h4, h5, h6').length;
+    score += headings * 25;
+    
+    return Math.max(0, score);
+  }
+
+  /**
+   * Validate if element contains good Substack content
+   */
+  private isValidSubstackContent(element: Element): boolean {
+    const text = element.textContent?.trim() || '';
+    const className = element.className.toLowerCase();
+    
+    // Must have substantial content
+    if (text.length < 200) return false;
+    
+    // Should have some structure (paragraphs or headings)
+    const paragraphs = element.querySelectorAll('p').length;
+    const headings = element.querySelectorAll('h1, h2, h3, h4, h5, h6').length;
+    
+    if (paragraphs < 1 && headings < 1) return false;
+    
+    // Avoid pure navigation or promotional content
+    const navTerms = ['navigation', 'subscribe-form', 'footer', 'header', 'sidebar'];
+    const isNavContent = navTerms.some(term => className.includes(term));
+    
+    if (isNavContent && paragraphs < 3) return false;
+    
+    // Check for Substack-specific promotional patterns
+    const promoPatterns = [
+      'upgrade to paid',
+      'subscribe now',
+      'get full access',
+      'become a paid subscriber'
+    ];
+    
+    const promoCount = promoPatterns.filter(pattern => 
+      text.toLowerCase().includes(pattern)
+    ).length;
+    
+    // If mostly promotional content, reject
+    if (promoCount > 1 && text.length < 1000) return false;
+    
+    return true;
   }
 
   /**

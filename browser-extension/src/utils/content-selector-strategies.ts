@@ -96,6 +96,95 @@ export class GeneralContentStrategy implements ISelectorStrategy {
 }
 
 /**
+ * Strategy for Substack newsletters and posts - Enhanced with 2025 structure analysis
+ */
+export class SubstackStrategy implements ISelectorStrategy {
+  isApplicable(url: string): boolean {
+    return url.includes('substack.com');
+  }
+
+  getSelectors(): IContentSelector[] {
+    return [
+      {
+        name: 'substack-primary-2025',
+        selectors: [
+          // Primary 2025 Substack content selectors based on latest structure analysis
+          '.available-content',
+          '.available-content .body',
+          '.available-content .body.markup',
+          '.available-content .markup',
+          // Main post content containers
+          '.post-content .available-content',
+          '.post .available-content',
+          '.post-header + .available-content',
+          // Direct content access
+          '.body.markup',
+          '.markup',
+          '.post-body',
+          '.post-content',
+          // Article structure selectors
+          'article .available-content',
+          'article .body.markup',
+          'article .markup',
+          'article .post-content',
+          // Specific Substack content patterns
+          '[data-testid="post-content"]',
+          '[data-testid="available-content"]',
+          '[data-testid="post-body"]',
+          '[data-component="post-content"]',
+        ],
+      },
+      {
+        name: 'substack-enhanced-fallback',
+        selectors: [
+          // Enhanced fallback patterns for complex Substack layouts
+          '[class*="available-content"]',
+          '[class*="post-content"]',
+          '[class*="body"][class*="markup"]',
+          '.post .body',
+          '.post-preview .body',
+          '.publication-content',
+          '.newsletter-content',
+          '.content-wrapper',
+          // Main structure containers
+          'main .available-content',
+          'main .post-content',
+          'main .markup',
+          // Container patterns
+          '[role="main"] .available-content',
+          '[role="main"] .markup',
+          '#main .available-content',
+          // Broad content patterns
+          '.content',
+          '.main-content',
+          'main',
+          'article',
+          // Substack-specific class patterns
+          '[class*="frontend"][class*="components"] .available-content',
+          '[class*="post"][class*="detail"]',
+        ],
+      },
+      {
+        name: 'substack-text-content',
+        selectors: [
+          // Focus on text-heavy containers for better content extraction
+          '.available-content p',
+          '.markup p',
+          '.body.markup p',
+          // Multiple paragraph containers
+          'div:has(> p):has(> h1, > h2, > h3)',
+          'section:has(> p):has(> h1, > h2, > h3)',
+          // Content blocks with headings
+          '[class*="content"]:has(h1, h2, h3)',
+          '[class*="post"]:has(h1, h2, h3)',
+          '[class*="article"]:has(h1, h2, h3)',
+        ],
+      },
+    ];
+  }
+}
+
+/**
  * Strategy for blog platforms like Simon Willison's blog - Enhanced with specific selectors
  */
 export class BlogPlatformStrategy implements ISelectorStrategy {
@@ -116,6 +205,49 @@ export class BlogPlatformStrategy implements ISelectorStrategy {
 
   getSelectors(): IContentSelector[] {
     return [
+      {
+        name: 'substack-enhanced-specific',
+        selectors: [
+          // Enhanced 2025 Substack post content containers
+          '.available-content',
+          '.available-content .body',
+          '.available-content .body.markup',
+          '.available-content .markup',
+          '.post-content .available-content',
+          '.post .available-content',
+          '.post-header + .available-content',
+          '.body.markup',
+          '.markup',
+          '.post-body',
+          '.post-content',
+          '[class*="available-content"]',
+          '[class*="post-content"]',
+          '[class*="body"][class*="markup"]',
+          '.post .body',
+          '.available-content .body',
+          '.post-preview .body',
+          // Substack article structure
+          'article .available-content',
+          'article .post-content',
+          'article .body.markup',
+          'article .markup',
+          // Alternative Substack patterns
+          '[data-testid="post-content"]',
+          '[data-testid="available-content"]',
+          '[data-testid="article-body"]',
+          '[data-component="post-content"]',
+          '.publication-content',
+          '.newsletter-content',
+          '.post-body-content',
+          '.content-wrapper',
+          // Main structure
+          'main .available-content',
+          'main .post-content',
+          'main .markup',
+          '[role="main"] .available-content',
+          '[role="main"] .markup',
+        ],
+      },
       {
         name: 'simon-willison-specific',
         selectors: [
@@ -297,11 +429,14 @@ export class ContentSelectorManager {
 
   /**
    * Score content elements using sophisticated algorithm from legacy implementation
+   * Enhanced with Substack-specific scoring
    */
   private scoreContentElement(element: Element): number {
     let score = 0;
     const text = element.textContent?.trim() || '';
     const html = element.innerHTML || '';
+    const className = element.className.toLowerCase();
+    const id = element.id.toLowerCase();
 
     // Base score from text length
     score += Math.min(text.length / 10, 500);
@@ -314,6 +449,50 @@ export class ContentSelectorManager {
     const headings = element.querySelectorAll('h1, h2, h3, h4, h5, h6').length;
     score += headings * 30;
 
+    // Enhanced Substack-specific scoring
+    if (window.location.href.includes('substack.com')) {
+      // Major bonus for Substack-specific classes
+      if (className.includes('available-content')) {
+        score += 300; // High priority for main content container
+      }
+      if (className.includes('body') && className.includes('markup')) {
+        score += 250; // High priority for marked up content
+      }
+      if (className.includes('markup')) {
+        score += 200; // Good priority for markup content
+      }
+      if (className.includes('post-content')) {
+        score += 150; // Medium-high priority
+      }
+      
+      // Bonus for elements that contain actual article content indicators
+      const substackContentIndicators = [
+        'subtitle', 'description', 'article', 'story', 'newsletter'
+      ];
+      substackContentIndicators.forEach(indicator => {
+        if (className.includes(indicator) || id.includes(indicator)) {
+          score += 100;
+        }
+      });
+
+      // Penalty for Substack-specific navigation/promotional elements
+      const substackNavTerms = [
+        'header', 'footer', 'subscribe', 'profile', 'navigation',
+        'sidebar', 'recommendation', 'related', 'comments', 'discussion'
+      ];
+      substackNavTerms.forEach(term => {
+        if (className.includes(term) || id.includes(term)) {
+          score -= 150;
+        }
+      });
+
+      // Bonus for having good paragraph-to-link ratio (indicates article content)
+      const links = element.querySelectorAll('a').length;
+      if (paragraphs > 3 && links / paragraphs < 0.5) {
+        score += 100; // Good content-to-link ratio
+      }
+    }
+
     // Penalty for too many links (likely navigation)
     const links = element.querySelectorAll('a').length;
     if (links > paragraphs * 2) {
@@ -325,10 +504,7 @@ export class ContentSelectorManager {
     score -= scripts * 50;
 
     // Bonus for content-related class names
-    const className = element.className.toLowerCase();
-    const id = element.id.toLowerCase();
     const contentTerms = ['content', 'article', 'post', 'entry', 'main', 'body', 'text'];
-
     contentTerms.forEach(term => {
       if (className.includes(term) || id.includes(term)) {
         score += 100;
