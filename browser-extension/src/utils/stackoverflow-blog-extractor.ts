@@ -156,7 +156,7 @@ export class StackOverflowBlogExtractor {
   private tryArticleContent(): string {
     const articles = document.querySelectorAll('article');
 
-    for (const article of articles) {
+    for (const article of Array.from(articles)) {
       // Skip if it's clearly navigation or sidebar
       const classList = article.className.toLowerCase();
       if (
@@ -221,7 +221,7 @@ export class StackOverflowBlogExtractor {
     for (const selector of selectors) {
       const elements = document.querySelectorAll(selector);
 
-      for (const element of elements) {
+      for (const element of Array.from(elements)) {
         const content = this.extractTextFromElement(element);
 
         if (content.length > 200) {
@@ -275,7 +275,7 @@ export class StackOverflowBlogExtractor {
     const contentBlocks: string[] = [];
     let currentSection = '';
 
-    for (const element of allSections) {
+    for (const element of Array.from(allSections)) {
       const tagName = element.tagName.toLowerCase();
 
       if (tagName === 'h2' || tagName === 'h3') {
@@ -424,7 +424,7 @@ export class StackOverflowBlogExtractor {
   private tryArticleContentHTML(): string {
     const articles = document.querySelectorAll('article');
 
-    for (const article of articles) {
+    for (const article of Array.from(articles)) {
       // Skip if it's clearly navigation or sidebar
       const classList = article.className.toLowerCase();
       if (

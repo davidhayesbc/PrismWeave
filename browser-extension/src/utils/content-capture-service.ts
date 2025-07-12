@@ -239,7 +239,8 @@ export class ContentCaptureService implements IContentExtractor, IDocumentProces
 
       // Step 1: Validate settings
       logger.debug('Starting settings validation...');
-      const settings = await this.validateAndGetSettings(false); // Temporarily disable validation
+      const shouldValidateSettings = options.validateSettings ?? false;
+      const settings = await this.validateAndGetSettings(shouldValidateSettings);
       logger.debug('Settings validation completed successfully');
 
       // Step 2: Get active tab
