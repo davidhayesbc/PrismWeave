@@ -52,8 +52,13 @@ export class ContentExtractor {
         throw new Error('No suitable content found on page');
       }
 
-      // Clean the content
-      const cleanedElement = this.cleaner.cleanContent(contentElement, options);
+      // Clean the content with domain-aware options
+      const cleaningOptions = {
+        ...options,
+        domain: window.location.hostname,
+        isResearchPage: this.isResearchPage(window.location.hostname, window.location.pathname),
+      };
+      const cleanedElement = this.cleaner.cleanContent(contentElement, cleaningOptions);
       const content = cleanedElement.innerHTML || '';
       const cleanedContent = this.cleanContent(content, options);
 
@@ -105,6 +110,24 @@ export class ContentExtractor {
       }
     }
 
+    // For GitHub markdown files, use specific content extraction
+    if (url.includes('github.com') && (url.includes('/blob/') || url.includes('.md'))) {
+      const githubContent = this.findGitHubMarkdownContent();
+      if (githubContent) {
+        this.logger.debug('Found GitHub markdown content');
+        return githubContent;
+      }
+    }
+
+    // For Anthropic research pages, use specific content extraction
+    if (url.includes('anthropic.com')) {
+      const anthropicContent = this.findAnthropicContent();
+      if (anthropicContent) {
+        this.logger.debug('Found Anthropic research content');
+        return anthropicContent;
+      }
+    }
+
     // For Stack Overflow blog, use specific content extraction
     if (url.includes('stackoverflow.blog')) {
       const soContent = this.findStackOverflowBlogContent();
@@ -140,6 +163,565 @@ export class ContentExtractor {
     // Final fallback to body
     this.logger.debug('Using body as final fallback');
     return document.body;
+  }
+
+  /**
+   * Specific content extraction for Anthropic research pages
+   */
+  private findAnthropicContent(): Element | null {
+    // Enhanced Anthropic content selectors for research pages
+    const contentSelectors = [
+      // Primary research content containers
+      'main article',
+      'article',
+      'main',
+      '[role="main"]',
+
+      // Research-specific containers
+      '.research-content',
+      '.article-content',
+      '.post-content',
+      '.blog-content',
+      '.content',
+      '.main-content',
+
+      // Next.js/React patterns (Anthropic uses Next.js)
+      '#__next main',
+      '[data-reactroot] main',
+      '#__next article',
+      '[data-reactroot] article',
+
+      // Data attributes and components
+      '[data-testid="article"]',
+      '[data-testid="content"]',
+      '[data-testid="research-content"]',
+      '[data-component="article"]',
+      '[data-component="research"]',
+
+      // Container patterns
+      '.container main',
+      '.wrapper main',
+      '.layout main',
+      '.page-container main',
+      '.content-container',
+      '.article-container',
+      '.research-container',
+
+      // Fallback class-based selectors
+      '[class*="research"]',
+      '[class*="article"]',
+      '[class*="content"]',
+      '[class*="post"]',
+    ];
+
+    for (const selector of contentSelectors) {
+      try {
+        const element = document.querySelector(selector);
+        if (element && this.isValidAnthropicContent(element)) {
+          this.logger.debug('Found Anthropic content with selector:', selector);
+          return element;
+        }
+      } catch (error) {
+        this.logger.warn('Invalid Anthropic selector:', selector, error);
+      }
+    }
+
+    // Advanced fallback: Find content by structure analysis for research pages
+    const anthropicStructureContent = this.findAnthropicContentByStructure();
+    if (anthropicStructureContent) {
+      this.logger.debug('Found Anthropic content using structure analysis');
+      return anthropicStructureContent;
+    }
+
+    this.logger.warn('No suitable Anthropic research content found');
+    return null;
+  }
+
+  /**
+   * Find Anthropic content using structure analysis when selectors fail
+   */
+  private findAnthropicContentByStructure(): Element | null {
+    // Look for elements that contain typical research article structure:
+    // - Research-related headings
+    // - Multiple paragraphs with substantial content
+    // - Academic/research language patterns
+
+    const candidates = Array.from(document.querySelectorAll('div, section, article, main'))
+      .filter(el => {
+        const text = el.textContent?.trim() || '';
+        const className = el.className.toLowerCase();
+
+        // Must have substantial text content (research articles are typically long)
+        if (text.length < 2000) return false;
+
+        // Look for research article structure
+        const paragraphs = el.querySelectorAll('p').length;
+        const headings = el.querySelectorAll('h1, h2, h3, h4, h5, h6').length;
+
+        // Should have substantial structure
+        if (paragraphs < 5 && headings < 3) return false;
+
+        // Prefer elements with content-related classes
+        const contentTerms = ['content', 'research', 'article', 'post', 'main', 'body'];
+        const hasContentClass = contentTerms.some(term => className.includes(term));
+
+        // Exclude navigation and promotional areas
+        const excludeTerms = [
+          'nav',
+          'menu',
+          'header',
+          'footer',
+          'sidebar',
+          'newsletter',
+          'subscribe',
+          'related',
+          'recommendation',
+          'comment',
+          'social',
+        ];
+        const hasExcludeClass = excludeTerms.some(term => className.includes(term));
+
+        if (hasExcludeClass && !hasContentClass) return false;
+
+        // Check for research content indicators
+        const researchIndicators = [
+          'research',
+          'study',
+          'experiment',
+          'analysis',
+          'project',
+          'findings',
+          'methodology',
+          'claude',
+          'ai',
+          'anthropic',
+        ];
+
+        const hasResearchContent = researchIndicators.some(indicator =>
+          text.toLowerCase().includes(indicator)
+        );
+
+        return hasContentClass || hasResearchContent;
+      })
+      .sort((a, b) => {
+        // Score by content quality
+        const scoreA = this.scoreAnthropicElement(a);
+        const scoreB = this.scoreAnthropicElement(b);
+        return scoreB - scoreA;
+      });
+
+    return candidates.length > 0 ? candidates[0] : null;
+  }
+
+  /**
+   * Score Anthropic elements for content quality
+   */
+  private scoreAnthropicElement(element: Element): number {
+    let score = 0;
+    const text = element.textContent?.trim() || '';
+    const className = element.className.toLowerCase();
+
+    // Base score from text length (research articles are longer)
+    score += Math.min(text.length / 15, 400);
+
+    // Bonus for content-related classes
+    const contentBonuses = [
+      { term: 'research', bonus: 250 },
+      { term: 'article', bonus: 200 },
+      { term: 'content', bonus: 150 },
+      { term: 'main', bonus: 120 },
+      { term: 'post', bonus: 100 },
+      { term: 'blog', bonus: 80 },
+    ];
+
+    contentBonuses.forEach(({ term, bonus }) => {
+      if (className.includes(term)) {
+        score += bonus;
+      }
+    });
+
+    // Bonus for semantic HTML elements
+    if (element.tagName === 'MAIN' || element.tagName === 'ARTICLE') {
+      score += 200;
+    }
+
+    // Penalty for navigation terms
+    const navPenalties = [
+      'nav',
+      'menu',
+      'header',
+      'footer',
+      'sidebar',
+      'newsletter',
+      'subscribe',
+      'social',
+      'comment',
+      'related',
+    ];
+
+    navPenalties.forEach(term => {
+      if (className.includes(term)) {
+        score -= 150;
+      }
+    });
+
+    // Bonus for paragraph structure (research articles have many paragraphs)
+    const paragraphs = element.querySelectorAll('p').length;
+    score += paragraphs * 20;
+
+    // Bonus for headings (research articles have structured headings)
+    const headings = element.querySelectorAll('h1, h2, h3, h4, h5, h6').length;
+    score += headings * 30;
+
+    // Bonus for research-specific content
+    const researchTerms = [
+      'research',
+      'study',
+      'experiment',
+      'project',
+      'analysis',
+      'findings',
+      'claude',
+      'anthropic',
+    ];
+
+    researchTerms.forEach(term => {
+      if (text.toLowerCase().includes(term)) {
+        score += 30;
+      }
+    });
+
+    return Math.max(0, score);
+  }
+
+  /**
+   * Validate if element contains good Anthropic research content
+   */
+  private isValidAnthropicContent(element: Element): boolean {
+    const text = element.textContent?.trim() || '';
+    const className = element.className.toLowerCase();
+
+    // Must have substantial content (research articles are typically long)
+    if (text.length < 500) return false;
+
+    // Should have good structure
+    const paragraphs = element.querySelectorAll('p').length;
+    const headings = element.querySelectorAll('h1, h2, h3, h4, h5, h6').length;
+
+    if (paragraphs < 2 && headings < 1) return false;
+
+    // Avoid pure navigation or promotional content
+    const navTerms = ['navigation', 'nav', 'menu', 'footer', 'header', 'sidebar'];
+    const isNavContent = navTerms.some(term => className.includes(term));
+
+    if (isNavContent && paragraphs < 5) return false;
+
+    // Check for research content indicators
+    const researchPatterns = [
+      'research',
+      'study',
+      'experiment',
+      'project',
+      'analysis',
+      'claude',
+      'anthropic',
+      'ai',
+      'methodology',
+      'findings',
+    ];
+
+    const hasResearchContent = researchPatterns.some(pattern =>
+      text.toLowerCase().includes(pattern)
+    );
+
+    // For Anthropic pages, prefer content with research indicators
+    if (hasResearchContent || paragraphs > 5) {
+      return true;
+    }
+
+    // Check for typical academic/research article patterns
+    const hasAcademicStructure =
+      text.includes('abstract') ||
+      text.includes('conclusion') ||
+      text.includes('methodology') ||
+      text.includes('introduction') ||
+      headings > 3;
+
+    return hasAcademicStructure;
+  }
+
+  /**
+   * Check if the current page is a research/academic page that needs special handling
+   */
+  private isResearchPage(hostname: string, pathname: string): boolean {
+    const researchDomains = [
+      'anthropic.com',
+      'arxiv.org',
+      'paper',
+      'research',
+      'academic',
+      'openai.com',
+      'deepmind.com',
+      'microsoft.com/en-us/research',
+      'ai.google',
+      'research.google',
+    ];
+
+    const researchPathPatterns = [
+      '/research/',
+      '/papers/',
+      '/publications/',
+      '/blog/',
+      '/insights/',
+      '/technical/',
+    ];
+
+    // Check domain
+    const isDomainResearch = researchDomains.some(domain => hostname.includes(domain));
+
+    // Check path patterns
+    const isPathResearch = researchPathPatterns.some(pattern =>
+      pathname.toLowerCase().includes(pattern)
+    );
+
+    // Check for research-related keywords in URL
+    const fullUrl = `${hostname}${pathname}`.toLowerCase();
+    const hasResearchKeywords = [
+      'research',
+      'paper',
+      'publication',
+      'academic',
+      'study',
+      'analysis',
+      'whitepaper',
+      'technical',
+      'science',
+      'ai',
+      'ml',
+      'artificial-intelligence',
+    ].some(keyword => fullUrl.includes(keyword));
+
+    return isDomainResearch || isPathResearch || hasResearchKeywords;
+  }
+
+  /**
+   * Specific content extraction for GitHub markdown files
+   */
+  private findGitHubMarkdownContent(): Element | null {
+    // GitHub-specific selectors for markdown file content
+    const githubSelectors = [
+      // Main markdown content area
+      '.markdown-body',
+      'article.markdown-body',
+      '.repository-content .markdown-body',
+      '.Box-body .markdown-body',
+
+      // File content containers
+      '.file-editor-textarea',
+      '.blob-wrapper',
+      '.highlight',
+      '.blob-code-content',
+
+      // Repository content area
+      '.repository-content',
+      '.file-navigation + .Box .Box-body',
+      '.file-navigation ~ .Box .Box-body',
+
+      // Content containers
+      '.Box-body',
+      '.container-lg .Box-body',
+      '.application-main .Box-body',
+
+      // Readme and markdown specific
+      '#readme .markdown-body',
+      '[data-testid="readme"] .markdown-body',
+      '.readme .markdown-body',
+
+      // File view content
+      '.file .highlight',
+      '.file .blob-wrapper',
+      '.file .Box-body',
+
+      // Generic content fallbacks
+      'main .Box-body',
+      '[role="main"] .Box-body',
+      '.Layout-main .Box-body',
+    ];
+
+    for (const selector of githubSelectors) {
+      try {
+        const element = document.querySelector(selector);
+        if (element && this.isValidGitHubContent(element)) {
+          this.logger.debug('Found GitHub content with selector:', selector);
+          return element;
+        }
+      } catch (error) {
+        this.logger.warn('Invalid GitHub selector:', selector, error);
+      }
+    }
+
+    // Advanced fallback: Look for GitHub file content structure
+    const githubStructureContent = this.findGitHubContentByStructure();
+    if (githubStructureContent) {
+      this.logger.debug('Found GitHub content using structure analysis');
+      return githubStructureContent;
+    }
+
+    this.logger.warn('No suitable GitHub markdown content found');
+    return null;
+  }
+
+  /**
+   * Find GitHub content using structure analysis when selectors fail
+   */
+  private findGitHubContentByStructure(): Element | null {
+    // Look for elements that contain the actual file content
+    const candidates = Array.from(document.querySelectorAll('div, section, article, main'))
+      .filter(el => {
+        const text = el.textContent?.trim() || '';
+        const className = el.className.toLowerCase();
+
+        // Must have substantial text content
+        if (text.length < 200) return false;
+
+        // Look for GitHub-specific structure indicators
+        const hasGitHubContent =
+          className.includes('markdown') ||
+          className.includes('blob') ||
+          className.includes('highlight') ||
+          className.includes('file') ||
+          className.includes('repository-content');
+
+        // Exclude navigation and GitHub UI elements
+        const excludeTerms = [
+          'header',
+          'footer',
+          'navigation',
+          'nav',
+          'menu',
+          'sidebar',
+          'breadcrumb',
+          'pagehead',
+          'subnav',
+          'topics',
+          'labels',
+          'issues',
+          'pulls',
+          'commit',
+          'discussion',
+          'notification',
+        ];
+        const hasExcludeClass = excludeTerms.some(term => className.includes(term));
+
+        if (hasExcludeClass && !hasGitHubContent) return false;
+
+        return hasGitHubContent || text.length > 1000;
+      })
+      .sort((a, b) => {
+        // Score by content quality for GitHub
+        const scoreA = this.scoreGitHubElement(a);
+        const scoreB = this.scoreGitHubElement(b);
+        return scoreB - scoreA;
+      });
+
+    return candidates.length > 0 ? candidates[0] : null;
+  }
+
+  /**
+   * Score GitHub elements for content quality
+   */
+  private scoreGitHubElement(element: Element): number {
+    let score = 0;
+    const text = element.textContent?.trim() || '';
+    const className = element.className.toLowerCase();
+
+    // Base score from text length
+    score += Math.min(text.length / 10, 300);
+
+    // Bonus for GitHub content-related classes
+    const contentBonuses = [
+      { term: 'markdown-body', bonus: 300 },
+      { term: 'blob-wrapper', bonus: 250 },
+      { term: 'highlight', bonus: 200 },
+      { term: 'repository-content', bonus: 180 },
+      { term: 'box-body', bonus: 150 },
+      { term: 'file', bonus: 120 },
+      { term: 'readme', bonus: 100 },
+    ];
+
+    contentBonuses.forEach(({ term, bonus }) => {
+      if (className.includes(term)) {
+        score += bonus;
+      }
+    });
+
+    // Penalty for GitHub UI elements
+    const uiPenalties = [
+      'header',
+      'footer',
+      'nav',
+      'menu',
+      'sidebar',
+      'breadcrumb',
+      'pagehead',
+      'subnav',
+      'notification',
+      'discussion',
+      'issues',
+      'pulls',
+    ];
+
+    uiPenalties.forEach(term => {
+      if (className.includes(term)) {
+        score -= 100;
+      }
+    });
+
+    // Bonus for markdown structure (headings, paragraphs)
+    const headings = element.querySelectorAll('h1, h2, h3, h4, h5, h6').length;
+    const paragraphs = element.querySelectorAll('p').length;
+    score += headings * 25;
+    score += paragraphs * 15;
+
+    return Math.max(0, score);
+  }
+
+  /**
+   * Validate if element contains good GitHub markdown content
+   */
+  private isValidGitHubContent(element: Element): boolean {
+    const text = element.textContent?.trim() || '';
+    const className = element.className.toLowerCase();
+
+    // Must have some content
+    if (text.length < 100) return false;
+
+    // Should be marked as markdown or file content
+    const hasMarkdownIndicators =
+      className.includes('markdown') ||
+      className.includes('blob') ||
+      className.includes('highlight') ||
+      className.includes('file') ||
+      className.includes('readme');
+
+    // Avoid pure navigation or GitHub UI
+    const navTerms = [
+      'header',
+      'footer',
+      'nav',
+      'menu',
+      'sidebar',
+      'breadcrumb',
+      'pagehead',
+      'subnav',
+      'notification',
+    ];
+    const isNavContent = navTerms.some(term => className.includes(term));
+
+    if (isNavContent && !hasMarkdownIndicators) return false;
+
+    // For GitHub, prefer elements with markdown indicators or substantial content
+    return hasMarkdownIndicators || text.length > 500;
   }
 
   /**

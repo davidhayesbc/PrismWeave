@@ -310,6 +310,109 @@ export class StackOverflowBlogStrategy implements ISelectorStrategy {
 }
 
 /**
+ * Strategy for Anthropic research pages and AI company content
+ */
+export class AnthropicStrategy implements ISelectorStrategy {
+  isApplicable(url: string): boolean {
+    return url.includes('anthropic.com');
+  }
+
+  getSelectors(): IContentSelector[] {
+    return [
+      {
+        name: 'anthropic-research-primary',
+        selectors: [
+          // Research page main content
+          'main article',
+          'article',
+          'main',
+          '[role="main"]',
+
+          // Research-specific containers
+          '.research-content',
+          '.article-content',
+          '.post-content',
+          '.blog-content',
+          '.content',
+          '.main-content',
+
+          // Next.js/React patterns (Anthropic uses Next.js)
+          '#__next main',
+          '[data-reactroot] main',
+          '#__next article',
+          '[data-reactroot] article',
+
+          // Data attributes and components
+          '[data-testid="article"]',
+          '[data-testid="content"]',
+          '[data-testid="research-content"]',
+          '[data-component="article"]',
+          '[data-component="research"]',
+
+          // Container patterns
+          '.container main',
+          '.wrapper main',
+          '.layout main',
+          '.page-container main',
+          '.content-container',
+          '.article-container',
+          '.research-container',
+        ],
+      },
+      {
+        name: 'anthropic-content-fallback',
+        selectors: [
+          // Content-heavy containers with research indicators
+          'div:has(h1):has(p)',
+          'section:has(h1):has(p)',
+          '.container:has(h1)',
+          '.wrapper:has(h1)',
+
+          // Class-based selectors
+          '[class*="research"]',
+          '[class*="article"]',
+          '[class*="content"]',
+          '[class*="post"]',
+          '[class*="blog"]',
+
+          // ID-based selectors
+          '[id*="content"]',
+          '[id*="article"]',
+          '[id*="main"]',
+
+          // Structural selectors for modern web apps
+          'div[class*="container"]',
+          'div[class*="wrapper"]',
+          'section[class*="main"]',
+          'div[class*="layout"]',
+
+          // Broad fallbacks
+          'body > div',
+          'body > main',
+          'body > section',
+          'body > article',
+        ],
+      },
+      {
+        name: 'anthropic-text-content',
+        selectors: [
+          // Focus on paragraph-rich containers
+          'div:has(> p):has(> h1, > h2, > h3)',
+          'section:has(> p):has(> h1, > h2, > h3)',
+          'article:has(> p):has(> h1, > h2)',
+
+          // Content blocks with substantial text
+          '[class*="content"]:has(h1, h2, h3)',
+          '[class*="research"]:has(h1, h2, h3)',
+          '[class*="article"]:has(h1, h2, h3)',
+          '[class*="post"]:has(h1, h2, h3)',
+        ],
+      },
+    ];
+  }
+}
+
+/**
  * Strategy for documentation and technical sites - Enhanced with Docker-specific patterns
  */
 export class DocumentationStrategy implements ISelectorStrategy {
@@ -365,6 +468,7 @@ export class DocumentationStrategy implements ISelectorStrategy {
  */
 export class ContentSelectorManager {
   private strategies: ISelectorStrategy[] = [
+    new AnthropicStrategy(),
     new StackOverflowBlogStrategy(),
     new BlogPlatformStrategy(),
     new DocumentationStrategy(),
@@ -429,7 +533,7 @@ export class ContentSelectorManager {
 
   /**
    * Score content elements using sophisticated algorithm from legacy implementation
-   * Enhanced with Substack-specific scoring
+   * Enhanced with Substack-specific scoring and Anthropic research content scoring
    */
   private scoreContentElement(element: Element): number {
     let score = 0;
@@ -448,6 +552,78 @@ export class ContentSelectorManager {
     // Bonus for headings
     const headings = element.querySelectorAll('h1, h2, h3, h4, h5, h6').length;
     score += headings * 30;
+
+    // Enhanced Anthropic-specific scoring
+    if (window.location.href.includes('anthropic.com')) {
+      // Major bonus for research and article content
+      if (className.includes('research')) {
+        score += 250; // High priority for research content
+      }
+      if (className.includes('article')) {
+        score += 200; // High priority for article content
+      }
+      if (className.includes('content')) {
+        score += 150; // Medium-high priority for content containers
+      }
+      if (className.includes('main')) {
+        score += 100; // Good priority for main content
+      }
+
+      // Bonus for semantic HTML elements on research pages
+      if (element.tagName === 'MAIN' || element.tagName === 'ARTICLE') {
+        score += 200; // Strong preference for semantic elements
+      }
+
+      // Bonus for research-specific content indicators
+      const researchIndicators = [
+        'project',
+        'study',
+        'experiment',
+        'analysis',
+        'findings',
+        'methodology',
+        'conclusion',
+        'abstract',
+      ];
+      researchIndicators.forEach(indicator => {
+        if (text.toLowerCase().includes(indicator)) {
+          score += 50;
+        }
+      });
+
+      // Penalty for navigation and promotional elements
+      const navTerms = [
+        'navigation',
+        'nav',
+        'menu',
+        'header',
+        'footer',
+        'sidebar',
+        'subscribe',
+        'newsletter',
+        'contact',
+        'about',
+        'careers',
+        'login',
+        'signup',
+      ];
+      navTerms.forEach(term => {
+        if (className.includes(term) || id.includes(term)) {
+          score -= 150;
+        }
+      });
+
+      // Bonus for good content structure on research pages
+      if (paragraphs > 5 && headings > 2) {
+        score += 150; // Well-structured research content
+      }
+
+      // Bonus for substantial research content
+      const wordCount = text.split(/\s+/).filter(Boolean).length;
+      if (wordCount > 1000) {
+        score += 100; // Substantial research article
+      }
+    }
 
     // Enhanced Substack-specific scoring
     if (window.location.href.includes('substack.com')) {

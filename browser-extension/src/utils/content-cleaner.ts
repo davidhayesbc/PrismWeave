@@ -10,6 +10,8 @@ export interface ICleaningOptions {
   removeAds?: boolean;
   removeNavigation?: boolean;
   excludeSelectors?: string[];
+  isResearchPage?: boolean;
+  domain?: string;
 }
 
 export interface ICleaningRule {
@@ -161,7 +163,7 @@ export class ContentCleaner {
 
     // Remove ad content by text analysis
     if (options.removeAds !== false) {
-      this.removeAdContentByText(cloned);
+      this.removeAdContentByText(cloned, options);
     }
 
     // Normalize whitespace
@@ -176,6 +178,27 @@ export class ContentCleaner {
    * Apply specific cleaning rules based on options
    */
   private applyCleaningRules(element: Element, options: ICleaningOptions): void {
+    // Use gentler cleaning for research pages
+    if (options.isResearchPage || options.domain?.includes('anthropic.com')) {
+      this.applyGentleCleaningRules(element, options);
+    } else {
+      this.applyStandardCleaningRules(element, options);
+    }
+
+    // Apply custom exclusion selectors
+    if (options.excludeSelectors?.length) {
+      const customRule: ICleaningRule = {
+        name: 'custom-exclusions',
+        selectors: options.excludeSelectors,
+      };
+      this.applyRule(element, customRule);
+    }
+  }
+
+  /**
+   * Apply standard aggressive cleaning rules
+   */
+  private applyStandardCleaningRules(element: Element, options: ICleaningOptions): void {
     // Apply built-in cleaning rules
     for (const rule of this.unwantedRules) {
       // Skip navigation rule if disabled
@@ -190,14 +213,45 @@ export class ContentCleaner {
 
       this.applyRule(element, rule);
     }
+  }
 
-    // Apply custom exclusion selectors
-    if (options.excludeSelectors?.length) {
-      const customRule: ICleaningRule = {
-        name: 'custom-exclusions',
-        selectors: options.excludeSelectors,
-      };
-      this.applyRule(element, customRule);
+  /**
+   * Apply gentler cleaning rules for research pages
+   */
+  private applyGentleCleaningRules(element: Element, options: ICleaningOptions): void {
+    // Only apply essential cleaning rules for research pages
+    const essentialRules = this.unwantedRules.filter(
+      rule =>
+        rule.name === 'scripts-and-styles' ||
+        (rule.name === 'navigation' && options.removeNavigation !== false)
+    );
+
+    for (const rule of essentialRules) {
+      this.applyRule(element, rule);
+    }
+
+    // Apply minimal ad cleaning for research pages
+    if (options.removeAds !== false) {
+      this.removeObviousAds(element);
+    }
+  }
+
+  /**
+   * Remove only obvious advertisements, not research content
+   */
+  private removeObviousAds(element: Element): void {
+    const obviousAdSelectors = [
+      '.google-ad',
+      '.advertisement',
+      '[id*="google_ads"]',
+      '[class*="google-ad"]',
+      '.banner-ad',
+      '.display-ad',
+    ];
+
+    const adElements = element.querySelectorAll(obviousAdSelectors.join(','));
+    for (const ad of Array.from(adElements)) {
+      ad.remove();
     }
   }
 
@@ -224,7 +278,13 @@ export class ContentCleaner {
   /**
    * Remove elements that are likely ads based on text content
    */
-  private removeAdContentByText(element: Element): void {
+  private removeAdContentByText(element: Element, options: ICleaningOptions = {}): void {
+    // Skip aggressive text-based ad removal for research pages
+    if (options.isResearchPage || options.domain?.includes('anthropic.com')) {
+      logger.debug('Skipping aggressive ad text removal for research page');
+      return;
+    }
+
     const suspiciousElements = element.querySelectorAll('div, span, section, aside');
 
     for (const el of Array.from(suspiciousElements)) {
