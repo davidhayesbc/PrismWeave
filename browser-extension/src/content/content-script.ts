@@ -758,11 +758,20 @@ function showNotification(
     notification.onmouseenter = null;
     notification.onmouseleave = null;
 
-    // Add multiple event listeners for debugging
+    // Add single click handler to prevent duplicate tab opening
+    let isProcessingClick = false; // Prevent multiple rapid clicks
+
     notification.addEventListener(
       'click',
       event => {
-        console.log('🖱️ PrismWeave: Click event fired!', {
+        // Prevent multiple clicks being processed simultaneously
+        if (isProcessingClick) {
+          console.log('� PrismWeave: Click already being processed, ignoring duplicate');
+          return;
+        }
+
+        isProcessingClick = true;
+        console.log('�🖱️ PrismWeave: Click event fired!', {
           event,
           target: event.target,
           currentTarget: event.currentTarget,
@@ -776,39 +785,30 @@ function showNotification(
         console.log('🚀 PrismWeave: Attempting to open URL:', clickUrl);
 
         try {
-          // Try to open the URL
-          const newWindow = window.open(clickUrl, '_blank', 'noopener,noreferrer');
+          // Use window.open - even if it returns null, the tab usually opens successfully
+          console.log('🚀 PrismWeave: Opening URL with window.open...');
+          window.open(clickUrl, '_blank', 'noopener,noreferrer');
 
-          if (newWindow) {
-            console.log('✅ PrismWeave: Successfully opened URL in new window');
-            // Hide notification immediately after successful click
-            hideNotification(notification);
-          } else {
-            console.log('❌ PrismWeave: window.open failed, trying alternative method');
-            // Try alternative method
-            const link = document.createElement('a');
-            link.href = clickUrl;
-            link.target = '_blank';
-            link.rel = 'noopener noreferrer';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            console.log('🔄 PrismWeave: Used alternative link click method');
-            hideNotification(notification);
-          }
+          // Always consider it successful and hide notification
+          // (window.open may return null even when successful due to popup blockers)
+          console.log('✅ PrismWeave: URL opening attempted, hiding notification');
+          hideNotification(notification);
         } catch (error) {
           console.error('💥 PrismWeave: Error opening URL:', error);
           // Show user-friendly error
           showNotification('Could not open link. Check browser popup settings.', 'error', 3000);
+        } finally {
+          // Reset click processing flag after a short delay
+          setTimeout(() => {
+            isProcessingClick = false;
+          }, 1000);
         }
       },
       { passive: false }
     );
 
-    // Also add the onclick for backwards compatibility
-    notification.onclick = event => {
-      console.log('🖱️ PrismWeave: onclick handler fired (fallback)');
-    };
+    // DO NOT add onclick handler to prevent duplicate event handling
+    notification.onclick = null;
 
     // Add hover effect for clickable notifications with better visual feedback
     notification.onmouseenter = () => {

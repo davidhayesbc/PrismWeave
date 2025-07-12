@@ -11,6 +11,8 @@ export class PrismWeavePopup {
   private settings: Partial<ISettings> | null = null;
   private isCapturing: boolean = false;
   private lastCapturedContent: string | null = null;
+  private eventListenersSetup: boolean = false;
+  private openRepositoryDebounceTimer: NodeJS.Timeout | null = null;
 
   constructor(skipInitialization: boolean = false) {
     // Only log during normal operation, not tests
@@ -142,27 +144,59 @@ export class PrismWeavePopup {
   }
 
   private setupEventListeners(): void {
+    // Prevent duplicate event listeners
+    if (this.eventListenersSetup) {
+      logger.debug('Event listeners already setup, skipping...');
+      return;
+    }
+
     // Capture page button
     const captureBtn = document.getElementById('capture-page');
     if (captureBtn) {
-      captureBtn.addEventListener('click', () => this.capturePage());
+      captureBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        e.preventDefault();
+        logger.debug('Capture page button clicked');
+        this.capturePage();
+      });
     }
 
     // Capture selection button
     const captureSelectionBtn = document.getElementById('capture-selection');
     if (captureSelectionBtn) {
-      captureSelectionBtn.addEventListener('click', () => this.captureSelection());
+      captureSelectionBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        e.preventDefault();
+        logger.debug('Capture selection button clicked');
+        this.captureSelection();
+      });
     }
 
     // Settings button
     const settingsBtn = document.getElementById('settings-btn');
     if (settingsBtn) {
-      settingsBtn.addEventListener('click', () => this.openSettings());
-    } // View repository button
+      settingsBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        e.preventDefault();
+        logger.debug('Settings button clicked');
+        this.openSettings();
+      });
+    }
+
+    // View repository button
     const viewRepoBtn = document.getElementById('view-repo');
     if (viewRepoBtn) {
-      viewRepoBtn.addEventListener('click', () => this.openRepository());
+      viewRepoBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        e.preventDefault();
+        logger.debug('View repository button clicked');
+        this.openRepository();
+      });
     }
+
+    // Mark event listeners as setup
+    this.eventListenersSetup = true;
+    logger.debug('Event listeners setup completed');
   }
 
   private updatePageInfo(): void {
@@ -672,7 +706,28 @@ export class PrismWeavePopup {
         const button = document.createElement('button');
         button.className = `status-action-btn ${action.primary ? 'primary' : ''}`;
         button.textContent = action.label;
-        button.addEventListener('click', action.action);
+
+        // Add data attribute to track action type for debugging
+        if (action.label.includes('Repository') || action.label.includes('GitHub')) {
+          button.setAttribute('data-action-type', 'repository');
+        }
+
+        // Wrap action in debounce to prevent multiple rapid clicks
+        button.addEventListener('click', e => {
+          e.stopPropagation(); // Prevent event bubbling
+          e.preventDefault();
+
+          logger.debug(`Action button clicked: ${action.label}`);
+
+          // Disable button temporarily to prevent double clicks
+          button.disabled = true;
+          setTimeout(() => {
+            button.disabled = false;
+          }, 1000);
+
+          action.action();
+        });
+
         actionsContainer.appendChild(button);
       });
       actionsContainer.style.display = 'flex';
@@ -781,9 +836,44 @@ export class PrismWeavePopup {
   }
 
   private openRepository(): void {
-    if (this.settings?.githubRepo) {
-      const url = `https://github.com/${this.settings.githubRepo}`;
-      chrome.tabs.create({ url });
+    logger.debug('openRepository called');
+
+    // Add call stack logging to debug duplicate calls
+    if (console.trace) {
+      console.trace('openRepository call stack:');
+    }
+
+    // Debounce multiple calls within 500ms
+    if (this.openRepositoryDebounceTimer) {
+      logger.warn('🚨 openRepository debounced - ignoring duplicate call within 500ms');
+      return;
+    }
+
+    this.openRepositoryDebounceTimer = setTimeout(() => {
+      this.openRepositoryDebounceTimer = null;
+    }, 500);
+
+    if (!this.settings?.githubRepo) {
+      logger.warn('Cannot open repository: githubRepo not configured');
+      this.showError('GitHub repository not configured. Please check your settings.');
+      return;
+    }
+
+    const url = `https://github.com/${this.settings.githubRepo}`;
+    logger.debug('Opening repository URL:', url);
+
+    try {
+      chrome.tabs.create({ url }, tab => {
+        if (chrome.runtime.lastError) {
+          logger.error('Failed to create tab:', chrome.runtime.lastError.message);
+          this.showError('Failed to open repository tab');
+        } else {
+          logger.debug('Successfully created tab:', tab?.id);
+        }
+      });
+    } catch (error) {
+      logger.error('Error in chrome.tabs.create:', error);
+      this.showError('Failed to open repository');
     }
   }
 
@@ -910,7 +1000,15 @@ if (typeof globalThis !== 'undefined') {
   (self as any).PrismWeavePopup = PrismWeavePopup;
 }
 
-// Initialize popup when DOM is ready
+// Initialize popup when DOM is ready - with protection against multiple initialization
+let popupInstance: PrismWeavePopup | null = null;
+
 document.addEventListener('DOMContentLoaded', () => {
-  new PrismWeavePopup();
+  if (popupInstance) {
+    logger.debug('Popup already initialized, skipping...');
+    return;
+  }
+
+  logger.debug('Initializing popup...');
+  popupInstance = new PrismWeavePopup();
 });
