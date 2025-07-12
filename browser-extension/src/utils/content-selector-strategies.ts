@@ -464,10 +464,14 @@ export class ContentSelectorManager {
       if (className.includes('post-content')) {
         score += 150; // Medium-high priority
       }
-      
+
       // Bonus for elements that contain actual article content indicators
       const substackContentIndicators = [
-        'subtitle', 'description', 'article', 'story', 'newsletter'
+        'subtitle',
+        'description',
+        'article',
+        'story',
+        'newsletter',
       ];
       substackContentIndicators.forEach(indicator => {
         if (className.includes(indicator) || id.includes(indicator)) {
@@ -477,8 +481,16 @@ export class ContentSelectorManager {
 
       // Penalty for Substack-specific navigation/promotional elements
       const substackNavTerms = [
-        'header', 'footer', 'subscribe', 'profile', 'navigation',
-        'sidebar', 'recommendation', 'related', 'comments', 'discussion'
+        'header',
+        'footer',
+        'subscribe',
+        'profile',
+        'navigation',
+        'sidebar',
+        'recommendation',
+        'related',
+        'comments',
+        'discussion',
       ];
       substackNavTerms.forEach(term => {
         if (className.includes(term) || id.includes(term)) {

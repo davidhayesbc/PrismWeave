@@ -48,9 +48,9 @@ const enhancedSubstackSelectors = [
 // Function to test selectors on a page
 function testSubstackSelectors() {
   console.log('🎯 Testing selectors on current page...');
-  
+
   const results = [];
-  
+
   enhancedSubstackSelectors.forEach((selector, index) => {
     try {
       const elements = document.querySelectorAll(selector);
@@ -58,7 +58,7 @@ function testSubstackSelectors() {
         const element = elements[0];
         const textLength = element.textContent?.trim().length || 0;
         const hasSubstantialContent = textLength > 500;
-        
+
         results.push({
           index: index + 1,
           selector,
@@ -66,24 +66,24 @@ function testSubstackSelectors() {
           textLength,
           hasSubstantialContent,
           className: element.className,
-          preview: element.textContent?.trim().substring(0, 100) + '...'
+          preview: element.textContent?.trim().substring(0, 100) + '...',
         });
-        
+
         console.log(`✅ ${index + 1}. ${selector}`, {
           found: elements.length,
           textLength,
           substantial: hasSubstantialContent,
-          className: element.className
+          className: element.className,
         });
       }
     } catch (error) {
       console.log(`❌ ${index + 1}. ${selector} - Invalid selector:`, error.message);
     }
   });
-  
+
   // Find the best candidates
   const substantialContent = results.filter(r => r.hasSubstantialContent);
-  
+
   console.log('\n🏆 Best content candidates:');
   substantialContent
     .sort((a, b) => b.textLength - a.textLength)
@@ -92,10 +92,10 @@ function testSubstackSelectors() {
       console.log(`${i + 1}. ${result.selector}`, {
         textLength: result.textLength,
         className: result.className,
-        preview: result.preview
+        preview: result.preview,
       });
     });
-  
+
   return substantialContent;
 }
 
@@ -104,10 +104,10 @@ function scoreSubstackElement(element) {
   let score = 0;
   const text = element.textContent?.trim() || '';
   const className = element.className.toLowerCase();
-  
+
   // Base score from text length
   score += Math.min(text.length / 20, 300);
-  
+
   // Bonus for content-related classes
   const contentBonuses = [
     { term: 'available-content', bonus: 200 },
@@ -117,40 +117,48 @@ function scoreSubstackElement(element) {
     { term: 'article', bonus: 80 },
     { term: 'content', bonus: 60 },
   ];
-  
+
   contentBonuses.forEach(({ term, bonus }) => {
     if (className.includes(term)) {
       score += bonus;
     }
   });
-  
+
   // Penalty for navigation terms
   const navPenalties = [
-    'nav', 'menu', 'header', 'footer', 'sidebar', 'subscribe',
-    'related', 'recommendation', 'comment', 'share'
+    'nav',
+    'menu',
+    'header',
+    'footer',
+    'sidebar',
+    'subscribe',
+    'related',
+    'recommendation',
+    'comment',
+    'share',
   ];
-  
+
   navPenalties.forEach(term => {
     if (className.includes(term)) {
       score -= 100;
     }
   });
-  
+
   // Bonus for paragraph structure
   const paragraphs = element.querySelectorAll('p').length;
   score += paragraphs * 15;
-  
+
   // Bonus for headings
   const headings = element.querySelectorAll('h1, h2, h3, h4, h5, h6').length;
   score += headings * 25;
-  
+
   return Math.max(0, score);
 }
 
 // Test the scoring algorithm
 function testContentScoring() {
   console.log('\n🎯 Testing content scoring algorithm...');
-  
+
   const allContentElements = document.querySelectorAll('div, section, article, main');
   const scored = Array.from(allContentElements)
     .map(el => ({
@@ -158,22 +166,22 @@ function testContentScoring() {
       score: scoreSubstackElement(el),
       textLength: el.textContent?.trim().length || 0,
       className: el.className,
-      tagName: el.tagName.toLowerCase()
+      tagName: el.tagName.toLowerCase(),
     }))
     .filter(item => item.score > 50 && item.textLength > 200)
     .sort((a, b) => b.score - a.score)
     .slice(0, 10);
-  
+
   console.log('🏆 Top scored elements:');
   scored.forEach((item, i) => {
     console.log(`${i + 1}. Score: ${item.score}`, {
       tagName: item.tagName,
       className: item.className,
       textLength: item.textLength,
-      preview: item.element.textContent?.trim().substring(0, 80) + '...'
+      preview: item.element.textContent?.trim().substring(0, 80) + '...',
     });
   });
-  
+
   return scored;
 }
 
@@ -207,4 +215,6 @@ window.testSubstackSelectors = testSubstackSelectors;
 window.testContentScoring = testContentScoring;
 window.scoreSubstackElement = scoreSubstackElement;
 
-console.log('✅ Test script loaded! Run testSubstackSelectors() and testContentScoring() in the console.');
+console.log(
+  '✅ Test script loaded! Run testSubstackSelectors() and testContentScoring() in the console.'
+);
