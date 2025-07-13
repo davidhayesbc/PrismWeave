@@ -327,7 +327,9 @@ export class MarkdownConverterCore {
   private addAllCustomRules(): void {
     if (!this.turndownService) return;
 
-    // Remove unwanted elements - single comprehensive rule
+    // Minimal custom rules - let TurndownService handle most conversions natively
+    
+    // Remove unwanted elements only
     this.turndownService.addRule('removeUnwanted', {
       filter: (node: any) => {
         if (node.nodeType !== 1) return false;
@@ -336,85 +338,71 @@ export class MarkdownConverterCore {
         const id = (node.id || '').toLowerCase();
         const text = (node.textContent || '').toLowerCase().trim();
 
-        // Line numbers, copy buttons, navigation, ads, social media
+        // Only remove clearly unwanted elements
         const unwantedPatterns = [
-          'line-number',
-          'linenumber',
-          'gutter',
-          'hljs-ln',
           'copy',
           'clipboard',
           'nav',
           'navbar',
-          'navigation',
+          'navigation', 
           'menu',
           'header',
           'footer',
           'sidebar',
           'ad',
           'advertisement',
-          'promo',
-          'sponsor',
-          'banner',
           'social',
           'share',
-          'twitter',
-          'facebook',
-          'linkedin',
-          'pinterest',
         ];
 
         const isUnwanted = unwantedPatterns.some(
           pattern => className.includes(pattern) || id.includes(pattern)
         );
 
-        // Copy buttons specifically
         const isCopyButton =
           (text === 'copy' || text === 'clipboard') &&
-          (node.tagName === 'BUTTON' || className.includes('button') || className.includes('btn'));
+          (node.tagName === 'BUTTON' || className.includes('button'));
 
         return isUnwanted || isCopyButton;
       },
       replacement: () => '',
     });
 
-    // Enhanced paragraph handling with proper spacing
-    this.turndownService.addRule('enhancedParagraphs', {
-      filter: 'p',
-      replacement: (content: string, node: any) => {
-        const trimmed = content.trim();
-        if (!trimmed) return '';
-
-        // Ensure proper paragraph spacing
-        return `\n\n${trimmed}\n\n`;
-      },
-    });
-
-    // Ensure div elements that contain paragraphs are treated as block elements
-    this.turndownService.addRule('divBlocks', {
+    // ONLY handle pseudo-numbered lists that aren't in proper HTML list structure
+    // This catches websites that display numbered content but don't use <ol><li>
+    this.turndownService.addRule('pseudoNumberedLists', {
       filter: (node: any) => {
-        if (node.tagName !== 'DIV') return false;
-
-        // Check if this div contains paragraph-like content
-        const hasBlockContent = node.querySelector('p, h1, h2, h3, h4, h5, h6, ul, ol, blockquote');
-        const hasSignificantText = node.textContent && node.textContent.trim().length > 50;
-
-        return hasBlockContent || hasSignificantText;
+        if (node.nodeType !== 1) return false;
+        
+        // Skip if this is already in a proper list structure - let TurndownService handle it
+        if (node.closest('ol, ul, li')) return false;
+        
+        const text = (node.textContent || '').trim();
+        if (!text) return false;
+        
+        // Look for content that starts with a number followed by period and space
+        const pseudoListPattern = /^\d+\.\s+/;
+        const startsWithNumber = pseudoListPattern.test(text);
+        
+        // Must be substantial content in a block element
+        const hasSubstantialContent = text.length > 30;
+        const isBlock = node.tagName === 'P' || node.tagName === 'DIV';
+        
+        return startsWithNumber && hasSubstantialContent && isBlock;
       },
       replacement: (content: string) => {
-        const trimmed = content.trim();
-        if (!trimmed) return '';
-
-        // Add spacing around div blocks that contain substantial content
-        return `\n\n${trimmed}\n\n`;
+        const text = content.trim();
+        if (!text) return '';
+        
+        // Preserve the numbered list format
+        return `\n${text}\n`;
       },
     });
 
-    // Tables - add custom table support
+    // Simple table support
     this.turndownService.addRule('tables', {
       filter: 'table',
       replacement: (content: string, node: any) => {
-        // Get all rows
         const rows = Array.from(node.querySelectorAll('tr')).map((row: any) => {
           const cells = Array.from(row.querySelectorAll('td, th')).map((cell: any) => {
             return cell.textContent?.trim() || '';
@@ -424,7 +412,7 @@ export class MarkdownConverterCore {
 
         if (rows.length === 0) return '';
 
-        // Add header separator after first row if it contains th elements
+        // Add header separator after first row if it has th elements
         const firstRow = node.querySelector('tr');
         const hasHeaders = firstRow && firstRow.querySelector('th');
 
@@ -438,46 +426,6 @@ export class MarkdownConverterCore {
         return `\n${rows.join('\n')}\n`;
       },
     });
-
-    // PRE blocks - simplified handling
-    this.turndownService.addRule('preBlocks', {
-      filter: 'pre',
-      replacement: (content: string, node: any) => {
-        let text = node.textContent || '';
-
-        // Handle collapsed tree structures
-        if (!text.includes('\n') && (text.includes('├──') || text.includes('└──'))) {
-          text = text.replace(/(├──|└──)/g, '\n$1').replace(/^\n/, '');
-        }
-
-        if (!text.trim()) return '';
-
-        // Basic language detection
-        const language = this.detectLanguage(text);
-        return `\n\`\`\`${language}\n${text}\n\`\`\`\n`;
-      },
-    });
-
-    // Inline code
-    this.turndownService.addRule('inlineCode', {
-      filter: (node: any) => node.nodeName === 'CODE' && !node.closest('pre'),
-      replacement: (content: string) => `\`${content.trim()}\``,
-    });
-  }
-
-  private detectLanguage(text: string): string {
-    if (!text) return '';
-
-    // Simple pattern matching for common languages
-    if (text.match(/^(git|docker|npm|yarn|cd|mkdir)\s+/m) || text.match(/^\$\s+/m)) return 'bash';
-    if (text.includes('├──') || text.includes('└──')) return 'bash';
-    if (text.match(/function|const|let|var|=>|import.*from/)) return 'javascript';
-    if (text.match(/def\s+\w+|import\s+\w+|print\(/)) return 'python';
-    if (text.match(/func\s+\w+|package\s+\w+/)) return 'go';
-    if (text.match(/<\/?[a-zA-Z][^>]*>/)) return 'html';
-    if (text.match(/^\s*\{[\s\S]*\}\s*$/) && text.includes('"')) return 'json';
-
-    return '';
   }
 
   private makeAbsoluteUrl(url: string): string {

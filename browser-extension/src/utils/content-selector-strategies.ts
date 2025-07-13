@@ -681,9 +681,11 @@ export class ContentSelectorManager {
       }
     }
 
-    // Penalty for too many links (likely navigation)
+    // Penalty for a high link-to-paragraph ratio, which often indicates navigation or footers.
+    // The original ratio of 2 was too aggressive for link-heavy articles. A ratio of 4 is more lenient
+    // and better at isolating non-content elements like navigation bars or "related articles" sections.
     const links = element.querySelectorAll('a').length;
-    if (links > paragraphs * 2) {
+    if (links > paragraphs * 4) {
       score -= links * 10;
     }
 
