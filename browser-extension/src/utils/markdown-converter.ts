@@ -73,8 +73,17 @@ export class MarkdownConverter extends MarkdownConverterCore {
     }
 
     try {
-      // Use the imported TurndownService directly
-      const options = this.getTurndownOptions();
+      // Use the imported TurndownService directly with inline options
+      const options = {
+        headingStyle: 'atx' as const,
+        bulletListMarker: '-' as const,
+        codeBlockStyle: 'fenced' as const,
+        emDelimiter: '*' as const,
+        strongDelimiter: '**' as const,
+        linkStyle: 'inlined' as const,
+        linkReferenceStyle: 'full' as const,
+        preformattedCode: true,
+      };
       this.turndownService = new TurndownService(options);
       this.setupTurndownService();
       this._isInitialized = true;

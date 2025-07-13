@@ -92,20 +92,43 @@ export class MarkdownConverterCore {
     // Use TurndownService's built-in removal instead of complex filtering
     this.turndownService.remove([
       // Core unwanted elements
-      'script', 'style', 'head', 'noscript', 'meta', 'link',
-      
-      // Navigation and UI elements  
-      'nav', 'header', 'footer', 'aside',
-      
+      'script',
+      'style',
+      'head',
+      'noscript',
+      'meta',
+      'link',
+
+      // Navigation and UI elements
+      'nav',
+      'header',
+      'footer',
+      'aside',
+
       // Common unwanted content (let TurndownService handle the rest)
-      '.advertisement', '.ads', '.popup', '.modal', '.overlay',
-      '.social-share', '.share-buttons', '.comment-form',
-      '.subscription', '.newsletter', '.paywall',
-      '.navigation', '.menu', '.sidebar', '.widget',
-      
+      '.advertisement',
+      '.ads',
+      '.popup',
+      '.modal',
+      '.overlay',
+      '.social-share',
+      '.share-buttons',
+      '.comment-form',
+      '.subscription',
+      '.newsletter',
+      '.paywall',
+      '.navigation',
+      '.menu',
+      '.sidebar',
+      '.widget',
+
       // Site-specific unwanted elements (simple selectors replace complex rules)
-      '.substack-nav', '.publication-header', '.subscribe-widget',
-      '.recommend', '.like-button', '.related-posts'
+      '.substack-nav',
+      '.publication-header',
+      '.subscribe-widget',
+      '.recommend',
+      '.like-button',
+      '.related-posts',
     ]);
 
     // Add minimal custom rules - only for cases TurndownService truly can't handle
@@ -148,43 +171,55 @@ export class MarkdownConverterCore {
     this.turndownService.addRule('pseudoNumberedParagraphs', {
       filter: (node: any) => {
         if (node.nodeType !== 1 || node.tagName !== 'P') return false;
-        
+
         // Skip if already in a list - let TurndownService handle it
         if (node.closest('ol, ul, li')) return false;
-        
+
         const text = (node.textContent || '').trim();
-        
+
         // Only handle clear pseudo-numbered content
         return /^\d+\.\s+\w/.test(text) && text.length > 20;
       },
       replacement: (content: string) => {
         // Keep the numbered format as-is
         return content.trim() ? `\n${content.trim()}\n` : '';
-      }
+      },
     });
-  }
 
-  private makeAbsoluteUrl(url: string): string {
-    if (!url) return '';
+    // Minimal table support - TurndownService doesn't handle tables well
+    this.turndownService.addRule('basicTables', {
+      filter: 'table',
+      replacement: (content: string, node: any) => {
+        // Extract table data
+        const rows: string[][] = [];
+        const tableRows = node.querySelectorAll('tr');
 
-    // Already absolute
-    if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('//')) {
-      return url;
-    }
+        tableRows.forEach((row: any) => {
+          const cells: string[] = [];
+          const cellNodes = row.querySelectorAll('td, th');
+          cellNodes.forEach((cell: any) => {
+            cells.push((cell.textContent || '').trim());
+          });
+          if (cells.length > 0) {
+            rows.push(cells);
+          }
+        });
 
-    // Get base URL from current page (browser context) or use empty string (Node.js context)
-    const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+        if (rows.length === 0) return '';
 
-    if (url.startsWith('/')) {
-      return `${baseUrl}${url}`;
-    }
+        // Build markdown table
+        let table = '';
+        rows.forEach((row, index) => {
+          table += '| ' + row.join(' | ') + ' |\n';
+          // Add header separator after first row
+          if (index === 0) {
+            table += '|' + row.map(() => '---').join('|') + '|\n';
+          }
+        });
 
-    // Relative URL - handle with base URL if available
-    if (baseUrl) {
-      return `${baseUrl}/${url}`;
-    }
-
-    return url;
+        return `\n${table}\n`;
+      },
+    });
   }
 
   public convertToMarkdown(html: string, options: IConversionOptions = {}): IConversionResult {
