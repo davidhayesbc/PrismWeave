@@ -17,7 +17,7 @@ export interface ISelectorStrategy {
 }
 
 /**
- * Base strategy for general content extraction - Enhanced with readability selectors
+ * Base strategy for general content extraction - Simplified and standardized
  */
 export class GeneralContentStrategy implements ISelectorStrategy {
   isApplicable(): boolean {
@@ -27,68 +27,49 @@ export class GeneralContentStrategy implements ISelectorStrategy {
   getSelectors(): IContentSelector[] {
     return [
       {
-        name: 'primary-content',
+        name: 'semantic-html',
+        selectors: ['article', 'main', '[role="main"]', '[role="article"]'],
+      },
+      {
+        name: 'common-content-classes',
         selectors: [
-          'article',
-          'main',
-          '[role="main"]',
           '.content',
           '.main-content',
-          '.entry-content',
           '.post-content',
           '.article-content',
           '.blog-content',
-        ],
-      },
-      {
-        name: 'readability-selectors',
-        selectors: [
-          // Enhanced readability selectors from legacy implementation
-          'div[class*="content"]',
-          'div[class*="post"]',
-          'div[class*="article"]',
-          'div[class*="entry"]',
-          'div[id*="content"]',
-          'div[id*="post"]',
-          'div[id*="article"]',
-          'div[id*="entry"]',
-          'section[class*="content"]',
-          'section[class*="post"]',
-          'section[class*="article"]',
-          '.article-body',
+          '.entry-content',
           '.post-body',
-          '.entry-body',
+          '.article-body',
           '.content-body',
-          '.article-text',
-          '.story-body',
-          '.post-container',
-          '.article-container',
-          '.blog-container',
-          '.content-main',
-          '.main-article',
-          '.blog-article-body',
-          '.entry-content-wrap',
         ],
       },
       {
-        name: 'structured-content',
+        name: 'content-pattern-matching',
+        selectors: [
+          // Class-based patterns
+          '[class*="content"]:not([class*="sidebar"]):not([class*="nav"]):not([class*="footer"])',
+          '[class*="post"]:not([class*="nav"]):not([class*="related"]):not([class*="recent"])',
+          '[class*="article"]:not([class*="nav"]):not([class*="related"]):not([class*="recent"])',
+          '[class*="entry"]:not([class*="nav"]):not([class*="related"])',
+
+          // ID-based patterns
+          '#content',
+          '#main-content',
+          '#post-content',
+          '#article-content',
+          '#main',
+        ],
+      },
+      {
+        name: 'structured-data',
         selectors: [
           '[itemtype*="BlogPosting"]',
           '[itemtype*="Article"]',
-          '[data-testid="post-content"]',
-          '[data-testid="article-content"]',
-          '[data-testid="blog-content"]',
-          '[data-content]',
-          '[data-article]',
-        ],
-      },
-      {
-        name: 'fallback-selectors',
-        selectors: [
-          '[id*="content"]',
-          '[class*="content"]',
-          '[class*="article"]',
-          '[class*="post"]',
+          '[itemtype*="NewsArticle"]',
+          '[data-testid*="content"]',
+          '[data-testid*="article"]',
+          '[data-testid*="post"]',
         ],
       },
     ];
@@ -96,7 +77,7 @@ export class GeneralContentStrategy implements ISelectorStrategy {
 }
 
 /**
- * Strategy for Substack newsletters and posts - Enhanced with 2025 structure analysis
+ * Strategy for Substack newsletters and posts - Simplified for 2025
  */
 export class SubstackStrategy implements ISelectorStrategy {
   isApplicable(url: string): boolean {
@@ -106,78 +87,36 @@ export class SubstackStrategy implements ISelectorStrategy {
   getSelectors(): IContentSelector[] {
     return [
       {
-        name: 'substack-primary-2025',
+        name: 'substack-primary',
         selectors: [
-          // Primary 2025 Substack content selectors based on latest structure analysis
+          // Primary 2025 Substack selectors (most reliable)
           '.available-content',
-          '.available-content .body',
           '.available-content .body.markup',
-          '.available-content .markup',
-          // Main post content containers
-          '.post-content .available-content',
-          '.post .available-content',
-          '.post-header + .available-content',
-          // Direct content access
           '.body.markup',
           '.markup',
-          '.post-body',
-          '.post-content',
-          // Article structure selectors
+        ],
+      },
+      {
+        name: 'substack-article-structure',
+        selectors: [
           'article .available-content',
           'article .body.markup',
           'article .markup',
-          'article .post-content',
-          // Specific Substack content patterns
-          '[data-testid="post-content"]',
-          '[data-testid="available-content"]',
-          '[data-testid="post-body"]',
-          '[data-component="post-content"]',
+          'main .available-content',
+          'main .markup',
+          '[role="main"] .available-content',
         ],
       },
       {
-        name: 'substack-enhanced-fallback',
+        name: 'substack-fallback',
         selectors: [
-          // Enhanced fallback patterns for complex Substack layouts
+          '.post-content',
+          '.post-body',
+          '[data-testid="post-content"]',
           '[class*="available-content"]',
           '[class*="post-content"]',
-          '[class*="body"][class*="markup"]',
-          '.post .body',
-          '.post-preview .body',
           '.publication-content',
           '.newsletter-content',
-          '.content-wrapper',
-          // Main structure containers
-          'main .available-content',
-          'main .post-content',
-          'main .markup',
-          // Container patterns
-          '[role="main"] .available-content',
-          '[role="main"] .markup',
-          '#main .available-content',
-          // Broad content patterns
-          '.content',
-          '.main-content',
-          'main',
-          'article',
-          // Substack-specific class patterns
-          '[class*="frontend"][class*="components"] .available-content',
-          '[class*="post"][class*="detail"]',
-        ],
-      },
-      {
-        name: 'substack-text-content',
-        selectors: [
-          // Focus on text-heavy containers for better content extraction
-          '.available-content p',
-          '.markup p',
-          '.body.markup p',
-          // Multiple paragraph containers
-          'div:has(> p):has(> h1, > h2, > h3)',
-          'section:has(> p):has(> h1, > h2, > h3)',
-          // Content blocks with headings
-          '[class*="content"]:has(h1, h2, h3)',
-          '[class*="post"]:has(h1, h2, h3)',
-          '[class*="article"]:has(h1, h2, h3)',
         ],
       },
     ];
@@ -185,89 +124,91 @@ export class SubstackStrategy implements ISelectorStrategy {
 }
 
 /**
- * Strategy for blog platforms like Simon Willison's blog - Enhanced with specific selectors
+ * Strategy for modern blog platforms - Simplified and standardized
  */
-export class BlogPlatformStrategy implements ISelectorStrategy {
+export class ModernBlogStrategy implements ISelectorStrategy {
   isApplicable(url: string): boolean {
-    const blogPatterns = [
+    const modernBlogPatterns = [
+      // Modern blog platforms
+      'sutro.sh',
+      'vercel.com/blog',
+      'nextjs.org/blog',
+      '/blog/',
+      'hashnode.com',
+      'dev.to',
+      'ghost.org',
+
+      // Traditional blog platforms
       'simonwillison.net',
       'blog.',
-      '/blog/',
       'medium.com',
-      'dev.to',
-      'hashnode.com',
-      'substack.com',
       'wordpress.com',
-      'ghost.org',
     ];
-    return blogPatterns.some(pattern => url.includes(pattern));
+    return modernBlogPatterns.some(pattern => url.includes(pattern));
   }
 
   getSelectors(): IContentSelector[] {
     return [
       {
-        name: 'substack-enhanced-specific',
+        name: 'modern-blog-semantic',
         selectors: [
-          // Enhanced 2025 Substack post content containers
-          '.available-content',
-          '.available-content .body',
-          '.available-content .body.markup',
-          '.available-content .markup',
-          '.post-content .available-content',
-          '.post .available-content',
-          '.post-header + .available-content',
-          '.body.markup',
-          '.markup',
-          '.post-body',
-          '.post-content',
-          '[class*="available-content"]',
-          '[class*="post-content"]',
-          '[class*="body"][class*="markup"]',
-          '.post .body',
-          '.available-content .body',
-          '.post-preview .body',
-          // Substack article structure
-          'article .available-content',
-          'article .post-content',
-          'article .body.markup',
-          'article .markup',
-          // Alternative Substack patterns
-          '[data-testid="post-content"]',
-          '[data-testid="available-content"]',
-          '[data-testid="article-body"]',
-          '[data-component="post-content"]',
-          '.publication-content',
-          '.newsletter-content',
-          '.post-body-content',
-          '.content-wrapper',
-          // Main structure
-          'main .available-content',
-          'main .post-content',
-          'main .markup',
-          '[role="main"] .available-content',
-          '[role="main"] .markup',
+          // Semantic HTML (highest priority)
+          'article',
+          'main article',
+          '[role="main"] article',
+          'main',
+          '[role="main"]',
         ],
       },
       {
-        name: 'simon-willison-specific',
+        name: 'modern-blog-content',
         selectors: [
-          '.entry.entryPage [data-permalink-context]',
-          '.entry.entryPage',
-          '.entry [data-permalink-context]',
-          '[data-permalink-context]',
-        ],
-      },
-      {
-        name: 'blog-generic',
-        selectors: [
+          // Standard content containers
           '.post-content',
+          '.article-content',
           '.blog-content',
           '.entry-content',
-          '.article-content',
+          '.content',
+          '.main-content',
           '.post-body',
+          '.article-body',
+        ],
+      },
+      {
+        name: 'modern-framework-patterns',
+        selectors: [
+          // Tailwind CSS patterns (common in modern blogs)
+          '.prose',
+          '.prose-lg',
+          '.prose-xl',
+          '[class*="prose"]',
+          '.max-w-4xl',
+          '.max-w-3xl',
+          '.max-w-2xl',
+          '.mx-auto',
+
+          // Next.js/React patterns
+          '#__next main',
+          '#__next article',
+          '[data-reactroot] main',
+          '[data-reactroot] article',
+        ],
+      },
+      {
+        name: 'blog-specific-legacy',
+        selectors: [
+          // Simon Willison's blog specific
+          '.entry.entryPage [data-permalink-context]',
+          '.entry.entryPage',
+          '[data-permalink-context]',
+
+          // Generic blog patterns
           '.blog-post-content',
           '.blog-article-body',
           '.entry-content-wrap',
+          '.post-container',
+          '.article-container',
+          '.content-wrapper',
         ],
       },
     ];
@@ -310,102 +251,58 @@ export class StackOverflowBlogStrategy implements ISelectorStrategy {
 }
 
 /**
- * Strategy for Anthropic research pages and AI company content
+ * Strategy for research and AI company content - Simplified and focused
  */
-export class AnthropicStrategy implements ISelectorStrategy {
+export class ResearchContentStrategy implements ISelectorStrategy {
   isApplicable(url: string): boolean {
-    return url.includes('anthropic.com');
+    const researchPatterns = [
+      'anthropic.com',
+      'openai.com',
+      'deepmind.com',
+      'research.',
+      '/research/',
+      'arxiv.org',
+      'papers.',
+    ];
+    return researchPatterns.some(pattern => url.includes(pattern));
   }
 
   getSelectors(): IContentSelector[] {
     return [
       {
-        name: 'anthropic-research-primary',
+        name: 'research-semantic',
+        selectors: ['main article', 'article', 'main', '[role="main"]'],
+      },
+      {
+        name: 'research-content',
         selectors: [
-          // Research page main content
-          'main article',
-          'article',
-          'main',
-          '[role="main"]',
-
-          // Research-specific containers
           '.research-content',
           '.article-content',
-          '.post-content',
-          '.blog-content',
           '.content',
           '.main-content',
-
-          // Next.js/React patterns (Anthropic uses Next.js)
+          '.paper-content',
+          '.study-content',
+        ],
+      },
+      {
+        name: 'modern-framework-research',
+        selectors: [
           '#__next main',
-          '[data-reactroot] main',
           '#__next article',
+          '[data-reactroot] main',
           '[data-reactroot] article',
-
-          // Data attributes and components
-          '[data-testid="article"]',
-          '[data-testid="content"]',
-          '[data-testid="research-content"]',
-          '[data-component="article"]',
-          '[data-component="research"]',
-
-          // Container patterns
           '.container main',
           '.wrapper main',
-          '.layout main',
-          '.page-container main',
-          '.content-container',
-          '.article-container',
-          '.research-container',
         ],
       },
       {
-        name: 'anthropic-content-fallback',
+        name: 'research-structured',
         selectors: [
-          // Content-heavy containers with research indicators
-          'div:has(h1):has(p)',
-          'section:has(h1):has(p)',
-          '.container:has(h1)',
-          '.wrapper:has(h1)',
-
-          // Class-based selectors
-          '[class*="research"]',
-          '[class*="article"]',
-          '[class*="content"]',
-          '[class*="post"]',
-          '[class*="blog"]',
-
-          // ID-based selectors
-          '[id*="content"]',
-          '[id*="article"]',
-          '[id*="main"]',
-
-          // Structural selectors for modern web apps
-          'div[class*="container"]',
-          'div[class*="wrapper"]',
-          'section[class*="main"]',
-          'div[class*="layout"]',
-
-          // Broad fallbacks
-          'body > div',
-          'body > main',
-          'body > section',
-          'body > article',
-        ],
-      },
-      {
-        name: 'anthropic-text-content',
-        selectors: [
-          // Focus on paragraph-rich containers
-          'div:has(> p):has(> h1, > h2, > h3)',
-          'section:has(> p):has(> h1, > h2, > h3)',
-          'article:has(> p):has(> h1, > h2)',
-
-          // Content blocks with substantial text
-          '[class*="content"]:has(h1, h2, h3)',
-          '[class*="research"]:has(h1, h2, h3)',
-          '[class*="article"]:has(h1, h2, h3)',
-          '[class*="post"]:has(h1, h2, h3)',
+          '[data-testid*="content"]',
+          '[data-testid*="article"]',
+          '[data-testid*="research"]',
+          '[itemtype*="Article"]',
+          '[itemtype*="ScholarlyArticle"]',
         ],
       },
     ];
@@ -413,7 +310,7 @@ export class AnthropicStrategy implements ISelectorStrategy {
 }
 
 /**
- * Strategy for documentation and technical sites - Enhanced with Docker-specific patterns
+ * Strategy for documentation and technical sites - Simplified and focused
  */
 export class DocumentationStrategy implements ISelectorStrategy {
   isApplicable(url: string): boolean {
@@ -425,6 +322,8 @@ export class DocumentationStrategy implements ISelectorStrategy {
       'tutorial',
       'docker.com',
       'github.com',
+      '.md',
+      'readme',
     ];
     return docPatterns.some(pattern => url.includes(pattern));
   }
@@ -432,46 +331,68 @@ export class DocumentationStrategy implements ISelectorStrategy {
   getSelectors(): IContentSelector[] {
     return [
       {
-        name: 'docker-specific',
+        name: 'documentation-semantic',
         selectors: [
-          '.DockerBlogPost',
-          '.post-content',
-          '.entry-content',
-          '.article-content',
-          '.blog-content',
-          '[data-testid="post-content"]',
-          '[data-testid="article-content"]',
-          '[data-testid="blog-content"]',
+          'article',
+          'main',
+          '[role="main"]',
+          '.markdown-body', // GitHub and others
         ],
       },
       {
-        name: 'documentation-specific',
+        name: 'documentation-content',
         selectors: [
           '.documentation-content',
+          '.docs-content',
           '.tutorial-content',
           '.guide-content',
-          '.docs-content',
+          '.content',
+          '.main-content',
+          '.prose', // Technical documentation often uses this
+        ],
+      },
+      {
+        name: 'platform-specific-docs',
+        selectors: [
+          // Docker blog specific
+          '.DockerBlogPost',
+          '.post-content',
+          '.blog-content',
+
+          // GitHub specific
+          '.blob-wrapper',
+          '.highlight',
+          '.repository-content',
+
+          // Generic technical content
+          '.rich-text',
           '.content-wrapper',
           '.page-content',
         ],
       },
       {
-        name: 'technical-content',
-        selectors: ['.prose', '.rich-text', '.markdown-body', '.content-main', '.main-article'],
+        name: 'documentation-structured',
+        selectors: [
+          '[data-testid*="content"]',
+          '[data-testid*="docs"]',
+          '[data-testid*="documentation"]',
+          '[data-testid*="tutorial"]',
+        ],
       },
     ];
   }
 }
 
 /**
- * Manages and applies content selection strategies
+ * Manages and applies content selection strategies - Simplified and optimized
  */
 export class ContentSelectorManager {
   private strategies: ISelectorStrategy[] = [
-    new AnthropicStrategy(),
-    new StackOverflowBlogStrategy(),
-    new BlogPlatformStrategy(),
-    new DocumentationStrategy(),
+    new SubstackStrategy(), // Most specific first
+    new ResearchContentStrategy(), // Research/AI content
+    new ModernBlogStrategy(), // Modern blog platforms
+    new StackOverflowBlogStrategy(), // Stack Overflow specific
+    new DocumentationStrategy(), // Documentation sites
     new GeneralContentStrategy(), // Always last as fallback
   ];
 
@@ -482,14 +403,12 @@ export class ContentSelectorManager {
     for (const strategy of this.strategies) {
       if (strategy.isApplicable(url, document)) {
         const selectors = strategy.getSelectors();
-        // Add general selectors as fallback
-        if (!(strategy instanceof GeneralContentStrategy)) {
-          selectors.push(...new GeneralContentStrategy().getSelectors());
-        }
+        logger.debug('ContentSelectorManager: Using strategy:', strategy.constructor.name);
         return selectors;
       }
     }
 
+    logger.debug('ContentSelectorManager: Using fallback strategy');
     return new GeneralContentStrategy().getSelectors();
   }
 
@@ -498,7 +417,12 @@ export class ContentSelectorManager {
    */
   findContentElement(url: string, document: Document): Element | null {
     const selectorGroups = this.getSelectorsForContent(url, document);
-    const candidates: Array<{ element: Element; score: number; selector: string }> = [];
+    const candidates: Array<{
+      element: Element;
+      score: number;
+      selector: string;
+      groupName: string;
+    }> = [];
 
     // Collect all possible candidates with their scores
     for (const group of selectorGroups) {
@@ -507,8 +431,13 @@ export class ContentSelectorManager {
           const elements = document.querySelectorAll(selector);
           for (const element of Array.from(elements)) {
             if (this.isValidContentElement(element)) {
-              const score = this.scoreContentElement(element);
-              candidates.push({ element, score, selector });
+              const score = this.scoreContentElement(element, url);
+              candidates.push({
+                element,
+                score,
+                selector,
+                groupName: group.name,
+              });
             }
           }
         } catch (error) {
@@ -521,218 +450,171 @@ export class ContentSelectorManager {
     if (candidates.length > 0) {
       candidates.sort((a, b) => b.score - a.score);
       logger.debug('ContentSelectorManager: Best candidate:', {
+        groupName: candidates[0].groupName,
         selector: candidates[0].selector,
         score: candidates[0].score,
         className: candidates[0].element.className,
+        textLength: candidates[0].element.textContent?.length || 0,
       });
       return candidates[0].element;
     }
 
+    logger.warn('ContentSelectorManager: No suitable content found');
     return null;
   }
 
   /**
-   * Score content elements using sophisticated algorithm from legacy implementation
-   * Enhanced with Substack-specific scoring and Anthropic research content scoring
+   * Score content elements - Simplified and standardized
    */
-  private scoreContentElement(element: Element): number {
+  private scoreContentElement(element: Element, url: string): number {
     let score = 0;
     const text = element.textContent?.trim() || '';
-    const html = element.innerHTML || '';
     const className = element.className.toLowerCase();
     const id = element.id.toLowerCase();
+    const tagName = element.tagName.toLowerCase();
 
-    // Base score from text length
-    score += Math.min(text.length / 10, 500);
+    // Base score from text length (word count approximation)
+    const wordCount = text.split(/\s+/).filter(Boolean).length;
+    score += Math.min(wordCount / 5, 500); // Up to 500 points for word count
 
-    // Bonus for paragraphs
+    // Structure bonuses
     const paragraphs = element.querySelectorAll('p').length;
-    score += paragraphs * 25;
-
-    // Bonus for headings
     const headings = element.querySelectorAll('h1, h2, h3, h4, h5, h6').length;
+    score += paragraphs * 20;
     score += headings * 30;
 
-    // Enhanced Anthropic-specific scoring
-    if (window.location.href.includes('anthropic.com')) {
-      // Major bonus for research and article content
-      if (className.includes('research')) {
-        score += 250; // High priority for research content
-      }
-      if (className.includes('article')) {
-        score += 200; // High priority for article content
-      }
-      if (className.includes('content')) {
-        score += 150; // Medium-high priority for content containers
-      }
-      if (className.includes('main')) {
-        score += 100; // Good priority for main content
-      }
+    // Semantic HTML bonuses
+    const semanticBonuses: Record<string, number> = {
+      article: 200,
+      main: 150,
+      section: 50,
+    };
+    score += semanticBonuses[tagName] || 0;
 
-      // Bonus for semantic HTML elements on research pages
-      if (element.tagName === 'MAIN' || element.tagName === 'ARTICLE') {
-        score += 200; // Strong preference for semantic elements
-      }
-
-      // Bonus for research-specific content indicators
-      const researchIndicators = [
-        'project',
-        'study',
-        'experiment',
-        'analysis',
-        'findings',
-        'methodology',
-        'conclusion',
-        'abstract',
-      ];
-      researchIndicators.forEach(indicator => {
-        if (text.toLowerCase().includes(indicator)) {
-          score += 50;
-        }
-      });
-
-      // Penalty for navigation and promotional elements
-      const navTerms = [
-        'navigation',
-        'nav',
-        'menu',
-        'header',
-        'footer',
-        'sidebar',
-        'subscribe',
-        'newsletter',
-        'contact',
-        'about',
-        'careers',
-        'login',
-        'signup',
-      ];
-      navTerms.forEach(term => {
-        if (className.includes(term) || id.includes(term)) {
-          score -= 150;
-        }
-      });
-
-      // Bonus for good content structure on research pages
-      if (paragraphs > 5 && headings > 2) {
-        score += 150; // Well-structured research content
-      }
-
-      // Bonus for substantial research content
-      const wordCount = text.split(/\s+/).filter(Boolean).length;
-      if (wordCount > 1000) {
-        score += 100; // Substantial research article
-      }
+    // Role attribute bonuses
+    const role = element.getAttribute('role');
+    if (role === 'main' || role === 'article') {
+      score += 200;
     }
 
-    // Enhanced Substack-specific scoring
-    if (window.location.href.includes('substack.com')) {
-      // Major bonus for Substack-specific classes
-      if (className.includes('available-content')) {
-        score += 300; // High priority for main content container
-      }
-      if (className.includes('body') && className.includes('markup')) {
-        score += 250; // High priority for marked up content
-      }
-      if (className.includes('markup')) {
-        score += 200; // Good priority for markup content
-      }
-      if (className.includes('post-content')) {
-        score += 150; // Medium-high priority
-      }
-
-      // Bonus for elements that contain actual article content indicators
-      const substackContentIndicators = [
-        'subtitle',
-        'description',
-        'article',
-        'story',
-        'newsletter',
-      ];
-      substackContentIndicators.forEach(indicator => {
-        if (className.includes(indicator) || id.includes(indicator)) {
-          score += 100;
-        }
-      });
-
-      // Penalty for Substack-specific navigation/promotional elements
-      const substackNavTerms = [
-        'header',
-        'footer',
-        'subscribe',
-        'profile',
-        'navigation',
-        'sidebar',
-        'recommendation',
-        'related',
-        'comments',
-        'discussion',
-      ];
-      substackNavTerms.forEach(term => {
-        if (className.includes(term) || id.includes(term)) {
-          score -= 150;
-        }
-      });
-
-      // Bonus for having good paragraph-to-link ratio (indicates article content)
-      const links = element.querySelectorAll('a').length;
-      if (paragraphs > 3 && links / paragraphs < 0.5) {
-        score += 100; // Good content-to-link ratio
-      }
+    // Platform-specific scoring
+    if (url.includes('substack.com')) {
+      score += this.scoreSubstackElement(className);
+    } else if (
+      url.includes('anthropic.com') ||
+      url.includes('research') ||
+      url.includes('openai.com')
+    ) {
+      score += this.scoreResearchElement(className, text);
+    } else if (url.includes('sutro.sh') || url.includes('/blog/')) {
+      score += this.scoreModernBlogElement(className, tagName);
     }
 
-    // Penalty for a high link-to-paragraph ratio, which often indicates navigation or footers.
-    // The original ratio of 2 was too aggressive for link-heavy articles. A ratio of 4 is more lenient
-    // and better at isolating non-content elements like navigation bars or "related articles" sections.
-    const links = element.querySelectorAll('a').length;
-    if (links > paragraphs * 4) {
-      score -= links * 10;
-    }
-
-    // Penalty for too many script/style tags
-    const scripts = element.querySelectorAll('script, style').length;
-    score -= scripts * 50;
-
-    // Bonus for content-related class names
-    const contentTerms = ['content', 'article', 'post', 'entry', 'main', 'body', 'text'];
+    // Content quality indicators
+    const contentTerms = ['content', 'article', 'post', 'entry', 'main', 'body'];
     contentTerms.forEach(term => {
       if (className.includes(term) || id.includes(term)) {
-        score += 100;
+        score += 80;
       }
     });
 
-    // Penalty for navigation-related class names
-    const navTerms = ['nav', 'menu', 'sidebar', 'footer', 'header', 'ad', 'banner'];
+    // Navigation/promotional content penalties
+    const navTerms = [
+      'nav',
+      'menu',
+      'sidebar',
+      'footer',
+      'header',
+      'advertisement',
+      'related',
+      'recent',
+    ];
     navTerms.forEach(term => {
       if (className.includes(term) || id.includes(term)) {
-        score -= 200;
+        score -= 150;
       }
     });
+
+    // Link density penalty (high link-to-text ratio suggests navigation)
+    const links = element.querySelectorAll('a').length;
+    const linkDensity = links / Math.max(wordCount / 100, 1); // Links per 100 words
+    if (linkDensity > 2) {
+      // More than 2 links per 100 words
+      score -= Math.min(linkDensity * 50, 200);
+    }
+
+    // Script/style penalty
+    const scripts = element.querySelectorAll('script, style').length;
+    score -= scripts * 50;
 
     return Math.max(0, score);
   }
 
   /**
-   * Basic validation for content elements
+   * Platform-specific scoring helpers
+   */
+  private scoreSubstackElement(className: string): number {
+    let score = 0;
+    if (className.includes('available-content')) score += 300;
+    if (className.includes('body') && className.includes('markup')) score += 250;
+    if (className.includes('markup')) score += 200;
+    if (className.includes('post-content')) score += 150;
+    return score;
+  }
+
+  private scoreResearchElement(className: string, text: string): number {
+    let score = 0;
+    if (className.includes('research')) score += 250;
+    if (className.includes('article')) score += 200;
+    if (className.includes('content')) score += 150;
+
+    // Research content indicators
+    const researchTerms = ['research', 'study', 'experiment', 'analysis', 'methodology'];
+    researchTerms.forEach(term => {
+      if (text.toLowerCase().includes(term)) score += 40;
+    });
+
+    return score;
+  }
+
+  private scoreModernBlogElement(className: string, tagName: string): number {
+    let score = 0;
+    if (className.includes('prose')) score += 150;
+    if (className.includes('max-w-')) score += 80; // Tailwind patterns
+    if (className.includes('mx-auto')) score += 60;
+    if (tagName === 'article') score += 100;
+    return score;
+  }
+
+  /**
+   * Basic validation for content elements - Simplified
    */
   private isValidContentElement(element: Element): boolean {
     const text = element.textContent?.trim() || '';
-    const minLength = 50;
-
-    if (text.length < minLength) {
-      return false;
-    }
-
-    // Check for navigation indicators
     const className = element.className.toLowerCase();
     const id = element.id.toLowerCase();
-    const navTerms = ['recent', 'related', 'more', 'sidebar', 'navigation', 'nav', 'menu'];
 
+    // Must have minimum content
+    if (text.length < 100) return false;
+
+    // Must have some structure (paragraphs or headings)
+    const paragraphs = element.querySelectorAll('p').length;
+    const headings = element.querySelectorAll('h1, h2, h3, h4, h5, h6').length;
+    if (paragraphs < 1 && headings < 1) return false;
+
+    // Reject obvious navigation elements
+    const navTerms = ['recent-articles', 'more-recent', 'related-posts', 'navigation', 'menu'];
     if (navTerms.some(term => className.includes(term) || id.includes(term))) {
-      const paragraphs = element.querySelectorAll('p').length;
-      return paragraphs >= 3; // Allow if it has substantial paragraphs
+      return paragraphs >= 5; // Only allow if substantial content
     }
 
     return true;
+  }
+
+  /**
+   * Simplified main content finder for backward compatibility
+   */
+  findMainContent(): Element | null {
+    return this.findContentElement(window.location.href, document);
   }
 }
