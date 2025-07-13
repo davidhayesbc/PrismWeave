@@ -99,9 +99,8 @@ export class MarkdownConverterCore {
       'meta',
       'link',
 
-      // Navigation and UI elements
+      // Navigation and UI elements (but not semantic headers that contain content)
       'nav',
-      'header',
       'footer',
       'aside',
 
