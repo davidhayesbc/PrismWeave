@@ -40,7 +40,7 @@ const possibleHTML3 = `
 const turndown = new TurndownService({
   bulletListMarker: '-',
   strongDelimiter: '**',
-  emDelimiter: '*'
+  emDelimiter: '*',
 });
 
 console.log('Test 1: Plain paragraphs (no list structure)');
@@ -67,7 +67,7 @@ console.log();
 console.log('=== CONCLUSION ===');
 console.log('If your output looks like Test 1 or Test 2, then the webpage');
 console.log('is NOT using proper HTML <ol><li> structure for the numbered list.');
-console.log('This would explain why you\'re seeing plain paragraphs instead of numbered lists.');
+console.log("This would explain why you're seeing plain paragraphs instead of numbered lists.");
 console.log();
 console.log('The fix would be to add custom detection and conversion');
 console.log('for non-semantic list structures in the markdown converter.');

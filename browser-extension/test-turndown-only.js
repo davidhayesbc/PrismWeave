@@ -23,7 +23,7 @@ const turndown = new TurndownService({
   strongDelimiter: '**',
   emDelimiter: '*',
   headingStyle: 'atx',
-  codeBlockStyle: 'fenced'
+  codeBlockStyle: 'fenced',
 });
 
 const result = turndown.turndown(properOlLiHTML);

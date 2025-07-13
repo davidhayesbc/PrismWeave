@@ -328,7 +328,7 @@ export class MarkdownConverterCore {
     if (!this.turndownService) return;
 
     // Minimal custom rules - let TurndownService handle most conversions natively
-    
+
     // Remove unwanted elements only
     this.turndownService.addRule('removeUnwanted', {
       filter: (node: any) => {
@@ -344,7 +344,7 @@ export class MarkdownConverterCore {
           'clipboard',
           'nav',
           'navbar',
-          'navigation', 
+          'navigation',
           'menu',
           'header',
           'footer',
@@ -373,27 +373,27 @@ export class MarkdownConverterCore {
     this.turndownService.addRule('pseudoNumberedLists', {
       filter: (node: any) => {
         if (node.nodeType !== 1) return false;
-        
+
         // Skip if this is already in a proper list structure - let TurndownService handle it
         if (node.closest('ol, ul, li')) return false;
-        
+
         const text = (node.textContent || '').trim();
         if (!text) return false;
-        
+
         // Look for content that starts with a number followed by period and space
         const pseudoListPattern = /^\d+\.\s+/;
         const startsWithNumber = pseudoListPattern.test(text);
-        
+
         // Must be substantial content in a block element
         const hasSubstantialContent = text.length > 30;
         const isBlock = node.tagName === 'P' || node.tagName === 'DIV';
-        
+
         return startsWithNumber && hasSubstantialContent && isBlock;
       },
       replacement: (content: string) => {
         const text = content.trim();
         if (!text) return '';
-        
+
         // Preserve the numbered list format
         return `\n${text}\n`;
       },
