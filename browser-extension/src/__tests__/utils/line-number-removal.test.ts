@@ -12,24 +12,27 @@ function simpleMarkdownConversion(
   url: string
 ): { content: string; title: string; url: string } {
   let markdown = html;
-  
+
   // Headers
   markdown = markdown.replace(/<h([1-6])[^>]*>(.*?)<\/h[1-6]>/gi, (match, level, content) => {
     const headerLevel = '#'.repeat(parseInt(level));
     return `\n${headerLevel} ${stripHtml(content)}\n`;
   });
-  
+
   // Code blocks - with line number removal and language detection
-  markdown = markdown.replace(/<pre[^>]*><code[^>]*class=["']language-([^"']*?)["'][^>]*>(.*?)<\/code><\/pre>/gis, (match, lang, code) => {
-    const cleanCode = code.replace(/^\s*\d+\.?\s+/gm, ''); // Remove line numbers
-    const language = lang === 'dockerfile' ? 'docker' : lang;
-    return `\n\`\`\`${language}\n${cleanCode.trim()}\n\`\`\`\n`;
-  });
-  
+  markdown = markdown.replace(
+    /<pre[^>]*><code[^>]*class=["']language-([^"']*?)["'][^>]*>(.*?)<\/code><\/pre>/gis,
+    (match, lang, code) => {
+      const cleanCode = code.replace(/^\s*\d+\.?\s+/gm, ''); // Remove line numbers
+      const language = lang === 'dockerfile' ? 'docker' : lang;
+      return `\n\`\`\`${language}\n${cleanCode.trim()}\n\`\`\`\n`;
+    }
+  );
+
   // Code blocks without language
   markdown = markdown.replace(/<pre[^>]*><code[^>]*>(.*?)<\/code><\/pre>/gis, (match, code) => {
     const cleanCode = code.replace(/^\s*\d+\.?\s+/gm, ''); // Remove line numbers
-    
+
     // Detect language based on content
     let language = '';
     const codeContent = cleanCode.toLowerCase();
@@ -38,23 +41,23 @@ function simpleMarkdownConversion(
     } else if (codeContent.includes('from ') || codeContent.includes('workdir')) {
       language = 'docker';
     }
-    
+
     return `\n\`\`\`${language}\n${cleanCode.trim()}\n\`\`\`\n`;
   });
-  
+
   // Inline code
   markdown = markdown.replace(/<code[^>]*>(.*?)<\/code>/gi, '`$1`');
-  
+
   // Paragraphs
   markdown = markdown.replace(/<p[^>]*>(.*?)<\/p>/gi, '\n$1\n');
-  
+
   // Strip remaining HTML
   markdown = stripHtml(markdown);
-  
+
   // Clean up whitespace
   markdown = markdown.replace(/\n\s*\n\s*\n/g, '\n\n');
   markdown = markdown.trim();
-  
+
   return { content: markdown, title, url };
 }
 
