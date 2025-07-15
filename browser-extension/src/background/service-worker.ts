@@ -5,6 +5,7 @@
 import { IMessageData, IMessageResponse, MESSAGE_TYPES } from '../types/index';
 import { ContentCaptureService } from '../utils/content-capture-service';
 import { createLogger } from '../utils/logger';
+import { PDFCaptureService } from '../utils/pdf-capture-service';
 import { SettingsManager } from '../utils/settings-manager';
 
 // Initialize logger
@@ -16,6 +17,7 @@ logger.info('Service Worker starting...');
 interface IServiceWorkerState {
   settingsManager: SettingsManager | null;
   captureService: ContentCaptureService | null;
+  pdfCaptureService: PDFCaptureService | null;
   isInitialized: boolean;
   initializationError: Error | null;
 }
@@ -24,6 +26,7 @@ interface IServiceWorkerState {
 let serviceWorkerState: IServiceWorkerState = {
   settingsManager: null,
   captureService: null,
+  pdfCaptureService: null,
   isInitialized: false,
   initializationError: null,
 };
@@ -31,7 +34,8 @@ let serviceWorkerState: IServiceWorkerState = {
 // Initialize managers with dependency injection support for testing
 export async function initializeServiceWorkers(
   customSettingsManager?: SettingsManager,
-  customCaptureService?: ContentCaptureService
+  customCaptureService?: ContentCaptureService,
+  customPDFCaptureService?: PDFCaptureService
 ): Promise<IServiceWorkerState> {
   try {
     logger.info('Initializing service worker managers...');
@@ -39,6 +43,8 @@ export async function initializeServiceWorkers(
     serviceWorkerState.settingsManager = customSettingsManager || new SettingsManager();
     serviceWorkerState.captureService =
       customCaptureService || new ContentCaptureService(serviceWorkerState.settingsManager);
+    serviceWorkerState.pdfCaptureService =
+      customPDFCaptureService || new PDFCaptureService(serviceWorkerState.settingsManager);
 
     serviceWorkerState.isInitialized = true;
     serviceWorkerState.initializationError = null;
@@ -107,6 +113,11 @@ export async function handleMessage(
     throw new Error('Capture service not initialized');
   }
 
+  const requiresPDFService = ['CAPTURE_PDF', 'CHECK_PDF'];
+  if (requiresPDFService.includes(message.type) && !serviceWorkerState.pdfCaptureService) {
+    throw new Error('PDF capture service not initialized');
+  }
+
   switch (message.type) {
     case MESSAGE_TYPES.GET_SETTINGS:
       return await serviceWorkerState.settingsManager!.getSettings();
@@ -169,6 +180,30 @@ export async function handleMessage(
       });
       return captureResult;
 
+    case MESSAGE_TYPES.CAPTURE_PDF:
+      logger.debug('Processing CAPTURE_PDF message with data:', message.data);
+
+      const pdfCaptureResult = await serviceWorkerState.pdfCaptureService!.capturePDF(
+        message.data,
+        {
+          validateSettings: true,
+          forceGitHubCommit: true,
+        }
+      );
+      logger.debug('CAPTURE_PDF result:', {
+        success: pdfCaptureResult.success,
+        message: pdfCaptureResult.message,
+        hasData: !!pdfCaptureResult.data,
+      });
+      return pdfCaptureResult;
+
+    case MESSAGE_TYPES.CHECK_PDF:
+      logger.debug('Processing CHECK_PDF message');
+
+      const pdfCheckResult = await serviceWorkerState.pdfCaptureService!.checkIfPDF();
+      logger.debug('CHECK_PDF result:', pdfCheckResult);
+      return pdfCheckResult;
+
     case MESSAGE_TYPES.GET_STATUS:
       return getServiceWorkerStatus();
 
@@ -185,6 +220,7 @@ export function getServiceWorkerStatus(): Record<string, unknown> {
     initialized: serviceWorkerState.isInitialized,
     hasSettingsManager: !!serviceWorkerState.settingsManager,
     hasCaptureService: !!serviceWorkerState.captureService,
+    hasPDFCaptureService: !!serviceWorkerState.pdfCaptureService,
     hasInitializationError: !!serviceWorkerState.initializationError,
     initializationError: serviceWorkerState.initializationError?.message,
     version: chrome.runtime.getManifest().version,

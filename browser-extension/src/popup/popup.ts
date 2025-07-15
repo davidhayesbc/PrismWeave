@@ -63,8 +63,16 @@ export class PrismWeavePopup {
     return this.captureSelection();
   }
 
+  public async testCapturePDF(): Promise<void> {
+    return this.capturePDF();
+  }
+
   public testIsPageCapturable(): boolean {
     return this.isPageCapturable();
+  }
+
+  public testIsPDFPage(): boolean {
+    return this.isPDFPage();
   }
 
   // Getters for testing state
@@ -172,6 +180,17 @@ export class PrismWeavePopup {
       });
     }
 
+    // Capture PDF button
+    const capturePdfBtn = document.getElementById('capture-pdf');
+    if (capturePdfBtn) {
+      capturePdfBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        e.preventDefault();
+        logger.debug('Capture PDF button clicked');
+        this.capturePDF();
+      });
+    }
+
     // Settings button
     const settingsBtn = document.getElementById('settings-btn');
     if (settingsBtn) {
@@ -265,11 +284,14 @@ export class PrismWeavePopup {
     if (!this.currentTab?.url) return;
 
     const isCapturable = this.isPageCapturable();
+    const isPDF = this.isPDFPage();
 
     const captureBtn = document.getElementById('capture-page') as HTMLButtonElement;
     const captureSelectionBtn = document.getElementById('capture-selection') as HTMLButtonElement;
+    const capturePdfBtn = document.getElementById('capture-pdf') as HTMLButtonElement;
     const warningContainer = document.getElementById('capture-warning');
 
+    // Handle regular capture buttons
     if (isCapturable) {
       if (captureBtn) captureBtn.disabled = false;
       if (captureSelectionBtn) captureSelectionBtn.disabled = false;
@@ -280,6 +302,16 @@ export class PrismWeavePopup {
       if (warningContainer) {
         warningContainer.style.display = 'block';
         // The warning content is already set in the HTML
+      }
+    }
+
+    // Handle PDF capture button
+    if (capturePdfBtn) {
+      if (isPDF) {
+        capturePdfBtn.style.display = 'block';
+        capturePdfBtn.disabled = false;
+      } else {
+        capturePdfBtn.style.display = 'none';
       }
     }
   }
@@ -493,6 +525,28 @@ export class PrismWeavePopup {
       (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('file://'))
     );
   }
+
+  private isPDFPage(): boolean {
+    if (!this.currentTab?.url) return false;
+
+    const url = this.currentTab.url;
+
+    // Check if URL ends with .pdf
+    if (url.toLowerCase().endsWith('.pdf')) {
+      return true;
+    }
+
+    // Check if URL contains PDF indicators
+    if (url.toLowerCase().includes('.pdf')) {
+      return true;
+    }
+
+    // Check if it's a common PDF viewer URL pattern
+    const pdfPatterns = [/\/pdf\//i, /\.pdf$/i, /\.pdf\?/i, /\.pdf#/i, /application\/pdf/i];
+
+    return pdfPatterns.some(pattern => pattern.test(url));
+  }
+
   private async captureSelection(): Promise<void> {
     if (this.isCapturing) return;
 
@@ -638,6 +692,146 @@ export class PrismWeavePopup {
       this.isCapturing = false;
     }
   }
+
+  private async capturePDF(): Promise<void> {
+    if (this.isCapturing) return;
+
+    try {
+      this.isCapturing = true;
+
+      // Check if we have a current tab
+      if (!this.currentTab?.id) {
+        logger.warn('No current tab available, attempting to refresh tab info');
+        try {
+          await this.getCurrentTab();
+        } catch (error) {
+          logger.error('Failed to get current tab:', error);
+          this.updateCaptureStatus('No active tab available for PDF capture', 'error');
+          setTimeout(() => this.resetCaptureStatus(), 3000);
+          return;
+        }
+      }
+
+      // Double-check we now have a valid tab ID
+      if (!this.currentTab?.id) {
+        this.updateCaptureStatus('Unable to identify current tab', 'error');
+        setTimeout(() => this.resetCaptureStatus(), 3000);
+        return;
+      }
+
+      // Validate crucial settings before proceeding
+      const settingsValidation = this.validateCaptureSettings();
+      if (!settingsValidation.isValid) {
+        this.showMissingSettingsMessage(
+          settingsValidation.message!,
+          settingsValidation.missingSettings
+        );
+        return;
+      }
+
+      // Check if current page is a PDF
+      this.updateCaptureStatus(
+        'Checking PDF...',
+        'Verifying if current page is a PDF document',
+        'progress',
+        { showProgress: true, progressValue: 20 }
+      );
+
+      const checkMessage: IMessageData = {
+        type: MESSAGE_TYPES.CHECK_PDF,
+        data: {
+          tabId: this.currentTab.id,
+          url: this.currentTab.url,
+        },
+      };
+
+      const checkResponse = await this.sendMessageToBackground(
+        checkMessage.type,
+        checkMessage.data
+      );
+
+      if (!checkResponse.success || !(checkResponse.data as { isPDF: boolean })?.isPDF) {
+        this.updateCaptureStatus(
+          'Not a PDF Document',
+          'The current page is not a PDF file. Please navigate to a PDF document first.',
+          'error',
+          { autoHide: 4000 }
+        );
+        return;
+      }
+
+      // Proceed with PDF capture
+      this.updateCaptureStatus(
+        'Capturing PDF...',
+        'Downloading and saving PDF to repository',
+        'progress',
+        { showProgress: true, progressValue: 60 }
+      );
+
+      const captureMessage: IMessageData = {
+        type: MESSAGE_TYPES.CAPTURE_PDF,
+        data: {
+          tabId: this.currentTab.id,
+          url: this.currentTab.url,
+          settings: this.settings,
+        },
+      };
+
+      const response = await this.sendMessageToBackground(captureMessage.type, captureMessage.data);
+
+      if (response.success) {
+        const responseData = response.data as any;
+        this.updateCaptureStatus(
+          'PDF Captured Successfully!',
+          `PDF saved as: ${responseData?.filename || 'document.pdf'}`,
+          'success',
+          {
+            autoHide: 5000,
+            actions: [
+              {
+                label: 'View Repository',
+                action: () => this.openRepository(),
+                primary: true,
+              },
+              {
+                label: 'Capture More',
+                action: () => this.resetCaptureStatus(),
+              },
+            ],
+          }
+        );
+      } else {
+        throw new Error(response.error || 'PDF capture failed');
+      }
+    } catch (error) {
+      logger.error('Error capturing PDF:', error);
+      const errorMessage = (error as Error).message;
+
+      this.updateCaptureStatus('PDF Capture Failed', errorMessage, 'error', {
+        autoHide: 6000,
+        actions: [
+          {
+            label: 'Try Again',
+            action: () => {
+              this.resetCaptureStatus();
+              setTimeout(() => this.capturePDF(), 100);
+            },
+            primary: true,
+          },
+          {
+            label: 'Capture Page Content',
+            action: () => {
+              this.resetCaptureStatus();
+              setTimeout(() => this.capturePage(), 100);
+            },
+          },
+        ],
+      });
+    } finally {
+      this.isCapturing = false;
+    }
+  }
+
   /**
    * Enhanced status update method with rich UI feedback
    * @param title The main status title

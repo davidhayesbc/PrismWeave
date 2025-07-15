@@ -517,6 +517,7 @@ describe('Service Worker Comprehensive Tests - Phase 3.1', () => {
         initialized: true,
         hasSettingsManager: true,
         hasCaptureService: true,
+        hasPDFCaptureService: true,
         hasInitializationError: false,
         initializationError: undefined,
         version: '1.0.0-test',

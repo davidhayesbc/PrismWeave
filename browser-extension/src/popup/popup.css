@@ -82,6 +82,46 @@ body {
   transform: translateY(-1px);
 }
 
+/* PDF Capture Button Styles */
+.pdf-capture-button {
+  background: #ff6b35;
+  color: white;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  width: 100%;
+  margin-bottom: 16px;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(255, 107, 53, 0.3);
+  position: relative;
+  overflow: hidden;
+}
+
+.pdf-capture-button:hover {
+  background: #e55a2f;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(255, 107, 53, 0.4);
+}
+
+.pdf-capture-button:active {
+  transform: translateY(0);
+}
+
+.pdf-capture-button:disabled {
+  background: #e0e0e0;
+  color: #9e9e9e;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.pdf-capture-button.hidden {
+  display: none;
+}
+
 .page-info {
   background: white;
   border-radius: 12px;
