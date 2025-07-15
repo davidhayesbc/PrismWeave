@@ -176,3 +176,67 @@ class EmbeddingStore:
             return self.vector_store._collection.count()
         except Exception:
             return 0
+    
+    def list_documents(self, max_documents: Optional[int] = None) -> List[Dict[str, Any]]:
+        """
+        List documents in the collection with their metadata
+        
+        Args:
+            max_documents: Maximum number of documents to return (None for all)
+            
+        Returns:
+            List of document metadata dictionaries
+        """
+        
+        try:
+            collection = self.vector_store._collection
+            
+            # Get all document IDs and metadata
+            # ChromaDB get() without specifying ids returns all documents
+            if max_documents:
+                result = collection.get(limit=max_documents, include=['metadatas', 'documents'])
+            else:
+                result = collection.get(include=['metadatas', 'documents'])
+            
+            documents = []
+            for i, (doc_id, metadata, content) in enumerate(zip(
+                result['ids'], 
+                result['metadatas'], 
+                result['documents']
+            )):
+                doc_info = {
+                    'id': doc_id,
+                    'metadata': metadata,
+                    'content_preview': content[:200] + '...' if len(content) > 200 else content,
+                    'content_length': len(content)
+                }
+                documents.append(doc_info)
+            
+            return documents
+            
+        except Exception as e:
+            print(f"Failed to list documents: {e}")
+            return []
+    
+    def get_unique_source_files(self) -> List[str]:
+        """
+        Get a list of unique source files in the collection
+        
+        Returns:
+            List of unique source file paths
+        """
+        
+        try:
+            collection = self.vector_store._collection
+            result = collection.get(include=['metadatas'])
+            
+            source_files = set()
+            for metadata in result['metadatas']:
+                if 'source_file' in metadata:
+                    source_files.add(metadata['source_file'])
+            
+            return sorted(list(source_files))
+            
+        except Exception as e:
+            print(f"Failed to get source files: {e}")
+            return []

@@ -51,22 +51,34 @@ source .venv/bin/activate  # Linux/Mac
 ### Command Line Interface
 ```bash
 # Process a single file
-python cli.py document.md
+python cli.py process document.md
 
 # Process a directory (recursive)
-python cli.py /path/to/documents
+python cli.py process /path/to/documents
 
 # Process with verbose output
-python cli.py document.md --verbose
+python cli.py process document.md --verbose
 
 # Process and verify embeddings
-python cli.py /path/to/documents --verify
+python cli.py process /path/to/documents --verify
 
 # Clear existing embeddings before processing
-python cli.py /path/to/documents --clear
+python cli.py process /path/to/documents --clear
 
 # Use custom config file
-python cli.py document.md --config custom-config.yaml
+python cli.py process document.md --config custom-config.yaml
+
+# List documents in the collection (max 50 by default)
+python cli.py list
+
+# List first 10 documents
+python cli.py list --max 10
+
+# Show unique source files only
+python cli.py list --source-files
+
+# Show document count
+python cli.py count
 
 # Show help
 python cli.py --help
@@ -75,10 +87,13 @@ python cli.py --help
 ### Examples
 ```bash
 # Process PrismWeaveDocs tech folder with verification
-python cli.py "d:\source\PrismWeaveDocs\documents\tech" --verify
+python cli.py process "d:\source\PrismWeaveDocs\documents\tech" --verify
 
 # Process single document with verbose output
-python cli.py "d:\source\PrismWeaveDocs\documents\tech\example.md" --verbose
+python cli.py process "d:\source\PrismWeaveDocs\documents\tech\example.md" --verbose
+
+# Enumerate first 20 documents with details
+python cli.py list --max 20 --verbose
 ```
 
 ### Python API
