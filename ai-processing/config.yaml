@@ -1,63 +1,18 @@
-# PrismWeave AI Processing Configuration
-# Merged configuration containing only settings used by the CLI tool
+# PrismWeave AI Processing - Simplified Configuration
 
 # Ollama Server Configuration
 ollama:
   host: http://localhost:11434
   timeout: 60
-  
-  # Model mapping - simplified structure (no complex fallbacks)
   models:
-    large: "llama3.1:8b"           # Complex analysis, long-form generation
-    medium: "phi3:mini"            # Standard document processing  
-    small: "phi3:mini"             # Quick tasks, tagging, classification
     embedding: "nomic-embed-text:latest"  # Vector embeddings for search
 
 # Document Processing Configuration
 processing:
-  max_concurrent: 1          # Reduced to prevent Ollama overload
-  chunk_size: 3000
-  chunk_overlap: 300
-  min_chunk_size: 100
-  
-  # Processing timeouts - increased for better reliability
-  summary_timeout: 180        # Increased from 120
-  tagging_timeout: 120        # Increased from 60
-  categorization_timeout: 90  # Increased from 30
-  
-  # Content filtering
-  min_word_count: 50
-  max_word_count: 50000
-  
-  # Output settings
-  max_summary_length: 500
-  max_tags: 10
+  chunk_size: 1000           # Smaller chunks for web documents
+  chunk_overlap: 200         # Overlap between chunks
 
 # Vector Database Configuration
 vector:
   collection_name: "documents"
   persist_directory: "../../PrismWeaveDocs/.prismweave/chroma_db"
-  embedding_function: "sentence-transformers"
-  
-  # Search settings
-  max_results: 20
-  similarity_threshold: 0.3
-
-# API Server Configuration  
-api:
-  host: "127.0.0.1"
-  port: 8000
-  cors_origins: ["*"]
-  rag_enabled: true
-  openai_compatible: true
-  
-  # RAG-specific API settings
-  rag:
-    default_context_docs: 10
-    default_synthesis_style: "comprehensive"
-    max_context_docs: 20
-    enable_source_citations: true
-
-# Logging Configuration
-log_level: "DEBUG"
-log_file: null

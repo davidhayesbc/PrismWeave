@@ -48,37 +48,13 @@ source .venv/bin/activate  # Linux/Mac
 
 ## 🚀 Usage
 
-### Command Line Interface
+### Simple Command Line
 ```bash
-# Process a single file
-python cli.py document.md
+# Process documents from PrismWeaveDocs
+python main.py
 
-# Process a directory (recursive)
-python cli.py /path/to/documents
-
-# Process with verbose output
-python cli.py document.md --verbose
-
-# Process and verify embeddings
-python cli.py /path/to/documents --verify
-
-# Clear existing embeddings before processing
-python cli.py /path/to/documents --clear
-
-# Use custom config file
-python cli.py document.md --config custom-config.yaml
-
-# Show help
-python cli.py --help
-```
-
-### Examples
-```bash
-# Process PrismWeaveDocs tech folder with verification
-python cli.py "d:\source\PrismWeaveDocs\documents\tech" --verify
-
-# Process single document with verbose output
-python cli.py "d:\source\PrismWeaveDocs\documents\tech\example.md" --verbose
+# Process documents from custom directory
+python main.py /path/to/your/documents
 ```
 
 ### Python API
@@ -153,7 +129,7 @@ ai-processing/
 │       └── config.py                # Configuration management
 ├── tests/
 │   └── test_core.py                 # Essential tests
-├── cli.py                           # Unified CLI tool
+├── main.py                          # Command line entry point
 ├── config.yaml                      # Configuration file
 ├── pyproject.toml                   # Dependencies
 └── README.md                        # This file
