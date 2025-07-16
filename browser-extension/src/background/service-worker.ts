@@ -7,6 +7,18 @@ import { ContentCaptureService } from '../utils/content-capture-service';
 import { createLogger } from '../utils/logger';
 import { PDFCaptureService } from '../utils/pdf-capture-service';
 import { SettingsManager } from '../utils/settings-manager';
+import { UnifiedCaptureService } from '../utils/unified-capture-service';
+
+// Enhanced response interface with commit URL support
+interface IEnhancedMessageResponse extends IMessageResponse {
+  commitUrl?: string;
+  saveResult?: {
+    url?: string;
+    commitUrl?: string;
+    [key: string]: unknown;
+  };
+  timestamp?: number;
+}
 
 // Initialize logger
 const logger = createLogger('ServiceWorker');
@@ -18,6 +30,7 @@ interface IServiceWorkerState {
   settingsManager: SettingsManager | null;
   captureService: ContentCaptureService | null;
   pdfCaptureService: PDFCaptureService | null;
+  unifiedCaptureService: UnifiedCaptureService | null;
   isInitialized: boolean;
   initializationError: Error | null;
 }
@@ -27,6 +40,7 @@ let serviceWorkerState: IServiceWorkerState = {
   settingsManager: null,
   captureService: null,
   pdfCaptureService: null,
+  unifiedCaptureService: null,
   isInitialized: false,
   initializationError: null,
 };
@@ -45,6 +59,9 @@ export async function initializeServiceWorkers(
       customCaptureService || new ContentCaptureService(serviceWorkerState.settingsManager);
     serviceWorkerState.pdfCaptureService =
       customPDFCaptureService || new PDFCaptureService(serviceWorkerState.settingsManager);
+    serviceWorkerState.unifiedCaptureService = new UnifiedCaptureService(
+      serviceWorkerState.settingsManager
+    );
 
     serviceWorkerState.isInitialized = true;
     serviceWorkerState.initializationError = null;
@@ -86,7 +103,7 @@ export async function handleInstallation(details: chrome.runtime.InstalledDetail
 export async function handleMessage(
   message: IMessageData,
   sender: chrome.runtime.MessageSender
-): Promise<unknown> {
+): Promise<IEnhancedMessageResponse> {
   // Validate message structure
   if (!message || typeof message.type !== 'string') {
     throw new Error('Invalid message format');
@@ -118,9 +135,15 @@ export async function handleMessage(
     throw new Error('PDF capture service not initialized');
   }
 
+  const requiresUnifiedService = ['CAPTURE_CONTENT'];
+  if (requiresUnifiedService.includes(message.type) && !serviceWorkerState.unifiedCaptureService) {
+    throw new Error('Unified capture service not initialized');
+  }
+
   switch (message.type) {
     case MESSAGE_TYPES.GET_SETTINGS:
-      return await serviceWorkerState.settingsManager!.getSettings();
+      const settings = await serviceWorkerState.settingsManager!.getSettings();
+      return { success: true, data: settings, timestamp: Date.now() };
 
     case MESSAGE_TYPES.UPDATE_SETTINGS:
       if (!message.data || typeof message.data !== 'object') {
@@ -129,25 +152,32 @@ export async function handleMessage(
         throw error;
       }
       await serviceWorkerState.settingsManager!.updateSettings(message.data);
-      return { success: true };
+      return { success: true, timestamp: Date.now() };
 
     case MESSAGE_TYPES.RESET_SETTINGS:
       await serviceWorkerState.settingsManager!.resetSettings();
-      return { success: true };
+      return { success: true, timestamp: Date.now() };
 
     case MESSAGE_TYPES.VALIDATE_SETTINGS:
       const currentSettings = await serviceWorkerState.settingsManager!.getSettings();
-      return serviceWorkerState.settingsManager!.validateSettings(currentSettings);
+      const validationResult =
+        serviceWorkerState.settingsManager!.validateSettings(currentSettings);
+      return { success: true, data: validationResult, timestamp: Date.now() };
 
     case MESSAGE_TYPES.TEST:
       return {
-        message: 'Service worker is working',
-        timestamp: new Date().toISOString(),
-        version: chrome.runtime.getManifest().version,
+        success: true,
+        data: {
+          message: 'Service worker is working',
+          timestamp: new Date().toISOString(),
+          version: chrome.runtime.getManifest().version,
+        },
+        timestamp: Date.now(),
       };
 
     case MESSAGE_TYPES.TEST_CONNECTION:
-      return await serviceWorkerState.captureService!.testGitHubConnection();
+      const testResult = await serviceWorkerState.captureService!.testGitHubConnection();
+      return { success: true, data: testResult, timestamp: Date.now() };
 
     case MESSAGE_TYPES.CAPTURE_PAGE:
       logger.debug('Processing CAPTURE_PAGE message with data:', message.data);
@@ -178,7 +208,29 @@ export async function handleMessage(
         message: captureResult.message,
         hasData: !!captureResult.data,
       });
-      return captureResult;
+
+      // Extract commit URL from capture result
+      const pageCommitUrl = captureResult.data?.commitUrl || captureResult.data?.url;
+
+      if (pageCommitUrl) {
+        logger.info('Page capture commit URL found:', pageCommitUrl);
+      } else {
+        logger.warn('No commit URL found in page capture result');
+      }
+
+      // Return enhanced response with commit URL
+      return {
+        success: captureResult.success,
+        data: {
+          ...captureResult.data,
+          commitUrl: pageCommitUrl || undefined,
+        },
+        ...(pageCommitUrl && { commitUrl: pageCommitUrl }),
+        saveResult: {
+          ...(pageCommitUrl && { url: pageCommitUrl, commitUrl: pageCommitUrl }),
+        },
+        timestamp: Date.now(),
+      };
 
     case MESSAGE_TYPES.CAPTURE_PDF:
       logger.debug('Processing CAPTURE_PDF message with data:', message.data);
@@ -195,17 +247,97 @@ export async function handleMessage(
         message: pdfCaptureResult.message,
         hasData: !!pdfCaptureResult.data,
       });
-      return pdfCaptureResult;
+
+      // Extract commit URL from PDF capture result
+      const pdfCommitUrl = pdfCaptureResult.data?.commitUrl || pdfCaptureResult.data?.url;
+
+      if (pdfCommitUrl) {
+        logger.info('PDF capture commit URL found:', pdfCommitUrl);
+      } else {
+        logger.warn('No commit URL found in PDF capture result');
+      }
+
+      // Return enhanced response with commit URL
+      return {
+        success: pdfCaptureResult.success,
+        data: {
+          ...pdfCaptureResult.data,
+          commitUrl: pdfCommitUrl || undefined,
+        },
+        ...(pdfCommitUrl && { commitUrl: pdfCommitUrl }),
+        saveResult: {
+          ...(pdfCommitUrl && { url: pdfCommitUrl, commitUrl: pdfCommitUrl }),
+        },
+        timestamp: Date.now(),
+      };
 
     case MESSAGE_TYPES.CHECK_PDF:
       logger.debug('Processing CHECK_PDF message');
 
       const pdfCheckResult = await serviceWorkerState.pdfCaptureService!.checkIfPDF();
       logger.debug('CHECK_PDF result:', pdfCheckResult);
-      return pdfCheckResult;
+      return { success: true, data: pdfCheckResult, timestamp: Date.now() };
+
+    case MESSAGE_TYPES.CAPTURE_CONTENT:
+      logger.debug('Processing CAPTURE_CONTENT message with unified service');
+
+      const unifiedCaptureResult = await serviceWorkerState.unifiedCaptureService!.captureContent(
+        message.data,
+        {
+          validateSettings: true,
+          autoDetectionTimeout: 5000,
+        }
+      );
+
+      logger.debug('CAPTURE_CONTENT result:', {
+        success: unifiedCaptureResult.success,
+        contentType: unifiedCaptureResult.contentType,
+        captureMethod: unifiedCaptureResult.data?.captureMethod,
+        hasData: !!unifiedCaptureResult.data,
+      });
+
+      // Enhanced commit URL extraction from various possible locations in the response
+      const extractCommitUrl = (result: any): string | undefined => {
+        return (
+          result.data?.commitUrl ||
+          result.commitUrl ||
+          result.data?.url ||
+          result.data?.saveResult?.url ||
+          result.data?.saveResult?.commitUrl ||
+          result.data?.githubResult?.url ||
+          result.data?.githubResult?.html_url ||
+          result.data?.content?.html_url ||
+          result.saveResult?.url ||
+          result.saveResult?.commitUrl ||
+          result.url
+        );
+      };
+
+      const commitUrl = extractCommitUrl(unifiedCaptureResult);
+
+      if (commitUrl) {
+        logger.info('Commit URL found:', commitUrl);
+      } else {
+        logger.warn('No commit URL found in capture result');
+      }
+
+      // Return enhanced response with commit URL in multiple locations for compatibility
+      return {
+        success: unifiedCaptureResult.success,
+        data: {
+          ...unifiedCaptureResult.data,
+          commitUrl: commitUrl || undefined, // Add commit URL to data
+        },
+        ...(commitUrl && { commitUrl }), // Add commit URL to top level only if it exists
+        saveResult: {
+          ...(commitUrl && { url: commitUrl, commitUrl }),
+        },
+        timestamp: Date.now(),
+      };
 
     case MESSAGE_TYPES.GET_STATUS:
-      return getServiceWorkerStatus();
+      const statusData = getServiceWorkerStatus();
+      return { success: true, data: statusData, timestamp: Date.now() };
 
     default:
       const error = new Error(`Unknown message type: ${message.type}`);
@@ -237,7 +369,7 @@ chrome.runtime.onMessage.addListener(
   (
     message: IMessageData,
     sender: chrome.runtime.MessageSender,
-    sendResponse: (response: IMessageResponse) => void
+    sendResponse: (response: IEnhancedMessageResponse) => void
   ) => {
     logger.info('Received message:', message.type);
 
@@ -245,11 +377,15 @@ chrome.runtime.onMessage.addListener(
     handleMessage(message, sender)
       .then(result => {
         logger.debug('Message handled successfully:', message.type);
-        sendResponse({ success: true, data: result });
+        sendResponse(result);
       })
       .catch(error => {
         logger.error('Error handling message:', message.type, error);
-        sendResponse({ success: false, error: error.message });
+        sendResponse({
+          success: false,
+          error: error.message,
+          timestamp: Date.now(),
+        });
       });
 
     return true; // Keep message channel open for async response

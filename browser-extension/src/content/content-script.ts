@@ -14,9 +14,21 @@ import { createLogger } from '../utils/logger.js';
 import { MarkdownConverter } from '../utils/markdown-converter.js';
 import { StackOverflowBlogExtractor } from '../utils/stackoverflow-blog-extractor.js';
 
-console.log('PrismWeave content script loading...');
+console.log('🚀 PrismWeave content script loading...');
+console.log('📍 Current URL:', window.location.href);
+console.log('📄 Page title:', document.title);
 
-// Type definitions for content script
+// Enhanced message response interface for better commit URL handling
+interface IEnhancedMessageResponse extends IMessageResponse {
+  commitUrl?: string;
+  url?: string;
+  saveResult?: {
+    url?: string;
+    commitUrl?: string;
+    [key: string]: unknown;
+  };
+  warnings?: string[];
+}
 interface IContentScriptState {
   isInitialized: boolean;
   keyboardShortcutsEnabled: boolean;
@@ -58,20 +70,26 @@ const KEYBOARD_SHORTCUTS: IKeyboardShortcut[] = [
 // Initialize content script
 async function initializeContentScript(): Promise<void> {
   try {
+    console.log('🚀 Initializing PrismWeave content script...');
     logger.info('Initializing PrismWeave content script...');
 
     // Load settings to check if keyboard shortcuts are enabled
     await loadKeyboardShortcutSettings();
+    console.log('⚙️ Keyboard shortcut settings loaded');
 
     // Set up keyboard event listeners
     setupKeyboardListeners();
+    console.log('🔑 Keyboard listeners set up');
 
     // Set up message listeners for communication with service worker
     setupMessageListeners();
+    console.log('📡 Message listeners set up');
 
     contentScriptState.isInitialized = true;
+    console.log('✅ PrismWeave content script initialized successfully');
     logger.info('PrismWeave content script initialized successfully');
   } catch (error) {
+    console.error('❌ Failed to initialize content script:', error);
     logger.error('Failed to initialize content script:', error);
   }
 }
@@ -99,24 +117,41 @@ function setupKeyboardListeners(): void {
 
 // Handle keyboard events
 function handleKeyboardEvent(event: KeyboardEvent): void {
+  // Log all keyboard events for debugging
+  if (event.ctrlKey && event.altKey) {
+    console.log('🔑 Keyboard event detected:', {
+      key: event.key,
+      ctrlKey: event.ctrlKey,
+      altKey: event.altKey,
+      shiftKey: event.shiftKey,
+      shortcutsEnabled: contentScriptState.keyboardShortcutsEnabled,
+      isCapturing: contentScriptState.isCapturing,
+      target: (event.target as Element)?.nodeName,
+    });
+  }
+
   // Skip if shortcuts are disabled
   if (!contentScriptState.keyboardShortcutsEnabled) {
+    console.log('⚠️ Keyboard shortcuts disabled');
     return;
   }
 
   // Skip if already capturing to prevent multiple simultaneous captures
   if (contentScriptState.isCapturing) {
+    console.log('⚠️ Already capturing, skipping shortcut');
     return;
   }
 
   // Skip if user is typing in an input field
   if (isTypingInInputField(event.target as Element)) {
+    console.log('⚠️ User typing in input field, skipping shortcut');
     return;
   }
 
   // Check if the event matches any of our shortcuts
   for (const shortcut of KEYBOARD_SHORTCUTS) {
     if (matchesShortcut(event, shortcut)) {
+      console.log('✅ Shortcut matched:', shortcut);
       event.preventDefault();
       event.stopPropagation();
       handleShortcutAction(shortcut.action);
@@ -188,119 +223,241 @@ async function handleShortcutAction(action: string): Promise<void> {
   }
 }
 
+// Enhanced commit URL extraction function
+function extractCommitUrlFromResponse(response: IEnhancedMessageResponse): string | undefined {
+  // Try all possible locations for the commit URL
+  const possibleUrls = [
+    response.commitUrl,
+    (response.data as any)?.commitUrl,
+    (response.data as any)?.url,
+    response.saveResult?.commitUrl,
+    response.saveResult?.url,
+    (response.data as any)?.saveResult?.commitUrl,
+    (response.data as any)?.saveResult?.url,
+    (response.data as any)?.githubResult?.url,
+    (response.data as any)?.githubResult?.html_url,
+    (response.data as any)?.content?.html_url,
+    response.url,
+  ];
+
+  // Find the first valid URL
+  for (const url of possibleUrls) {
+    if (url && typeof url === 'string' && url.startsWith('http')) {
+      console.log('🔗 Found commit URL:', url);
+      return url;
+    }
+  }
+
+  // If no URL found, log the response structure for debugging
+  console.warn('🚫 No commit URL found in response. Response structure:', {
+    hasCommitUrl: !!response.commitUrl,
+    hasData: !!response.data,
+    hasDataCommitUrl: !!(response.data as any)?.commitUrl,
+    hasDataUrl: !!(response.data as any)?.url,
+    hasSaveResult: !!response.saveResult,
+    hasSaveResultUrl: !!response.saveResult?.url,
+    responseKeys: Object.keys(response),
+    dataKeys: response.data ? Object.keys(response.data) : [],
+    saveResultKeys: response.saveResult ? Object.keys(response.saveResult) : [],
+  });
+
+  return undefined;
+}
+
 // Handle capture page shortcut
 async function handleCapturePageShortcut(): Promise<void> {
+  console.log('🎯 Keyboard shortcut triggered!');
+  logger.info('Keyboard shortcut triggered - starting capture process');
+
   if (contentScriptState.isCapturing) {
+    console.log('⚠️ Capture already in progress');
     logger.warn('Page capture already in progress');
     return;
   }
 
   try {
     contentScriptState.isCapturing = true;
+    console.log('📱 Showing capture notification...');
 
-    // Show user feedback
-    showNotification('Capturing page...', 'info');
+    // Show user feedback (without click URL initially since capture hasn't completed)
+    showNotification('Capturing content...', 'info', 3000);
 
-    // Extract content first
-    logger.info('Extracting content for keyboard shortcut capture...');
-    const extractedContent = await extractPageContentWithUtilities();
-    logger.info('Content extracted successfully for keyboard shortcut', {
-      hasMarkdown: !!extractedContent.markdown,
-      markdownLength: extractedContent.markdown?.length || 0,
-      hasHtml: !!extractedContent.html,
-      htmlLength: extractedContent.html?.length || 0,
-      hasTitle: !!extractedContent.title,
-      title: extractedContent.title || 'no title',
-      keys: Object.keys(extractedContent),
-    });
+    // Check if current page is a PDF
+    const isPDFPage = checkIfCurrentPageIsPDF();
+    console.log('🔍 PDF detection result:', isPDFPage);
 
-    // Send capture request with extracted content to service worker
-    const messageData = {
-      url: window.location.href,
-      title: document.title,
-      source: 'keyboard-shortcut',
-      extractedContent: extractedContent, // Include the extracted content
-    };
+    if (isPDFPage) {
+      console.log('📄 PDF page detected - using unified capture service');
+      logger.info('PDF page detected - using unified capture service via background');
 
-    logger.debug('Sending CAPTURE_PAGE message with data:', {
-      hasExtractedContent: !!messageData.extractedContent,
-      extractedContentKeys: Object.keys(messageData.extractedContent),
-      extractedContentMarkdownLength: messageData.extractedContent.markdown?.length || 0,
-    });
+      // For PDF pages, send capture request directly to background service
+      const messageData = {
+        url: window.location.href,
+        title: document.title,
+        contentType: 'pdf',
+      };
 
-    try {
-      logger.info('About to send CAPTURE_PAGE message to service worker...');
-      const response = await sendMessageToBackground(MESSAGE_TYPES.CAPTURE_PAGE, messageData);
-      logger.info('Received response from service worker:', {
-        success: response.success,
-        error: response.error,
-        hasData: !!response.data,
-      });
+      const response = await sendMessageToBackground(MESSAGE_TYPES.CAPTURE_CONTENT, messageData);
 
       if (response.success) {
-        // Extract the document URL from the response if available
-        const responseData = response.data as any;
-        // The commitUrl is in the nested data object: response.data.data.commitUrl
-        const documentUrl =
-          responseData?.data?.commitUrl || responseData?.data?.url || responseData?.data?.htmlUrl;
+        // Enhanced commit URL extraction with comprehensive fallback
+        const commitUrl = extractCommitUrlFromResponse(response);
 
-        // Enhanced debugging for the URL extraction
-        console.log('🔍 PrismWeave: Detailed capture response analysis:');
-        console.log('  📦 Full Response:', response);
-        console.log('  📦 Response Type:', typeof response);
-        console.log('  📦 Response Keys:', response ? Object.keys(response) : 'none');
-        console.log('  📦 Response Data:', responseData);
-        console.log('  📦 Response Data Type:', typeof responseData);
-        console.log('  📦 Response Data Keys:', responseData ? Object.keys(responseData) : 'none');
-        console.log('  📦 Response Data JSON:', JSON.stringify(responseData, null, 2));
-        console.log('  🔗 Document URL:', documentUrl);
-        console.log(
-          '  ✅ Has commitUrl:',
-          !!responseData?.data?.commitUrl,
-          '→',
-          responseData?.data?.commitUrl
-        );
-        console.log('  ✅ Has url:', !!responseData?.data?.url, '→', responseData?.data?.url);
-        console.log(
-          '  ✅ Has htmlUrl:',
-          !!responseData?.data?.htmlUrl,
-          '→',
-          responseData?.data?.htmlUrl
-        );
+        // Debug logging for troubleshooting
+        console.log('🔍 DEBUG: PDF Full response structure:', response);
+        console.log('🔍 DEBUG: Extracted commit URL:', commitUrl);
 
-        if (documentUrl) {
+        if (commitUrl) {
           showNotification(
-            'Page captured successfully! Click to view.',
+            'PDF captured successfully! Click to view on GitHub.',
             'success',
-            10000, // 10 seconds for easier testing
-            documentUrl
+            5000,
+            commitUrl
           );
+          logger.info('PDF capture completed successfully via keyboard shortcut', {
+            commitUrl,
+            hasCommitUrl: true,
+          });
         } else {
-          showNotification(
-            'Page captured successfully!',
-            'success',
-            10000 // 10 seconds for easier testing
-          );
+          showNotification('PDF captured successfully!', 'success', 5000);
+          logger.warn('PDF capture completed but no commit URL found', {
+            responseKeys: Object.keys(response),
+            dataKeys: response.data ? Object.keys(response.data) : [],
+            saveResultKeys: response.saveResult ? Object.keys(response.saveResult) : [],
+          });
         }
-
-        logger.info('Page captured successfully via keyboard shortcut', {
-          documentUrl,
-          hasClickableLink: !!documentUrl,
-          responseData: responseData,
-        });
       } else {
-        throw new Error(response.error || 'Capture failed');
+        throw new Error(response.error || 'PDF capture failed');
       }
-    } catch (messageError) {
-      logger.error('Error sending message to service worker:', messageError);
-      throw messageError;
+    } else {
+      logger.info('HTML page detected - extracting content locally then sending to background');
+
+      // Extract content first for HTML pages
+      const extractedContent = await extractPageContentWithUtilities();
+      logger.info('Content extracted successfully for keyboard shortcut', {
+        hasMarkdown: !!extractedContent.markdown,
+        markdownLength: extractedContent.markdown?.length || 0,
+        hasHtml: !!extractedContent.html,
+        htmlLength: extractedContent.html?.length || 0,
+        hasTitle: !!extractedContent.title,
+        title: extractedContent.title || 'no title',
+        keys: Object.keys(extractedContent),
+      });
+
+      // Send capture request with extracted content to service worker
+      const messageData = {
+        url: window.location.href,
+        title: document.title,
+        extractedContent,
+        contentType: 'html',
+      };
+
+      const response = await sendMessageToBackground(MESSAGE_TYPES.CAPTURE_CONTENT, messageData);
+
+      if (response.success) {
+        // Enhanced commit URL extraction with comprehensive fallback
+        const commitUrl = extractCommitUrlFromResponse(response);
+
+        // Debug logging for troubleshooting
+        console.log('🔍 DEBUG: Full response structure:', response);
+        console.log('🔍 DEBUG: Extracted commit URL:', commitUrl);
+
+        if (commitUrl) {
+          showNotification(
+            'Page captured successfully! Click to view on GitHub.',
+            'success',
+            5000,
+            commitUrl
+          );
+          logger.info('Page capture completed successfully via keyboard shortcut', {
+            commitUrl,
+            hasCommitUrl: true,
+          });
+        } else {
+          showNotification('Page captured successfully!', 'success', 5000);
+          logger.warn('Page capture completed but no commit URL found', {
+            responseKeys: Object.keys(response),
+            dataKeys: response.data ? Object.keys(response.data) : [],
+            saveResultKeys: response.saveResult ? Object.keys(response.saveResult) : [],
+          });
+        }
+      } else {
+        throw new Error(response.error || 'Page capture failed');
+      }
     }
   } catch (error) {
-    logger.error('Page capture failed:', error);
+    logger.error('Keyboard shortcut capture failed:', error);
     showNotification('Capture failed: ' + (error as Error).message, 'error');
   } finally {
     contentScriptState.isCapturing = false;
   }
+}
+
+// Check if current page is a PDF document
+function checkIfCurrentPageIsPDF(): boolean {
+  const url = window.location.href;
+
+  // Check if URL ends with .pdf
+  if (url.toLowerCase().endsWith('.pdf')) {
+    return true;
+  }
+
+  // Check if URL contains PDF indicators
+  if (url.toLowerCase().includes('.pdf')) {
+    return true;
+  }
+
+  // Check for common PDF viewer URL patterns
+  const pdfPatterns = [
+    /\/pdf\//i,
+    /\.pdf$/i,
+    /\.pdf\?/i,
+    /\.pdf#/i,
+    /application\/pdf/i,
+    /chrome-extension:\/\/.*\/web\/viewer\.html/i, // Chrome PDF viewer
+  ];
+
+  const isPDFByPattern = pdfPatterns.some(pattern => pattern.test(url));
+
+  if (isPDFByPattern) {
+    return true;
+  }
+
+  // Check document MIME type if available
+  try {
+    if (document.contentType && document.contentType.includes('pdf')) {
+      return true;
+    }
+  } catch (error) {
+    // Ignore contentType access errors
+  }
+
+  // Check for PDF viewer indicators in the DOM
+  const pdfViewerSelectors = [
+    'embed[type="application/pdf"]',
+    'object[type="application/pdf"]',
+    '#viewer', // Common PDF viewer element
+    '.pdfViewer', // Common PDF viewer class
+    '[data-pdf-viewer]', // PDF viewer data attribute
+  ];
+
+  const hasPDFViewerElements = pdfViewerSelectors.some(selector => {
+    try {
+      return document.querySelector(selector) !== null;
+    } catch (error) {
+      return false;
+    }
+  });
+
+  logger.info('PDF detection result:', {
+    url,
+    isPDFByPattern,
+    hasPDFViewerElements,
+    documentContentType: document.contentType || 'unknown',
+    finalResult: hasPDFViewerElements,
+  });
+
+  return hasPDFViewerElements;
 }
 
 // Set up message listeners for communication with service worker
@@ -349,8 +506,10 @@ async function handleMessage(
     case 'SHOW_NOTIFICATION':
       if (message.data && typeof message.data.message === 'string') {
         const notificationType = (message.data.type as 'success' | 'error' | 'info') || 'info';
-        showNotification(message.data.message, notificationType);
-        logger.info('Notification shown:', message.data.message);
+        const duration = (message.data.duration as number) || 5000;
+        const clickUrl = (message.data.clickUrl || message.data.url) as string | undefined;
+        showNotification(message.data.message, notificationType, duration, clickUrl);
+        logger.info('Notification shown:', message.data.message, { clickUrl });
       }
       return { success: true };
 
@@ -669,11 +828,11 @@ async function basicContentExtraction(): Promise<IContentExtractionData> {
 }
 
 // Send message to background script
-function sendMessageToBackground(type: string, data?: any): Promise<IMessageResponse> {
-  return new Promise<IMessageResponse>((resolve, reject) => {
+function sendMessageToBackground(type: string, data?: any): Promise<IEnhancedMessageResponse> {
+  return new Promise<IEnhancedMessageResponse>((resolve, reject) => {
     const message: IMessageData = { type, data, timestamp: Date.now() };
 
-    chrome.runtime.sendMessage(message, (response: IMessageResponse) => {
+    chrome.runtime.sendMessage(message, (response: IEnhancedMessageResponse) => {
       if (chrome.runtime.lastError) {
         reject(new Error(chrome.runtime.lastError.message));
       } else if (!response) {

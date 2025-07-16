@@ -59,6 +59,10 @@ export class PrismWeavePopup {
     return this.capturePage();
   }
 
+  public async testCaptureContent(): Promise<void> {
+    return this.captureContent();
+  }
+
   public async testCaptureSelection(): Promise<void> {
     return this.captureSelection();
   }
@@ -158,14 +162,14 @@ export class PrismWeavePopup {
       return;
     }
 
-    // Capture page button
-    const captureBtn = document.getElementById('capture-page');
-    if (captureBtn) {
-      captureBtn.addEventListener('click', e => {
+    // Unified capture content button
+    const captureContentBtn = document.getElementById('capture-content');
+    if (captureContentBtn) {
+      captureContentBtn.addEventListener('click', e => {
         e.stopPropagation();
         e.preventDefault();
-        logger.debug('Capture page button clicked');
-        this.capturePage();
+        logger.debug('Capture content button clicked');
+        this.captureContent();
       });
     }
 
@@ -177,17 +181,6 @@ export class PrismWeavePopup {
         e.preventDefault();
         logger.debug('Capture selection button clicked');
         this.captureSelection();
-      });
-    }
-
-    // Capture PDF button
-    const capturePdfBtn = document.getElementById('capture-pdf');
-    if (capturePdfBtn) {
-      capturePdfBtn.addEventListener('click', e => {
-        e.stopPropagation();
-        e.preventDefault();
-        logger.debug('Capture PDF button clicked');
-        this.capturePDF();
       });
     }
 
@@ -280,38 +273,244 @@ export class PrismWeavePopup {
 
     return { isValid, missingSettings };
   }
+
+  private async captureContent(): Promise<void> {
+    if (this.isCapturing) return;
+
+    try {
+      this.isCapturing = true;
+
+      // First test connection to background service worker
+      this.updateCaptureStatus(
+        'Connecting...',
+        'Testing connection to background service',
+        'progress',
+        { showProgress: true, progressValue: 5 }
+      );
+
+      try {
+        const testResponse = await this.sendMessageToBackground('TEST');
+        logger.info('Background service worker connected:', testResponse);
+      } catch (error) {
+        throw new Error(
+          `Failed to connect to background service worker: ${(error as Error).message}`
+        );
+      }
+
+      // Check if we have a current tab, and try to get it if not
+      if (!this.currentTab?.id) {
+        logger.warn('No current tab available, attempting to refresh tab info');
+        try {
+          await this.getCurrentTab();
+        } catch (error) {
+          logger.error('Failed to get current tab:', error);
+          this.updateCaptureStatus('No active tab available for capture', 'error');
+          setTimeout(() => this.resetCaptureStatus(), 3000);
+          return;
+        }
+      }
+
+      // Double-check we now have a valid tab ID
+      if (!this.currentTab?.id) {
+        this.updateCaptureStatus('Unable to identify current tab', 'error');
+        setTimeout(() => this.resetCaptureStatus(), 3000);
+        return;
+      }
+
+      // Validate crucial settings before proceeding
+      const settingsValidation = this.validateCaptureSettings();
+      if (!settingsValidation.isValid) {
+        this.showMissingSettingsMessage(
+          settingsValidation.message!,
+          settingsValidation.missingSettings
+        );
+        return;
+      }
+
+      // Check if page is capturable
+      if (!this.isPageCapturable()) {
+        this.updateCaptureStatus(
+          'Page Cannot Be Captured',
+          'This type of page (browser internal page) cannot be captured.',
+          'error',
+          { autoHide: 4000 }
+        );
+        return;
+      }
+
+      this.updateCaptureStatus(
+        'Detecting Content Type...',
+        'Analyzing page to determine the best capture method',
+        'progress',
+        { showProgress: true, progressValue: 15 }
+      );
+
+      const message: IMessageData = {
+        type: MESSAGE_TYPES.CAPTURE_CONTENT,
+        data: {
+          tabId: this.currentTab.id,
+          url: this.currentTab.url,
+          tabInfo: {
+            url: this.currentTab.url,
+            title: this.currentTab.title,
+          },
+          settings: this.settings,
+        },
+      };
+
+      // Update progress
+      this.updateCaptureStatus(
+        'Processing Content...',
+        'Using intelligent content detection to capture with best method',
+        'progress',
+        { showProgress: true, progressValue: 60 }
+      );
+
+      logger.debug('Sending unified capture message:', message);
+      const response = await this.sendMessageToBackground(message.type, message.data);
+
+      if (response.success) {
+        const responseData = response.data as any;
+        const saveResult = responseData?.saveResult;
+        const contentType = responseData?.contentType;
+        const captureMethod = responseData?.captureMethod;
+
+        logger.debug('CAPTURE_CONTENT responseData:', {
+          contentType,
+          captureMethod,
+          hasData: !!responseData?.data,
+          saveResult: saveResult
+            ? { success: saveResult.success, committed: saveResult.committed }
+            : null,
+        });
+
+        // Try to extract content from the correct location
+        let capturedContent: string | null = null;
+        if (responseData?.data?.markdown) {
+          capturedContent = responseData.data.markdown;
+        } else if (responseData?.data?.content) {
+          capturedContent = responseData.data.content;
+        } else if (responseData?.markdown) {
+          capturedContent = responseData.markdown;
+        }
+
+        this.lastCapturedContent = capturedContent;
+        logger.debug('Stored captured content for preview, length:', capturedContent?.length || 0);
+
+        // Determine success message based on content type and save result
+        let statusTitle = `Content Captured Successfully!`;
+        let statusMessage = '';
+        let statusType: 'success' | 'warning' = 'success';
+
+        // Add content type information to the message
+        const contentTypeText = contentType === 'pdf' ? 'PDF' : 'Web Page';
+        const methodText = captureMethod ? ` using ${captureMethod}` : '';
+
+        if (saveResult?.success && saveResult.committed) {
+          statusMessage = `${contentTypeText} saved and committed${methodText}: ${responseData?.filename || 'document'}`;
+          if (saveResult.sha) {
+            statusMessage += ` (${saveResult.sha.substring(0, 7)})`;
+          }
+        } else if (saveResult?.success && !saveResult.committed) {
+          statusTitle = `Content Captured (Not Committed)`;
+          statusMessage = `${contentTypeText} saved${methodText} as: ${responseData?.filename || 'document'}`;
+          if (saveResult.reason) {
+            statusMessage += ` - ${saveResult.reason}`;
+          }
+          statusType = 'warning';
+        } else if (saveResult && !saveResult.success) {
+          statusTitle = `Content Captured (Save Failed)`;
+          statusMessage = `${contentTypeText} extracted${methodText} but save failed: ${saveResult.error || 'Unknown error'}`;
+          statusType = 'warning';
+        } else {
+          statusMessage = `${contentTypeText} extracted${methodText} as: ${responseData?.filename || 'document'}`;
+        }
+
+        // Prepare actions based on save status
+        const actions = [];
+
+        if (saveResult?.success && saveResult.url) {
+          actions.push({
+            label: 'View on GitHub',
+            action: () => window.open(saveResult.url, '_blank'),
+            primary: true,
+          });
+        } else if (this.settings?.githubRepo) {
+          actions.push({
+            label: 'View Repository',
+            action: () => this.openRepository(),
+            primary: true,
+          });
+        }
+
+        // Add preview action for markdown content
+        if (this.lastCapturedContent && contentType !== 'pdf') {
+          actions.push({
+            label: 'Preview Markdown',
+            action: () => this.showMarkdownPreview(),
+          });
+        }
+
+        // Add retry action if save failed
+        if (saveResult && !saveResult.success) {
+          actions.push({
+            label: 'Check Settings',
+            action: () => this.openSettings(),
+          });
+        }
+
+        this.updateCaptureStatus(statusTitle, statusMessage, statusType, {
+          autoHide: statusType === 'success' ? 5000 : 8000,
+          actions,
+        });
+      } else {
+        throw new Error(response.error || 'Content capture failed');
+      }
+    } catch (error) {
+      logger.error('Error capturing content:', error);
+      const errorMessage = (error as Error).message;
+
+      this.updateCaptureStatus('Content Capture Failed', errorMessage, 'error', {
+        autoHide: 6000,
+        actions: [
+          {
+            label: 'Try Again',
+            action: () => {
+              this.resetCaptureStatus();
+              setTimeout(() => this.captureContent(), 100);
+            },
+            primary: true,
+          },
+          {
+            label: 'Open Settings',
+            action: () => this.openSettings(),
+          },
+        ],
+      });
+    } finally {
+      this.isCapturing = false;
+    }
+  }
   private checkPageCapturability(): void {
     if (!this.currentTab?.url) return;
 
     const isCapturable = this.isPageCapturable();
-    const isPDF = this.isPDFPage();
 
-    const captureBtn = document.getElementById('capture-page') as HTMLButtonElement;
+    const captureContentBtn = document.getElementById('capture-content') as HTMLButtonElement;
     const captureSelectionBtn = document.getElementById('capture-selection') as HTMLButtonElement;
-    const capturePdfBtn = document.getElementById('capture-pdf') as HTMLButtonElement;
     const warningContainer = document.getElementById('capture-warning');
 
-    // Handle regular capture buttons
+    // Handle capture buttons
     if (isCapturable) {
-      if (captureBtn) captureBtn.disabled = false;
+      if (captureContentBtn) captureContentBtn.disabled = false;
       if (captureSelectionBtn) captureSelectionBtn.disabled = false;
       if (warningContainer) warningContainer.style.display = 'none';
     } else {
-      if (captureBtn) captureBtn.disabled = true;
+      if (captureContentBtn) captureContentBtn.disabled = true;
       if (captureSelectionBtn) captureSelectionBtn.disabled = true;
       if (warningContainer) {
         warningContainer.style.display = 'block';
         // The warning content is already set in the HTML
-      }
-    }
-
-    // Handle PDF capture button
-    if (capturePdfBtn) {
-      if (isPDF) {
-        capturePdfBtn.style.display = 'block';
-        capturePdfBtn.disabled = false;
-      } else {
-        capturePdfBtn.style.display = 'none';
       }
     }
   }
@@ -377,15 +576,32 @@ export class PrismWeavePopup {
         return;
       }
 
+      // Step 1: Initial setup and detection
       this.updateCaptureStatus(
-        'Capturing Page...',
-        'Extracting content and preparing markdown',
+        'Initializing Capture...',
+        'Detecting page type and preparing capture',
+        'progress',
+        { showProgress: true, progressValue: 10 }
+      );
+
+      // Detect if current page is a PDF to use appropriate capture method
+      const isPDF = this.isCurrentPagePDF();
+      const messageType = isPDF ? MESSAGE_TYPES.CAPTURE_CONTENT : MESSAGE_TYPES.CAPTURE_PAGE;
+
+      logger.debug(
+        `Page type detected: ${isPDF ? 'PDF' : 'HTML'}, using message type: ${messageType}`
+      );
+
+      // Step 2: Preparing message
+      this.updateCaptureStatus(
+        'Preparing Capture...',
+        `Setting up ${isPDF ? 'PDF' : 'HTML'} capture process`,
         'progress',
         { showProgress: true, progressValue: 20 }
       );
 
       const message: IMessageData = {
-        type: MESSAGE_TYPES.CAPTURE_PAGE,
+        type: messageType,
         data: {
           tabId: this.currentTab.id,
           tabInfo: {
@@ -396,19 +612,66 @@ export class PrismWeavePopup {
         },
       };
 
-      // Update progress
+      // Step 3: Sending to background
       this.updateCaptureStatus(
-        'Processing Content...',
-        'Converting to markdown format',
+        'Connecting to Service...',
+        'Sending capture request to background service',
         'progress',
-        { showProgress: true, progressValue: 60 }
+        { showProgress: true, progressValue: 30 }
       );
       logger.debug('Sending capture message:', message);
-      const response = await this.sendMessageToBackground(message.type, message.data);
+
+      // Step 4: Processing content
+      this.updateCaptureStatus(
+        'Processing Content...',
+        `Extracting and processing ${isPDF ? 'PDF' : 'HTML'} content`,
+        'progress',
+        { showProgress: true, progressValue: 50 }
+      );
+
+      // Add timeout to prevent indefinite hanging, especially for PDFs in Edge
+      const timeoutMs = 30000; // 30 seconds timeout
+      const capturePromise = this.sendMessageToBackground(message.type, message.data);
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => {
+          reject(
+            new Error(
+              `Capture operation timed out after ${timeoutMs / 1000} seconds - stuck at: Processing Content`
+            )
+          );
+        }, timeoutMs);
+      });
+
+      // Step 5: Waiting for response
+      this.updateCaptureStatus(
+        'Finalizing Capture...',
+        'Converting content and preparing for save',
+        'progress',
+        { showProgress: true, progressValue: 70 }
+      );
+
+      const response = await Promise.race([capturePromise, timeoutPromise]);
+
+      // Step 6: Processing response
+      this.updateCaptureStatus(
+        'Processing Response...',
+        'Analyzing capture results and preparing display',
+        'progress',
+        { showProgress: true, progressValue: 85 }
+      );
+
       if (response.success) {
         const responseData = response.data as any;
         const saveResult = responseData?.saveResult;
         logger.debug('CAPTURE responseData:', responseData);
+
+        // Step 7: Extracting content
+        this.updateCaptureStatus(
+          'Extracting Content...',
+          'Parsing captured content and metadata',
+          'progress',
+          { showProgress: true, progressValue: 95 }
+        );
         // Try to extract markdown from the correct location
         let markdownContent: string | null = null;
         if (responseData?.markdown) {
@@ -545,6 +808,10 @@ export class PrismWeavePopup {
     const pdfPatterns = [/\/pdf\//i, /\.pdf$/i, /\.pdf\?/i, /\.pdf#/i, /application\/pdf/i];
 
     return pdfPatterns.some(pattern => pattern.test(url));
+  }
+
+  private isCurrentPagePDF(): boolean {
+    return this.isPDFPage();
   }
 
   private async captureSelection(): Promise<void> {

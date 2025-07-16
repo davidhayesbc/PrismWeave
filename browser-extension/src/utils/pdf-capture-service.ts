@@ -78,72 +78,97 @@ export class PDFCaptureService {
     options: IPDFCaptureOptions = {}
   ): Promise<IPDFCaptureResult> {
     try {
-      logger.info('Starting PDF capture workflow');
+      logger.info('🚀 Starting PDF capture workflow');
+      logger.info('📊 PDF Capture Input:', {
+        hasData: !!data,
+        dataKeys: data ? Object.keys(data) : [],
+        options,
+      });
 
       // Step 1: Validate settings if required
+      logger.info('⚙️ PDF Step 1: Validating settings...');
       const settings = await this.validateAndGetSettings(options.validateSettings ?? false);
+      logger.info('✅ PDF Step 1 Complete: Settings validated');
 
       // Step 2: Get current tab
+      logger.info('📱 PDF Step 2: Getting current tab...');
       const activeTab = await this.getActiveTab();
-      logger.info('Active tab:', { url: activeTab.url, title: activeTab.title });
+      logger.info('✅ PDF Step 2 Complete: Active tab retrieved:', {
+        url: activeTab.url,
+        title: activeTab.title,
+      });
 
       // Step 3: Validate that this is a PDF page
+      logger.info('🔍 PDF Step 3: Validating PDF URL...');
       if (!this.isPDFUrl(activeTab.url!)) {
         throw new Error('Current page is not a PDF document');
       }
+      logger.info('✅ PDF Step 3 Complete: URL confirmed as PDF');
 
       // Step 4: Download the PDF content
-      logger.info('Downloading PDF content...');
+      logger.info('⬇️ PDF Step 4: Downloading PDF content...');
       const pdfBlob = await this.downloadPDF(activeTab.url!);
-      logger.info(`PDF downloaded: ${this.formatFileSize(pdfBlob.size)}`);
+      logger.info(`✅ PDF Step 4 Complete: PDF downloaded: ${this.formatFileSize(pdfBlob.size)}`);
 
       // Step 5: Validate PDF size
+      logger.info('📏 PDF Step 5: Validating PDF size...');
       if (pdfBlob.size > PDFCaptureService.MAX_PDF_SIZE) {
         throw new Error(
           `PDF file too large (${this.formatFileSize(pdfBlob.size)}). Maximum allowed: ${this.formatFileSize(PDFCaptureService.MAX_PDF_SIZE)}`
         );
       }
+      logger.info('✅ PDF Step 5 Complete: Size validation passed');
 
       // Step 6: Generate metadata and filename
+      logger.info('📋 PDF Step 6: Generating metadata and filename...');
       const metadata = this.generatePDFMetadata(activeTab, pdfBlob.size);
       const filename = options.customFilename || this.generatePDFFilename(metadata);
       const folder = options.folder || PDFCaptureService.PDF_FOLDER;
       const filePath = `${folder}/${filename}`;
 
-      logger.info('PDF metadata generated:', {
+      logger.info('✅ PDF Step 6 Complete: Metadata generated:', {
         filename,
         filePath,
         fileSize: this.formatFileSize(pdfBlob.size),
       });
 
       // Step 7: Convert blob to base64 for GitHub
-      logger.info('Converting PDF to base64...');
+      logger.info('🔄 PDF Step 7: Converting PDF to base64...');
       const pdfContent = await this.blobToBase64(pdfBlob);
-      logger.info(`Base64 conversion complete: ${pdfContent.length} characters`);
+      logger.info(
+        `✅ PDF Step 7 Complete: Base64 conversion complete: ${pdfContent.length} characters`
+      );
 
       // Step 8: Save to GitHub if enabled
+      logger.info('💾 PDF Step 8: Determining save strategy...');
       const shouldCommit =
         options.forceGitHubCommit ||
         (settings.autoCommit && settings.githubToken && settings.githubRepo);
 
       if (shouldCommit) {
-        logger.info('Saving PDF to GitHub repository');
+        logger.info('🌐 PDF Step 8a: Saving PDF to GitHub repository...');
         const commitResult = await this.savePDFToGitHub(pdfContent, metadata, filePath, settings);
 
         if (commitResult.success) {
-          logger.info('PDF successfully saved to GitHub');
+          logger.info('✅ PDF Step 8a Complete: PDF successfully saved to GitHub');
           return this.createSuccessResult(metadata, filePath, {
             message: 'PDF captured and saved to repository',
             ...(commitResult.url && { commitUrl: commitResult.url }),
           });
         } else {
-          logger.warn('GitHub save failed, falling back to local storage:', commitResult.error);
+          logger.warn(
+            '⚠️ PDF Step 8a Failed: GitHub save failed, falling back to local storage:',
+            commitResult.error
+          );
         }
+      } else {
+        logger.info('⏭️ PDF Step 8: Skipping GitHub save (not configured)');
       }
 
       // Step 9: Fallback to local storage
-      logger.info('Storing PDF locally for pending sync');
+      logger.info('💽 PDF Step 9: Storing PDF locally for pending sync...');
       await this.storePDFLocally(pdfContent, metadata, filePath);
+      logger.info('✅ PDF Step 9 Complete: PDF stored locally');
 
       return this.createSuccessResult(metadata, filePath, {
         message: 'PDF captured and stored locally (pending sync)',
@@ -233,34 +258,78 @@ export class PDFCaptureService {
   }
 
   private async downloadPDF(url: string): Promise<Blob> {
-    logger.debug('Downloading PDF from URL:', url);
+    logger.debug('📥 PDF Download: Starting download from URL:', url);
 
     try {
-      const response = await fetch(url);
+      logger.info('🌐 PDF Download Step 1: Initiating fetch request...');
+
+      // Add timeout to prevent hanging in Edge
+      const timeoutMs = 20000; // 20 seconds for PDF download
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => {
+        logger.warn('⏰ PDF Download: Fetch timeout reached, aborting request');
+        controller.abort();
+      }, timeoutMs);
+
+      logger.info('⏱️ PDF Download: Fetch timeout set to', timeoutMs / 1000, 'seconds');
+
+      const response = await fetch(url, {
+        signal: controller.signal,
+        headers: {
+          Accept: 'application/pdf,*/*',
+          'User-Agent': navigator.userAgent,
+        },
+      });
+
+      clearTimeout(timeoutId);
+      logger.info('✅ PDF Download Step 1 Complete: Fetch response received');
+      logger.info('📊 PDF Download Response:', {
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok,
+        headers: {
+          contentType: response.headers.get('content-type'),
+          contentLength: response.headers.get('content-length'),
+        },
+      });
 
       if (!response.ok) {
         throw new Error(`Failed to download PDF: ${response.status} ${response.statusText}`);
       }
 
+      logger.info('🔍 PDF Download Step 2: Validating content type...');
       const contentType = response.headers.get('content-type');
       if (
         contentType &&
         !PDFCaptureService.SUPPORTED_MIME_TYPES.some(type => contentType.includes(type))
       ) {
-        logger.warn('Content-Type may not be PDF:', contentType);
+        logger.warn('⚠️ PDF Download: Content-Type may not be PDF:', contentType);
+      } else {
+        logger.info('✅ PDF Download Step 2 Complete: Content type valid:', contentType);
       }
 
+      logger.info('📦 PDF Download Step 3: Converting response to blob...');
       const blob = await response.blob();
+      logger.info('✅ PDF Download Step 3 Complete: Blob conversion complete');
 
+      logger.info('📏 PDF Download Step 4: Validating blob size...');
       // Verify we got some content
       if (blob.size === 0) {
         throw new Error('Downloaded PDF is empty');
       }
 
-      logger.info(`PDF downloaded successfully: ${this.formatFileSize(blob.size)}`);
+      logger.info(
+        `🎉 PDF Download Complete: PDF downloaded successfully: ${this.formatFileSize(blob.size)}`
+      );
       return blob;
     } catch (error) {
-      logger.error('Error downloading PDF:', error);
+      if (error instanceof Error && error.name === 'AbortError') {
+        logger.error('❌ PDF Download Failed: Request timed out after 20 seconds');
+        throw new Error(
+          'PDF download timed out - this may be due to browser restrictions on PDF access'
+        );
+      }
+      logger.error('❌ PDF Download Failed: Error downloading PDF:', error);
       throw new Error(`Failed to download PDF: ${(error as Error).message}`);
     }
   }

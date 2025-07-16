@@ -14,7 +14,7 @@ describe('PDF Capture Functionality', () => {
 
     // Mock DOM elements
     document.body.innerHTML = `
-      <button id="capture-pdf" class="pdf-capture-button" style="display: none;">PDF</button>
+      <button id="capture-content" class="action-button">Capture Content</button>
       <div id="status-container"></div>
       <div id="status-title"></div>
       <div id="status-message"></div>
@@ -95,8 +95,8 @@ describe('PDF Capture Functionality', () => {
     });
   });
 
-  describe('PDF capture button visibility', () => {
-    test('should show PDF button for PDF pages', () => {
+  describe('Unified capture button with PDF detection', () => {
+    test('should enable unified capture button for PDF pages', () => {
       // Set up mock tab with PDF URL
       (popup as any).currentTab = {
         id: 1,
@@ -107,13 +107,12 @@ describe('PDF Capture Functionality', () => {
       // Call checkPageCapturability
       (popup as any).checkPageCapturability();
 
-      // Check if PDF button is visible
-      const pdfButton = document.getElementById('capture-pdf') as HTMLButtonElement;
-      expect(pdfButton.style.display).toBe('block');
-      expect(pdfButton.disabled).toBe(false);
+      // Check if unified capture button is enabled (it should handle PDF detection internally)
+      const captureButton = document.getElementById('capture-content') as HTMLButtonElement;
+      expect(captureButton.disabled).toBe(false);
     });
 
-    test('should hide PDF button for non-PDF pages', () => {
+    test('should enable unified capture button for non-PDF pages', () => {
       // Set up mock tab with regular URL
       (popup as any).currentTab = {
         id: 1,
@@ -124,9 +123,9 @@ describe('PDF Capture Functionality', () => {
       // Call checkPageCapturability
       (popup as any).checkPageCapturability();
 
-      // Check if PDF button is hidden
-      const pdfButton = document.getElementById('capture-pdf') as HTMLButtonElement;
-      expect(pdfButton.style.display).toBe('none');
+      // Check if unified capture button is enabled (it should handle content detection internally)
+      const captureButton = document.getElementById('capture-content') as HTMLButtonElement;
+      expect(captureButton.disabled).toBe(false);
     });
   });
 
