@@ -340,7 +340,7 @@ export class PrismWeavePopup {
 
       this.updateCaptureStatus(
         'Detecting Content Type...',
-        'Analyzing page to determine the best capture method',
+        'Analyzing page to determine the best capture method (HTML vs PDF)',
         'progress',
         { showProgress: true, progressValue: 15 }
       );
@@ -371,7 +371,7 @@ export class PrismWeavePopup {
 
       if (response.success) {
         const responseData = response.data as any;
-        const saveResult = responseData?.saveResult;
+        const saveResult = responseData?.saveResult || (response as any)?.saveResult;
         const contentType = responseData?.contentType;
         const captureMethod = responseData?.captureMethod;
 
@@ -379,6 +379,7 @@ export class PrismWeavePopup {
           contentType,
           captureMethod,
           hasData: !!responseData?.data,
+          hasResponseData: !!responseData,
           saveResult: saveResult
             ? { success: saveResult.success, committed: saveResult.committed }
             : null,
@@ -403,12 +404,12 @@ export class PrismWeavePopup {
         let statusType: 'success' | 'warning' = 'success';
 
         // Add content type information to the message
-        const contentTypeText = contentType === 'pdf' ? 'PDF' : 'Web Page';
+        const contentTypeText = contentType === 'pdf' ? 'PDF Document' : 'Web Page';
         const methodText = captureMethod ? ` using ${captureMethod}` : '';
 
         if (saveResult?.success && saveResult.committed) {
           statusMessage = `${contentTypeText} saved and committed${methodText}: ${responseData?.filename || 'document'}`;
-          if (saveResult.sha) {
+          if (saveResult.sha && saveResult.sha !== 'committed') {
             statusMessage += ` (${saveResult.sha.substring(0, 7)})`;
           }
         } else if (saveResult?.success && !saveResult.committed) {
@@ -443,7 +444,7 @@ export class PrismWeavePopup {
           });
         }
 
-        // Add preview action for markdown content
+        // Add preview action for markdown content (only for HTML content)
         if (this.lastCapturedContent && contentType !== 'pdf') {
           actions.push({
             label: 'Preview Markdown',

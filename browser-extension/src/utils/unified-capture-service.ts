@@ -526,6 +526,22 @@ export class UnifiedCaptureService {
         if (htmlResult.data.status) {
           unifiedResult.data.status = htmlResult.data.status;
         }
+
+        // Create saveResult for popup compatibility (same as PDF)
+        const saveResult = {
+          success: htmlResult.success,
+          committed: !!htmlResult.data.commitUrl,
+          url: htmlResult.data.commitUrl,
+          sha: htmlResult.data.commitUrl ? 'committed' : undefined,
+          reason:
+            htmlResult.data.status === 'pending_sync' ? 'Stored locally - pending sync' : undefined,
+        };
+
+        // Add save result to the response for popup compatibility
+        (unifiedResult as any).saveResult = saveResult;
+        (unifiedResult as any).filename = htmlResult.data.filename;
+
+        logger.info('✅ HTML save result created:', saveResult);
       }
 
       // Add content detection info to warnings if confidence is low

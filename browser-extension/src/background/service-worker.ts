@@ -294,6 +294,7 @@ export async function handleMessage(
         contentType: unifiedCaptureResult.contentType,
         captureMethod: unifiedCaptureResult.data?.captureMethod,
         hasData: !!unifiedCaptureResult.data,
+        hasSaveResult: !!(unifiedCaptureResult as any).saveResult,
       });
 
       // Enhanced commit URL extraction from various possible locations in the response
@@ -321,17 +322,27 @@ export async function handleMessage(
         logger.warn('No commit URL found in capture result');
       }
 
-      // Return enhanced response with commit URL in multiple locations for compatibility
+      // Extract saveResult from unified service response
+      const unifiedSaveResult = (unifiedCaptureResult as any).saveResult;
+      logger.debug('Unified service saveResult:', unifiedSaveResult);
+
+      // Create enhanced saveResult merging unified service result with extracted commit URL
+      const enhancedSaveResult = {
+        ...(unifiedSaveResult || {}),
+        ...(commitUrl && { url: commitUrl, commitUrl }),
+      };
+
+      // Return enhanced response with proper saveResult forwarding
       return {
         success: unifiedCaptureResult.success,
         data: {
           ...unifiedCaptureResult.data,
           commitUrl: commitUrl || undefined, // Add commit URL to data
+          contentType: unifiedCaptureResult.contentType, // Ensure contentType is in data
+          filename: (unifiedCaptureResult as any).filename || unifiedCaptureResult.data?.filename,
         },
         ...(commitUrl && { commitUrl }), // Add commit URL to top level only if it exists
-        saveResult: {
-          ...(commitUrl && { url: commitUrl, commitUrl }),
-        },
+        saveResult: enhancedSaveResult,
         timestamp: Date.now(),
       };
 
