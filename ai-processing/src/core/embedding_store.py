@@ -12,13 +12,15 @@ from langchain_chroma import Chroma
 from langchain_core.documents import Document
 
 from .config import Config
+from .git_tracker import GitTracker
 
 
 class EmbeddingStore:
     """Store and retrieve document embeddings using ChromaDB via LangChain"""
     
-    def __init__(self, config: Config):
+    def __init__(self, config: Config, git_tracker: Optional[GitTracker] = None):
         self.config = config
+        self.git_tracker = git_tracker
         
         # Initialize Ollama embeddings
         self.embeddings = OllamaEmbeddings(
@@ -90,6 +92,14 @@ class EmbeddingStore:
             # Add chunks to vector store
             self.vector_store.add_documents(chunks, ids=chunk_ids)
             print(f"Added {len(chunks)} chunks from {file_path.name}")
+            
+            # Mark file as processed in git tracker if available
+            if self.git_tracker:
+                try:
+                    self.git_tracker.mark_file_processed(file_path)
+                    print(f"Marked {file_path.name} as processed in git tracker")
+                except Exception as e:
+                    print(f"Warning: Failed to mark file as processed in git tracker: {e}")
             
         except Exception as e:
             raise Exception(f"Failed to add chunks for {file_path}: {e}")
@@ -217,6 +227,58 @@ class EmbeddingStore:
         except Exception as e:
             print(f"Failed to list documents: {e}")
             return []
+    
+    def remove_file_documents(self, file_path: Path) -> bool:
+        """
+        Remove all document chunks for a specific file from the vector store
+        
+        Args:
+            file_path: Path to the file whose chunks should be removed
+            
+        Returns:
+            True if documents were found and removed
+        """
+        try:
+            collection = self.vector_store._collection
+            
+            # Find all chunks for this file
+            result = collection.get(
+                where={"source_file": str(file_path)},
+                include=['ids']
+            )
+            
+            if result['ids']:
+                # Delete the chunks
+                collection.delete(ids=result['ids'])
+                print(f"Removed {len(result['ids'])} chunks for {file_path.name}")
+                return True
+            else:
+                print(f"No existing chunks found for {file_path.name}")
+                return False
+                
+        except Exception as e:
+            print(f"Warning: Failed to remove existing chunks for {file_path}: {e}")
+            return False
+    
+    def get_file_document_count(self, file_path: Path) -> int:
+        """
+        Get the number of document chunks for a specific file
+        
+        Args:
+            file_path: Path to the file
+            
+        Returns:
+            Number of chunks for this file
+        """
+        try:
+            collection = self.vector_store._collection
+            result = collection.get(
+                where={"source_file": str(file_path)},
+                include=['ids']
+            )
+            return len(result['ids'])
+        except Exception:
+            return 0
     
     def get_unique_source_files(self) -> List[str]:
         """

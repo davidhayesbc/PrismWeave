@@ -18,6 +18,7 @@ sys.path.insert(0, str(Path(__file__).parent / 'src'))
 from src.core.config import Config
 from src.core.document_processor import DocumentProcessor
 from src.core.embedding_store import EmbeddingStore
+from src.core.git_tracker import GitTracker
 
 
 def check_ollama_connection(config: Config) -> bool:
@@ -30,8 +31,14 @@ def check_ollama_connection(config: Config) -> bool:
         return False
 
 
-def process_single_file(file_path: Path, config: Config, verbose: bool = False):
+def process_single_file(file_path: Path, config: Config, git_tracker: Optional[GitTracker] = None, verbose: bool = False, force: bool = False):
     """Process a single document file"""
+    
+    # Check if file needs processing (unless force is specified)
+    if not force and git_tracker and git_tracker.is_file_processed(file_path):
+        if verbose:
+            print(f"⏭️  Skipping {file_path.name} (already processed and unchanged)")
+        return True
     
     if verbose:
         print(f"🔮 Processing: {file_path}")
@@ -40,10 +47,17 @@ def process_single_file(file_path: Path, config: Config, verbose: bool = False):
         print()
     
     # Initialize components
-    processor = DocumentProcessor(config)
-    store = EmbeddingStore(config)
+    processor = DocumentProcessor(config, git_tracker)
+    store = EmbeddingStore(config, git_tracker)
     
     try:
+        # Check if file already has embeddings and remove them (for updates)
+        existing_count = store.get_file_document_count(file_path)
+        if existing_count > 0:
+            if verbose:
+                print(f"🔄 Found {existing_count} existing chunks, removing for update...")
+            store.remove_file_documents(file_path)
+        
         # Process the document
         if verbose:
             print("📄 Loading and processing document...")
@@ -90,33 +104,48 @@ def process_single_file(file_path: Path, config: Config, verbose: bool = False):
         return False
 
 
-def process_directory(input_dir: Path, config: Config, verbose: bool = False):
+def process_directory(input_dir: Path, config: Config, git_tracker: Optional[GitTracker] = None, verbose: bool = False, incremental: bool = False, force: bool = False):
     """Process all supported files in a directory"""
     
     # Supported file extensions
     supported_extensions = {'.md', '.txt', '.pdf', '.docx', '.html', '.htm'}
     
-    # Find all supported files
-    files_to_process = []
-    for ext in supported_extensions:
-        files_to_process.extend(list(input_dir.rglob(f"*{ext}")))
+    # Find files to process
+    if incremental and git_tracker:
+        # Only process new or changed files
+        files_to_process = git_tracker.get_unprocessed_files(file_extensions=supported_extensions)
+        if verbose:
+            print(f"📂 Incremental mode: Found {len(files_to_process)} unprocessed files")
+    else:
+        # Find all supported files
+        files_to_process = []
+        for ext in supported_extensions:
+            files_to_process.extend(list(input_dir.rglob(f"*{ext}")))
+        
+        if verbose:
+            mode_text = "force mode" if force else "full mode"
+            print(f"📂 Processing in {mode_text}: Found {len(files_to_process)} files")
     
     if not files_to_process:
-        print(f"❌ No supported files found in {input_dir}")
-        print(f"   Supported extensions: {', '.join(supported_extensions)}")
-        return False
+        if incremental:
+            print("✅ No new or changed files to process")
+            return True
+        else:
+            print(f"❌ No supported files found in {input_dir}")
+            print(f"   Supported extensions: {', '.join(supported_extensions)}")
+            return False
     
     if verbose:
-        print(f"📂 Found {len(files_to_process)} files to process")
         print()
     
     # Process files
     success_count = 0
     error_count = 0
+    skipped_count = 0
     
     for file_path in files_to_process:
         try:
-            if process_single_file(file_path, config, verbose=False):
+            if process_single_file(file_path, config, git_tracker, verbose=False, force=force):
                 success_count += 1
             else:
                 error_count += 1
@@ -132,6 +161,15 @@ def process_directory(input_dir: Path, config: Config, verbose: bool = False):
     print(f"   ✅ Successfully processed: {success_count} files")
     if error_count > 0:
         print(f"   ❌ Failed to process: {error_count} files")
+    
+    # Update git tracker state if successful
+    if success_count > 0 and git_tracker:
+        try:
+            git_tracker.update_last_processed_commit()
+            if verbose:
+                print("   🔄 Updated processing state")
+        except Exception as e:
+            print(f"   ⚠️  Warning: Failed to update processing state: {e}")
     
     return success_count > 0
 
@@ -157,7 +195,14 @@ def cli():
               help='Verify embeddings storage after processing')
 @click.option('--clear', is_flag=True, 
               help='Clear existing embeddings before processing')
-def process(path: Path, config: Optional[Path], verbose: bool, verify: bool, clear: bool):
+@click.option('--incremental', '-i', is_flag=True,
+              help='Only process new or changed files (requires git repository)')
+@click.option('--force', '-f', is_flag=True,
+              help='Force reprocessing of all files, even if already processed')
+@click.option('--repo-path', type=click.Path(exists=True, path_type=Path),
+              help='Path to git repository (default: auto-detect from path)')
+def process(path: Path, config: Optional[Path], verbose: bool, verify: bool, clear: bool, 
+            incremental: bool, force: bool, repo_path: Optional[Path]):
     """
     Process documents and generate embeddings using LangChain and Ollama.
     
@@ -177,10 +222,68 @@ def process(path: Path, config: Optional[Path], verbose: bool, verify: bool, cle
         
         # Clear existing embeddings and reprocess
         python cli.py process ../docs --clear --verify
+        
+        # Process only new or changed files (incremental)
+        python cli.py process ../PrismWeaveDocs/documents --incremental
+        
+        # Force reprocess all files
+        python cli.py process ../docs --force
     """
     
     print("🔮 PrismWeave Document Processor")
     print("=" * 40)
+    
+    # Validate conflicting options
+    if incremental and force:
+        print("❌ Cannot use --incremental and --force together")
+        sys.exit(1)
+    
+    if incremental and clear:
+        print("❌ Cannot use --incremental and --clear together")
+        sys.exit(1)
+    
+    # Initialize git tracker for incremental processing
+    git_tracker = None
+    if incremental or repo_path:
+        try:
+            # Determine repository path
+            if repo_path:
+                repo_root = repo_path
+            elif path.is_dir():
+                # Try to find git repo from the path
+                repo_root = path
+                while repo_root != repo_root.parent:
+                    if (repo_root / '.git').exists():
+                        break
+                    repo_root = repo_root.parent
+                else:
+                    raise ValueError("No git repository found")
+            else:
+                # For single file, find repo from parent directories
+                repo_root = path.parent
+                while repo_root != repo_root.parent:
+                    if (repo_root / '.git').exists():
+                        break
+                    repo_root = repo_root.parent
+                else:
+                    raise ValueError("No git repository found")
+            
+            git_tracker = GitTracker(repo_root)
+            
+            if verbose:
+                print(f"🔄 Git repository: {repo_root}")
+                summary = git_tracker.get_processing_summary()
+                print(f"📊 Processing state: {summary['processed_files']} processed, {summary['unprocessed_files']} unprocessed")
+                print()
+                
+        except Exception as e:
+            if incremental:
+                print(f"❌ Failed to initialize git tracking: {e}")
+                print("   Incremental processing requires a git repository")
+                sys.exit(1)
+            else:
+                print(f"⚠️  Warning: Git tracking not available: {e}")
+                git_tracker = None
     
     # Load configuration
     try:
@@ -228,8 +331,14 @@ def process(path: Path, config: Optional[Path], verbose: bool, verify: bool, cle
     # Clear embeddings if requested
     if clear:
         print("🗑️  Clearing existing embeddings...")
-        store = EmbeddingStore(config_obj)
+        store = EmbeddingStore(config_obj, git_tracker)
         store.clear_collection()
+        
+        # Also reset git processing state if available
+        if git_tracker:
+            git_tracker.reset_processing_state()
+            print("🔄 Reset processing state")
+        
         print("✅ Embeddings cleared")
         print()
     
@@ -237,13 +346,17 @@ def process(path: Path, config: Optional[Path], verbose: bool, verify: bool, cle
     try:
         if path.is_file():
             print(f"📄 Processing single file: {path}")
+            if incremental:
+                print("   (Note: Incremental mode applies to directory processing)")
             print()
-            success = process_single_file(path, config_obj, verbose=verbose)
+            success = process_single_file(path, config_obj, git_tracker, verbose=verbose, force=force)
             
         elif path.is_dir():
-            print(f"📂 Processing directory: {path}")
+            mode_desc = "incremental" if incremental else ("force" if force else "standard")
+            print(f"📂 Processing directory: {path} (mode: {mode_desc})")
             print()
-            success = process_directory(path, config_obj, verbose=verbose)
+            success = process_directory(path, config_obj, git_tracker, verbose=verbose, 
+                                      incremental=incremental, force=force)
             
         else:
             print(f"❌ Path is neither a file nor a directory: {path}")
@@ -255,7 +368,7 @@ def process(path: Path, config: Optional[Path], verbose: bool, verify: bool, cle
         # Verify embeddings if requested
         if verify:
             print("\n🔍 Verifying embeddings storage...")
-            store = EmbeddingStore(config_obj)
+            store = EmbeddingStore(config_obj, git_tracker)
             verification = store.verify_embeddings()
             print(f"✅ Verification result: {verification}")
         
@@ -267,6 +380,148 @@ def process(path: Path, config: Optional[Path], verbose: bool, verify: bool, cle
         
     except Exception as e:
         print(f"\n❌ Processing failed: {e}")
+        if verbose:
+            import traceback
+            traceback.print_exc()
+        sys.exit(1)
+
+
+@cli.command()
+@click.argument('repo_path', type=click.Path(exists=True, path_type=Path), required=False)
+@click.option('--config', '-c', type=click.Path(exists=True, path_type=Path), 
+              help='Configuration file path (default: config.yaml)')
+@click.option('--force', is_flag=True,
+              help='Force reprocessing of all files')
+@click.option('--verbose', '-v', is_flag=True,
+              help='Show detailed processing information')
+def sync(repo_path: Optional[Path], config: Optional[Path], force: bool, verbose: bool):
+    """
+    Sync documents from a git repository, processing only new or changed files.
+    
+    This is a convenience command that automatically detects git repositories
+    and processes only files that have changed since they were last processed.
+    
+    Examples:
+    
+    \b
+        # Auto-detect git repository in current directory
+        python cli.py sync
+        
+        # Sync specific repository
+        python cli.py sync /path/to/docs
+        
+        # Force reprocess all files
+        python cli.py sync --force
+        
+        # Show detailed processing information
+        python cli.py sync --verbose
+    """
+    
+    print("🔮 PrismWeave Document Sync")
+    print("=" * 40)
+    
+    # Determine repository path
+    if repo_path is None:
+        # Try to auto-detect git repository
+        current_path = Path.cwd()
+        
+        # Check if current directory is a git repository
+        if (current_path / '.git').exists():
+            repo_path = current_path
+            if verbose:
+                print(f"📁 Auto-detected git repository: {repo_path}")
+        else:
+            # Look for common document paths
+            possible_paths = [
+                current_path / 'PrismWeaveDocs',
+                current_path.parent / 'PrismWeaveDocs',
+                current_path / 'documents',
+                current_path / 'docs'
+            ]
+            
+            for path in possible_paths:
+                if path.exists() and (path / '.git').exists():
+                    repo_path = path
+                    if verbose:
+                        print(f"📁 Found git repository: {repo_path}")
+                    break
+            
+            if repo_path is None:
+                print("❌ No git repository found.")
+                print("\n💡 Please specify a repository path or run from a git repository:")
+                print("   python cli.py sync /path/to/your/docs")
+                print("   OR cd into a git repository and run: python cli.py sync")
+                sys.exit(1)
+    
+    # Validate that it's actually a git repository
+    if not (repo_path / '.git').exists():
+        print(f"❌ Path is not a git repository: {repo_path}")
+        print("\n💡 Make sure you specify a path containing a .git folder")
+        sys.exit(1)
+    
+    print(f"📂 Repository: {repo_path}")
+    
+    # Load configuration
+    try:
+        if config:
+            config_obj = Config.from_file(config)
+        else:
+            # Try default config file
+            default_config = Path(__file__).parent / "config.yaml"
+            if default_config.exists():
+                config_obj = Config.from_file(default_config)
+            else:
+                config_obj = Config()
+        
+        validation_issues = config_obj.validate()
+        if validation_issues:
+            print("❌ Configuration issues:")
+            for issue in validation_issues:
+                print(f"   - {issue}")
+            sys.exit(1)
+            
+    except Exception as e:
+        print(f"❌ Configuration error: {e}")
+        sys.exit(1)
+    
+    # Check if Ollama is available
+    print("🔍 Checking Ollama availability...")
+    if not check_ollama_connection(config_obj):
+        print(f"❌ Cannot connect to Ollama at {config_obj.ollama_host}")
+        print("\n💡 Make sure Ollama is running:")
+        print("   ollama serve")
+        print(f"   ollama pull {config_obj.embedding_model}")
+        sys.exit(1)
+    
+    if verbose:
+        print("✅ Ollama is running")
+    
+    # Run incremental processing
+    mode = "force" if force else "incremental"
+    print(f"🔄 Starting sync (mode: {mode})")
+    print()
+    
+    try:
+        success = process_directory(
+            repo_path, 
+            config_obj, 
+            git_tracker=None,  # Will be created automatically
+            verbose=verbose, 
+            incremental=not force, 
+            force=force
+        )
+        
+        if not success:
+            sys.exit(1)
+        
+        print("\n✅ Sync completed successfully!")
+        
+    except KeyboardInterrupt:
+        print("\n⏹️  Sync interrupted by user")
+        sys.exit(0)
+        
+    except Exception as e:
+        print(f"\n❌ Sync failed: {e}")
         if verbose:
             import traceback
             traceback.print_exc()

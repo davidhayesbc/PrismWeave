@@ -3,8 +3,9 @@ Document processor using LangChain for text splitting and document loading
 """
 
 from pathlib import Path
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 import frontmatter
+from datetime import datetime
 
 # LangChain imports
 from langchain_text_splitters import RecursiveCharacterTextSplitter
@@ -17,13 +18,15 @@ from langchain_community.document_loaders import (
 from langchain_core.documents import Document
 
 from .config import Config
+from .git_tracker import GitTracker
 
 
 class DocumentProcessor:
     """Process documents and split them into chunks for embedding"""
     
-    def __init__(self, config: Config):
+    def __init__(self, config: Config, git_tracker: Optional[GitTracker] = None):
         self.config = config
+        self.git_tracker = git_tracker
         
         # Initialize text splitter
         self.text_splitter = RecursiveCharacterTextSplitter(
@@ -77,13 +80,32 @@ class DocumentProcessor:
             chunks.extend(doc_chunks)
         
         # Add file metadata to all chunks
-        for chunk in chunks:
+        for i, chunk in enumerate(chunks):
+            # Basic file metadata
             chunk.metadata.update({
                 'file_path': str(file_path),
                 'file_name': file_path.name,
                 'file_extension': file_extension,
                 'file_size': file_path.stat().st_size,
+                'processed_at': datetime.now().isoformat(),
+                'chunk_index': i,
+                'total_chunks': len(chunks),
             })
+            
+            # Add git metadata if git_tracker is available
+            if self.git_tracker:
+                try:
+                    last_commit = self.git_tracker.get_file_last_commit_hash(file_path)
+                    content_hash = self.git_tracker.get_file_content_hash(file_path)
+                    
+                    chunk.metadata.update({
+                        'git_commit_hash': last_commit,
+                        'content_hash': content_hash,
+                        'last_modified': datetime.fromtimestamp(file_path.stat().st_mtime).isoformat(),
+                    })
+                except Exception as e:
+                    # Don't fail processing if git operations fail
+                    print(f"Warning: Failed to get git metadata for {file_path}: {e}")
         
         return chunks
     
