@@ -884,7 +884,9 @@ export class FileManager {
 
     const requestBody: any = {
       message,
-      content: btoa(unescape(encodeURIComponent(content))),
+      // For binary files (PDF), content is already base64 encoded
+      // For text files, we need to encode to base64
+      content: path.endsWith('.pdf') ? content : btoa(unescape(encodeURIComponent(content))),
       branch: 'main',
     };
 

@@ -734,7 +734,7 @@ export class PrismWeavePopup {
         'Checking PDF...',
         'Verifying if current page is a PDF document',
         'progress',
-        { showProgress: true, progressValue: 20 }
+        { showProgress: true, progressValue: 10 }
       );
 
       const checkMessage: IMessageData = {
@@ -762,10 +762,10 @@ export class PrismWeavePopup {
 
       // Proceed with PDF capture
       this.updateCaptureStatus(
-        'Capturing PDF...',
-        'Downloading and saving PDF to repository',
+        'Downloading PDF...',
+        'Fetching PDF content from the current page',
         'progress',
-        { showProgress: true, progressValue: 60 }
+        { showProgress: true, progressValue: 40 }
       );
 
       const captureMessage: IMessageData = {
@@ -777,7 +777,23 @@ export class PrismWeavePopup {
         },
       };
 
+      // Update progress
+      this.updateCaptureStatus(
+        'Processing PDF...',
+        'Converting and preparing for repository upload',
+        'progress',
+        { showProgress: true, progressValue: 70 }
+      );
+
       const response = await this.sendMessageToBackground(captureMessage.type, captureMessage.data);
+
+      // Final progress update before showing result
+      this.updateCaptureStatus(
+        'Saving to Repository...',
+        'Uploading PDF to GitHub repository',
+        'progress',
+        { showProgress: true, progressValue: 90 }
+      );
 
       if (response.success) {
         const responseData = response.data as any;

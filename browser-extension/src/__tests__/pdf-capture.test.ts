@@ -11,7 +11,7 @@ describe('PDF Capture Functionality', () => {
   beforeEach(() => {
     // Set up Chrome API mocks
     mockChrome = mockChromeAPIs();
-    
+
     // Mock DOM elements
     document.body.innerHTML = `
       <button id="capture-pdf" class="pdf-capture-button" style="display: none;">PDF</button>
@@ -31,7 +31,7 @@ describe('PDF Capture Functionality', () => {
       (popup as any).currentTab = {
         id: 1,
         url: 'https://example.com/document.pdf',
-        title: 'Document PDF'
+        title: 'Document PDF',
       };
 
       const isPDF = popup.testIsPDFPage();
@@ -43,7 +43,7 @@ describe('PDF Capture Functionality', () => {
       (popup as any).currentTab = {
         id: 1,
         url: 'https://example.com/view?file=document.pdf&page=1',
-        title: 'Document PDF'
+        title: 'Document PDF',
       };
 
       const isPDF = popup.testIsPDFPage();
@@ -55,7 +55,7 @@ describe('PDF Capture Functionality', () => {
       (popup as any).currentTab = {
         id: 1,
         url: 'https://example.com/document.pdf#page=1',
-        title: 'Document PDF'
+        title: 'Document PDF',
       };
 
       const isPDF = popup.testIsPDFPage();
@@ -67,7 +67,7 @@ describe('PDF Capture Functionality', () => {
       (popup as any).currentTab = {
         id: 1,
         url: 'https://example.com/article.html',
-        title: 'Regular Article'
+        title: 'Regular Article',
       };
 
       const isPDF = popup.testIsPDFPage();
@@ -79,7 +79,7 @@ describe('PDF Capture Functionality', () => {
       (popup as any).currentTab = {
         id: 1,
         url: null,
-        title: 'No URL'
+        title: 'No URL',
       };
 
       const isPDF = popup.testIsPDFPage();
@@ -101,7 +101,7 @@ describe('PDF Capture Functionality', () => {
       (popup as any).currentTab = {
         id: 1,
         url: 'https://example.com/document.pdf',
-        title: 'Document PDF'
+        title: 'Document PDF',
       };
 
       // Call checkPageCapturability
@@ -118,7 +118,7 @@ describe('PDF Capture Functionality', () => {
       (popup as any).currentTab = {
         id: 1,
         url: 'https://example.com/article.html',
-        title: 'Regular Article'
+        title: 'Regular Article',
       };
 
       // Call checkPageCapturability
@@ -136,13 +136,13 @@ describe('PDF Capture Functionality', () => {
       (popup as any).currentTab = {
         id: 1,
         url: 'https://example.com/document.pdf',
-        title: 'Document PDF'
+        title: 'Document PDF',
       };
 
       // Set up mock settings
       (popup as any).settings = {
         githubToken: 'test-token',
-        githubRepo: 'user/repo'
+        githubRepo: 'user/repo',
       };
 
       // Mock successful responses in sequence
@@ -165,28 +165,30 @@ describe('PDF Capture Functionality', () => {
 
       // Verify messages were sent
       expect(mockChrome.runtime.sendMessage).toHaveBeenCalledTimes(2);
-      
+
       // Verify CHECK_PDF was called first
-      expect(mockChrome.runtime.sendMessage).toHaveBeenNthCalledWith(1,
+      expect(mockChrome.runtime.sendMessage).toHaveBeenNthCalledWith(
+        1,
         expect.objectContaining({
           type: MESSAGE_TYPES.CHECK_PDF,
           data: expect.objectContaining({
             tabId: 1,
-            url: 'https://example.com/document.pdf'
-          })
+            url: 'https://example.com/document.pdf',
+          }),
         }),
         expect.any(Function)
       );
 
       // Verify CAPTURE_PDF was called second
-      expect(mockChrome.runtime.sendMessage).toHaveBeenNthCalledWith(2,
+      expect(mockChrome.runtime.sendMessage).toHaveBeenNthCalledWith(
+        2,
         expect.objectContaining({
           type: MESSAGE_TYPES.CAPTURE_PDF,
           data: expect.objectContaining({
             tabId: 1,
             url: 'https://example.com/document.pdf',
-            settings: expect.any(Object)
-          })
+            settings: expect.any(Object),
+          }),
         }),
         expect.any(Function)
       );
@@ -197,22 +199,21 @@ describe('PDF Capture Functionality', () => {
       (popup as any).currentTab = {
         id: 1,
         url: 'https://example.com/article.html',
-        title: 'Regular Article'
+        title: 'Regular Article',
       };
 
       // Set up mock settings
       (popup as any).settings = {
         githubToken: 'test-token',
-        githubRepo: 'user/repo'
+        githubRepo: 'user/repo',
       };
 
       // Mock CHECK_PDF response indicating not a PDF
-      mockChrome.runtime.sendMessage
-        .mockImplementationOnce((message: any, callback: Function) => {
-          if (message.type === MESSAGE_TYPES.CHECK_PDF) {
-            callback({ success: true, data: { isPDF: false } });
-          }
-        });
+      mockChrome.runtime.sendMessage.mockImplementationOnce((message: any, callback: Function) => {
+        if (message.type === MESSAGE_TYPES.CHECK_PDF) {
+          callback({ success: true, data: { isPDF: false } });
+        }
+      });
 
       // Test PDF capture on non-PDF page
       await popup.testCapturePDF();
@@ -221,7 +222,7 @@ describe('PDF Capture Functionality', () => {
       expect(mockChrome.runtime.sendMessage).toHaveBeenCalledTimes(1);
       expect(mockChrome.runtime.sendMessage).toHaveBeenCalledWith(
         expect.objectContaining({
-          type: MESSAGE_TYPES.CHECK_PDF
+          type: MESSAGE_TYPES.CHECK_PDF,
         }),
         expect.any(Function)
       );
@@ -232,12 +233,12 @@ describe('PDF Capture Functionality', () => {
       (popup as any).currentTab = {
         id: 1,
         url: 'https://example.com/document.pdf',
-        title: 'Document PDF'
+        title: 'Document PDF',
       };
 
       // Set up incomplete settings (missing GitHub token)
       (popup as any).settings = {
-        githubRepo: 'user/repo'
+        githubRepo: 'user/repo',
       };
 
       // Test PDF capture with incomplete settings

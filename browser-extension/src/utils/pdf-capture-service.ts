@@ -95,6 +95,7 @@ export class PDFCaptureService {
       // Step 4: Download the PDF content
       logger.info('Downloading PDF content...');
       const pdfBlob = await this.downloadPDF(activeTab.url!);
+      logger.info(`PDF downloaded: ${this.formatFileSize(pdfBlob.size)}`);
 
       // Step 5: Validate PDF size
       if (pdfBlob.size > PDFCaptureService.MAX_PDF_SIZE) {
@@ -116,7 +117,9 @@ export class PDFCaptureService {
       });
 
       // Step 7: Convert blob to base64 for GitHub
+      logger.info('Converting PDF to base64...');
       const pdfContent = await this.blobToBase64(pdfBlob);
+      logger.info(`Base64 conversion complete: ${pdfContent.length} characters`);
 
       // Step 8: Save to GitHub if enabled
       const shouldCommit =
@@ -128,6 +131,7 @@ export class PDFCaptureService {
         const commitResult = await this.savePDFToGitHub(pdfContent, metadata, filePath, settings);
 
         if (commitResult.success) {
+          logger.info('PDF successfully saved to GitHub');
           return this.createSuccessResult(metadata, filePath, {
             message: 'PDF captured and saved to repository',
             ...(commitResult.url && { commitUrl: commitResult.url }),
@@ -138,6 +142,7 @@ export class PDFCaptureService {
       }
 
       // Step 9: Fallback to local storage
+      logger.info('Storing PDF locally for pending sync');
       await this.storePDFLocally(pdfContent, metadata, filePath);
 
       return this.createSuccessResult(metadata, filePath, {
@@ -325,13 +330,18 @@ export class PDFCaptureService {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = () => {
-        const result = reader.result as string;
-        // Remove data URL prefix to get just the base64 content
-        const base64 = result.split(',')[1];
+        const result = reader.result as ArrayBuffer;
+        // Convert ArrayBuffer directly to base64
+        const bytes = new Uint8Array(result);
+        let binary = '';
+        for (let i = 0; i < bytes.byteLength; i++) {
+          binary += String.fromCharCode(bytes[i]);
+        }
+        const base64 = btoa(binary);
         resolve(base64);
       };
       reader.onerror = () => reject(new Error('Failed to convert PDF to base64'));
-      reader.readAsDataURL(blob);
+      reader.readAsArrayBuffer(blob);
     });
   }
 
