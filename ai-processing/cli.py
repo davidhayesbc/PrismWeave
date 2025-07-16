@@ -496,6 +496,17 @@ def sync(repo_path: Optional[Path], config: Optional[Path], force: bool, verbose
     if verbose:
         print("✅ Ollama is running")
     
+    # Initialize git tracker for incremental processing
+    git_tracker = None
+    if not force:
+        try:
+            git_tracker = GitTracker(repo_path)
+            if verbose:
+                print("📝 Initialized git tracking for incremental processing")
+        except Exception as e:
+            print(f"⚠️  Could not initialize git tracking: {e}")
+            print("   Falling back to full processing mode")
+    
     # Run incremental processing
     mode = "force" if force else "incremental"
     print(f"🔄 Starting sync (mode: {mode})")
@@ -505,7 +516,7 @@ def sync(repo_path: Optional[Path], config: Optional[Path], force: bool, verbose
         success = process_directory(
             repo_path, 
             config_obj, 
-            git_tracker=None,  # Will be created automatically
+            git_tracker=git_tracker,
             verbose=verbose, 
             incremental=not force, 
             force=force
