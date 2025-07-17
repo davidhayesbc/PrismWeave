@@ -90,8 +90,18 @@ describe('PrismWeave Popup - Unified Test Suite', () => {
     // Reset all mocks
     jest.clearAllMocks();
 
-    // Create new popup instance
-    popup = new PrismWeavePopup();
+    // Create mock window
+    const mockWindow = {
+      open: jest.fn(),
+      document: mockDocument,
+    } as any; // Type cast to avoid Window interface requirements
+
+    // Create new popup instance with dependency injection
+    popup = new PrismWeavePopup({
+      chrome: mockChrome as any,
+      document: mockDocument as any,
+      window: mockWindow,
+    });
 
     // Setup default Chrome API responses
     mockChrome.tabs.query.mockImplementation((queryInfo: any, callback: any) => {
@@ -127,11 +137,11 @@ describe('PrismWeave Popup - Unified Test Suite', () => {
     });
 
     test('should initialize popup using test accessor', async () => {
-      await expect(popup.testInitializePopup()).resolves.not.toThrow();
+      await expect(popup.initializeForTest()).resolves.not.toThrow();
     });
 
     test('should get current tab using test accessor', async () => {
-      await expect(popup.testGetCurrentTab()).resolves.not.toThrow();
+      await expect(popup.getCurrentTabForTest()).resolves.not.toThrow();
       expect(mockChrome.tabs.query).toHaveBeenCalledWith(
         { active: true, currentWindow: true },
         expect.any(Function)
@@ -141,7 +151,7 @@ describe('PrismWeave Popup - Unified Test Suite', () => {
 
   describe('Settings Validation', () => {
     test('should validate capture settings using test accessor', () => {
-      const result = popup.testValidateCaptureSettings();
+      const result = popup.validateCaptureSettingsForTest();
       expect(result).toHaveProperty('isValid');
       expect(result).toHaveProperty('missingSettings');
     });
@@ -157,7 +167,7 @@ describe('PrismWeave Popup - Unified Test Suite', () => {
         });
       });
 
-      const result = popup.testValidateCaptureSettings();
+      const result = popup.validateCaptureSettingsForTest();
       expect(result.isValid).toBe(false);
       expect(result.missingSettings.length).toBeGreaterThan(0);
     });
@@ -176,8 +186,8 @@ describe('PrismWeave Popup - Unified Test Suite', () => {
       });
 
       // Test the capture page functionality through test accessors
-      await popup.testGetCurrentTab();
-      await popup.testLoadSettings();
+      await popup.getCurrentTabForTest();
+      await popup.loadSettingsForTest();
 
       // Verify Chrome APIs were called
       expect(mockChrome.tabs.query).toHaveBeenCalled();
@@ -193,7 +203,7 @@ describe('PrismWeave Popup - Unified Test Suite', () => {
         callback([]);
       });
 
-      await expect(popup.testInitializePopup()).resolves.not.toThrow();
+      await expect(popup.initializeForTest()).resolves.not.toThrow();
     });
   });
 
@@ -216,15 +226,15 @@ describe('PrismWeave Popup - Unified Test Suite', () => {
 
       // For now, just test that the popup can be instantiated and methods can be called
       // without throwing errors. The DOM mocking issue needs separate investigation.
-      await expect(popup.testGetCurrentTab()).resolves.not.toThrow();
+      await expect(popup.getCurrentTabForTest()).resolves.not.toThrow();
       expect(mockChrome.tabs.query).toHaveBeenCalledWith(
         { active: true, currentWindow: true },
         expect.any(Function)
       );
 
       // Call updatePageInfo and setupEventListeners - these should call document.getElementById
-      expect(() => popup.testUpdatePageInfo()).not.toThrow();
-      expect(() => popup.testSetupEventListeners()).not.toThrow();
+      expect(() => popup.updatePageInfoForTest()).not.toThrow();
+      expect(() => popup.setupEventListenersForTest()).not.toThrow();
 
       // TODO: Fix DOM mocking issue - currently these elements are not properly mocked
       // The popup methods use 'document' but our global mock setup may not be working
@@ -238,7 +248,7 @@ describe('PrismWeave Popup - Unified Test Suite', () => {
       // Mock getElementById to return null
       mockDocument.getElementById.mockReturnValue(null);
 
-      await expect(popup.testInitializePopup()).resolves.not.toThrow();
+      await expect(popup.initializeForTest()).resolves.not.toThrow();
     });
   });
 
@@ -247,7 +257,7 @@ describe('PrismWeave Popup - Unified Test Suite', () => {
       // Mock Chrome runtime error
       (chrome as any).runtime.lastError = { message: 'Test error' };
 
-      await expect(popup.testInitializePopup()).resolves.not.toThrow();
+      await expect(popup.initializeForTest()).resolves.not.toThrow();
 
       // Clean up
       delete (chrome as any).runtime.lastError;
@@ -259,7 +269,7 @@ describe('PrismWeave Popup - Unified Test Suite', () => {
         callback({});
       });
 
-      await expect(popup.testInitializePopup()).resolves.not.toThrow();
+      await expect(popup.initializeForTest()).resolves.not.toThrow();
 
       // Clean up
       delete (chrome as any).runtime.lastError;
@@ -277,9 +287,9 @@ describe('PrismWeave Popup - Unified Test Suite', () => {
         callback({ success: true, data: { github: { token: 'test-token' } } });
       });
 
-      await popup.testInitializePopup();
+      await popup.initializeForTest();
 
-      const validation = popup.testValidateCaptureSettings();
+      const validation = popup.validateCaptureSettingsForTest();
 
       expect(mockChrome.tabs.query).toHaveBeenCalled();
       expect(mockChrome.runtime.sendMessage).toHaveBeenCalledWith(
@@ -291,10 +301,10 @@ describe('PrismWeave Popup - Unified Test Suite', () => {
 
     test('should handle multiple operations without conflicts', async () => {
       // Run multiple operations in sequence
-      await popup.testInitializePopup();
-      await popup.testGetCurrentTab();
-      const validation1 = popup.testValidateCaptureSettings();
-      const validation2 = popup.testValidateCaptureSettings();
+      await popup.initializeForTest();
+      await popup.getCurrentTabForTest();
+      const validation1 = popup.validateCaptureSettingsForTest();
+      const validation2 = popup.validateCaptureSettingsForTest();
 
       expect(validation1).toEqual(validation2);
     });

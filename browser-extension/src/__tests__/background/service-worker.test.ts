@@ -145,7 +145,11 @@ describe('Service Worker Comprehensive Tests - Phase 3.1', () => {
         const result = await handleMessage(message, sender);
 
         // Assert
-        expect(result).toEqual(VALID_SETTINGS);
+        expect(result).toEqual({
+          success: true,
+          data: VALID_SETTINGS,
+          timestamp: expect.any(Number),
+        });
         expect(mockChrome.storage.sync.get).toHaveBeenCalledWith(
           ['prismWeaveSettings'],
           expect.any(Function)
@@ -193,7 +197,10 @@ describe('Service Worker Comprehensive Tests - Phase 3.1', () => {
         const result = await handleMessage(message, sender);
 
         // Assert
-        expect(result).toEqual({ success: true });
+        expect(result).toEqual({
+          success: true,
+          timestamp: expect.any(Number),
+        });
       });
 
       test('should reject invalid data types', async () => {
@@ -240,7 +247,10 @@ describe('Service Worker Comprehensive Tests - Phase 3.1', () => {
         const result = await handleMessage(message, sender);
 
         // Assert
-        expect(result).toEqual({ success: true });
+        expect(result).toEqual({
+          success: true,
+          timestamp: expect.any(Number),
+        });
       });
     });
 
@@ -313,11 +323,12 @@ describe('Service Worker Comprehensive Tests - Phase 3.1', () => {
 
         // Assert
         expect(result).toBeDefined();
-        expect(result.initialized).toBe(true);
-        expect(result.version).toBe('1.0.0-test');
-        expect(result.timestamp).toBeDefined();
-        expect(result.hasSettingsManager).toBe(true);
-        expect(result.hasCaptureService).toBe(true);
+        expect(result.success).toBe(true);
+        expect(result.data.initialized).toBe(true);
+        expect(result.data.version).toBe('1.0.0-test');
+        expect(result.data.timestamp).toBeDefined();
+        expect(result.data.hasSettingsManager).toBe(true);
+        expect(result.data.hasCaptureService).toBe(true);
       });
     });
 
@@ -566,9 +577,13 @@ describe('Service Worker Comprehensive Tests - Phase 3.1', () => {
 
       // Assert
       expect(result).toEqual({
-        message: 'Service worker is working',
-        timestamp: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/),
-        version: '1.0.0-test',
+        success: true,
+        data: {
+          message: 'Service worker is working',
+          timestamp: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/),
+          version: '1.0.0-test',
+        },
+        timestamp: expect.any(Number),
       });
     });
   });

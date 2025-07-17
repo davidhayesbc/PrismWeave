@@ -6,6 +6,14 @@ import { createLogger } from '../utils/logger';
 // Initialize logger
 const logger = createLogger('Popup');
 
+// Dependencies interface for better testability
+export interface IPopupDependencies {
+  chrome?: typeof chrome;
+  document?: Document;
+  window?: Window;
+  autoInitialize?: boolean;
+}
+
 export class PrismWeavePopup {
   private currentTab: chrome.tabs.Tab | null = null;
   private settings: Partial<ISettings> | null = null;
@@ -14,28 +22,55 @@ export class PrismWeavePopup {
   private eventListenersSetup: boolean = false;
   private openRepositoryDebounceTimer: NodeJS.Timeout | null = null;
 
-  constructor(skipInitialization: boolean = false) {
-    // Only log during normal operation, not tests
-    if (!skipInitialization) {
-      logger.debug('PrismWeavePopup constructor called');
+  // Dependencies for testability
+  private chrome: typeof chrome;
+  private document: Document;
+  private window: Window;
+
+  constructor(dependencies: IPopupDependencies = {}) {
+    this.chrome = dependencies.chrome || (globalThis as any).chrome;
+    this.document = dependencies.document || (globalThis as any).document;
+    this.window = dependencies.window || (globalThis as any).window;
+
+    logger.debug('PrismWeavePopup constructor called');
+
+    // Allow tests to skip auto-initialization
+    if (dependencies.autoInitialize !== false) {
       this.initializePopup();
     }
   }
 
-  // Test accessors - public methods for testing private functionality
-  public async testInitializePopup(): Promise<void> {
+  // Public getters for testing
+  public get currentTabForTest(): chrome.tabs.Tab | null {
+    return this.currentTab;
+  }
+
+  public get settingsForTest(): Partial<ISettings> | null {
+    return this.settings;
+  }
+
+  public get isCapturingForTest(): boolean {
+    return this.isCapturing;
+  }
+
+  public get lastCapturedContentForTest(): string | null {
+    return this.lastCapturedContent;
+  }
+
+  // Public methods for testing
+  public async initializeForTest(): Promise<void> {
     return this.initializePopup();
   }
 
-  public async testGetCurrentTab(): Promise<void> {
+  public async getCurrentTabForTest(): Promise<void> {
     return this.getCurrentTab();
   }
 
-  public async testLoadSettings(): Promise<void> {
+  public async loadSettingsForTest(): Promise<void> {
     return this.loadSettings();
   }
 
-  public testValidateCaptureSettings(): {
+  public validateCaptureSettingsForTest(): {
     isValid: boolean;
     missingSettings: string[];
     message?: string;
@@ -43,57 +78,28 @@ export class PrismWeavePopup {
     return this.validateCaptureSettings();
   }
 
-  public testSetupEventListeners(): void {
+  public setupEventListenersForTest(): void {
     return this.setupEventListeners();
   }
 
-  public testUpdatePageInfo(): void {
+  public updatePageInfoForTest(): void {
     return this.updatePageInfo();
   }
 
-  public testCheckPageCapturability(): void {
+  public checkPageCapturabilityForTest(): void {
     return this.checkPageCapturability();
   }
 
-  public async testCapturePage(): Promise<void> {
-    return this.capturePage();
-  }
-
-  public async testCaptureContent(): Promise<void> {
-    return this.captureContent();
-  }
-
-  public async testCaptureSelection(): Promise<void> {
-    return this.captureSelection();
-  }
-
-  public async testCapturePDF(): Promise<void> {
-    return this.capturePDF();
-  }
-
-  public testIsPageCapturable(): boolean {
+  public isPageCapturableForTest(): boolean {
     return this.isPageCapturable();
   }
 
-  public testIsPDFPage(): boolean {
+  public isPDFPageForTest(): boolean {
     return this.isPDFPage();
   }
 
-  // Getters for testing state
-  public getCurrentTabForTest(): chrome.tabs.Tab | null {
-    return this.currentTab;
-  }
-
-  public getSettingsForTest(): Partial<ISettings> | null {
-    return this.settings;
-  }
-
-  public getIsCapturingForTest(): boolean {
-    return this.isCapturing;
-  }
-
-  public getLastCapturedContentForTest(): string | null {
-    return this.lastCapturedContent;
+  public async capturePDFForTest(): Promise<void> {
+    return this.capturePDF();
   }
 
   private async initializePopup(): Promise<void> {
@@ -125,10 +131,10 @@ export class PrismWeavePopup {
   }
   private async getCurrentTab(): Promise<void> {
     return new Promise<void>((resolve, reject) => {
-      chrome.tabs.query({ active: true, currentWindow: true }, (tabs: chrome.tabs.Tab[]) => {
-        if (chrome.runtime.lastError) {
-          logger.error('Chrome tabs API error:', chrome.runtime.lastError.message);
-          reject(new Error(chrome.runtime.lastError.message));
+      this.chrome.tabs.query({ active: true, currentWindow: true }, (tabs: chrome.tabs.Tab[]) => {
+        if (this.chrome.runtime.lastError) {
+          logger.error('Chrome tabs API error:', this.chrome.runtime.lastError.message);
+          reject(new Error(this.chrome.runtime.lastError.message));
         } else if (tabs.length > 0 && tabs[0]) {
           this.currentTab = tabs[0];
           logger.debug('Current tab found:', {
@@ -163,7 +169,7 @@ export class PrismWeavePopup {
     }
 
     // Unified capture content button
-    const captureContentBtn = document.getElementById('capture-content');
+    const captureContentBtn = this.document.getElementById('capture-content');
     if (captureContentBtn) {
       captureContentBtn.addEventListener('click', e => {
         e.stopPropagation();
@@ -174,7 +180,7 @@ export class PrismWeavePopup {
     }
 
     // Capture selection button
-    const captureSelectionBtn = document.getElementById('capture-selection');
+    const captureSelectionBtn = this.document.getElementById('capture-selection');
     if (captureSelectionBtn) {
       captureSelectionBtn.addEventListener('click', e => {
         e.stopPropagation();
@@ -185,7 +191,7 @@ export class PrismWeavePopup {
     }
 
     // Settings button
-    const settingsBtn = document.getElementById('settings-btn');
+    const settingsBtn = this.document.getElementById('settings-btn');
     if (settingsBtn) {
       settingsBtn.addEventListener('click', e => {
         e.stopPropagation();
@@ -196,7 +202,7 @@ export class PrismWeavePopup {
     }
 
     // View repository button
-    const viewRepoBtn = document.getElementById('view-repo');
+    const viewRepoBtn = this.document.getElementById('view-repo');
     if (viewRepoBtn) {
       viewRepoBtn.addEventListener('click', e => {
         e.stopPropagation();
@@ -215,13 +221,13 @@ export class PrismWeavePopup {
     if (!this.currentTab) return;
 
     // Update page title
-    const titleElement = document.getElementById('page-title');
+    const titleElement = this.document.getElementById('page-title');
     if (titleElement) {
       titleElement.textContent = this.currentTab.title || 'Unknown page';
     }
 
     // Update page URL
-    const urlElement = document.getElementById('page-url');
+    const urlElement = this.document.getElementById('page-url');
     if (urlElement) {
       const url = new URL(this.currentTab.url || '');
       urlElement.textContent = `${url.hostname}${url.pathname}`;
@@ -229,7 +235,7 @@ export class PrismWeavePopup {
     }
 
     // Update favicon if available
-    const faviconElement = document.getElementById('page-favicon') as HTMLImageElement;
+    const faviconElement = this.document.getElementById('page-favicon') as HTMLImageElement;
     if (faviconElement && this.currentTab.favIconUrl) {
       faviconElement.src = this.currentTab.favIconUrl;
       faviconElement.style.display = 'block';
@@ -433,7 +439,7 @@ export class PrismWeavePopup {
         if (saveResult?.success && saveResult.url) {
           actions.push({
             label: 'View on GitHub',
-            action: () => window.open(saveResult.url, '_blank'),
+            action: () => this.window.open(saveResult.url, '_blank'),
             primary: true,
           });
         } else if (this.settings?.githubRepo) {
@@ -497,9 +503,11 @@ export class PrismWeavePopup {
 
     const isCapturable = this.isPageCapturable();
 
-    const captureContentBtn = document.getElementById('capture-content') as HTMLButtonElement;
-    const captureSelectionBtn = document.getElementById('capture-selection') as HTMLButtonElement;
-    const warningContainer = document.getElementById('capture-warning');
+    const captureContentBtn = this.document.getElementById('capture-content') as HTMLButtonElement;
+    const captureSelectionBtn = this.document.getElementById(
+      'capture-selection'
+    ) as HTMLButtonElement;
+    const warningContainer = this.document.getElementById('capture-warning');
 
     // Handle capture buttons
     if (isCapturable) {
@@ -716,7 +724,7 @@ export class PrismWeavePopup {
         if (saveResult?.success && saveResult.url) {
           actions.push({
             label: 'View on GitHub',
-            action: () => window.open(saveResult.url, '_blank'),
+            action: () => this.window.open(saveResult.url, '_blank'),
             primary: true,
           });
         } else if (this.settings?.githubRepo) {
@@ -1135,14 +1143,14 @@ export class PrismWeavePopup {
       details?: string[];
     } = {}
   ): void {
-    const container = document.getElementById('capture-status');
+    const container = this.document.getElementById('capture-status');
     if (!container) return;
 
     // Update container class
     container.className = `capture-status-container ${type}`;
 
     // Update icon based on type
-    const iconElement = document.getElementById('status-icon');
+    const iconElement = this.document.getElementById('status-icon');
     if (iconElement) {
       const icons = {
         success: '✓',
@@ -1154,20 +1162,20 @@ export class PrismWeavePopup {
     }
 
     // Update title
-    const titleElement = document.getElementById('status-title');
+    const titleElement = this.document.getElementById('status-title');
     if (titleElement) {
       titleElement.textContent = title;
     }
 
     // Update message
-    const messageElement = document.getElementById('status-message');
+    const messageElement = this.document.getElementById('status-message');
     if (messageElement) {
       messageElement.textContent = message || '';
       messageElement.style.display = message ? 'block' : 'none';
     }
 
     // Handle progress bar
-    const progressBar = document.getElementById('progress-bar');
+    const progressBar = this.document.getElementById('progress-bar');
     const progressFill = progressBar?.querySelector('.progress-fill') as HTMLElement;
     if (options.showProgress && progressBar && progressFill) {
       progressBar.style.display = 'block';
@@ -1177,11 +1185,11 @@ export class PrismWeavePopup {
     }
 
     // Handle actions
-    const actionsContainer = document.getElementById('status-actions');
+    const actionsContainer = this.document.getElementById('status-actions');
     if (options.actions && actionsContainer) {
       actionsContainer.innerHTML = '';
       options.actions.forEach(action => {
-        const button = document.createElement('button');
+        const button = this.document.createElement('button');
         button.className = `status-action-btn ${action.primary ? 'primary' : ''}`;
         button.textContent = action.label;
 
@@ -1214,7 +1222,7 @@ export class PrismWeavePopup {
     }
 
     // Handle details
-    const detailsContainer = document.getElementById('status-details');
+    const detailsContainer = this.document.getElementById('status-details');
     if ((options.showProgress || options.actions) && detailsContainer) {
       detailsContainer.style.display = 'block';
     } else if (detailsContainer) {
@@ -1222,7 +1230,7 @@ export class PrismWeavePopup {
     }
 
     // Setup close button
-    const closeButton = document.getElementById('status-close');
+    const closeButton = this.document.getElementById('status-close');
     if (closeButton) {
       closeButton.onclick = () => this.resetCaptureStatus();
     }
@@ -1242,7 +1250,7 @@ export class PrismWeavePopup {
    * @param missingSettings Array of missing setting names
    */
   private showMissingSettingsMessage(message: string, missingSettings: string[] = []): void {
-    const container = document.getElementById('capture-status');
+    const container = this.document.getElementById('capture-status');
     if (!container) return;
 
     // Custom HTML for missing settings
@@ -1282,8 +1290,8 @@ export class PrismWeavePopup {
     container.style.display = 'block';
 
     // Setup event handlers
-    const openSettingsBtn = document.getElementById('open-settings-action');
-    const closeBtn = document.getElementById('missing-settings-close');
+    const openSettingsBtn = this.document.getElementById('open-settings-action');
+    const closeBtn = this.document.getElementById('missing-settings-close');
 
     if (openSettingsBtn) {
       openSettingsBtn.addEventListener('click', () => {
@@ -1300,7 +1308,7 @@ export class PrismWeavePopup {
     setTimeout(() => this.resetCaptureStatus(), 12000);
   }
   private resetCaptureStatus(): void {
-    const statusElement = document.getElementById('capture-status');
+    const statusElement = this.document.getElementById('capture-status');
     if (statusElement) {
       statusElement.style.display = 'none';
       statusElement.textContent = '';
@@ -1310,7 +1318,7 @@ export class PrismWeavePopup {
   }
 
   private openSettings(): void {
-    chrome.runtime.openOptionsPage();
+    this.chrome.runtime.openOptionsPage();
   }
 
   private openRepository(): void {
@@ -1341,9 +1349,9 @@ export class PrismWeavePopup {
     logger.debug('Opening repository URL:', url);
 
     try {
-      chrome.tabs.create({ url }, tab => {
-        if (chrome.runtime.lastError) {
-          logger.error('Failed to create tab:', chrome.runtime.lastError.message);
+      this.chrome.tabs.create({ url }, tab => {
+        if (this.chrome.runtime.lastError) {
+          logger.error('Failed to create tab:', this.chrome.runtime.lastError.message);
           this.showError('Failed to open repository tab');
         } else {
           logger.debug('Successfully created tab:', tab?.id);
@@ -1356,7 +1364,7 @@ export class PrismWeavePopup {
   }
 
   private showError(message: string): void {
-    const errorElement = document.getElementById('error-message');
+    const errorElement = this.document.getElementById('error-message');
     if (errorElement) {
       errorElement.textContent = message;
       errorElement.style.display = 'block';
@@ -1367,9 +1375,9 @@ export class PrismWeavePopup {
     return new Promise<IMessageResponse>((resolve, reject) => {
       const message: IMessageData = { type, data };
 
-      chrome.runtime.sendMessage(message, (response: IMessageResponse) => {
-        if (chrome.runtime.lastError) {
-          reject(new Error(chrome.runtime.lastError.message));
+      this.chrome.runtime.sendMessage(message, (response: IMessageResponse) => {
+        if (this.chrome.runtime.lastError) {
+          reject(new Error(this.chrome.runtime.lastError.message));
         } else {
           resolve(response);
         }
@@ -1385,9 +1393,9 @@ export class PrismWeavePopup {
     return new Promise<IMessageResponse>((resolve, reject) => {
       const message: IMessageData = { type, data };
 
-      chrome.tabs.sendMessage(this.currentTab!.id!, message, (response: IMessageResponse) => {
-        if (chrome.runtime.lastError) {
-          reject(new Error(chrome.runtime.lastError.message));
+      this.chrome.tabs.sendMessage(this.currentTab!.id!, message, (response: IMessageResponse) => {
+        if (this.chrome.runtime.lastError) {
+          reject(new Error(this.chrome.runtime.lastError.message));
         } else {
           resolve(response);
         }
@@ -1402,7 +1410,7 @@ export class PrismWeavePopup {
     }
 
     // Create preview modal
-    const modal = document.createElement('div');
+    const modal = this.document.createElement('div');
     modal.className = 'markdown-preview-modal';
     modal.innerHTML = `
       <div class="modal-backdrop"></div>
@@ -1422,7 +1430,7 @@ export class PrismWeavePopup {
     `;
 
     // Add modal to document
-    document.body.appendChild(modal);
+    this.document.body.appendChild(modal);
 
     // Setup event listeners
     const closeBtn = modal.querySelector('.modal-close') as HTMLButtonElement;
@@ -1456,10 +1464,10 @@ export class PrismWeavePopup {
     const handleKeydown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         closeModal();
-        document.removeEventListener('keydown', handleKeydown);
+        this.document.removeEventListener('keydown', handleKeydown);
       }
     };
-    document.addEventListener('keydown', handleKeydown);
+    this.document.addEventListener('keydown', handleKeydown);
   }
   private escapeHtml(unsafe: string): string {
     return unsafe
@@ -1478,7 +1486,7 @@ if (typeof globalThis !== 'undefined') {
   (self as any).PrismWeavePopup = PrismWeavePopup;
 }
 
-// Initialize popup when DOM is ready - with protection against multiple initialization
+// Initialize popup when DOM is ready
 let popupInstance: PrismWeavePopup | null = null;
 
 document.addEventListener('DOMContentLoaded', () => {
