@@ -57,7 +57,7 @@ const logger = createLogger('ContentScript');
 // Keyboard shortcuts configuration
 const KEYBOARD_SHORTCUTS: IKeyboardShortcut[] = [
   {
-    ctrlKey: true,
+    ctrlKey: false,
     shiftKey: false,
     altKey: true,
     metaKey: false,
@@ -118,7 +118,7 @@ function setupKeyboardListeners(): void {
 // Handle keyboard events
 function handleKeyboardEvent(event: KeyboardEvent): void {
   // Log all keyboard events for debugging
-  if (event.ctrlKey && event.altKey) {
+  if (event.altKey) {
     console.log('🔑 Keyboard event detected:', {
       key: event.key,
       ctrlKey: event.ctrlKey,
@@ -279,8 +279,8 @@ async function handleCapturePageShortcut(): Promise<void> {
     contentScriptState.isCapturing = true;
     console.log('📱 Showing capture notification...');
 
-    // Show user feedback (without click URL initially since capture hasn't completed)
-    showNotification('Capturing content...', 'info', 3000);
+    // Show "capturing" notification that stays until capture completes (no auto-hide)
+    showNotification('Capturing content...', 'info', 0); // 0 duration = no auto-hide
 
     // Check if current page is a PDF
     const isPDFPage = checkIfCurrentPageIsPDF();
@@ -308,6 +308,8 @@ async function handleCapturePageShortcut(): Promise<void> {
         console.log('🔍 DEBUG: Extracted commit URL:', commitUrl);
 
         if (commitUrl) {
+          // Hide the "capturing" notification and show success with 5-second duration
+          hideNotification(document.getElementById('prismweave-notification'));
           showNotification(
             'PDF captured successfully! Click to view on GitHub.',
             'success',
@@ -319,6 +321,8 @@ async function handleCapturePageShortcut(): Promise<void> {
             hasCommitUrl: true,
           });
         } else {
+          // Hide the "capturing" notification and show success with 5-second duration
+          hideNotification(document.getElementById('prismweave-notification'));
           showNotification('PDF captured successfully!', 'success', 5000);
           logger.warn('PDF capture completed but no commit URL found', {
             responseKeys: Object.keys(response),
@@ -363,6 +367,8 @@ async function handleCapturePageShortcut(): Promise<void> {
         console.log('🔍 DEBUG: Extracted commit URL:', commitUrl);
 
         if (commitUrl) {
+          // Hide the "capturing" notification and show success with 5-second duration
+          hideNotification(document.getElementById('prismweave-notification'));
           showNotification(
             'Page captured successfully! Click to view on GitHub.',
             'success',
@@ -374,6 +380,8 @@ async function handleCapturePageShortcut(): Promise<void> {
             hasCommitUrl: true,
           });
         } else {
+          // Hide the "capturing" notification and show success with 5-second duration
+          hideNotification(document.getElementById('prismweave-notification'));
           showNotification('Page captured successfully!', 'success', 5000);
           logger.warn('Page capture completed but no commit URL found', {
             responseKeys: Object.keys(response),
@@ -387,7 +395,9 @@ async function handleCapturePageShortcut(): Promise<void> {
     }
   } catch (error) {
     logger.error('Keyboard shortcut capture failed:', error);
-    showNotification('Capture failed: ' + (error as Error).message, 'error');
+    // Hide the "capturing" notification and show error
+    hideNotification(document.getElementById('prismweave-notification'));
+    showNotification('Capture failed: ' + (error as Error).message, 'error', 5000);
   } finally {
     contentScriptState.isCapturing = false;
   }
@@ -512,6 +522,16 @@ async function handleMessage(
         logger.info('Notification shown:', message.data.message, { clickUrl });
       }
       return { success: true };
+
+    case 'TRIGGER_CAPTURE_SHORTCUT':
+      // Handle keyboard shortcut trigger from service worker
+      try {
+        await handleCapturePageShortcut();
+        return { success: true };
+      } catch (error) {
+        logger.error('Failed to handle capture shortcut:', error);
+        return { success: false, error: (error as Error).message };
+      }
 
     case 'EXTRACT_AND_CONVERT_TO_MARKDOWN':
       // This is called by the service worker for content extraction
@@ -1009,10 +1029,12 @@ function showNotification(
     }
   });
 
-  // Hide notification after specified duration
-  setTimeout(() => {
-    hideNotification(notification);
-  }, duration);
+  // Hide notification after specified duration (only if duration > 0)
+  if (duration > 0) {
+    setTimeout(() => {
+      hideNotification(notification);
+    }, duration);
+  }
 }
 
 // Helper function to hide notification

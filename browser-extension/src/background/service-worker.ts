@@ -403,6 +403,51 @@ chrome.runtime.onMessage.addListener(
   }
 );
 
+// Handle keyboard shortcut commands
+chrome.commands.onCommand.addListener(async (command: string) => {
+  logger.info('Keyboard command received:', command);
+
+  try {
+    if (command === 'capture-page') {
+      // Get the active tab
+      const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+
+      if (tabs.length === 0) {
+        logger.error('No active tab found for keyboard shortcut');
+        return;
+      }
+
+      const activeTab = tabs[0];
+      if (!activeTab.id) {
+        logger.error('Active tab has no ID');
+        return;
+      }
+
+      // Send message to content script to trigger capture
+      try {
+        await chrome.tabs.sendMessage(activeTab.id, {
+          type: 'TRIGGER_CAPTURE_SHORTCUT',
+          timestamp: Date.now(),
+        });
+        logger.info('Capture shortcut message sent to content script');
+      } catch (error) {
+        logger.error('Failed to send capture shortcut message:', error);
+        // Optionally show browser notification if content script communication fails
+        if (chrome.notifications) {
+          chrome.notifications.create({
+            type: 'basic',
+            iconUrl: 'icons/icon48.png',
+            title: 'PrismWeave',
+            message: 'Please reload the page and try again',
+          });
+        }
+      }
+    }
+  } catch (error) {
+    logger.error('Error handling keyboard command:', error);
+  }
+});
+
 // Get current service worker state - exported for testing
 export function getServiceWorkerState(): IServiceWorkerState {
   return { ...serviceWorkerState };

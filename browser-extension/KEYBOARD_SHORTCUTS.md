@@ -1,17 +1,26 @@
-# Keyboard Shortcuts - PrismWeave Browser Extension
+# ## Overview
+
+The PrismWeave browser extension now supports keyboard shortcuts for quick page
+capture. Press **Alt+S** to instantly capture the current page.
+
+## Supported Shortcuts
+
+| Shortcut | Action       | Description                                                            |
+| -------- | ------------ | ---------------------------------------------------------------------- | ------------------------------------- |
+| `Alt+S`  | Capture Page | Captures the current web page as markdown and saves to your repository | rtcuts - PrismWeave Browser Extension |
 
 ## Overview
 
 The PrismWeave browser extension now supports keyboard shortcuts for quick page
-capture. Press **Ctrl+Shift+S** (or **Cmd+Shift+S** on Mac) to instantly capture
-the current page.
+capture. Press **Ctrl+Alt+S** (or **Cmd+Alt+S** on Mac) to instantly capture the
+current page.
 
 ## Supported Shortcuts
 
-| Shortcut                       | Action       | Description                                                            |
-| ------------------------------ | ------------ | ---------------------------------------------------------------------- |
-| `Ctrl+Shift+S` (Windows/Linux) | Capture Page | Captures the current web page as markdown and saves to your repository |
-| `Cmd+Shift+S` (Mac)            | Capture Page | Captures the current web page as markdown and saves to your repository |
+| Shortcut                     | Action       | Description                                                            |
+| ---------------------------- | ------------ | ---------------------------------------------------------------------- |
+| `Ctrl+Alt+S` (Windows/Linux) | Capture Page | Captures the current web page as markdown and saves to your repository |
+| `Cmd+Alt+S` (Mac)            | Capture Page | Captures the current web page as markdown and saves to your repository |
 
 ## How It Works
 
@@ -28,12 +37,12 @@ the current page.
 1. **Manifest Commands** (`manifest.json`)
 
    - Defines the `capture-page` command with keyboard bindings
-   - Supports both Windows/Linux (`Ctrl+Shift+S`) and Mac (`Cmd+Shift+S`)
+   - Supports both Windows/Linux (`Ctrl+Alt+S`) and Mac (`Cmd+Alt+S`)
 
 2. **Content Script** (`src/content/content-script.ts`)
 
    - Runs on all web pages to handle keyboard events
-   - Detects Ctrl+Shift+S (or Cmd+Shift+S) combinations
+   - Detects Ctrl+Alt+S (or Cmd+Alt+S) combinations
    - Shows toast notifications for user feedback
    - Communicates with service worker for page capture
 
@@ -78,14 +87,14 @@ npm run build
 2. **Test Shortcut**:
 
    - Navigate to any web page (e.g., a news article)
-   - Press `Ctrl+Shift+S` (or `Cmd+Shift+S` on Mac)
+   - Press `Ctrl+Alt+S` (or `Cmd+Alt+S` on Mac)
    - You should see a "Page captured successfully!" notification
    - Check your repository for the new markdown file
 
 3. **Verify in Chrome Settings**:
    - Go to `chrome://extensions/shortcuts`
    - You should see "PrismWeave" with the "Capture current page" command
-   - The shortcut should show as `Ctrl+Shift+S`
+   - The shortcut should show as `Ctrl+Alt+S`
 
 ## Troubleshooting
 

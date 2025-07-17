@@ -4,9 +4,25 @@
   "version": "1.0.0",
   "description": "Capture web pages as clean markdown and sync to your document repository",
 
-  "permissions": ["activeTab", "storage", "downloads", "scripting"],
+  "permissions": [
+    "activeTab",
+    "storage",
+    "downloads",
+    "scripting",
+    "notifications"
+  ],
 
   "optional_permissions": ["background"],
+
+  "commands": {
+    "capture-page": {
+      "suggested_key": {
+        "default": "Alt+S",
+        "mac": "Alt+S"
+      },
+      "description": "Capture current page"
+    }
+  },
 
   "host_permissions": ["<all_urls>"],
   "background": {
