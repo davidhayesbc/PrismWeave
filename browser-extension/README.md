@@ -41,10 +41,15 @@ ecosystem.
 ### User Experience
 
 - **One-Click Capture**: Single button to capture any web page
+- **Context Menu Integration**: Right-click on links to capture without
+  navigation
+- **Background Link Capture**: Capture content from links in background tabs
 - **Progress Indicators**: Visual feedback during processing
+- **Smart Notifications**: Status updates with clickable commit links
 - **Error Handling**: Graceful handling of network and processing errors
-- **Keyboard Shortcuts**: Quick access via keyboard combinations
-- **Context Menus**: Right-click integration for quick capture
+- **Keyboard Shortcuts**: Quick access via keyboard combinations (Alt+S)
+- **Multi-Capture Methods**: Browser action, context menu, and keyboard
+  shortcuts
 
 ## 📋 Requirements
 
@@ -151,7 +156,9 @@ git push
 
 ## 🎯 Usage
 
-### Basic Capture
+### Capture Methods
+
+#### 1. Browser Action (Main Method)
 
 1. **Navigate** to any web page with interesting content
 2. **Click** the PrismWeave extension icon
@@ -159,10 +166,35 @@ git push
 4. **Review** the captured content in popup
 5. **Save** to your Git repository
 
-### Keyboard Shortcuts
+#### 2. Context Menu (Right-Click)
 
-- **Ctrl+Shift+P** (Windows/Linux) or **Cmd+Shift+P** (Mac): Quick capture
+**Link Capture** (NEW):
+
+1. **Right-click on any link** you want to capture
+2. Select **"Capture this link with PrismWeave"** from context menu
+3. Extension opens link in background tab, extracts content, and closes tab
+4. No need to navigate away from current page
+
+**Page Capture**:
+
+1. **Right-click anywhere on the page** you want to capture
+2. Select **"Capture this page with PrismWeave"** from context menu
+3. Content is extracted from the current page
+
+#### 3. Keyboard Shortcuts
+
+- **Alt+S**: Quick capture current page
 - **Ctrl+Shift+O** (Windows/Linux) or **Cmd+Shift+O** (Mac): Open options
+
+### Context Menu Features
+
+The context menu integration provides seamless content capture:
+
+- **Smart Background Processing**: Links are opened in background tabs
+- **Automatic Cleanup**: Background tabs are closed after extraction
+- **Real-time Notifications**: Progress updates and results
+- **No Page Navigation**: Capture links without leaving current page
+- **Batch Processing**: Capture multiple links quickly
 
 ### Advanced Features
 

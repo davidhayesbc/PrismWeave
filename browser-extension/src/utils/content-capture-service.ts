@@ -370,8 +370,179 @@ export class ContentCaptureService implements IContentExtractor, IDocumentProces
   }
 
   /**
-   * Test GitHub connection using current settings
+   * Capture and process a page from a provided URL (for link capture)
    */
+  async captureLink(
+    linkUrl: string,
+    data?: Record<string, unknown>,
+    options: ICaptureServiceOptions = {}
+  ): Promise<ICaptureResult> {
+    try {
+      logger.info('Starting link capture workflow for URL:', linkUrl, 'with options:', options);
+
+      // Step 1: Validate settings
+      logger.debug('Starting settings validation...');
+      const shouldValidateSettings = options.validateSettings ?? false;
+      const settings = await this.validateAndGetSettings(shouldValidateSettings);
+      logger.debug('Settings validation completed successfully');
+
+      // Step 2: Create a new tab to extract content from the link
+      logger.debug('Creating new tab for link:', linkUrl);
+      const newTab = await chrome.tabs.create({
+        url: linkUrl,
+        active: false, // Don't switch to the new tab
+      });
+
+      if (!newTab.id) {
+        throw new Error('Failed to create tab for link capture');
+      }
+
+      try {
+        // Wait for the tab to load
+        await this.waitForTabToLoad(newTab.id);
+        logger.debug('Tab loaded successfully:', newTab.id);
+
+        // Step 3: Extract content from the new tab
+        logger.debug('Extracting content from new tab...');
+        const extractionResult = await this.extractContent(newTab.id);
+
+        logger.debug('Content extraction result received:', {
+          success: extractionResult.success,
+          hasData: !!extractionResult.data,
+          error: extractionResult.error,
+          extractionMethod: extractionResult.extractionMethod,
+        });
+
+        if (!extractionResult.success || !extractionResult.data) {
+          const errorMsg = extractionResult.error || 'Content extraction failed';
+          logger.error('Content extraction failed:', { error: errorMsg, extractionResult });
+          throw new Error(errorMsg);
+        }
+
+        const { markdown, frontmatter, title, url, metadata } = extractionResult.data;
+
+        logger.debug('Extracted content details:', {
+          hasMarkdown: !!markdown,
+          markdownLength: markdown?.length || 0,
+          hasFrontmatter: !!frontmatter,
+          frontmatterLength: frontmatter?.length || 0,
+          hasHtml: !!extractionResult.data.html,
+          htmlLength: extractionResult.data.html?.length || 0,
+          title: title || 'no title',
+          url: url || 'no url',
+        });
+
+        // Step 4: Validate content
+        if (!markdown && !extractionResult.data.html) {
+          logger.error('Content validation failed - no markdown and no HTML:', {
+            markdown: markdown,
+            html: extractionResult.data.html,
+            extractionData: extractionResult.data,
+          });
+          throw new Error('No content extracted from link');
+        }
+
+        // Step 5: Process document
+        logger.debug('Starting document processing...');
+        const finalContent = (frontmatter || '') + (markdown || '');
+        logger.debug('Final content prepared:', {
+          frontmatterLength: frontmatter?.length || 0,
+          markdownLength: markdown?.length || 0,
+          finalContentLength: finalContent.length,
+        });
+
+        const processedDoc = this.processDocument(
+          finalContent,
+          title || newTab.title || 'Untitled',
+          url || linkUrl,
+          metadata || {},
+          settings
+        );
+
+        logger.debug('Document processed successfully:', {
+          filename: processedDoc.filename,
+          folder: processedDoc.folder,
+          contentLength: processedDoc.content.length,
+        });
+
+        // Step 6: Handle GitHub commit if enabled
+        const shouldCommit =
+          options.forceGitHubCommit ||
+          (settings.autoCommit && settings.githubToken && settings.githubRepo);
+
+        if (shouldCommit) {
+          logger.info('Committing to GitHub repository');
+          const commitResult = await this.commitToGitHub(processedDoc, settings);
+
+          if (commitResult.success) {
+            return this.createSuccessResult(processedDoc, {
+              message: 'Link content captured and committed to repository',
+              ...(commitResult.url && { commitUrl: commitResult.url }),
+              ...(options.includeMarkdown !== undefined && {
+                includeMarkdown: options.includeMarkdown,
+              }),
+            });
+          } else {
+            logger.warn('GitHub commit failed, falling back to local storage:', commitResult.error);
+          }
+        }
+
+        // Step 7: Fallback to local storage
+        await this.storeLocally(processedDoc);
+
+        return this.createSuccessResult(processedDoc, {
+          message: 'Link content captured and stored locally (pending sync)',
+          status: 'pending_sync',
+          ...(options.includeMarkdown !== undefined && {
+            includeMarkdown: options.includeMarkdown,
+          }),
+        });
+      } finally {
+        // Always close the temporary tab
+        try {
+          await chrome.tabs.remove(newTab.id);
+          logger.debug('Temporary tab closed:', newTab.id);
+        } catch (error) {
+          logger.warn('Failed to close temporary tab:', error);
+        }
+      }
+    } catch (error) {
+      logger.error('Error in link capture workflow:', error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Unknown error occurred',
+      };
+    }
+  }
+
+  /**
+   * Wait for a tab to finish loading
+   */
+  private async waitForTabToLoad(tabId: number, timeout: number = 30000): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const timeoutId = setTimeout(() => {
+        reject(new Error('Tab loading timeout'));
+      }, timeout);
+
+      const checkTab = async () => {
+        try {
+          const tab = await chrome.tabs.get(tabId);
+          if (tab.status === 'complete') {
+            clearTimeout(timeoutId);
+            // Add a small delay to ensure content is fully rendered
+            setTimeout(resolve, 1000);
+          } else {
+            setTimeout(checkTab, 500);
+          }
+        } catch (error) {
+          clearTimeout(timeoutId);
+          reject(error);
+        }
+      };
+
+      checkTab();
+    });
+  }
   async testGitHubConnection(): Promise<unknown> {
     try {
       const settings = await this.settingsManager.getSettings();

@@ -24,6 +24,16 @@ const mockChrome = {
       addListener: jest.fn(),
     },
   },
+  contextMenus: {
+    create: jest.fn(),
+    removeAll: jest.fn(() => Promise.resolve()),
+    onClicked: {
+      addListener: jest.fn(),
+    },
+  },
+  notifications: {
+    create: jest.fn(),
+  },
   storage: {
     sync: {
       get: jest.fn() as jest.MockedFunction<(keys: any, callback: (result: any) => void) => void>,
@@ -40,6 +50,8 @@ const mockChrome = {
     query: jest.fn(),
     sendMessage: jest.fn(),
     get: jest.fn(),
+    create: jest.fn() as any,
+    remove: jest.fn() as any,
   },
   scripting: {
     executeScript: jest.fn(),
@@ -306,6 +318,52 @@ describe('Service Worker Comprehensive Tests - Phase 3.1', () => {
         // Assert
         expect(result).toBeDefined();
         expect(typeof result).toBe('object');
+      });
+    });
+
+    describe('CAPTURE_LINK message processing', () => {
+      test('should handle link capture requests', async () => {
+        // Arrange
+        const message: IMessageData = {
+          type: 'CAPTURE_LINK',
+          data: { linkUrl: 'https://example.com/article' },
+          timestamp: Date.now(),
+        };
+        const sender = {} as chrome.runtime.MessageSender;
+
+        // Mock tab creation and management
+        (mockChrome.tabs.create as any).mockResolvedValueOnce({
+          id: 123,
+          url: 'https://example.com/article',
+        });
+        (mockChrome.tabs.get as any).mockResolvedValueOnce({
+          id: 123,
+          status: 'complete',
+          title: 'Test Article',
+        });
+        (mockChrome.tabs.remove as any).mockResolvedValueOnce(undefined);
+
+        // Act
+        const result = await handleMessage(message, sender);
+
+        // Assert
+        expect(result).toBeDefined();
+        expect(typeof result).toBe('object');
+      });
+
+      test('should reject link capture without linkUrl', async () => {
+        // Arrange
+        const message: IMessageData = {
+          type: 'CAPTURE_LINK',
+          data: {}, // No linkUrl provided
+          timestamp: Date.now(),
+        };
+        const sender = {} as chrome.runtime.MessageSender;
+
+        // Act & Assert
+        await expect(handleMessage(message, sender)).rejects.toThrow(
+          'Link URL is required for link capture'
+        );
       });
     });
 

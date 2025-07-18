@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0"
+    />
+    <title>PrismWeave Context Menu Test</title>
+    <style>
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 40px 20px;
+        line-height: 1.6;
+      }
+      h1 {
+        color: #2563eb;
+        border-bottom: 2px solid #e5e7eb;
+        padding-bottom: 10px;
+      }
+      .test-section {
+        background: #f8fafc;
+        padding: 20px;
+        border-radius: 8px;
+        margin: 20px 0;
+        border: 1px solid #e5e7eb;
+      }
+      .link-list {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .test-link {
+        display: block;
+        padding: 12px 16px;
+        background: white;
+        color: #2563eb;
+        text-decoration: none;
+        border-radius: 6px;
+        border: 1px solid #ddd;
+        transition: all 0.2s;
+      }
+      .test-link:hover {
+        background: #eff6ff;
+        border-color: #2563eb;
+        text-decoration: none;
+      }
+      .instructions {
+        background: #fef3c7;
+        padding: 16px;
+        border-radius: 6px;
+        border: 1px solid #f59e0b;
+        margin: 20px 0;
+      }
+      .instructions h3 {
+        margin-top: 0;
+        color: #92400e;
+      }
+      code {
+        background: #f1f5f9;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 0.9em;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>🎯 PrismWeave Context Menu Test Page</h1>
+
+    <div class="instructions">
+      <h3>📋 Testing Instructions</h3>
+      <ol>
+        <li>Install the PrismWeave browser extension in Edge</li>
+        <li>
+          <strong>Right-click on any link below</strong>
+          to see the context menu
+        </li>
+        <li>
+          Select
+          <code>"Capture this link with PrismWeave"</code>
+          from the context menu
+        </li>
+        <li>The extension will open the link in a background tab, extract its content, and close the tab</li>
+        <li>You should see a notification indicating success or failure</li>
+        <li>Check your configured GitHub repository for the captured content</li>
+      </ol>
+      <p>
+        <strong>Note:</strong>
+        You can also right-click anywhere on this page and select
+        <code>"Capture this page with PrismWeave"</code>
+        to test page capture.
+      </p>
+    </div>
+
+    <div class="test-section">
+      <h2>🔗 Test Links for Context Menu Capture</h2>
+      <p>Right-click on any of these links to test the context menu functionality:</p>
+
+      <div class="link-list">
+        <a
+          href="https://github.com/microsoft/vscode"
+          class="test-link"
+          target="_blank"
+        >
+          📝 GitHub - Microsoft VS Code
+          <small style="display: block; color: #6b7280; margin-top: 4px">
+            Technical documentation and repository page
+          </small>
+        </a>
+
+        <a
+          href="https://blog.github.com/2023-11-08-the-state-of-open-source-and-ai/"
+          class="test-link"
+          target="_blank"
+        >
+          📰 GitHub Blog - The State of Open Source and AI
+          <small style="display: block; color: #6b7280; margin-top: 4px">
+            Blog article with rich content and metadata
+          </small>
+        </a>
+
+        <a
+          href="https://docs.microsoft.com/en-us/edge/extensions-chromium/"
+          class="test-link"
+          target="_blank"
+        >
+          📚 Microsoft Edge Extensions Documentation
+          <small style="display: block; color: #6b7280; margin-top: 4px">
+            Technical documentation with structured content
+          </small>
+        </a>
+
+        <a
+          href="https://stackoverflow.com/questions/tagged/browser-extension"
+          class="test-link"
+          target="_blank"
+        >
+          ❓ Stack Overflow - Browser Extension Questions
+          <small style="display: block; color: #6b7280; margin-top: 4px">
+            Q&A format content with multiple sections
+          </small>
+        </a>
+
+        <a
+          href="https://web.dev/articles/manifest-v3"
+          class="test-link"
+          target="_blank"
+        >
+          🌐 Web.dev - Manifest V3 Guide
+          <small style="display: block; color: #6b7280; margin-top: 4px">
+            Tutorial/guide format with code examples
+          </small>
+        </a>
+      </div>
+    </div>
+
+    <div class="test-section">
+      <h2>🧪 Expected Behavior</h2>
+      <ul>
+        <li>
+          <strong>Right-click on link:</strong>
+          Shows "Capture this link with PrismWeave" option
+        </li>
+        <li>
+          <strong>Right-click on page:</strong>
+          Shows "Capture this page with PrismWeave" option
+        </li>
+        <li>
+          <strong>Link capture:</strong>
+          Opens link in background, extracts content, closes tab
+        </li>
+        <li>
+          <strong>Page capture:</strong>
+          Extracts content from current page
+        </li>
+        <li>
+          <strong>Notifications:</strong>
+          Shows start, success, or error notifications
+        </li>
+        <li>
+          <strong>Content storage:</strong>
+          Saves to configured GitHub repository or local storage
+        </li>
+      </ul>
+    </div>
+
+    <div class="test-section">
+      <h2>🔧 Troubleshooting</h2>
+      <ul>
+        <li>
+          <strong>No context menu:</strong>
+          Check that the extension is enabled and has
+          <code>contextMenus</code>
+          permission
+        </li>
+        <li>
+          <strong>Capture fails:</strong>
+          Check extension settings (GitHub token, repository)
+        </li>
+        <li>
+          <strong>No notifications:</strong>
+          Check that notifications are enabled in browser settings
+        </li>
+        <li>
+          <strong>Console errors:</strong>
+          Open Developer Tools (F12) to check for JavaScript errors
+        </li>
+      </ul>
+    </div>
+
+    <script>
+      // Add some interactive elements for testing
+      document.addEventListener('DOMContentLoaded', function () {
+        console.log('🎯 PrismWeave Context Menu Test Page loaded');
+        console.log('Ready to test context menu functionality!');
+
+        // Add click handlers to show when normal link clicks occur
+        document.querySelectorAll('.test-link').forEach(link => {
+          link.addEventListener('click', function (e) {
+            console.log('🔗 Normal link click detected for:', this.href);
+          });
+        });
+      });
+    </script>
+  </body>
+</html>

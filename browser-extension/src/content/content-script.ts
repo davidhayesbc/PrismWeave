@@ -484,6 +484,16 @@ async function handleMessage(
         return { success: false, error: (error as Error).message };
       }
 
+    case 'TRIGGER_CAPTURE_CONTEXT_MENU':
+      // Handle context menu trigger from service worker
+      try {
+        await handleCapturePageShortcut(); // Use the same handler as keyboard shortcut
+        return { success: true };
+      } catch (error) {
+        logger.error('Failed to handle context menu capture:', error);
+        return { success: false, error: (error as Error).message };
+      }
+
     case 'EXTRACT_AND_CONVERT_TO_MARKDOWN':
       // This is called by the service worker for content extraction
       try {

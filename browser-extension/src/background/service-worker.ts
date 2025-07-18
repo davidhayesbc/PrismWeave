@@ -77,9 +77,14 @@ export async function initializeServiceWorkers(
 }
 
 // Initialize on startup
-initializeServiceWorkers().catch(error => {
-  logger.error('Service worker startup failed:', error);
-});
+initializeServiceWorkers()
+  .then(() => {
+    // Create context menus after initialization
+    return createContextMenus();
+  })
+  .catch(error => {
+    logger.error('Service worker startup failed:', error);
+  });
 
 // Chrome extension event handlers
 export async function handleInstallation(details: chrome.runtime.InstalledDetails): Promise<void> {
@@ -93,9 +98,70 @@ export async function handleInstallation(details: chrome.runtime.InstalledDetail
         logger.info('Default settings initialized');
       }
     }
+
+    // Create context menus on install/startup
+    await createContextMenus();
   } catch (error) {
     logger.error('Error handling installation:', error);
     throw error;
+  }
+}
+
+// Context menu creation
+async function createContextMenus(): Promise<void> {
+  try {
+    logger.info('Starting context menu creation process');
+
+    // Remove existing context menus first
+    try {
+      logger.debug('Removing existing context menus');
+      await chrome.contextMenus.removeAll();
+      logger.debug('Existing context menus removed successfully');
+    } catch (removeError) {
+      logger.warn('Error removing existing context menus:', removeError);
+    }
+
+    // Create context menu for links
+    try {
+      logger.debug('Creating capture-link context menu item');
+      chrome.contextMenus.create({
+        id: 'capture-link',
+        title: 'Capture this link with PrismWeave',
+        contexts: ['link'],
+        documentUrlPatterns: ['<all_urls>'],
+      }, () => {
+        if (chrome.runtime.lastError) {
+          logger.error('Error creating capture-link menu:', chrome.runtime.lastError.message);
+        } else {
+          logger.info('capture-link context menu created successfully');
+        }
+      });
+    } catch (linkMenuError) {
+      logger.error('Exception creating capture-link menu:', linkMenuError);
+    }
+
+    // Create context menu for pages
+    try {
+      logger.debug('Creating capture-page context menu item');
+      chrome.contextMenus.create({
+        id: 'capture-page',
+        title: 'Capture this page with PrismWeave',
+        contexts: ['page'],
+        documentUrlPatterns: ['<all_urls>'],
+      }, () => {
+        if (chrome.runtime.lastError) {
+          logger.error('Error creating capture-page menu:', chrome.runtime.lastError.message);
+        } else {
+          logger.info('capture-page context menu created successfully');
+        }
+      });
+    } catch (pageMenuError) {
+      logger.error('Exception creating capture-page menu:', pageMenuError);
+    }
+
+    logger.info('Context menu creation process completed');
+  } catch (error) {
+    logger.error('Fatal error in createContextMenus:', error);
   }
 }
 
@@ -125,7 +191,7 @@ export async function handleMessage(
     throw new Error('Settings manager not initialized');
   }
 
-  const requiresCaptureService = ['TEST_CONNECTION', 'CAPTURE_PAGE'];
+  const requiresCaptureService = ['TEST_CONNECTION', 'CAPTURE_PAGE', 'CAPTURE_LINK'];
   if (requiresCaptureService.includes(message.type) && !serviceWorkerState.captureService) {
     throw new Error('Capture service not initialized');
   }
@@ -228,6 +294,54 @@ export async function handleMessage(
         ...(pageCommitUrl && { commitUrl: pageCommitUrl }),
         saveResult: {
           ...(pageCommitUrl && { url: pageCommitUrl, commitUrl: pageCommitUrl }),
+        },
+        timestamp: Date.now(),
+      };
+
+    case MESSAGE_TYPES.CAPTURE_LINK:
+      logger.debug('Processing CAPTURE_LINK message with data:', message.data);
+
+      if (!message.data || !message.data.linkUrl) {
+        throw new Error('Link URL is required for link capture');
+      }
+
+      const linkUrl = message.data.linkUrl as string;
+      logger.info('Capturing content from link:', linkUrl);
+
+      const linkCaptureResult = await serviceWorkerState.captureService!.captureLink(
+        linkUrl,
+        message.data,
+        {
+          validateSettings: true,
+          includeMarkdown: true,
+        }
+      );
+
+      logger.debug('CAPTURE_LINK result:', {
+        success: linkCaptureResult.success,
+        message: linkCaptureResult.message,
+        hasData: !!linkCaptureResult.data,
+      });
+
+      // Extract commit URL from link capture result
+      const linkCommitUrl = linkCaptureResult.data?.commitUrl || linkCaptureResult.data?.url;
+
+      if (linkCommitUrl) {
+        logger.info('Link capture commit URL found:', linkCommitUrl);
+      } else {
+        logger.warn('No commit URL found in link capture result');
+      }
+
+      // Return enhanced response with commit URL
+      return {
+        success: linkCaptureResult.success,
+        data: {
+          ...linkCaptureResult.data,
+          commitUrl: linkCommitUrl || undefined,
+        },
+        ...(linkCommitUrl && { commitUrl: linkCommitUrl }),
+        saveResult: {
+          ...(linkCommitUrl && { url: linkCommitUrl, commitUrl: linkCommitUrl }),
         },
         timestamp: Date.now(),
       };
@@ -445,6 +559,125 @@ chrome.commands.onCommand.addListener(async (command: string) => {
     }
   } catch (error) {
     logger.error('Error handling keyboard command:', error);
+  }
+});
+
+// Handle context menu clicks
+chrome.contextMenus.onClicked.addListener(async (info, tab) => {
+  logger.info('Context menu clicked:', info.menuItemId, 'on tab:', tab?.id);
+
+  try {
+    if (!serviceWorkerState.isInitialized) {
+      logger.error('Service worker not initialized for context menu action');
+      return;
+    }
+
+    switch (info.menuItemId) {
+      case 'capture-link':
+        if (info.linkUrl) {
+          logger.info('Capturing link:', info.linkUrl);
+
+          // Show notification that capture is starting
+          if (chrome.notifications) {
+            chrome.notifications.create({
+              type: 'basic',
+              iconUrl: 'icons/icon48.png',
+              title: 'PrismWeave',
+              message: `Capturing content from: ${new URL(info.linkUrl).hostname}`,
+            });
+          }
+
+          try {
+            const result = await handleMessage(
+              {
+                type: MESSAGE_TYPES.CAPTURE_LINK,
+                data: {
+                  linkUrl: info.linkUrl,
+                  sourceUrl: tab?.url,
+                  sourceTitle: tab?.title,
+                },
+                timestamp: Date.now(),
+              },
+              { tab: tab }
+            );
+
+            // Show success/failure notification
+            if (chrome.notifications) {
+              if (result.success) {
+                const domain = new URL(info.linkUrl).hostname;
+                chrome.notifications.create({
+                  type: 'basic',
+                  iconUrl: 'icons/icon48.png',
+                  title: 'PrismWeave - Link Captured',
+                  message: `Successfully captured content from ${domain}`,
+                });
+              } else {
+                chrome.notifications.create({
+                  type: 'basic',
+                  iconUrl: 'icons/icon48.png',
+                  title: 'PrismWeave - Capture Failed',
+                  message: `Failed to capture link: ${result.error || 'Unknown error'}`,
+                });
+              }
+            }
+          } catch (error) {
+            logger.error('Failed to capture link:', error);
+            if (chrome.notifications) {
+              chrome.notifications.create({
+                type: 'basic',
+                iconUrl: 'icons/icon48.png',
+                title: 'PrismWeave - Error',
+                message: `Error capturing link: ${error instanceof Error ? error.message : 'Unknown error'}`,
+              });
+            }
+          }
+        } else {
+          logger.error('No link URL provided for link capture');
+        }
+        break;
+
+      case 'capture-page':
+        if (tab?.id) {
+          logger.info('Capturing current page via context menu');
+
+          // Show notification that capture is starting
+          if (chrome.notifications) {
+            chrome.notifications.create({
+              type: 'basic',
+              iconUrl: 'icons/icon48.png',
+              title: 'PrismWeave',
+              message: `Capturing current page: ${tab.title || 'Untitled'}`,
+            });
+          }
+
+          try {
+            // Send message to content script to trigger capture
+            await chrome.tabs.sendMessage(tab.id, {
+              type: 'TRIGGER_CAPTURE_CONTEXT_MENU',
+              timestamp: Date.now(),
+            });
+            logger.info('Context menu capture message sent to content script');
+          } catch (error) {
+            logger.error('Failed to send context menu capture message:', error);
+            if (chrome.notifications) {
+              chrome.notifications.create({
+                type: 'basic',
+                iconUrl: 'icons/icon48.png',
+                title: 'PrismWeave',
+                message: 'Please reload the page and try again',
+              });
+            }
+          }
+        } else {
+          logger.error('No tab ID available for page capture');
+        }
+        break;
+
+      default:
+        logger.warn('Unknown context menu item:', info.menuItemId);
+    }
+  } catch (error) {
+    logger.error('Error handling context menu click:', error);
   }
 });
 
