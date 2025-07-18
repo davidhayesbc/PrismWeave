@@ -15,8 +15,6 @@ import { MarkdownConverter } from '../utils/markdown-converter.js';
 import { StackOverflowBlogExtractor } from '../utils/stackoverflow-blog-extractor.js';
 
 console.log('🚀 PrismWeave content script loading...');
-console.log('📍 Current URL:', window.location.href);
-console.log('📄 Page title:', document.title);
 
 // Enhanced message response interface for better commit URL handling
 interface IEnhancedMessageResponse extends IMessageResponse {
@@ -70,26 +68,20 @@ const KEYBOARD_SHORTCUTS: IKeyboardShortcut[] = [
 // Initialize content script
 async function initializeContentScript(): Promise<void> {
   try {
-    console.log('🚀 Initializing PrismWeave content script...');
     logger.info('Initializing PrismWeave content script...');
 
     // Load settings to check if keyboard shortcuts are enabled
     await loadKeyboardShortcutSettings();
-    console.log('⚙️ Keyboard shortcut settings loaded');
 
     // Set up keyboard event listeners
     setupKeyboardListeners();
-    console.log('🔑 Keyboard listeners set up');
 
     // Set up message listeners for communication with service worker
     setupMessageListeners();
-    console.log('📡 Message listeners set up');
 
     contentScriptState.isInitialized = true;
-    console.log('✅ PrismWeave content script initialized successfully');
     logger.info('PrismWeave content script initialized successfully');
   } catch (error) {
-    console.error('❌ Failed to initialize content script:', error);
     logger.error('Failed to initialize content script:', error);
   }
 }
@@ -117,41 +109,33 @@ function setupKeyboardListeners(): void {
 
 // Handle keyboard events
 function handleKeyboardEvent(event: KeyboardEvent): void {
-  // Log all keyboard events for debugging
-  if (event.altKey) {
-    console.log('🔑 Keyboard event detected:', {
-      key: event.key,
-      ctrlKey: event.ctrlKey,
-      altKey: event.altKey,
-      shiftKey: event.shiftKey,
-      shortcutsEnabled: contentScriptState.keyboardShortcutsEnabled,
-      isCapturing: contentScriptState.isCapturing,
-      target: (event.target as Element)?.nodeName,
-    });
-  }
-
   // Skip if shortcuts are disabled
   if (!contentScriptState.keyboardShortcutsEnabled) {
-    console.log('⚠️ Keyboard shortcuts disabled');
     return;
   }
 
   // Skip if already capturing to prevent multiple simultaneous captures
   if (contentScriptState.isCapturing) {
-    console.log('⚠️ Already capturing, skipping shortcut');
     return;
   }
 
   // Skip if user is typing in an input field
   if (isTypingInInputField(event.target as Element)) {
-    console.log('⚠️ User typing in input field, skipping shortcut');
     return;
   }
 
   // Check if the event matches any of our shortcuts
   for (const shortcut of KEYBOARD_SHORTCUTS) {
     if (matchesShortcut(event, shortcut)) {
-      console.log('✅ Shortcut matched:', shortcut);
+      // Only log when a shortcut is actually triggered
+      logger.info('Keyboard shortcut matched:', {
+        key: event.key,
+        ctrlKey: event.ctrlKey,
+        altKey: event.altKey,
+        shiftKey: event.shiftKey,
+        action: shortcut.action,
+      });
+
       event.preventDefault();
       event.stopPropagation();
       handleShortcutAction(shortcut.action);
@@ -243,51 +227,35 @@ function extractCommitUrlFromResponse(response: IEnhancedMessageResponse): strin
   // Find the first valid URL
   for (const url of possibleUrls) {
     if (url && typeof url === 'string' && url.startsWith('http')) {
-      console.log('🔗 Found commit URL:', url);
       return url;
     }
   }
 
-  // If no URL found, log the response structure for debugging
-  console.warn('🚫 No commit URL found in response. Response structure:', {
-    hasCommitUrl: !!response.commitUrl,
-    hasData: !!response.data,
-    hasDataCommitUrl: !!(response.data as any)?.commitUrl,
-    hasDataUrl: !!(response.data as any)?.url,
-    hasSaveResult: !!response.saveResult,
-    hasSaveResultUrl: !!response.saveResult?.url,
-    responseKeys: Object.keys(response),
-    dataKeys: response.data ? Object.keys(response.data) : [],
-    saveResultKeys: response.saveResult ? Object.keys(response.saveResult) : [],
-  });
-
+  // If no URL found, log minimal warning
+  logger.warn('No commit URL found in response');
   return undefined;
 }
 
 // Handle capture page shortcut
 async function handleCapturePageShortcut(): Promise<void> {
-  console.log('🎯 Keyboard shortcut triggered!');
   logger.info('Keyboard shortcut triggered - starting capture process');
 
   if (contentScriptState.isCapturing) {
-    console.log('⚠️ Capture already in progress');
     logger.warn('Page capture already in progress');
     return;
   }
 
   try {
     contentScriptState.isCapturing = true;
-    console.log('📱 Showing capture notification...');
 
     // Show "capturing" notification that stays until capture completes (no auto-hide)
     showNotification('Capturing content...', 'info', 0); // 0 duration = no auto-hide
 
     // Check if current page is a PDF
     const isPDFPage = checkIfCurrentPageIsPDF();
-    console.log('🔍 PDF detection result:', isPDFPage);
+    logger.debug('PDF detection result:', isPDFPage);
 
     if (isPDFPage) {
-      console.log('📄 PDF page detected - using unified capture service');
       logger.info('PDF page detected - using unified capture service via background');
 
       // For PDF pages, send capture request directly to background service
@@ -303,17 +271,13 @@ async function handleCapturePageShortcut(): Promise<void> {
         // Enhanced commit URL extraction with comprehensive fallback
         const commitUrl = extractCommitUrlFromResponse(response);
 
-        // Debug logging for troubleshooting
-        console.log('🔍 DEBUG: PDF Full response structure:', response);
-        console.log('🔍 DEBUG: Extracted commit URL:', commitUrl);
-
         if (commitUrl) {
-          // Hide the "capturing" notification and show success with 5-second duration
+          // Hide the "capturing" notification and show success with longer duration
           hideNotification(document.getElementById('prismweave-notification'));
           showNotification(
             'PDF captured successfully! Click to view on GitHub.',
             'success',
-            5000,
+            8000,
             commitUrl
           );
           logger.info('PDF capture completed successfully via keyboard shortcut', {
@@ -321,14 +285,10 @@ async function handleCapturePageShortcut(): Promise<void> {
             hasCommitUrl: true,
           });
         } else {
-          // Hide the "capturing" notification and show success with 5-second duration
+          // Hide the "capturing" notification and show success with longer duration
           hideNotification(document.getElementById('prismweave-notification'));
-          showNotification('PDF captured successfully!', 'success', 5000);
-          logger.warn('PDF capture completed but no commit URL found', {
-            responseKeys: Object.keys(response),
-            dataKeys: response.data ? Object.keys(response.data) : [],
-            saveResultKeys: response.saveResult ? Object.keys(response.saveResult) : [],
-          });
+          showNotification('PDF captured successfully!', 'success', 8000);
+          logger.warn('PDF capture completed but no commit URL found');
         }
       } else {
         throw new Error(response.error || 'PDF capture failed');
@@ -345,7 +305,6 @@ async function handleCapturePageShortcut(): Promise<void> {
         htmlLength: extractedContent.html?.length || 0,
         hasTitle: !!extractedContent.title,
         title: extractedContent.title || 'no title',
-        keys: Object.keys(extractedContent),
       });
 
       // Send capture request with extracted content to service worker
@@ -362,17 +321,13 @@ async function handleCapturePageShortcut(): Promise<void> {
         // Enhanced commit URL extraction with comprehensive fallback
         const commitUrl = extractCommitUrlFromResponse(response);
 
-        // Debug logging for troubleshooting
-        console.log('🔍 DEBUG: Full response structure:', response);
-        console.log('🔍 DEBUG: Extracted commit URL:', commitUrl);
-
         if (commitUrl) {
-          // Hide the "capturing" notification and show success with 5-second duration
+          // Hide the "capturing" notification and show success with longer duration
           hideNotification(document.getElementById('prismweave-notification'));
           showNotification(
             'Page captured successfully! Click to view on GitHub.',
             'success',
-            5000,
+            8000,
             commitUrl
           );
           logger.info('Page capture completed successfully via keyboard shortcut', {
@@ -380,14 +335,10 @@ async function handleCapturePageShortcut(): Promise<void> {
             hasCommitUrl: true,
           });
         } else {
-          // Hide the "capturing" notification and show success with 5-second duration
+          // Hide the "capturing" notification and show success with longer duration
           hideNotification(document.getElementById('prismweave-notification'));
-          showNotification('Page captured successfully!', 'success', 5000);
-          logger.warn('Page capture completed but no commit URL found', {
-            responseKeys: Object.keys(response),
-            dataKeys: response.data ? Object.keys(response.data) : [],
-            saveResultKeys: response.saveResult ? Object.keys(response.saveResult) : [],
-          });
+          showNotification('Page captured successfully!', 'success', 8000);
+          logger.warn('Page capture completed but no commit URL found');
         }
       } else {
         throw new Error(response.error || 'Page capture failed');
@@ -397,7 +348,7 @@ async function handleCapturePageShortcut(): Promise<void> {
     logger.error('Keyboard shortcut capture failed:', error);
     // Hide the "capturing" notification and show error
     hideNotification(document.getElementById('prismweave-notification'));
-    showNotification('Capture failed: ' + (error as Error).message, 'error', 5000);
+    showNotification('Capture failed: ' + (error as Error).message, 'error', 8000);
   } finally {
     contentScriptState.isCapturing = false;
   }
@@ -516,10 +467,10 @@ async function handleMessage(
     case 'SHOW_NOTIFICATION':
       if (message.data && typeof message.data.message === 'string') {
         const notificationType = (message.data.type as 'success' | 'error' | 'info') || 'info';
-        const duration = (message.data.duration as number) || 5000;
+        const duration = (message.data.duration as number) || 8000; // Increased default duration
         const clickUrl = (message.data.clickUrl || message.data.url) as string | undefined;
         showNotification(message.data.message, notificationType, duration, clickUrl);
-        logger.info('Notification shown:', message.data.message, { clickUrl });
+        logger.info('Notification shown:', message.data.message);
       }
       return { success: true };
 
@@ -871,165 +822,100 @@ function showNotification(
   duration: number = 4000,
   clickUrl?: string
 ): void {
-  // Skip notification if we're in a problematic context (like about:blank or sandboxed frame)
-  try {
-    if (!document.body || window.location.href === 'about:blank') {
-      console.log(
-        '🚫 PrismWeave: Skipping notification in problematic context:',
-        window.location.href
-      );
-      return;
-    }
-  } catch (error) {
-    console.log('🚫 PrismWeave: Skipping notification due to context error:', error);
-    return;
+  logger.info('showNotification called:', { message, type, duration, clickUrl });
+
+  // Simple guard clause
+  if (!document.body) return;
+
+  // Remove existing notification
+  const existingNotification = document.getElementById('prismweave-notification');
+  if (existingNotification) {
+    existingNotification.remove();
   }
 
-  // Create or update notification element
-  let notification = document.getElementById('prismweave-notification');
+  // Create notification element
+  const notification = document.createElement('div');
+  notification.id = 'prismweave-notification';
 
-  if (!notification) {
-    try {
-      notification = document.createElement('div');
-      notification.id = 'prismweave-notification';
-      notification.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        z-index: 10000;
-        padding: 12px 16px;
-        border-radius: 4px;
-        color: white;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        font-size: 14px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-        max-width: 300px;
-        word-wrap: break-word;
-        opacity: 0;
-        transform: translateX(100%);
-        transition: all 0.3s ease;
-        ${clickUrl ? 'cursor: pointer;' : ''}
-      `;
-      document.body.appendChild(notification);
-    } catch (error) {
-      console.error('🚫 PrismWeave: Failed to create notification element:', error);
-      return;
-    }
-  }
-
-  // Set notification style based on type
+  // Set base styles
   const colors = {
     success: '#10b981',
     error: '#ef4444',
     info: '#3b82f6',
   };
 
-  notification.style.backgroundColor = colors[type];
-  notification.textContent = message;
+  notification.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 2147483647;
+    padding: 16px 20px;
+    border-radius: 6px;
+    color: white;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+    max-width: 320px;
+    word-wrap: break-word;
+    background-color: ${colors[type]};
+    opacity: 0;
+    transform: translateX(100%);
+    transition: all 0.3s ease;
+    user-select: none;
+    pointer-events: auto;
+    cursor: ${clickUrl ? 'pointer' : 'default'};
+  `;
 
-  // Add click handler if URL is provided
+  // Create notification content
   if (clickUrl) {
-    console.log('🔗 PrismWeave: Setting up clickable notification with URL:', clickUrl);
-    notification.style.cursor = 'pointer';
+    const documentTitle = document.title || 'this page';
+    const urlDomain = new URL(clickUrl).hostname;
+    const displayText =
+      documentTitle.length > 50 ? documentTitle.substring(0, 47) + '...' : documentTitle;
 
-    // Clear any existing event listeners
-    notification.onclick = null;
-    notification.onmouseenter = null;
-    notification.onmouseleave = null;
-
-    // Add single click handler to prevent duplicate tab opening
-    let isProcessingClick = false; // Prevent multiple rapid clicks
-
-    notification.addEventListener(
-      'click',
-      event => {
-        // Prevent multiple clicks being processed simultaneously
-        if (isProcessingClick) {
-          console.log('� PrismWeave: Click already being processed, ignoring duplicate');
-          return;
-        }
-
-        isProcessingClick = true;
-        console.log('�🖱️ PrismWeave: Click event fired!', {
-          event,
-          target: event.target,
-          currentTarget: event.currentTarget,
-          clickUrl,
-          timestamp: new Date().toISOString(),
-        });
-
-        event.preventDefault();
-        event.stopPropagation();
-
-        console.log('🚀 PrismWeave: Attempting to open URL:', clickUrl);
-
-        try {
-          // Use window.open - even if it returns null, the tab usually opens successfully
-          console.log('🚀 PrismWeave: Opening URL with window.open...');
-          window.open(clickUrl, '_blank', 'noopener,noreferrer');
-
-          // Always consider it successful and hide notification
-          // (window.open may return null even when successful due to popup blockers)
-          console.log('✅ PrismWeave: URL opening attempted, hiding notification');
-          hideNotification(notification);
-        } catch (error) {
-          console.error('💥 PrismWeave: Error opening URL:', error);
-          // Show user-friendly error
-          showNotification('Could not open link. Check browser popup settings.', 'error', 3000);
-        } finally {
-          // Reset click processing flag after a short delay
-          setTimeout(() => {
-            isProcessingClick = false;
-          }, 1000);
-        }
-      },
-      { passive: false }
-    );
-
-    // DO NOT add onclick handler to prevent duplicate event handling
-    notification.onclick = null;
-
-    // Add hover effect for clickable notifications with better visual feedback
-    notification.onmouseenter = () => {
-      console.log('🎯 PrismWeave: Mouse entered notification');
-      notification!.style.transform = 'scale(1.05)';
-      notification!.style.boxShadow = '0 8px 20px rgba(0, 0, 0, 0.3)';
-      notification!.style.backgroundColor = '#059669'; // Slightly darker green on hover
-    };
-    notification.onmouseleave = () => {
-      console.log('🎯 PrismWeave: Mouse left notification');
-      notification!.style.transform = 'scale(1)';
-      notification!.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15)';
-      notification!.style.backgroundColor = colors[type]; // Reset to original color
-    };
-
-    // Add visual indicator that it's clickable
-    notification.title = `Click to open: ${clickUrl}`;
-
-    // Make the notification more obviously clickable
-    notification.style.border = '2px solid rgba(255, 255, 255, 0.3)';
-    notification.style.transition = 'all 0.2s ease';
-
-    console.log('🔗 PrismWeave: Clickable notification setup complete');
+    notification.innerHTML = `
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <div style="font-size: 13px; opacity: 0.9;">${message}</div>
+        <div style="
+          padding: 8px 12px;
+          background: rgba(255, 255, 255, 0.15);
+          border-radius: 4px;
+          border: 1px solid rgba(255, 255, 255, 0.2);
+          font-weight: 600;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          cursor: pointer;
+        " onclick="window.open('${clickUrl}', '_blank')">
+          <span style="font-size: 16px;">🔗</span>
+          <span style="flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${displayText}</span>
+        </div>
+        <div style="font-size: 11px; opacity: 0.7; text-align: center;">
+          Click to open • 
+          <a href="${clickUrl}" 
+             target="_blank" 
+             rel="noopener noreferrer" 
+             style="color: rgba(255, 255, 255, 0.9); text-decoration: underline; cursor: pointer;">
+            ${urlDomain}
+          </a>
+        </div>
+      </div>
+    `;
   } else {
-    console.log('ℹ️ PrismWeave: No click URL provided, notification will not be clickable');
-    // Remove click handler if no URL
-    notification.onclick = null;
-    notification.onmouseenter = null;
-    notification.onmouseleave = null;
-    notification.style.cursor = 'default';
-    notification.title = '';
+    notification.textContent = message;
   }
 
-  // Show notification
+  // Add to DOM
+  document.body.appendChild(notification);
+
+  // Show notification with animation
   requestAnimationFrame(() => {
-    if (notification) {
-      notification.style.opacity = '1';
-      notification.style.transform = 'translateX(0)';
-    }
+    notification.style.opacity = '1';
+    notification.style.transform = 'translateX(0)';
   });
 
-  // Hide notification after specified duration (only if duration > 0)
+  // Auto-hide notification after specified duration
   if (duration > 0) {
     setTimeout(() => {
       hideNotification(notification);
@@ -1039,15 +925,22 @@ function showNotification(
 
 // Helper function to hide notification
 function hideNotification(notification: HTMLElement | null): void {
-  if (notification) {
+  if (notification && notification.parentNode) {
+    logger.debug('Hiding notification');
+    // Smoothly fade out the notification
     notification.style.opacity = '0';
     notification.style.transform = 'translateX(100%)';
+    notification.style.pointerEvents = 'none'; // Prevent interaction during fade out
 
+    // Remove the element after animation completes
     setTimeout(() => {
       if (notification && notification.parentNode) {
         notification.parentNode.removeChild(notification);
+        logger.debug('Notification element removed from DOM');
       }
     }, 300);
+  } else {
+    logger.debug('No notification to hide or no parent node');
   }
 }
 
@@ -1058,14 +951,33 @@ if (document.readyState === 'loading') {
   initializeContentScript();
 }
 
-// Export for debugging (optional)
+// Export for debugging (optional) - Make available immediately
 if (typeof window !== 'undefined') {
   (window as any).prismweaveContentScript = {
     state: contentScriptState,
     handleCapturePageShortcut,
     loadKeyboardShortcutSettings,
+    showNotification,
+    hideNotification,
+    testNotification: () => {
+      // Test function to debug notification clicks
+      showNotification(
+        'Test notification - Click me!',
+        'success',
+        10000,
+        'https://github.com/davidhayesbc/PrismWeaveDocs'
+      );
+    },
     version: '1.0.0',
   };
+
+  // Dispatch a custom event to notify the page that the extension is ready
+  const readyEvent = new CustomEvent('prismweave-ready', {
+    detail: { version: '1.0.0' },
+  });
+  document.dispatchEvent(readyEvent);
+
+  console.log('PrismWeave content script API exposed to window');
 }
 
 console.log('PrismWeave content script loaded successfully');
