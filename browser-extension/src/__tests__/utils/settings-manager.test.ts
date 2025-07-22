@@ -423,8 +423,8 @@ describe('III. - SettingsManager - Comprehensive Functionality', () => {
       expect(result).toBe(false);
 
       expect(mockLogger.error).toHaveBeenCalledWith(
-        'Error importing settings:',
-        expect.any(SyntaxError)
+        'Import failed:',
+        expect.any(String)
       );
     });
   });

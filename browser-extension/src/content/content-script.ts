@@ -2,12 +2,13 @@
 // Content script for PrismWeave browser extension
 // Handles keyboard shortcuts and page content extraction
 
+import TurndownService from 'turndown';
 import {
-  IContentExtractionData,
-  IContentExtractionResult,
-  IMessageData,
-  IMessageResponse,
-  MESSAGE_TYPES,
+    IContentExtractionData,
+    IContentExtractionResult,
+    IMessageData,
+    IMessageResponse,
+    MESSAGE_TYPES,
 } from '../types/index.js';
 import { ContentExtractor } from '../utils/content-extractor.js';
 import { createLogger } from '../utils/logger.js';
@@ -538,7 +539,7 @@ async function extractPageContentWithUtilities(options?: any): Promise<IContentE
         });
 
         // Convert to markdown using our converter
-        const markdownConverter = new MarkdownConverter();
+        const markdownConverter = new MarkdownConverter(TurndownService);
         const markdownResult = markdownConverter.convertToMarkdown(soResult.content, {
           preserveFormatting: true,
           generateFrontmatter: true,
@@ -596,7 +597,7 @@ async function extractPageContentWithUtilities(options?: any): Promise<IContentE
 
     try {
       contentExtractor = new ContentExtractor();
-      markdownConverter = new MarkdownConverter();
+      markdownConverter = new MarkdownConverter(TurndownService);
     } catch (error) {
       // If utilities fail to initialize (e.g., extension context invalidated),
       // fall back to basic content extraction

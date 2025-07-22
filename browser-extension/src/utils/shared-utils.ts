@@ -50,7 +50,7 @@ class SharedUtils {
 
     return text
       .toLowerCase()
-      .replace(/[^a-z0-9\s-]/g, '') // Remove special characters
+      .replace(/[^a-z0-9\s-]/g, '') // Remove special characters (fixed regex)
       .replace(/\s+/g, '-') // Replace spaces with hyphens
       .replace(/-+/g, '-') // Replace multiple hyphens with single
       .replace(/^-|-$/g, '') // Remove leading/trailing hyphens

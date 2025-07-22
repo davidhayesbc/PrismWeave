@@ -32,7 +32,7 @@ describe('MarkdownConverter - HTML to Markdown', () => {
     }
     (global as any).globalThis.TurndownService = TurndownService;
 
-    converter = new MarkdownConverter();
+    converter = new MarkdownConverter(TurndownService);
   });
 
   afterEach(() => {

@@ -1,422 +1,64 @@
 // Centralized settings management with consistent schema and validation
+// Updated to use shared core with dependency injection
 
 import { createLogger } from './logger';
 const logger = createLogger('SettingsManager');
 
+import { ChromeStorageProvider } from '../shared/adapters/chrome-adapters.js';
+import { SettingsManager as SharedSettingsManager } from '../shared/core/settings-manager.js';
 import { ISettings } from '../types/index';
 
-// Type definitions for service worker compatibility
-interface ISettingsManagerSettings {
-  [key: string]: unknown;
-}
+// Create settings manager instance with Chrome storage provider
+const storageProvider = new ChromeStorageProvider();
+const sharedManager = new SharedSettingsManager(storageProvider, logger);
 
-interface ISettingsManagerStorageData {
-  [key: string]: unknown;
-}
-
-type SettingsManagerStorageKeys = string | string[] | Record<string, unknown> | null;
-type SettingsManagerStorageResult<T = Record<string, unknown>> = Promise<T>;
-
-interface ISettingDefinition {
-  type: 'string' | 'boolean' | 'number' | 'array';
-  default: string | boolean | number | string[];
-  required: boolean;
-  sensitive: boolean;
-  description: string;
-  pattern?: RegExp;
-  options?: string[];
-  requires?: string[];
-  min?: number;
-  max?: number;
-}
-
-interface ISettingsSchema {
-  [key: string]: ISettingDefinition;
-}
-
+/**
+ * Legacy settings manager that delegates to shared implementation
+ * Maintains backward compatibility while using new shared core
+ */
 class SettingsManager {
-  private readonly STORAGE_KEY: string = 'prismWeaveSettings';
-  private readonly schema: ISettingsSchema;
-
-  constructor() {
-    this.schema = this.getSettingsSchema();
-  }
-  private getSettingsSchema(): ISettingsSchema {
-    return {
-      // Repository Configuration
-      githubToken: {
-        type: 'string',
-        default: '',
-        required: false,
-        sensitive: true,
-        description: 'GitHub personal access token',
-      },
-      githubRepo: {
-        type: 'string',
-        default: '',
-        required: false,
-        sensitive: false,
-        pattern: /^[a-zA-Z0-9._-]+\/[a-zA-Z0-9._-]+$/,
-        description: 'GitHub repository in format owner/repo',
-      },
-
-      // File Organization
-      defaultFolder: {
-        type: 'string',
-        default: 'unsorted',
-        required: true,
-        sensitive: false,
-        options: [
-          'tech',
-          'business',
-          'research',
-          'news',
-          'tutorial',
-          'reference',
-          'blog',
-          'social',
-          'unsorted',
-          'custom',
-        ],
-        description: 'Default folder for captured documents',
-      },
-      customFolder: {
-        type: 'string',
-        default: '',
-        required: false,
-        sensitive: false,
-        description: 'Custom folder name when defaultFolder is "custom"',
-      },
-      fileNamingPattern: {
-        type: 'string',
-        default: 'YYYY-MM-DD-domain-title',
-        required: true,
-        sensitive: false,
-        options: [
-          'YYYY-MM-DD-domain-title',
-          'YYYY-MM-DD-title',
-          'domain-YYYY-MM-DD-title',
-          'title-YYYY-MM-DD',
-        ],
-        description: 'Template for generated filenames',
-      },
-
-      // Automation Settings
-      autoCommit: {
-        type: 'boolean',
-        required: false,
-        sensitive: false,
-        default: true,
-        description: 'Automatically commit captured files to Git',
-      },
-
-      // Content Processing
-      captureImages: {
-        type: 'boolean',
-        required: false,
-        sensitive: false,
-        default: true,
-        description: 'Download and save images from captured pages',
-      },
-      removeAds: {
-        type: 'boolean',
-        required: false,
-        sensitive: false,
-        default: true,
-        description: 'Remove advertisements and promotional content',
-      },
-      removeNavigation: {
-        type: 'boolean',
-        required: false,
-        sensitive: false,
-        default: true,
-        description: 'Remove navigation menus and site headers/footers',
-      },
-      customSelectors: {
-        type: 'string',
-        default: '',
-        required: false,
-        sensitive: false,
-        description: 'Custom CSS selectors for elements to remove during capture',
-      },
-
-      // Git & Repository Settings
-      commitMessageTemplate: {
-        type: 'string',
-        required: false,
-        sensitive: false,
-        default: 'Add: {domain} - {title}',
-        description: 'Template for git commit messages',
-      },
-
-      // Debugging Settings
-      debugMode: {
-        type: 'boolean',
-        required: false,
-        sensitive: false,
-        default: false,
-        description: 'Enable detailed logging and debug information',
-      },
-
-      // UI Preferences
-      showNotifications: {
-        type: 'boolean',
-        required: false,
-        sensitive: false,
-        default: true,
-        description: 'Show completion notifications',
-      },
-      enableKeyboardShortcuts: {
-        type: 'boolean',
-        required: false,
-        sensitive: false,
-        default: true,
-        description: 'Enable keyboard shortcuts for capture',
-      },
-    };
-  }
-
   async getSettings(): Promise<Partial<ISettings>> {
-    try {
-      const result = await this.getFromStorage<Record<string, Partial<ISettings>>>([
-        this.STORAGE_KEY,
-      ]);
-      const rawSettings = result[this.STORAGE_KEY] || {};
-      // Validate settings against schema - just log errors, don't block
-      const validationResult = this.validateSettings(rawSettings);
-      if (!validationResult.isValid) {
-        logger.warn('Settings validation failed:', validationResult.errors);
-      }
-
-      return rawSettings;
-    } catch (error) {
-      logger.error('Error getting settings:', error);
-      return {};
-    }
+    return sharedManager.getSettings();
   }
 
   async getDefaults(): Promise<Partial<ISettings>> {
-    const defaults: Partial<ISettings> = {};
-
-    Object.entries(this.schema).forEach(([key, definition]) => {
-      (defaults as any)[key] = definition.default;
-    });
-
-    return defaults;
+    return sharedManager.getDefaults();
   }
 
   async getSettingsWithDefaults(): Promise<Partial<ISettings>> {
-    try {
-      const [current, defaults] = await Promise.all([this.getSettings(), this.getDefaults()]);
-
-      return { ...defaults, ...current };
-    } catch (error) {
-      logger.error('Error getting settings with defaults:', error);
-      return await this.getDefaults();
-    }
+    return sharedManager.getSettingsWithDefaults();
   }
 
   async updateSettings(updates: Partial<ISettings>): Promise<boolean> {
-    try {
-      const validationResult = this.validateSettings(updates);
-      if (!validationResult.isValid) {
-        logger.error('Validation failed:', validationResult.errors);
-        return false;
-      }
-
-      const current = await this.getSettings();
-      const updated = { ...current, ...updates };
-
-      await this.setToStorage({ [this.STORAGE_KEY]: updated });
-      return true;
-    } catch (error) {
-      logger.error('Error updating settings:', error);
-      return false;
-    }
+    return sharedManager.updateSettings(updates);
   }
 
   async resetSettings(): Promise<boolean> {
-    try {
-      const defaults = await this.getDefaults();
-      await this.setToStorage({ [this.STORAGE_KEY]: defaults });
-      return true;
-    } catch (error) {
-      logger.error('Error resetting settings:', error);
-      return false;
-    }
+    return sharedManager.resetSettings();
   }
+
   validateSettings(settings: Partial<ISettings>): { isValid: boolean; errors: string[] } {
-    const errors: string[] = [];
-
-    Object.entries(settings).forEach(([key, value]) => {
-      const definition = this.schema[key];
-      if (!definition) {
-        errors.push(`Unknown setting: ${key}`);
-        return;
-      }
-
-      // Type validation with proper array handling
-      const isValidType = this.validateType(value, definition.type);
-      if (!isValidType) {
-        errors.push(
-          `Invalid type for ${key}: expected ${definition.type}, got ${this.getActualType(value)}`
-        );
-        return;
-      }
-
-      // Pattern validation
-      if (
-        definition.pattern &&
-        typeof value === 'string' &&
-        value !== '' &&
-        !definition.pattern.test(value)
-      ) {
-        errors.push(`Invalid format for ${key}: does not match required pattern`);
-      }
-
-      // Options validation
-      if (definition.options && value !== '' && !definition.options.includes(value as string)) {
-        errors.push(`Invalid value for ${key}: must be one of ${definition.options.join(', ')}`);
-      }
-
-      // Range validation for numbers
-      if (definition.type === 'number' && typeof value === 'number') {
-        if (definition.min !== undefined && value < definition.min) {
-          errors.push(`Value for ${key} is below minimum: ${definition.min}`);
-        }
-        if (definition.max !== undefined && value > definition.max) {
-          errors.push(`Value for ${key} is above maximum: ${definition.max}`);
-        }
-      }
-    });
-
-    return { isValid: errors.length === 0, errors };
-  }
-
-  private validateType(value: unknown, expectedType: string): boolean {
-    switch (expectedType) {
-      case 'array':
-        return Array.isArray(value);
-      case 'string':
-        return typeof value === 'string';
-      case 'boolean':
-        return typeof value === 'boolean';
-      case 'number':
-        return typeof value === 'number';
-      default:
-        return false;
-    }
-  }
-
-  private getActualType(value: unknown): string {
-    if (Array.isArray(value)) return 'array';
-    if (value === null) return 'null';
-    return typeof value;
+    return sharedManager.validateSettings(settings);
   }
 
   async checkRequiredDependencies(settings: Partial<ISettings>): Promise<string[]> {
-    const missingDependencies: string[] = [];
-
-    Object.entries(settings).forEach(([key, value]) => {
-      const definition = this.schema[key];
-      if (definition?.requires && value) {
-        definition.requires.forEach(required => {
-          if (!settings[required as keyof ISettings]) {
-            missingDependencies.push(`${key} requires ${required} to be set`);
-          }
-        });
-      }
-    });
-
-    return missingDependencies;
+    return sharedManager.checkRequiredDependencies(settings);
   }
 
-  getSettingDefinition(key: string): ISettingDefinition | null {
-    return this.schema[key] || null;
+  getSettingDefinition(key: string) {
+    return sharedManager.getSettingDefinition(key);
   }
 
-  getAllSettingDefinitions(): ISettingsSchema {
-    return { ...this.schema };
+  getAllSettingDefinitions() {
+    return sharedManager.getAllSettingDefinitions();
   }
 
   async exportSettings(): Promise<string> {
-    try {
-      const settings = await this.getSettings();
-      const sanitized = this.sanitizeForExport(settings);
-      return JSON.stringify(sanitized, null, 2);
-    } catch (error) {
-      logger.error('Error exporting settings:', error);
-      throw error;
-    }
+    return sharedManager.exportSettings();
   }
 
   async importSettings(jsonString: string): Promise<boolean> {
-    try {
-      const imported = JSON.parse(jsonString) as Partial<ISettings>;
-      return await this.updateSettings(imported);
-    } catch (error) {
-      logger.error('Error importing settings:', error);
-      return false;
-    }
-  }
-
-  private sanitizeForExport(settings: Partial<ISettings>): Partial<ISettings> {
-    const sanitized = { ...settings };
-
-    Object.entries(this.schema).forEach(([key, definition]) => {
-      if (definition.sensitive && sanitized[key as keyof ISettings]) {
-        (sanitized as any)[key] = '[REDACTED]';
-      }
-    });
-
-    return sanitized;
-  }
-  private async getFromStorage<T = ISettingsManagerStorageData>(
-    keys: SettingsManagerStorageKeys
-  ): SettingsManagerStorageResult<T> {
-    // Access chrome API - check multiple contexts for compatibility
-    const chromeAPI =
-      (typeof chrome !== 'undefined' ? chrome : undefined) ||
-      (typeof globalThis !== 'undefined' && (globalThis as any).chrome) ||
-      (typeof self !== 'undefined' && (self as any).chrome) ||
-      (typeof global !== 'undefined' && (global as any).chrome);
-
-    if (!chromeAPI || !chromeAPI.storage) {
-      throw new Error('Chrome storage API not available');
-    }
-
-    return new Promise<T>((resolve, reject) => {
-      chromeAPI.storage.sync.get(keys as any, (result: T) => {
-        if (chromeAPI.runtime.lastError) {
-          reject(new Error(chromeAPI.runtime.lastError.message));
-        } else {
-          resolve(result);
-        }
-      });
-    });
-  }
-
-  private async setToStorage(data: ISettingsManagerStorageData): Promise<void> {
-    // Access chrome API - check multiple contexts for compatibility
-    const chromeAPI =
-      (typeof chrome !== 'undefined' ? chrome : undefined) ||
-      (typeof globalThis !== 'undefined' && (globalThis as any).chrome) ||
-      (typeof self !== 'undefined' && (self as any).chrome) ||
-      (typeof global !== 'undefined' && (global as any).chrome);
-
-    if (!chromeAPI || !chromeAPI.storage) {
-      throw new Error('Chrome storage API not available');
-    }
-
-    return new Promise<void>((resolve, reject) => {
-      chromeAPI.storage.sync.set(data, () => {
-        if (chromeAPI.runtime.lastError) {
-          reject(new Error(chromeAPI.runtime.lastError.message));
-        } else {
-          resolve();
-        }
-      });
-    });
+    return sharedManager.importSettings(jsonString);
   }
 }
 
