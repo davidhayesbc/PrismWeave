@@ -14,11 +14,11 @@ export interface IProcessedDocument {
 
 
 import {
-  ICaptureResult,
-  IContentExtractionData,
-  IContentExtractionResult,
-  IDocumentMetadata,
-  ISettings,
+    ICaptureResult,
+    IContentExtractionData,
+    IContentExtractionResult,
+    IDocumentMetadata,
+    ISettings,
 } from '../types/index.js';
 import { FileManager, IGitHubSettings } from './file-manager.js';
 import { createLogger } from './logger.js';
@@ -220,9 +220,25 @@ export class ContentCaptureService {
         options.forceGitHubCommit ||
         (settings.autoCommit && settings.githubToken && settings.githubRepo);
 
+      logger.info('🔍 GitHub commit decision:', {
+        shouldCommit,
+        forceGitHubCommit: options.forceGitHubCommit,
+        autoCommit: settings.autoCommit,
+        hasGithubToken: !!settings.githubToken,
+        hasGithubRepo: !!settings.githubRepo,
+        githubTokenLength: settings.githubToken?.length || 0,
+        githubRepo: settings.githubRepo || 'not set',
+      });
+
       if (shouldCommit) {
-        logger.info('Committing to GitHub repository');
+        logger.info('✅ Committing to GitHub repository');
         const commitResult = await this.commitToGitHub(processedDoc, settings);
+
+        logger.info('📊 GitHub commit result:', {
+          success: commitResult.success,
+          url: commitResult.url,
+          error: commitResult.error,
+        });
 
         if (commitResult.success) {
           return this.createSuccessResult(processedDoc, {
@@ -1068,10 +1084,25 @@ export class ContentCaptureService {
   // =================================================================
 
   private async validateAndGetSettings(shouldValidate: boolean): Promise<ISettings> {
+    logger.debug('🔧 Getting settings, shouldValidate:', shouldValidate);
     const settings = await this.settingsManager.getSettings();
+    
+    logger.info('⚙️ Current settings loaded:', {
+      hasGithubToken: !!settings.githubToken,
+      tokenLength: settings.githubToken?.length || 0,
+      hasGithubRepo: !!settings.githubRepo,
+      githubRepo: settings.githubRepo || 'not set',
+      autoCommit: settings.autoCommit,
+      shouldValidate,
+    });
 
     if (shouldValidate) {
+      logger.debug('✅ Validating settings...');
       const validation = this.settingsManager.validateSettings(settings);
+      logger.info('📋 Settings validation result:', {
+        isValid: validation.isValid,
+        errors: validation.errors,
+      });
       if (!validation.isValid) {
         throw new Error(`Invalid settings: ${validation.errors.join(', ')}`);
       }
@@ -1092,17 +1123,35 @@ export class ContentCaptureService {
   }
 
   private async commitToGitHub(processedDoc: IProcessedDocument, settings: ISettings) {
+    logger.info('🚀 commitToGitHub called with:', {
+      filePath: processedDoc.filePath,
+      contentLength: processedDoc.content.length,
+      hasToken: !!settings.githubToken,
+      tokenLength: settings.githubToken?.length || 0,
+      repository: settings.githubRepo,
+    });
+
     const githubSettings: IGitHubSettings = {
       token: settings.githubToken!,
       repository: settings.githubRepo!,
       branch: 'main',
     };
 
-    return await this.fileManager.saveToGitHub(
+    logger.info('📡 Calling fileManager.saveToGitHub...');
+    const result = await this.fileManager.saveToGitHub(
       processedDoc.content,
       processedDoc.metadata,
       githubSettings
     );
+    
+    logger.info('📊 fileManager.saveToGitHub result:', {
+      success: result.success,
+      url: result.url,
+      error: result.error,
+      filePath: result.filePath,
+    });
+
+    return result;
   }
 
   private async storeLocally(processedDoc: IProcessedDocument): Promise<void> {

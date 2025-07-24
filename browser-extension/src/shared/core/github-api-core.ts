@@ -16,6 +16,7 @@ interface IRepositoryInfo {
 interface IGitHubFileInfo {
   sha: string;
   html_url?: string;
+  size?: number;
   [key: string]: unknown;
 }
 
@@ -82,7 +83,7 @@ export class GitHubAPICore {
     try {
       const { token, repo, filePath, content, message } = params;
 
-      this.logger?.info('Starting GitHub commit process:', {
+      this.logger?.info('🚀 Starting GitHub commit process:', {
         repo,
         filePath,
         messageLength: message.length,
@@ -91,11 +92,11 @@ export class GitHubAPICore {
 
       // Validate and parse repository
       const repoInfo = this.parseRepositoryPath(repo);
-      this.logger?.debug('Parsed repository:', repoInfo);
+      this.logger?.info('📁 Parsed repository:', repoInfo);
 
       // Check if file already exists
   const existingFile = await this.getFileInfo(token, repoInfo, filePath);
-      this.logger?.debug('File existence check:', {
+      this.logger?.info('📋 File existence check:', {
         exists: !!existingFile,
         sha: existingFile?.sha,
       });
@@ -110,14 +111,14 @@ export class GitHubAPICore {
         existingFile?.sha
       );
 
-      this.logger?.info('Successfully committed to GitHub:', result.content?.html_url);
+      this.logger?.info('✅ Successfully committed to GitHub:', result.content?.html_url);
 
       return {
         success: true,
         data: result.content,
       };
     } catch (error) {
-      this.logger?.error('GitHub commit failed:', error);
+      this.logger?.error('💥 GitHub commit failed:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -130,7 +131,7 @@ export class GitHubAPICore {
    */
   async testConnection(token: string, repo: string): Promise<IGitHubConnectionTest> {
     try {
-      this.logger?.info('Testing GitHub connection...');
+      this.logger?.info('🔗 Testing GitHub connection...');
 
       // Validate inputs
       if (!token || !repo) {
@@ -145,12 +146,15 @@ export class GitHubAPICore {
       const repoInfo = this.parseRepositoryPath(repo);
 
       // Test 1: Validate GitHub token
+      this.logger?.info('🔑 Testing GitHub token...');
       const userData = await this.validateToken(token);
 
       // Test 2: Check repository access
+      this.logger?.info('📁 Testing repository access...');
       const repoData = await this.validateRepository(token, repoInfo);
 
       // Test 3: Check write permissions
+      this.logger?.info('✏️ Testing write permissions...');
       const hasWriteAccess = await this.checkWritePermissions(token, repoInfo);
 
       return {
@@ -222,31 +226,55 @@ export class GitHubAPICore {
     repoInfo: IRepositoryInfo,
     path: string
   ): Promise<IGitHubFileInfo | null> {
-    this.logger?.debug('Fetching file info for:', {
-      owner: repoInfo.owner,
-      repo: repoInfo.repo,
-      path,
+    const url = `${GitHubAPICore.API_BASE}/repos/${repoInfo.owner}/${repoInfo.repo}/contents/${path}`;
+    const requestOptions = {
+      method: 'GET',
+      headers: this.getAuthHeaders(token),
+    };
+
+    this.logger?.info('🌐 GitHub API Request - Get File Info:', {
+      url,
+      method: requestOptions.method,
+      headers: this.sanitizeHeaders(requestOptions.headers),
+      repository: `${repoInfo.owner}/${repoInfo.repo}`,
+      filePath: path,
     });
 
     try {
-      const response = await this.httpProvider.fetch(
-        `${GitHubAPICore.API_BASE}/repos/${repoInfo.owner}/${repoInfo.repo}/contents/${path}`,
-        {
-          method: 'GET',
-          headers: this.getAuthHeaders(token),
-        }
-      );
+      const response = await this.httpProvider.fetch(url, requestOptions);
+
+      this.logger?.info('📥 GitHub API Response - Get File Info:', {
+        url,
+        status: response.status,
+        statusText: response.statusText,
+        headers: this.headersToObject(response.headers),
+      });
 
       if (response.status === 404) {
-        this.logger?.debug('File not found (404), returning null');
+        this.logger?.info('📄 File not found (404), returning null');
         return null;
       }
 
       if (!response.ok) {
+        const errorText = await response.text().catch(() => '');
+        this.logger?.error('GitHub API Error Response:', {
+          url,
+          status: response.status,
+          statusText: response.statusText,
+          errorBody: errorText,
+        });
         throw new Error(`GitHub API error: ${response.status} ${response.statusText}`);
       }
 
       const data = (await response.json()) as IGitHubFileInfo;
+
+      this.logger?.info('💾 GitHub API Success - File Info Retrieved:', {
+        url,
+        filePath: path,
+        sha: data.sha,
+        size: data.size || 'unknown',
+        htmlUrl: data.html_url,
+      });
 
       if (!data.sha) {
         throw new Error('Invalid file info from GitHub: missing SHA');
@@ -254,6 +282,12 @@ export class GitHubAPICore {
 
       return data;
     } catch (error) {
+      this.logger?.error('GitHub API Error - Get File Info:', {
+        url,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+      
       if ((error as Error).message.includes('404')) {
         return null;
       }
@@ -272,14 +306,8 @@ export class GitHubAPICore {
     message: string,
     existingSha?: string
   ): Promise<any> {
-    this.logger?.debug('Creating or updating file:', {
-      owner: repoInfo.owner,
-      repo: repoInfo.repo,
-      path,
-      contentLength: content.length,
-      operation: existingSha ? 'UPDATE' : 'CREATE',
-    });
-
+    const url = `${GitHubAPICore.API_BASE}/repos/${repoInfo.owner}/${repoInfo.repo}/contents/${path}`;
+    
     const requestBody: any = {
       message,
       // For binary files (PDF), content is already base64 encoded
@@ -290,97 +318,285 @@ export class GitHubAPICore {
 
     if (existingSha) {
       requestBody.sha = existingSha;
-      this.logger?.info('Including SHA for file update:', existingSha);
     }
 
-    const response = await this.httpProvider.fetch(
-      `${GitHubAPICore.API_BASE}/repos/${repoInfo.owner}/${repoInfo.repo}/contents/${path}`,
-      {
-        method: 'PUT',
-        headers: {
-          ...this.getAuthHeaders(token),
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestBody),
+    const requestOptions = {
+      method: 'PUT',
+      headers: {
+        ...this.getAuthHeaders(token),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestBody),
+    };
+
+    this.logger?.info('🚀 GitHub API Request - Create/Update File:', {
+      url,
+      method: requestOptions.method,
+      headers: this.sanitizeHeaders(requestOptions.headers),
+      repository: `${repoInfo.owner}/${repoInfo.repo}`,
+      filePath: path,
+      payload: {
+        message: requestBody.message,
+        branch: requestBody.branch,
+        operation: existingSha ? 'UPDATE' : 'CREATE',
+        contentLength: requestBody.content.length,
+        contentType: path.endsWith('.pdf') ? 'binary/pdf' : 'text',
+        sha: existingSha || 'N/A (new file)',
+      },
+    });
+
+    try {
+      const response = await this.httpProvider.fetch(url, requestOptions);
+
+      this.logger?.info('📡 GitHub API Response - Create/Update File:', {
+        url,
+        status: response.status,
+        statusText: response.statusText,
+        headers: this.headersToObject(response.headers),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = `GitHub API error: ${response.status} - ${errorData.message || 'Unknown error'}`;
+        
+        this.logger?.error('❌ GitHub API Error Response - Create/Update File:', {
+          url,
+          status: response.status,
+          statusText: response.statusText,
+          errorData: this.sanitizePayload(errorData),
+          operation: existingSha ? 'UPDATE' : 'CREATE',
+          filePath: path,
+        });
+
+        throw new Error(errorMessage);
       }
-    );
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      const errorMessage = `GitHub API error: ${response.status} - ${errorData.message || 'Unknown error'}`;
-      throw new Error(errorMessage);
+      const responseData = await response.json();
+
+      this.logger?.info('✅ GitHub API Success - File Created/Updated:', {
+        url,
+        filePath: path,
+        operation: existingSha ? 'UPDATE' : 'CREATE',
+        commit: {
+          sha: responseData.commit?.sha,
+          message: responseData.commit?.message,
+          author: responseData.commit?.author?.name,
+        },
+        content: {
+          sha: responseData.content?.sha,
+          htmlUrl: responseData.content?.html_url,
+          downloadUrl: responseData.content?.download_url,
+        },
+      });
+
+      return responseData;
+    } catch (error) {
+      this.logger?.error('GitHub API Error - Create/Update File:', {
+        url,
+        filePath: path,
+        operation: existingSha ? 'UPDATE' : 'CREATE',
+        error: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+      throw error;
     }
-
-    return await response.json();
   }
 
   /**
    * Validate GitHub token by fetching user info
    */
   private async validateToken(token: string): Promise<any> {
-    this.logger?.debug('Validating GitHub token...');
-
-    const response = await this.httpProvider.fetch(`${GitHubAPICore.API_BASE}/user`, {
+    const url = `${GitHubAPICore.API_BASE}/user`;
+    const requestOptions = {
       headers: this.getAuthHeaders(token),
+    };
+
+    this.logger?.info('GitHub API Request - Validate Token:', {
+      url,
+      method: 'GET',
+      headers: this.sanitizeHeaders(requestOptions.headers),
     });
 
-    if (!response.ok) {
-      throw new Error(`Invalid GitHub token (${response.status})`);
-    }
+    try {
+      const response = await this.httpProvider.fetch(url, requestOptions);
 
-    const userData = await response.json();
-    this.logger?.debug('GitHub user validated:', userData.login);
-    return userData;
+      this.logger?.info('GitHub API Response - Validate Token:', {
+        url,
+        status: response.status,
+        statusText: response.statusText,
+        headers: this.headersToObject(response.headers),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => '');
+        this.logger?.error('GitHub API Error Response - Token Validation:', {
+          url,
+          status: response.status,
+          statusText: response.statusText,
+          errorBody: errorText,
+        });
+        throw new Error(`Invalid GitHub token (${response.status})`);
+      }
+
+      const userData = await response.json();
+      
+      this.logger?.info('GitHub API Success - Token Validated:', {
+        url,
+        user: {
+          login: userData.login,
+          id: userData.id,
+          type: userData.type,
+          company: userData.company,
+          publicRepos: userData.public_repos,
+          privateRepos: userData.total_private_repos,
+          plan: userData.plan?.name,
+        },
+      });
+
+      return userData;
+    } catch (error) {
+      this.logger?.error('GitHub API Error - Token Validation:', {
+        url,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+      throw error;
+    }
   }
 
   /**
    * Validate repository access
    */
   private async validateRepository(token: string, repoInfo: IRepositoryInfo): Promise<any> {
-    this.logger?.debug('Validating repository access...');
+    const url = `${GitHubAPICore.API_BASE}/repos/${repoInfo.owner}/${repoInfo.repo}`;
+    const requestOptions = {
+      headers: this.getAuthHeaders(token),
+    };
 
-    const response = await this.httpProvider.fetch(
-      `${GitHubAPICore.API_BASE}/repos/${repoInfo.owner}/${repoInfo.repo}`,
-      {
-        headers: this.getAuthHeaders(token),
+    this.logger?.info('GitHub API Request - Validate Repository:', {
+      url,
+      method: 'GET',
+      headers: this.sanitizeHeaders(requestOptions.headers),
+      repository: `${repoInfo.owner}/${repoInfo.repo}`,
+    });
+
+    try {
+      const response = await this.httpProvider.fetch(url, requestOptions);
+
+      this.logger?.info('GitHub API Response - Validate Repository:', {
+        url,
+        status: response.status,
+        statusText: response.statusText,
+        headers: this.headersToObject(response.headers),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => '');
+        const errorMsg =
+          response.status === 404
+            ? 'Repository not found or no access'
+            : `Repository access failed (${response.status})`;
+
+        this.logger?.error('GitHub API Error Response - Repository Validation:', {
+          url,
+          repository: `${repoInfo.owner}/${repoInfo.repo}`,
+          status: response.status,
+          statusText: response.statusText,
+          errorBody: errorText,
+          errorMessage: errorMsg,
+        });
+
+        throw new Error(errorMsg);
       }
-    );
 
-    if (!response.ok) {
-      const errorMsg =
-        response.status === 404
-          ? 'Repository not found or no access'
-          : `Repository access failed (${response.status})`;
-      throw new Error(errorMsg);
+      const repoData = await response.json();
+      
+      this.logger?.info('GitHub API Success - Repository Validated:', {
+        url,
+        repository: {
+          fullName: repoData.full_name,
+          description: repoData.description,
+          private: repoData.private,
+          defaultBranch: repoData.default_branch,
+          size: repoData.size,
+          language: repoData.language,
+          createdAt: repoData.created_at,
+          updatedAt: repoData.updated_at,
+          permissions: repoData.permissions,
+          owner: {
+            login: repoData.owner?.login,
+            type: repoData.owner?.type,
+          },
+        },
+      });
+
+      return repoData;
+    } catch (error) {
+      this.logger?.error('GitHub API Error - Repository Validation:', {
+        url,
+        repository: `${repoInfo.owner}/${repoInfo.repo}`,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+      throw error;
     }
-
-    const repoData = await response.json();
-    this.logger?.debug('Repository access confirmed:', repoData.full_name);
-    return repoData;
   }
 
   /**
    * Check write permissions by testing contents API
    */
   private async checkWritePermissions(token: string, repoInfo: IRepositoryInfo): Promise<boolean> {
-    this.logger?.debug('Testing write permissions...');
+    const url = `${GitHubAPICore.API_BASE}/repos/${repoInfo.owner}/${repoInfo.repo}/contents`;
+    const requestOptions = {
+      headers: this.getAuthHeaders(token),
+    };
+
+    this.logger?.info('GitHub API Request - Check Write Permissions:', {
+      url,
+      method: 'GET',
+      headers: this.sanitizeHeaders(requestOptions.headers),
+      repository: `${repoInfo.owner}/${repoInfo.repo}`,
+    });
 
     try {
-      const response = await this.httpProvider.fetch(
-        `${GitHubAPICore.API_BASE}/repos/${repoInfo.owner}/${repoInfo.repo}/contents`,
-        {
-          headers: this.getAuthHeaders(token),
-        }
-      );
+      const response = await this.httpProvider.fetch(url, requestOptions);
+
+      this.logger?.info('GitHub API Response - Check Write Permissions:', {
+        url,
+        status: response.status,
+        statusText: response.statusText,
+        headers: this.headersToObject(response.headers),
+      });
 
       const hasAccess = response.ok;
+      
       if (!hasAccess) {
-        this.logger?.warn('Limited repository access - may not have write permissions');
+        const errorText = await response.text().catch(() => '');
+        this.logger?.warn('GitHub API Warning - Limited Repository Access:', {
+          url,
+          repository: `${repoInfo.owner}/${repoInfo.repo}`,
+          status: response.status,
+          statusText: response.statusText,
+          errorBody: errorText,
+          message: 'May not have write permissions',
+        });
+      } else {
+        this.logger?.info('GitHub API Success - Write Permissions Confirmed:', {
+          url,
+          repository: `${repoInfo.owner}/${repoInfo.repo}`,
+          hasWriteAccess: true,
+        });
       }
 
       return hasAccess;
     } catch (error) {
-      this.logger?.warn('Write permission check failed:', error);
+      this.logger?.error('GitHub API Error - Check Write Permissions:', {
+        url,
+        repository: `${repoInfo.owner}/${repoInfo.repo}`,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        result: 'Defaulting to no write access',
+      });
       return false;
     }
   }
@@ -395,12 +611,58 @@ export class GitHubAPICore {
       'User-Agent': GitHubAPICore.USER_AGENT,
     };
   }
+
+  /**
+   * Sanitize headers for logging by removing sensitive information
+   */
+  private sanitizeHeaders(headers: Record<string, string>): Record<string, string> {
+    const sanitized = { ...headers };
+    if (sanitized.Authorization) {
+      sanitized.Authorization = 'token [REDACTED]';
+    }
+    return sanitized;
+  }
+
+  /**
+   * Sanitize request payload for logging by removing sensitive information
+   */
+  private sanitizePayload(payload: any): any {
+    if (!payload || typeof payload !== 'object') {
+      return payload;
+    }
+
+    const sanitized = { ...payload };
+    
+    // Remove or redact sensitive fields
+    if (sanitized.token) {
+      sanitized.token = '[REDACTED]';
+    }
+    
+    return sanitized;
+  }
+
+  /**
+   * Convert Headers object to plain object for logging
+   */
+  private headersToObject(headers: Headers): Record<string, string> {
+    const headerObj: Record<string, string> = {};
+    try {
+      // Use Headers.forEach method which is more compatible
+      headers.forEach((value, key) => {
+        headerObj[key] = value;
+      });
+    } catch (error) {
+      // Fallback for environments where forEach might not exist
+      return { 'headers-parse-error': 'Unable to parse headers' };
+    }
+    return headerObj;
+  }
 }
 
 // Export types for use by adapters
 export type {
-    IGitHubCommitParams,
-    IGitHubCommitResult,
-    IGitHubConnectionTest, IGitHubFileInfo, IRepositoryInfo
+  IGitHubCommitParams,
+  IGitHubCommitResult,
+  IGitHubConnectionTest, IGitHubFileInfo, IRepositoryInfo
 };
 

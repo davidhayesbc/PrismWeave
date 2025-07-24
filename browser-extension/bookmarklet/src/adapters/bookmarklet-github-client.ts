@@ -2,7 +2,7 @@
 // Bookmarklet GitHub Client - CORS-compatible GitHub API client for bookmarklet
 // Uses direct fetch API without Chrome extension dependencies
 
-import { GitHubAPICore, IGitHubCommitParams, IGitHubCommitResult, IGitHubConnectionTest } from '../../shared/core/github-api-core.js';
+import { GitHubAPICore, IGitHubCommitParams, IGitHubCommitResult, IGitHubConnectionTest } from '../../../src/shared/core/github-api-core.js';
 
 /**
  * HTTP provider for bookmarklet environment using fetch API
@@ -38,6 +38,82 @@ class BookmarkletLogger {
 
   error(msg: string, ...args: any[]): void {
     console.error('[PrismWeave GitHub]', msg, ...args);
+  }
+
+  /**
+   * Sanitize headers for logging by removing sensitive information
+   */
+  private sanitizeHeaders(headers: Record<string, string>): Record<string, string> {
+    const sanitized = { ...headers };
+    if (sanitized.Authorization) {
+      sanitized.Authorization = 'token [REDACTED]';
+    }
+    return sanitized;
+  }
+
+  /**
+   * Log API request with sanitized headers
+   */
+  logRequest(operation: string, url: string, options: RequestInit): void {
+    this.info(`GitHub API Request - ${operation}:`, {
+      url,
+      method: options.method || 'GET',
+      headers: this.sanitizeHeaders(options.headers as Record<string, string> || {}),
+    });
+  }
+
+  /**
+   * Log API response
+   */
+  logResponse(operation: string, url: string, response: Response): void {
+    this.info(`GitHub API Response - ${operation}:`, {
+      url,
+      status: response.status,
+      statusText: response.statusText,
+      headers: this.headersToObject(response.headers),
+    });
+  }
+
+  /**
+   * Convert Headers object to plain object for logging
+   */
+  private headersToObject(headers: Headers): Record<string, string> {
+    const headerObj: Record<string, string> = {};
+    try {
+      // Use Headers.forEach method which is more compatible
+      headers.forEach((value, key) => {
+        headerObj[key] = value;
+      });
+    } catch (error) {
+      // Fallback for environments where forEach might not exist
+      return { 'headers-parse-error': 'Unable to parse headers' };
+    }
+    return headerObj;
+  }
+
+  /**
+   * Log API success with data
+   */
+  logSuccess(operation: string, url: string, data: any): void {
+    this.info(`GitHub API Success - ${operation}:`, {
+      url,
+      data: typeof data === 'object' ? data : { result: data },
+    });
+  }
+
+  /**
+   * Log API error
+   */
+  logError(operation: string, url: string, error: Error | any, response?: Response): void {
+    this.error(`GitHub API Error - ${operation}:`, {
+      url,
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      response: response ? {
+        status: response.status,
+        statusText: response.statusText,
+      } : undefined,
+    });
   }
 }
 
@@ -128,33 +204,48 @@ export class BookmarkletGitHubClient {
     };
     error?: string;
   }> {
+    const url = `https://api.github.com/repos/${repo}`;
+    const requestOptions = {
+      headers: {
+        'Authorization': `token ${token}`,
+        'Accept': 'application/vnd.github.v3+json'
+      }
+    };
+
+    this.logger.logRequest('Validate Repository', url, requestOptions);
+
     try {
-      const response = await this.httpProvider.fetch(`https://api.github.com/repos/${repo}`, {
-        headers: {
-          'Authorization': `token ${token}`,
-          'Accept': 'application/vnd.github.v3+json'
-        }
-      });
+      const response = await this.httpProvider.fetch(url, requestOptions);
+
+      this.logger.logResponse('Validate Repository', url, response);
 
       if (!response.ok) {
+        const errorText = await response.text().catch(() => '');
+        
         if (response.status === 404) {
-          return {
+          const result = {
             valid: false,
             permissions: { read: false, write: false, admin: false },
             error: 'Repository not found or no access'
           };
+          
+          this.logger.logError('Validate Repository', url, new Error(result.error), response);
+          return result;
         }
         
-        return {
+        const result = {
           valid: false,
           permissions: { read: false, write: false, admin: false },
           error: `HTTP ${response.status}: ${response.statusText}`
         };
+
+        this.logger.logError('Validate Repository', url, new Error(`${result.error}\n${errorText}`), response);
+        return result;
       }
 
       const data = await response.json();
       
-      return {
+      const result = {
         valid: true,
         permissions: {
           read: true,
@@ -163,12 +254,23 @@ export class BookmarkletGitHubClient {
         }
       };
 
+      this.logger.logSuccess('Validate Repository', url, {
+        repository: data.full_name,
+        permissions: result.permissions,
+        isPrivate: data.private,
+        defaultBranch: data.default_branch,
+      });
+
+      return result;
     } catch (error) {
-      return {
+      const result = {
         valid: false,
         permissions: { read: false, write: false, admin: false },
         error: (error as Error).message
       };
+
+      this.logger.logError('Validate Repository', url, error as Error);
+      return result;
     }
   }
 
@@ -183,21 +285,30 @@ export class BookmarkletGitHubClient {
     defaultBranch: string;
     url: string;
   } | null> {
+    const url = `https://api.github.com/repos/${repo}`;
+    const requestOptions = {
+      headers: {
+        'Authorization': `token ${token}`,
+        'Accept': 'application/vnd.github.v3+json'
+      }
+    };
+
+    this.logger.logRequest('Get Repository Info', url, requestOptions);
+
     try {
-      const response = await this.httpProvider.fetch(`https://api.github.com/repos/${repo}`, {
-        headers: {
-          'Authorization': `token ${token}`,
-          'Accept': 'application/vnd.github.v3+json'
-        }
-      });
+      const response = await this.httpProvider.fetch(url, requestOptions);
+
+      this.logger.logResponse('Get Repository Info', url, response);
 
       if (!response.ok) {
+        const errorText = await response.text().catch(() => '');
+        this.logger.logError('Get Repository Info', url, new Error(`HTTP ${response.status}: ${response.statusText}\n${errorText}`), response);
         return null;
       }
 
       const data = await response.json();
       
-      return {
+      const result = {
         name: data.name,
         fullName: data.full_name,
         description: data.description || '',
@@ -206,8 +317,18 @@ export class BookmarkletGitHubClient {
         url: data.html_url
       };
 
+      this.logger.logSuccess('Get Repository Info', url, {
+        repository: result.fullName,
+        description: result.description,
+        isPrivate: result.isPrivate,
+        defaultBranch: result.defaultBranch,
+        size: data.size,
+        language: data.language,
+      });
+
+      return result;
     } catch (error) {
-      this.logger.error('Error getting repository info:', error);
+      this.logger.logError('Get Repository Info', url, error as Error);
       return null;
     }
   }
@@ -222,24 +343,30 @@ export class BookmarkletGitHubClient {
     date: string;
     url: string;
   }>> {
+    const url = `https://api.github.com/repos/${repo}/commits?per_page=${limit}`;
+    const requestOptions = {
+      headers: {
+        'Authorization': `token ${token}`,
+        'Accept': 'application/vnd.github.v3+json'
+      }
+    };
+
+    this.logger.logRequest('Get Recent Commits', url, requestOptions);
+
     try {
-      const response = await this.httpProvider.fetch(
-        `https://api.github.com/repos/${repo}/commits?per_page=${limit}`, 
-        {
-          headers: {
-            'Authorization': `token ${token}`,
-            'Accept': 'application/vnd.github.v3+json'
-          }
-        }
-      );
+      const response = await this.httpProvider.fetch(url, requestOptions);
+
+      this.logger.logResponse('Get Recent Commits', url, response);
 
       if (!response.ok) {
+        const errorText = await response.text().catch(() => '');
+        this.logger.logError('Get Recent Commits', url, new Error(`HTTP ${response.status}: ${response.statusText}\n${errorText}`), response);
         return [];
       }
 
       const commits = await response.json();
       
-      return commits.map((commit: any) => ({
+      const result = commits.map((commit: any) => ({
         sha: commit.sha.substring(0, 8),
         message: commit.commit.message.split('\n')[0],
         author: commit.commit.author.name,
@@ -247,8 +374,18 @@ export class BookmarkletGitHubClient {
         url: commit.html_url
       }));
 
+      this.logger.logSuccess('Get Recent Commits', url, {
+        totalCommits: result.length,
+        commits: result.slice(0, 3).map(c => ({
+          sha: c.sha,
+          message: c.message.substring(0, 50) + (c.message.length > 50 ? '...' : ''),
+          author: c.author,
+        })),
+      });
+
+      return result;
     } catch (error) {
-      this.logger.error('Error getting recent commits:', error);
+      this.logger.logError('Get Recent Commits', url, error as Error);
       return [];
     }
   }
@@ -257,19 +394,46 @@ export class BookmarkletGitHubClient {
    * Check if file exists in repository
    */
   async fileExists(token: string, repo: string, filePath: string): Promise<boolean> {
-    try {
-      const response = await this.httpProvider.fetch(
-        `https://api.github.com/repos/${repo}/contents/${filePath}`,
-        {
-          headers: {
-            'Authorization': `token ${token}`,
-            'Accept': 'application/vnd.github.v3+json'
-          }
-        }
-      );
+    const url = `https://api.github.com/repos/${repo}/contents/${filePath}`;
+    const requestOptions = {
+      headers: {
+        'Authorization': `token ${token}`,
+        'Accept': 'application/vnd.github.v3+json'
+      }
+    };
 
-      return response.ok;
+    this.logger.logRequest('Check File Exists', url, requestOptions);
+
+    try {
+      const response = await this.httpProvider.fetch(url, requestOptions);
+
+      this.logger.logResponse('Check File Exists', url, response);
+
+      const exists = response.ok;
+
+      if (exists) {
+        const data = await response.json().catch(() => null);
+        this.logger.logSuccess('Check File Exists', url, {
+          filePath,
+          exists: true,
+          fileInfo: data ? {
+            sha: data.sha,
+            size: data.size,
+            type: data.type,
+          } : 'Unable to parse file info',
+        });
+      } else {
+        this.logger.info(`GitHub API File Check - File Not Found:`, {
+          url,
+          filePath,
+          exists: false,
+          status: response.status,
+        });
+      }
+
+      return exists;
     } catch (error) {
+      this.logger.logError('Check File Exists', url, error as Error);
       return false;
     }
   }

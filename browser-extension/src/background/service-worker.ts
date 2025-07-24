@@ -23,6 +23,7 @@ interface IEnhancedMessageResponse extends IMessageResponse {
 // Initialize logger
 const logger = createLogger('ServiceWorker');
 
+console.log('🟡 SERVICE WORKER STARTING...');
 logger.info('Service Worker starting...');
 
 // Service worker state management
@@ -246,12 +247,12 @@ export async function handleMessage(
       return { success: true, data: testResult, timestamp: Date.now() };
 
     case MESSAGE_TYPES.CAPTURE_PAGE:
-      logger.debug('Processing CAPTURE_PAGE message with data:', message.data);
+      logger.info('🎯 Processing CAPTURE_PAGE message with data:', message.data);
 
       // Debug the extracted content structure
       if (message.data && message.data.extractedContent) {
         const extractedContent = message.data.extractedContent as any;
-        logger.debug('Extracted content structure:', {
+        logger.info('📄 Extracted content structure:', {
           hasExtractedContent: !!message.data.extractedContent,
           extractedContentKeys: Object.keys(message.data.extractedContent),
           hasMarkdown: !!extractedContent.markdown,
@@ -262,14 +263,15 @@ export async function handleMessage(
           title: extractedContent.title || 'no title',
         });
       } else {
-        logger.debug('No extractedContent found in message data');
+        logger.info('⚠️ No extractedContent found in message data');
       }
 
+      logger.info('🚀 Calling captureService.capturePage...');
       const captureResult = await serviceWorkerState.captureService!.capturePage(message.data, {
         validateSettings: true,
         includeMarkdown: true,
       });
-      logger.debug('CAPTURE_PAGE result:', {
+      logger.info('📊 CAPTURE_PAGE result:', {
         success: captureResult.success,
         message: captureResult.message,
         hasData: !!captureResult.data,
@@ -496,6 +498,8 @@ chrome.runtime.onMessage.addListener(
     sender: chrome.runtime.MessageSender,
     sendResponse: (response: IEnhancedMessageResponse) => void
   ) => {
+    // Use both console.log and logger to ensure we see the message
+    console.log('🔴 SERVICE WORKER RECEIVED MESSAGE:', message.type, new Date().toISOString());
     logger.info('Received message:', message.type);
 
     // Handle message asynchronously
@@ -687,3 +691,11 @@ export function getServiceWorkerState(): IServiceWorkerState {
 }
 
 logger.info('Service Worker initialized successfully');
+
+// Add heartbeat to verify service worker is running
+setInterval(() => {
+  console.log('🔵 Service Worker Heartbeat:', new Date().toISOString());
+}, 30000); // Every 30 seconds
+
+// Add immediate heartbeat
+console.log('🟢 Service Worker LOADED at:', new Date().toISOString());

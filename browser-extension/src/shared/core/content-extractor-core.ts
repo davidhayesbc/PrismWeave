@@ -19,7 +19,17 @@ export interface IExtractorOptions {
   removeAds?: boolean;
   removeNavigation?: boolean;
   excludeSelectors?: string[];
-  domProvider?: IDOMProvider;
+}
+
+export interface IPageStructure {
+  headings: Array<{ level: number; text: string }>;
+  sections: number;
+  paragraphs: number;
+}
+
+export interface IImageInfo {
+  src: string;
+  alt: string;
 }
 
 export interface IDOMProvider {
@@ -34,10 +44,413 @@ export class ContentExtractorCore {
     this.dom = domProvider;
   }
 
+  /**
+   * Extract content from the current page
+   */
   async extractContent(options: IExtractorOptions = {}): Promise<IContentResult> {
-    const doc = this.dom.getDocument();
-    // ...existing logic from ContentExtractor, replacing document/window with doc/this.dom.getWindow()
-    // For brevity, only the structure is shown here. Full implementation would port all logic.
-    throw new Error('Not yet implemented: see ContentExtractor in utils for logic to port.');
+    try {
+      const doc = this.dom.getDocument();
+      const win = this.dom.getWindow();
+
+      // Wait for content to load if needed
+      if (options.waitForDynamicContent !== false) {
+        await this.waitForContent(doc);
+      }
+
+      // Extract metadata first
+      const metadata = this.extractMetadata(doc, win);
+
+      // Find main content element
+      const contentElement = this.findMainContent(doc, options);
+      if (!contentElement) {
+        throw new Error('No suitable content found on page');
+      }
+
+      // Clean the content
+      const cleanedElement = this.cleanContent(contentElement, options);
+      const content = cleanedElement.innerHTML || '';
+      const textContent = cleanedElement.textContent || '';
+
+      // Calculate metrics
+      const wordCount = this.countWords(textContent);
+      const readingTime = this.estimateReadingTime(wordCount);
+
+      // Update metadata with calculated values
+      metadata.wordCount = wordCount;
+      metadata.estimatedReadingTime = readingTime;
+
+      return {
+        content,
+        metadata,
+        cleanedContent: textContent,
+        wordCount,
+        readingTime,
+      };
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
+   * Extract page metadata
+   */
+  extractMetadata(doc: Document, win: Window): IDocumentMetadata {
+    const wordCount = this.countWords(doc.body.textContent || '');
+    return {
+      title: this.extractTitle(doc),
+      url: win.location.href,
+      captureDate: new Date().toISOString(),
+      tags: this.extractKeywords(doc),
+      author: this.extractAuthor(doc),
+      wordCount: wordCount,
+      estimatedReadingTime: this.estimateReadingTime(wordCount),
+    };
+  }
+
+  /**
+   * Extract images from the page
+   */
+  extractImages(doc: Document, win: Window): IImageInfo[] {
+    const images: IImageInfo[] = [];
+    const imgElements = doc.querySelectorAll('img');
+
+    imgElements.forEach(img => {
+      const src = img.src;
+      if (src && !src.startsWith('data:') && src.length > 0) {
+        // Convert relative URLs to absolute
+        const absoluteUrl = new URL(src, win.location.href).href;
+        images.push({
+          src: absoluteUrl,
+          alt: img.alt || '',
+        });
+      }
+    });
+
+    return images;
+  }
+
+  /**
+   * Get page structure information
+   */
+  getPageStructure(doc: Document): IPageStructure {
+    const headings: Array<{ level: number; text: string }> = [];
+    const headingElements = doc.querySelectorAll('h1, h2, h3, h4, h5, h6');
+
+    headingElements.forEach(heading => {
+      const level = parseInt(heading.tagName.substring(1));
+      const text = heading.textContent?.trim() || '';
+      if (text) {
+        headings.push({ level, text });
+      }
+    });
+
+    const sections = doc.querySelectorAll('section, article, main').length;
+    const paragraphs = doc.querySelectorAll('p').length;
+
+    return { headings, sections, paragraphs };
+  }
+
+  /**
+   * Calculate content quality score
+   */
+  getContentQualityScore(doc: Document): number {
+    const structure = this.getPageStructure(doc);
+    const textLength = doc.body.textContent?.length || 0;
+    const wordCount = this.countWords(doc.body.textContent || '');
+
+    let score = 0;
+
+    // Text length scoring
+    if (textLength > 500) score += 20;
+    if (textLength > 1500) score += 20;
+    if (textLength > 3000) score += 10;
+
+    // Word count scoring
+    if (wordCount > 100) score += 15;
+    if (wordCount > 500) score += 15;
+
+    // Structure scoring
+    if (structure.headings.length > 0) score += 10;
+    if (structure.headings.length > 2) score += 10;
+    if (structure.paragraphs > 3) score += 10;
+
+    return Math.min(score, 100);
+  }
+
+  /**
+   * Check if paywall is present
+   */
+  isPaywallPresent(doc: Document): boolean {
+    const paywallSelectors = [
+      '.paywall',
+      '[class*="paywall"]',
+      '.subscription-required',
+      '.premium-content',
+      '[class*="subscription"]',
+      '[id*="paywall"]',
+    ];
+
+    return paywallSelectors.some(selector => doc.querySelector(selector) !== null);
+  }
+
+  // Private helper methods
+
+  private async waitForContent(doc: Document): Promise<void> {
+    // Wait a bit for dynamic content to load
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    // Wait for images to finish loading
+    const images = Array.from(doc.images);
+    if (images.length > 0) {
+      await Promise.allSettled(
+        images.map(img => {
+          if (img.complete) return Promise.resolve();
+          return new Promise(resolve => {
+            img.onload = img.onerror = () => resolve(null);
+            setTimeout(() => resolve(null), 3000); // 3 second timeout
+          });
+        })
+      );
+    }
+  }
+
+  private findMainContent(doc: Document, options: IExtractorOptions): Element | null {
+    // Try custom selectors first
+    if (options.customSelectors?.length) {
+      for (const selector of options.customSelectors) {
+        const element = doc.querySelector(selector);
+        if (element && this.hasSubstantialContent(element)) {
+          return element;
+        }
+      }
+    }
+
+    // Common content selectors in order of preference
+    const contentSelectors = [
+      'article',
+      'main',
+      '[role="main"]',
+      '.content',
+      '.post-content',
+      '.entry-content',
+      '.article-content',
+      '#content',
+      '#main',
+      '.post',
+      '.entry',
+    ];
+
+    for (const selector of contentSelectors) {
+      const element = doc.querySelector(selector);
+      if (element && this.hasSubstantialContent(element)) {
+        return element;
+      }
+    }
+
+    // Score-based fallback
+    const candidates = Array.from(doc.querySelectorAll('div, section, article'));
+    let bestCandidate: { element: Element; score: number } | null = null;
+
+    for (const candidate of candidates) {
+      if (this.hasSubstantialContent(candidate)) {
+        const score = this.scoreElement(candidate);
+        if (!bestCandidate || score > bestCandidate.score) {
+          bestCandidate = { element: candidate, score };
+        }
+      }
+    }
+
+    return bestCandidate?.element || doc.body;
+  }
+
+  private hasSubstantialContent(element: Element): boolean {
+    const textContent = element.textContent || '';
+    const wordCount = this.countWords(textContent);
+    return wordCount > 30; // Require at least 30 words
+  }
+
+  private scoreElement(element: Element): number {
+    const text = element.textContent || '';
+    const wordCount = this.countWords(text);
+    let score = 0;
+
+    // Word count scoring
+    score += Math.min(wordCount / 10, 50);
+
+    // Paragraph count scoring
+    const paragraphs = element.querySelectorAll('p').length;
+    score += paragraphs * 2;
+
+    // Link density penalty
+    const links = element.querySelectorAll('a').length;
+    const linkDensity = links / Math.max(wordCount, 1);
+    if (linkDensity > 0.3) score -= 20;
+
+    // Semantic element bonus
+    const tagName = element.tagName.toLowerCase();
+    if (tagName === 'article') score += 15;
+    if (tagName === 'main') score += 10;
+
+    // Class name scoring
+    const className = element.className.toLowerCase();
+    if (className.includes('content')) score += 10;
+    if (className.includes('post')) score += 8;
+    if (className.includes('article')) score += 8;
+
+    // Negative scoring
+    if (className.includes('sidebar')) score -= 10;
+    if (className.includes('footer')) score -= 10;
+    if (className.includes('header')) score -= 10;
+    if (className.includes('nav')) score -= 15;
+
+    return Math.max(score, 0);
+  }
+
+  private cleanContent(element: Element, options: IExtractorOptions): Element {
+    const cloned = element.cloneNode(true) as Element;
+
+    // Default exclude selectors
+    const defaultExcludeSelectors = [
+      'script',
+      'style',
+      'noscript',
+      'iframe',
+      '.advertisement',
+      '.ad',
+      '.ads',
+      '.popup',
+      '.modal',
+      '.social-share',
+      '.comments',
+      '.related-posts',
+      '[style*="display: none"]',
+      '[style*="visibility: hidden"]',
+    ];
+
+    // Combine with custom exclude selectors
+    const excludeSelectors = [...defaultExcludeSelectors, ...(options.excludeSelectors || [])];
+
+    // Remove unwanted elements
+    excludeSelectors.forEach(selector => {
+      const elements = cloned.querySelectorAll(selector);
+      elements.forEach(el => el.remove());
+    });
+
+    // Additional cleaning for ads and navigation
+    if (options.removeAds !== false) {
+      this.removeAds(cloned);
+    }
+
+    if (options.removeNavigation !== false) {
+      this.removeNavigation(cloned);
+    }
+
+    return cloned;
+  }
+
+  private removeAds(element: Element): void {
+    const adSelectors = [
+      '[class*="ad"]',
+      '[id*="ad"]',
+      '[class*="banner"]',
+      '[id*="banner"]',
+      '[class*="promo"]',
+      '[id*="promo"]',
+      '[class*="sponsor"]',
+      '[id*="sponsor"]',
+    ];
+
+    adSelectors.forEach(selector => {
+      const elements = element.querySelectorAll(selector);
+      elements.forEach(el => {
+        // Only remove if it looks like an ad
+        const text = el.textContent?.toLowerCase() || '';
+        if (
+          text.includes('advertisement') ||
+          text.includes('sponsored') ||
+          el.textContent!.length < 50
+        ) {
+          el.remove();
+        }
+      });
+    });
+  }
+
+  private removeNavigation(element: Element): void {
+    const navSelectors = [
+      'nav',
+      'header',
+      'footer',
+      '[role="navigation"]',
+      '[role="banner"]',
+      '[role="contentinfo"]',
+      '.navigation',
+      '.nav',
+      '.menu',
+      '.breadcrumb',
+    ];
+
+    navSelectors.forEach(selector => {
+      const elements = element.querySelectorAll(selector);
+      elements.forEach(el => el.remove());
+    });
+  }
+
+  private extractTitle(doc: Document): string {
+    // Try multiple title sources in order of preference
+    const titleSources = [
+      () => doc.querySelector('[property="og:title"]')?.getAttribute('content'),
+      () => doc.querySelector('[name="twitter:title"]')?.getAttribute('content'),
+      () => doc.querySelector('h1')?.textContent,
+      () => doc.title,
+    ];
+
+    for (const source of titleSources) {
+      const title = source();
+      if (title && title.trim().length > 0) {
+        return title.trim();
+      }
+    }
+
+    return 'Untitled';
+  }
+
+  private extractKeywords(doc: Document): string[] {
+    const keywordsMeta = doc.querySelector('[name="keywords"]')?.getAttribute('content');
+    if (keywordsMeta) {
+      return keywordsMeta
+        .split(',')
+        .map(k => k.trim())
+        .filter(k => k.length > 0);
+    }
+    return [];
+  }
+
+  private extractAuthor(doc: Document): string {
+    const authorSources = [
+      () => doc.querySelector('[property="article:author"]')?.getAttribute('content'),
+      () => doc.querySelector('[name="author"]')?.getAttribute('content'),
+      () => doc.querySelector('[rel="author"]')?.textContent,
+      () => doc.querySelector('.author')?.textContent,
+      () => doc.querySelector('.byline')?.textContent,
+    ];
+
+    for (const source of authorSources) {
+      const author = source();
+      if (author && author.trim().length > 0) {
+        return author.trim();
+      }
+    }
+
+    return '';
+  }
+
+  private countWords(text: string): number {
+    return text.split(/\s+/).filter(word => word.length > 0).length;
+  }
+
+  private estimateReadingTime(wordCount: number): number {
+    // Average reading speed: 200 words per minute
+    return Math.ceil(wordCount / 200);
   }
 }
