@@ -378,7 +378,7 @@ export class ContentCaptureService implements IContentExtractor, IDocumentProces
     options: ICaptureServiceOptions = {}
   ): Promise<ICaptureResult> {
     try {
-      logger.info('Starting link capture workflow for URL:', linkUrl, 'with options:', options);
+      logger.info('Starting direct HTML fetch for URL:', linkUrl, 'with options:', options);
 
       // Step 1: Validate settings
       logger.debug('Starting settings validation...');
@@ -386,126 +386,123 @@ export class ContentCaptureService implements IContentExtractor, IDocumentProces
       const settings = await this.validateAndGetSettings(shouldValidateSettings);
       logger.debug('Settings validation completed successfully');
 
-      // Step 2: Create a new tab to extract content from the link
-      logger.debug('Creating new tab for link:', linkUrl);
-      const newTab = await chrome.tabs.create({
-        url: linkUrl,
-        active: false, // Don't switch to the new tab
+      // Step 2: Directly fetch HTML content from the URL
+      logger.debug('Fetching HTML content directly from URL:', linkUrl);
+      const htmlFetchResult = await this.fetchHtmlContent(linkUrl);
+
+      if (!htmlFetchResult.success || !htmlFetchResult.html) {
+        throw new Error(htmlFetchResult.error || 'Failed to fetch HTML content');
+      }
+
+      // Step 3: Extract content from the HTML
+      logger.debug('Extracting content from fetched HTML...');
+      const extractionResult = await this.extractContentFromHtml(
+        htmlFetchResult.html,
+        linkUrl,
+        htmlFetchResult.title || undefined
+      );
+
+      if (!extractionResult.success || !extractionResult.data) {
+        throw new Error(extractionResult.error || 'Content extraction failed');
+      }
+
+      const { markdown, frontmatter, title, url, metadata } = extractionResult.data;
+
+      logger.debug('Final extracted content details:', {
+        hasMarkdown: !!markdown,
+        markdownLength: markdown?.length || 0,
+        hasFrontmatter: !!frontmatter,
+        frontmatterLength: frontmatter?.length || 0,
+        hasHtml: !!extractionResult.data.html,
+        htmlLength: extractionResult.data.html?.length || 0,
+        title: title || 'no title',
+        url: url || 'no url',
       });
 
-      if (!newTab.id) {
-        throw new Error('Failed to create tab for link capture');
+      // Step 4: Enhanced content validation with more lenient checks
+      const hasMarkdown = markdown && markdown.trim().length > 10;
+      const hasHtml = extractionResult.data.html && extractionResult.data.html.trim().length > 20;
+      const hasTitle = title && title.trim().length > 0;
+
+      if (!hasMarkdown && !hasHtml) {
+        logger.error('Content validation failed - insufficient content:', {
+          markdown: markdown?.substring(0, 100) + '...' || 'none',
+          html: extractionResult.data.html?.substring(0, 100) + '...' || 'none',
+          hasTitle,
+          title: title || 'none',
+        });
+        throw new Error('Insufficient content extracted from link');
       }
 
-      try {
-        // Wait for the tab to load
-        await this.waitForTabToLoad(newTab.id);
-        logger.debug('Tab loaded successfully:', newTab.id);
+      // Step 5: Process document with fallback content handling
+      logger.debug('Starting document processing...');
+      let finalContent: string;
 
-        // Step 3: Extract content from the new tab
-        logger.debug('Extracting content from new tab...');
-        const extractionResult = await this.extractContent(newTab.id);
+      if (hasMarkdown) {
+        finalContent = (frontmatter || '') + (markdown || '');
+      } else if (hasHtml) {
+        // If we only have HTML, create basic markdown from it
+        const basicMarkdown = this.basicHtmlToMarkdown(extractionResult.data.html!);
+        const basicFrontmatter = this.generateBasicFrontmatter(title, url || linkUrl);
+        finalContent = basicFrontmatter + '\n' + basicMarkdown;
+      } else {
+        // Last resort: create minimal content
+        const fallbackContent = `# ${title || 'Captured Link'}\n\n**URL:** ${url || linkUrl}\n\n**Captured:** ${new Date().toISOString()}\n\n*Content extraction was limited for this page.*`;
+        const basicFrontmatter = this.generateBasicFrontmatter(title, url || linkUrl);
+        finalContent = basicFrontmatter + '\n' + fallbackContent;
+      }
 
-        logger.debug('Content extraction result received:', {
-          success: extractionResult.success,
-          hasData: !!extractionResult.data,
-          error: extractionResult.error,
-          extractionMethod: extractionResult.extractionMethod,
-        });
+      logger.debug('Final content prepared:', {
+        finalContentLength: finalContent.length,
+        hasContent: finalContent.length > 100,
+      });
 
-        if (!extractionResult.success || !extractionResult.data) {
-          const errorMsg = extractionResult.error || 'Content extraction failed';
-          logger.error('Content extraction failed:', { error: errorMsg, extractionResult });
-          throw new Error(errorMsg);
-        }
+      const processedDoc = this.processDocument(
+        finalContent,
+        title || 'Untitled',
+        url || linkUrl,
+        metadata || {},
+        settings
+      );
 
-        const { markdown, frontmatter, title, url, metadata } = extractionResult.data;
+      logger.debug('Document processed successfully:', {
+        filename: processedDoc.filename,
+        folder: processedDoc.folder,
+        contentLength: processedDoc.content.length,
+      });
 
-        logger.debug('Extracted content details:', {
-          hasMarkdown: !!markdown,
-          markdownLength: markdown?.length || 0,
-          hasFrontmatter: !!frontmatter,
-          frontmatterLength: frontmatter?.length || 0,
-          hasHtml: !!extractionResult.data.html,
-          htmlLength: extractionResult.data.html?.length || 0,
-          title: title || 'no title',
-          url: url || 'no url',
-        });
+      // Step 6: Handle GitHub commit if enabled
+      const shouldCommit =
+        options.forceGitHubCommit ||
+        (settings.autoCommit && settings.githubToken && settings.githubRepo);
 
-        // Step 4: Validate content
-        if (!markdown && !extractionResult.data.html) {
-          logger.error('Content validation failed - no markdown and no HTML:', {
-            markdown: markdown,
-            html: extractionResult.data.html,
-            extractionData: extractionResult.data,
+      if (shouldCommit) {
+        logger.info('Committing to GitHub repository');
+        const commitResult = await this.commitToGitHub(processedDoc, settings);
+
+        if (commitResult.success) {
+          return this.createSuccessResult(processedDoc, {
+            message: 'Link content captured and committed to repository',
+            ...(commitResult.url && { commitUrl: commitResult.url }),
+            ...(options.includeMarkdown !== undefined && {
+              includeMarkdown: options.includeMarkdown,
+            }),
           });
-          throw new Error('No content extracted from link');
-        }
-
-        // Step 5: Process document
-        logger.debug('Starting document processing...');
-        const finalContent = (frontmatter || '') + (markdown || '');
-        logger.debug('Final content prepared:', {
-          frontmatterLength: frontmatter?.length || 0,
-          markdownLength: markdown?.length || 0,
-          finalContentLength: finalContent.length,
-        });
-
-        const processedDoc = this.processDocument(
-          finalContent,
-          title || newTab.title || 'Untitled',
-          url || linkUrl,
-          metadata || {},
-          settings
-        );
-
-        logger.debug('Document processed successfully:', {
-          filename: processedDoc.filename,
-          folder: processedDoc.folder,
-          contentLength: processedDoc.content.length,
-        });
-
-        // Step 6: Handle GitHub commit if enabled
-        const shouldCommit =
-          options.forceGitHubCommit ||
-          (settings.autoCommit && settings.githubToken && settings.githubRepo);
-
-        if (shouldCommit) {
-          logger.info('Committing to GitHub repository');
-          const commitResult = await this.commitToGitHub(processedDoc, settings);
-
-          if (commitResult.success) {
-            return this.createSuccessResult(processedDoc, {
-              message: 'Link content captured and committed to repository',
-              ...(commitResult.url && { commitUrl: commitResult.url }),
-              ...(options.includeMarkdown !== undefined && {
-                includeMarkdown: options.includeMarkdown,
-              }),
-            });
-          } else {
-            logger.warn('GitHub commit failed, falling back to local storage:', commitResult.error);
-          }
-        }
-
-        // Step 7: Fallback to local storage
-        await this.storeLocally(processedDoc);
-
-        return this.createSuccessResult(processedDoc, {
-          message: 'Link content captured and stored locally (pending sync)',
-          status: 'pending_sync',
-          ...(options.includeMarkdown !== undefined && {
-            includeMarkdown: options.includeMarkdown,
-          }),
-        });
-      } finally {
-        // Always close the temporary tab
-        try {
-          await chrome.tabs.remove(newTab.id);
-          logger.debug('Temporary tab closed:', newTab.id);
-        } catch (error) {
-          logger.warn('Failed to close temporary tab:', error);
+        } else {
+          logger.warn('GitHub commit failed, falling back to local storage:', commitResult.error);
         }
       }
+
+      // Step 7: Fallback to local storage
+      await this.storeLocally(processedDoc);
+
+      return this.createSuccessResult(processedDoc, {
+        message: 'Link content captured and stored locally (pending sync)',
+        status: 'pending_sync',
+        ...(options.includeMarkdown !== undefined && {
+          includeMarkdown: options.includeMarkdown,
+        }),
+      });
     } catch (error) {
       logger.error('Error in link capture workflow:', error);
       return {
@@ -516,33 +513,619 @@ export class ContentCaptureService implements IContentExtractor, IDocumentProces
   }
 
   /**
-   * Wait for a tab to finish loading
+   * Fetch HTML content directly from a URL using the fetch API
    */
-  private async waitForTabToLoad(tabId: number, timeout: number = 30000): Promise<void> {
-    return new Promise((resolve, reject) => {
-      const timeoutId = setTimeout(() => {
-        reject(new Error('Tab loading timeout'));
-      }, timeout);
+  private async fetchHtmlContent(url: string): Promise<{
+    success: boolean;
+    html?: string;
+    title?: string;
+    error?: string;
+  }> {
+    try {
+      logger.debug('Starting direct HTML fetch for URL:', url);
 
-      const checkTab = async () => {
-        try {
-          const tab = await chrome.tabs.get(tabId);
-          if (tab.status === 'complete') {
-            clearTimeout(timeoutId);
-            // Add a small delay to ensure content is fully rendered
-            setTimeout(resolve, 1000);
-          } else {
-            setTimeout(checkTab, 500);
-          }
-        } catch (error) {
-          clearTimeout(timeoutId);
-          reject(error);
-        }
+      // Set up fetch with reasonable timeout and headers
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'User-Agent':
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+          Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+          'Accept-Language': 'en-US,en;q=0.5',
+          'Accept-Encoding': 'gzip, deflate, br',
+          'Cache-Control': 'no-cache',
+        },
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const html = await response.text();
+      logger.debug('HTML fetch successful:', {
+        url,
+        statusCode: response.status,
+        contentLength: html.length,
+        contentType: response.headers.get('content-type'),
+      });
+
+      // Extract title from HTML
+      const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
+      const pageTitle = titleMatch ? titleMatch[1].trim() : undefined;
+
+      return {
+        success: true,
+        html,
+        ...(pageTitle && { title: pageTitle }),
       };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown fetch error';
+      logger.error('HTML fetch failed:', { url, error: errorMessage });
 
-      checkTab();
-    });
+      return {
+        success: false,
+        error: errorMessage,
+      };
+    }
   }
+
+  /**
+   * Extract content from HTML string (without creating a tab)
+   */
+  private async extractContentFromHtml(
+    html: string,
+    sourceUrl: string,
+    pageTitle?: string
+  ): Promise<IContentExtractionResult> {
+    try {
+      logger.debug('Starting HTML content extraction');
+
+      // Check if DOMParser is available (not available in service worker context)
+      if (typeof DOMParser === 'undefined') {
+        logger.debug('DOMParser not available, using regex-based extraction');
+        return this.extractContentWithRegex(html, sourceUrl, pageTitle);
+      }
+
+      // Create a DOM parser to process the HTML
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html, 'text/html');
+
+      // Extract title if not provided
+      let title = pageTitle;
+      if (!title) {
+        const titleElement = doc.querySelector('title');
+        title = titleElement?.textContent?.trim() || 'Untitled';
+      }
+
+      // Extract main content using semantic selectors
+      const contentSelectors = [
+        'article',
+        'main',
+        '[role="main"]',
+        '.content',
+        '.post',
+        '.entry',
+        '#content',
+        '#main',
+        '.main-content',
+        '.post-content',
+        '.entry-content',
+      ];
+
+      let contentElement: Element | null = null;
+      for (const selector of contentSelectors) {
+        contentElement = doc.querySelector(selector);
+        if (
+          contentElement &&
+          contentElement.textContent &&
+          contentElement.textContent.trim().length > 100
+        ) {
+          logger.debug('Found content using selector:', selector);
+          break;
+        }
+      }
+
+      // Fallback to body if no specific content area found
+      if (!contentElement) {
+        contentElement = doc.body;
+        logger.debug('Using document body as content element');
+      }
+
+      // Clean the content
+      if (contentElement) {
+        // Remove script and style elements
+        const unwantedElements = contentElement.querySelectorAll('script, style, noscript, iframe');
+        unwantedElements.forEach(el => el.remove());
+
+        // Remove common unwanted sections
+        const unwantedSelectors = [
+          '.advertisement',
+          '.ad',
+          '.ads',
+          '.popup',
+          '.modal',
+          '.overlay',
+          '.social-share',
+          '.comments',
+          '.related-posts',
+          '.sidebar',
+          '.navigation',
+          '.nav',
+          '[style*="display: none"]',
+          '[style*="visibility: hidden"]',
+        ];
+
+        unwantedSelectors.forEach(selector => {
+          const elements = contentElement!.querySelectorAll(selector);
+          elements.forEach(el => el.remove());
+        });
+      }
+
+      const cleanHtml = contentElement?.innerHTML || '';
+
+      // Convert to markdown using basic HTML-to-markdown conversion
+      const markdown = this.basicHtmlToMarkdown(cleanHtml);
+
+      // Extract metadata
+      const metadata = this.extractMetadataFromHtml(doc, sourceUrl);
+
+      // Extract images
+      const images = this.extractImagesFromHtml(doc, sourceUrl);
+
+      // Generate frontmatter
+      const frontmatter = this.generateBasicFrontmatter(title, sourceUrl);
+
+      logger.debug('HTML content extraction completed:', {
+        title,
+        htmlLength: cleanHtml.length,
+        markdownLength: markdown.length,
+        imageCount: images.length,
+        hasMetadata: Object.keys(metadata).length > 0,
+      });
+
+      return {
+        success: true,
+        data: {
+          html: cleanHtml,
+          markdown,
+          frontmatter,
+          title,
+          url: sourceUrl,
+          metadata,
+          images,
+        },
+        extractionMethod: 'direct',
+        timestamp: new Date().toISOString(),
+      };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown extraction error';
+      logger.error('HTML content extraction failed:', { error: errorMessage });
+
+      return {
+        success: false,
+        error: errorMessage,
+        extractionMethod: 'direct',
+        timestamp: new Date().toISOString(),
+      };
+    }
+  }
+
+  /**
+   * Extract metadata from HTML document
+   */
+  private extractMetadataFromHtml(doc: Document, sourceUrl: string): Record<string, unknown> {
+    const metadata: Record<string, unknown> = {};
+
+    // Extract Open Graph metadata
+    doc.querySelectorAll('meta[property^="og:"]').forEach(meta => {
+      const property = meta.getAttribute('property');
+      const content = meta.getAttribute('content');
+      if (property && content) {
+        metadata[property] = content;
+      }
+    });
+
+    // Extract Twitter Card metadata
+    doc.querySelectorAll('meta[name^="twitter:"]').forEach(meta => {
+      const name = meta.getAttribute('name');
+      const content = meta.getAttribute('content');
+      if (name && content) {
+        metadata[name] = content;
+      }
+    });
+
+    // Extract standard meta tags
+    doc.querySelectorAll('meta[name]').forEach(meta => {
+      const name = meta.getAttribute('name');
+      const content = meta.getAttribute('content');
+      if (name && content && ['description', 'keywords', 'author'].includes(name)) {
+        metadata[name] = content;
+      }
+    });
+
+    // Add extraction information
+    metadata.url = sourceUrl;
+    metadata.domain = new URL(sourceUrl).hostname;
+    metadata.extractedAt = new Date().toISOString();
+    metadata.extractionMethod = 'direct-html-fetch';
+
+    return metadata;
+  }
+
+  /**
+   * Extract images from HTML document
+   */
+  private extractImagesFromHtml(doc: Document, sourceUrl: string): string[] {
+    try {
+      const images: string[] = [];
+      const imgElements = doc.querySelectorAll('img');
+
+      imgElements.forEach(img => {
+        const src = img.src;
+        if (src && !src.startsWith('data:') && src.length > 0) {
+          try {
+            // Convert relative URLs to absolute
+            const absoluteUrl = new URL(src, sourceUrl).href;
+            if (!images.includes(absoluteUrl)) {
+              images.push(absoluteUrl);
+            }
+          } catch (error) {
+            // Skip invalid URLs
+            logger.debug('Skipping invalid image URL:', src);
+          }
+        }
+      });
+
+      logger.debug('Extracted images from HTML document:', {
+        imageCount: images.length,
+        sourceUrl,
+      });
+
+      return images;
+    } catch (error) {
+      logger.warn('Image extraction from HTML document failed:', error);
+      return []; // Return empty array on failure - don't throw error
+    }
+  }
+
+  /**
+   * Basic HTML to Markdown converter for direct HTML extraction
+   */
+  private basicHtmlToMarkdown(html: string): string {
+    if (!html) return '';
+
+    let markdown = html;
+
+    // Headers
+    markdown = markdown.replace(/<h([1-6])[^>]*>(.*?)<\/h[1-6]>/gi, (match, level, content) => {
+      const headerLevel = '#'.repeat(parseInt(level));
+      return `\n${headerLevel} ${this.stripHtml(content)}\n`;
+    });
+
+    // Paragraphs
+    markdown = markdown.replace(/<p[^>]*>(.*?)<\/p>/gi, '\n$1\n');
+
+    // Strong/Bold
+    markdown = markdown.replace(/<(strong|b)[^>]*>(.*?)<\/(strong|b)>/gi, '**$2**');
+
+    // Emphasis/Italic
+    markdown = markdown.replace(/<(em|i)[^>]*>(.*?)<\/(em|i)>/gi, '*$2*');
+
+    // Links
+    markdown = markdown.replace(/<a[^>]*href=["']([^"']*)["'][^>]*>(.*?)<\/a>/gi, '[$2]($1)');
+
+    // Images
+    markdown = markdown.replace(
+      /<img[^>]*src=["']([^"']*)["'][^>]*alt=["']([^"']*)["'][^>]*>/gi,
+      '![$2]($1)'
+    );
+    markdown = markdown.replace(
+      /<img[^>]*alt=["']([^"']*)["'][^>]*src=["']([^"']*)["'][^>]*>/gi,
+      '![$1]($2)'
+    );
+    markdown = markdown.replace(/<img[^>]*src=["']([^"']*)["'][^>]*>/gi, '![]($1)');
+
+    // Lists
+    markdown = markdown.replace(/<ul[^>]*>(.*?)<\/ul>/gis, (match, content) => {
+      const items = content.replace(/<li[^>]*>(.*?)<\/li>/gi, '- $1\n');
+      return `\n${items}\n`;
+    });
+
+    markdown = markdown.replace(/<ol[^>]*>(.*?)<\/ol>/gis, (match, content) => {
+      let counter = 1;
+      const items = content.replace(/<li[^>]*>(.*?)<\/li>/gi, () => `${counter++}. $1\n`);
+      return `\n${items}\n`;
+    });
+
+    // Code blocks
+    markdown = markdown.replace(/<pre[^>]*><code[^>]*>(.*?)<\/code><\/pre>/gis, '\n```\n$1\n```\n');
+    markdown = markdown.replace(/<code[^>]*>(.*?)<\/code>/gi, '`$1`');
+
+    // Blockquotes
+    markdown = markdown.replace(/<blockquote[^>]*>(.*?)<\/blockquote>/gis, (match, content) => {
+      const lines = this.stripHtml(content).split('\n');
+      return '\n' + lines.map(line => `> ${line}`).join('\n') + '\n';
+    });
+
+    // Line breaks
+    markdown = markdown.replace(/<br[^>]*>/gi, '\n');
+
+    // Strip remaining HTML
+    markdown = this.stripHtml(markdown);
+
+    // Clean up whitespace
+    markdown = markdown.replace(/\n\s*\n\s*\n/g, '\n\n');
+    markdown = markdown.trim();
+
+    return markdown;
+  }
+
+  /**
+   * Strip HTML tags from a string
+   */
+  private stripHtml(html: string): string {
+    return html.replace(/<[^>]*>/g, '').trim();
+  }
+
+  /**
+   * Extract content using regex patterns (fallback for service worker context)
+   */
+  private extractContentWithRegex(
+    html: string,
+    sourceUrl: string,
+    pageTitle?: string
+  ): IContentExtractionResult {
+    try {
+      logger.debug('Using regex-based HTML content extraction');
+
+      // Extract title if not provided
+      let title = pageTitle;
+      if (!title) {
+        const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
+        title = titleMatch ? titleMatch[1].trim() : 'Untitled';
+      }
+
+      // Try to extract main content using regex patterns
+      let contentHtml = '';
+
+      // Content extraction patterns (in order of preference)
+      const contentPatterns = [
+        /<article[^>]*>(.*?)<\/article>/is,
+        /<main[^>]*>(.*?)<\/main>/is,
+        /<div[^>]*role=["']main["'][^>]*>(.*?)<\/div>/is,
+        /<div[^>]*class=["'][^"']*content[^"']*["'][^>]*>(.*?)<\/div>/is,
+        /<div[^>]*class=["'][^"']*post[^"']*["'][^>]*>(.*?)<\/div>/is,
+        /<div[^>]*class=["'][^"']*entry[^"']*["'][^>]*>(.*?)<\/div>/is,
+        /<div[^>]*id=["']content["'][^>]*>(.*?)<\/div>/is,
+      ];
+
+      for (const pattern of contentPatterns) {
+        const match = html.match(pattern);
+        if (match && match[1] && match[1].trim().length > 100) {
+          contentHtml = match[1];
+          logger.debug('Found content using regex pattern');
+          break;
+        }
+      }
+
+      // Fallback to body content if no specific content area found
+      if (!contentHtml) {
+        const bodyMatch = html.match(/<body[^>]*>(.*?)<\/body>/is);
+        contentHtml = bodyMatch ? bodyMatch[1] : html;
+        logger.debug('Using body content as fallback');
+      }
+
+      // Remove unwanted elements
+      contentHtml = this.removeUnwantedElements(contentHtml);
+
+      // Convert to markdown
+      const markdown = this.basicHtmlToMarkdown(contentHtml);
+
+      // Extract metadata using regex-based approach
+      const metadata = this.extractMetadataWithRegex(html, sourceUrl);
+
+      // Extract images using regex (safe extraction)
+      const images = this.extractImagesWithRegex(html, sourceUrl);
+
+      // Generate frontmatter
+      const frontmatter = this.generateBasicFrontmatter(title, sourceUrl);
+
+      return {
+        success: true,
+        data: {
+          html: contentHtml,
+          markdown,
+          frontmatter,
+          title,
+          url: sourceUrl,
+          metadata,
+          images,
+        },
+        extractionMethod: 'direct',
+        timestamp: new Date().toISOString(),
+      };
+    } catch (error) {
+      logger.error('Regex-based content extraction failed:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Regex extraction failed',
+        extractionMethod: 'basic-fallback',
+        timestamp: new Date().toISOString(),
+      };
+    }
+  }
+
+  /**
+   * Remove unwanted elements from HTML using regex
+   */
+  private removeUnwantedElements(html: string): string {
+    // Remove script and style tags
+    html = html.replace(/<script[^>]*>.*?<\/script>/gis, '');
+    html = html.replace(/<style[^>]*>.*?<\/style>/gis, '');
+    html = html.replace(/<noscript[^>]*>.*?<\/noscript>/gis, '');
+
+    // Remove common unwanted sections
+    const unwantedPatterns = [
+      /<div[^>]*class=["'][^"']*advertisement[^"']*["'][^>]*>.*?<\/div>/gis,
+      /<div[^>]*class=["'][^"']*\bad\b[^"']*["'][^>]*>.*?<\/div>/gis,
+      /<div[^>]*class=["'][^"']*ads[^"']*["'][^>]*>.*?<\/div>/gis,
+      /<div[^>]*class=["'][^"']*popup[^"']*["'][^>]*>.*?<\/div>/gis,
+      /<div[^>]*class=["'][^"']*modal[^"']*["'][^>]*>.*?<\/div>/gis,
+      /<nav[^>]*>.*?<\/nav>/gis,
+      /<header[^>]*>.*?<\/header>/gis,
+      /<footer[^>]*>.*?<\/footer>/gis,
+    ];
+
+    unwantedPatterns.forEach(pattern => {
+      html = html.replace(pattern, '');
+    });
+
+    return html;
+  }
+
+  /**
+   * Extract metadata from HTML using regex patterns (fallback for service worker)
+   */
+  private extractMetadataWithRegex(html: string, sourceUrl: string): Record<string, unknown> {
+    const metadata: Record<string, unknown> = {};
+
+    // Extract Open Graph metadata
+    const ogPatterns = [
+      {
+        key: 'og:title',
+        pattern: /<meta[^>]*property=["']og:title["'][^>]*content=["']([^"']*)["'][^>]*>/i,
+      },
+      {
+        key: 'og:description',
+        pattern: /<meta[^>]*property=["']og:description["'][^>]*content=["']([^"']*)["'][^>]*>/i,
+      },
+      {
+        key: 'og:image',
+        pattern: /<meta[^>]*property=["']og:image["'][^>]*content=["']([^"']*)["'][^>]*>/i,
+      },
+      {
+        key: 'og:url',
+        pattern: /<meta[^>]*property=["']og:url["'][^>]*content=["']([^"']*)["'][^>]*>/i,
+      },
+      {
+        key: 'og:type',
+        pattern: /<meta[^>]*property=["']og:type["'][^>]*content=["']([^"']*)["'][^>]*>/i,
+      },
+    ];
+
+    ogPatterns.forEach(({ key, pattern }) => {
+      const match = html.match(pattern);
+      if (match && match[1]) {
+        metadata[key] = match[1];
+      }
+    });
+
+    // Extract Twitter Card metadata
+    const twitterPatterns = [
+      {
+        key: 'twitter:title',
+        pattern: /<meta[^>]*name=["']twitter:title["'][^>]*content=["']([^"']*)["'][^>]*>/i,
+      },
+      {
+        key: 'twitter:description',
+        pattern: /<meta[^>]*name=["']twitter:description["'][^>]*content=["']([^"']*)["'][^>]*>/i,
+      },
+      {
+        key: 'twitter:image',
+        pattern: /<meta[^>]*name=["']twitter:image["'][^>]*content=["']([^"']*)["'][^>]*>/i,
+      },
+      {
+        key: 'twitter:card',
+        pattern: /<meta[^>]*name=["']twitter:card["'][^>]*content=["']([^"']*)["'][^>]*>/i,
+      },
+    ];
+
+    twitterPatterns.forEach(({ key, pattern }) => {
+      const match = html.match(pattern);
+      if (match && match[1]) {
+        metadata[key] = match[1];
+      }
+    });
+
+    // Extract standard meta tags
+    const standardPatterns = [
+      {
+        key: 'description',
+        pattern: /<meta[^>]*name=["']description["'][^>]*content=["']([^"']*)["'][^>]*>/i,
+      },
+      {
+        key: 'keywords',
+        pattern: /<meta[^>]*name=["']keywords["'][^>]*content=["']([^"']*)["'][^>]*>/i,
+      },
+      {
+        key: 'author',
+        pattern: /<meta[^>]*name=["']author["'][^>]*content=["']([^"']*)["'][^>]*>/i,
+      },
+    ];
+
+    standardPatterns.forEach(({ key, pattern }) => {
+      const match = html.match(pattern);
+      if (match && match[1]) {
+        metadata[key] = match[1];
+      }
+    });
+
+    // Add page information
+    metadata.url = sourceUrl;
+    metadata.domain = this.extractDomain(sourceUrl);
+    metadata.extractedAt = new Date().toISOString();
+    metadata.extractionMethod = 'regex-based';
+
+    return metadata;
+  }
+
+  /**
+   * Extract images from HTML using regex patterns (safe extraction)
+   */
+  private extractImagesWithRegex(html: string, sourceUrl: string): string[] {
+    try {
+      const images: string[] = [];
+
+      // Pattern to match img tags with src attributes
+      const imgPattern = /<img[^>]*src=["']([^"']+)["'][^>]*>/gi;
+      let match;
+
+      while ((match = imgPattern.exec(html)) !== null) {
+        const src = match[1];
+
+        // Skip data URLs and empty sources
+        if (src && !src.startsWith('data:') && src.trim().length > 0) {
+          try {
+            // Convert relative URLs to absolute
+            const absoluteUrl = new URL(src, sourceUrl).href;
+            if (!images.includes(absoluteUrl)) {
+              images.push(absoluteUrl);
+            }
+          } catch (error) {
+            // Skip invalid URLs
+            logger.debug('Skipping invalid image URL:', src);
+          }
+        }
+      }
+
+      logger.debug('Extracted images using regex:', {
+        imageCount: images.length,
+        sourceUrl,
+      });
+
+      return images;
+    } catch (error) {
+      logger.warn('Image extraction with regex failed:', error);
+      return []; // Return empty array on failure - don't throw error
+    }
+  }
+
   async testGitHubConnection(): Promise<unknown> {
     try {
       const settings = await this.settingsManager.getSettings();

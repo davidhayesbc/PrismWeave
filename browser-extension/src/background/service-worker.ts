@@ -16,6 +16,41 @@ logger.info('Service worker file loaded at:', new Date().toISOString());
 logger.info('Chrome extension API available:', !!globalThis.chrome);
 logger.info('Context menus API available:', !!globalThis.chrome?.contextMenus);
 
+// Utility function to create notifications with proper callback handling
+function createNotification(
+  options: chrome.notifications.NotificationOptions & {
+    type: 'basic' | 'image' | 'list' | 'progress';
+    title: string;
+    message: string;
+    iconUrl: string;
+  }
+): Promise<string> {
+  return new Promise((resolve, reject) => {
+    if (!chrome.notifications) {
+      reject(new Error('Notifications API not available'));
+      return;
+    }
+
+    // Ensure iconUrl is a full extension URL
+    const fullIconUrl = options.iconUrl.startsWith('chrome-extension://')
+      ? options.iconUrl
+      : chrome.runtime.getURL(options.iconUrl);
+
+    const notificationOptions = {
+      ...options,
+      iconUrl: fullIconUrl,
+    };
+
+    chrome.notifications.create(notificationOptions, notificationId => {
+      if (chrome.runtime.lastError) {
+        reject(new Error(chrome.runtime.lastError.message));
+      } else {
+        resolve(notificationId);
+      }
+    });
+  });
+}
+
 // Enhanced response interface with commit URL support
 interface IEnhancedMessageResponse extends IMessageResponse {
   commitUrl?: string;
@@ -585,11 +620,13 @@ chrome.commands.onCommand.addListener(async (command: string) => {
         logger.error('Failed to send capture shortcut message:', error);
         // Optionally show browser notification if content script communication fails
         if (chrome.notifications) {
-          chrome.notifications.create({
+          createNotification({
             type: 'basic',
             iconUrl: 'icons/icon48.png',
             title: 'PrismWeave',
             message: 'Please reload the page and try again',
+          }).catch(error => {
+            logger.error('Failed to show reload notification:', error);
           });
         }
       }
@@ -619,7 +656,6 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
     srcUrl: info.srcUrl,
     wasChecked: info.wasChecked,
     checked: info.checked,
-    contexts: info.contexts,
     tab: {
       id: tab?.id,
       url: tab?.url,
@@ -636,11 +672,13 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
         serviceWorkerState
       );
       if (chrome.notifications) {
-        chrome.notifications.create({
+        createNotification({
           type: 'basic',
           iconUrl: 'icons/icon48.png',
           title: 'PrismWeave - Not Ready',
           message: 'Extension is still starting up. Please try again in a moment.',
+        }).catch(error => {
+          logger.error('Failed to show not ready notification:', error);
         });
       }
       return;
@@ -657,7 +695,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
           // Show notification that capture is starting
           if (chrome.notifications) {
             try {
-              await chrome.notifications.create({
+              await createNotification({
                 type: 'basic',
                 iconUrl: 'icons/icon48.png',
                 title: 'PrismWeave',
@@ -689,7 +727,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
             if (chrome.notifications) {
               if (result.success) {
                 const domain = new URL(info.linkUrl).hostname;
-                await chrome.notifications.create({
+                await createNotification({
                   type: 'basic',
                   iconUrl: 'icons/icon48.png',
                   title: 'PrismWeave - Link Captured',
@@ -697,7 +735,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
                 });
                 logger.info('Success notification sent for link capture');
               } else {
-                await chrome.notifications.create({
+                await createNotification({
                   type: 'basic',
                   iconUrl: 'icons/icon48.png',
                   title: 'PrismWeave - Capture Failed',
@@ -710,7 +748,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
             logger.error('Failed to capture link:', error);
             if (chrome.notifications) {
               try {
-                await chrome.notifications.create({
+                await createNotification({
                   type: 'basic',
                   iconUrl: 'icons/icon48.png',
                   title: 'PrismWeave - Error',
@@ -724,11 +762,13 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
         } else {
           logger.error('No link URL provided for link capture - info object:', info);
           if (chrome.notifications) {
-            chrome.notifications.create({
+            createNotification({
               type: 'basic',
               iconUrl: 'icons/icon48.png',
               title: 'PrismWeave - Error',
               message: 'No link URL found. Please right-click directly on a link.',
+            }).catch(error => {
+              logger.error('Failed to show no link notification:', error);
             });
           }
         }
@@ -741,11 +781,13 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
 
           // Show notification that capture is starting
           if (chrome.notifications) {
-            chrome.notifications.create({
+            createNotification({
               type: 'basic',
               iconUrl: 'icons/icon48.png',
               title: 'PrismWeave',
               message: `Capturing current page: ${tab.title || 'Untitled'}`,
+            }).catch(error => {
+              logger.error('Failed to show page capture notification:', error);
             });
           }
 
@@ -759,11 +801,13 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
           } catch (error) {
             logger.error('Failed to send context menu capture message:', error);
             if (chrome.notifications) {
-              chrome.notifications.create({
+              createNotification({
                 type: 'basic',
                 iconUrl: 'icons/icon48.png',
                 title: 'PrismWeave',
                 message: 'Please reload the page and try again',
+              }).catch(error => {
+                logger.error('Failed to show reload notification:', error);
               });
             }
           }
