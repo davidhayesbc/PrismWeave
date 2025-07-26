@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0"
+    />
+    <title>PrismWeave Debug Console</title>
+    <style>
+      body {
+        font-family: 'Courier New', monospace;
+        background-color: #1e1e1e;
+        color: #d4d4d4;
+        margin: 0;
+        padding: 20px;
+      }
+      .debug-console {
+        background-color: #252526;
+        border: 1px solid #3e3e42;
+        border-radius: 6px;
+        padding: 20px;
+        height: 400px;
+        overflow-y: auto;
+        font-size: 14px;
+        line-height: 1.4;
+      }
+      .log-entry {
+        margin: 5px 0;
+        padding: 5px 0;
+        border-bottom: 1px solid #2d2d30;
+      }
+      .log-info {
+        color: #4fc1ff;
+      }
+      .log-warn {
+        color: #ffcc02;
+      }
+      .log-error {
+        color: #f48771;
+      }
+      .log-debug {
+        color: #b5cea8;
+      }
+
+      .controls {
+        margin: 20px 0;
+      }
+      button {
+        background-color: #0e639c;
+        color: white;
+        border: none;
+        padding: 10px 15px;
+        border-radius: 4px;
+        margin-right: 10px;
+        cursor: pointer;
+      }
+      button:hover {
+        background-color: #1177bb;
+      }
+      .status {
+        background-color: #0f1419;
+        border: 1px solid #3e3e42;
+        border-radius: 4px;
+        padding: 15px;
+        margin: 10px 0;
+      }
+      .status-good {
+        border-color: #4fc1ff;
+      }
+      .status-bad {
+        border-color: #f48771;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>🔧 PrismWeave Extension Debug Console</h1>
+
+    <div
+      id="extensionStatus"
+      class="status"
+    >
+      <h3>Extension Status</h3>
+      <div id="statusText">Checking...</div>
+    </div>
+
+    <div class="controls">
+      <button onclick="testContextMenus()">Test Context Menu Creation</button>
+      <button onclick="testExtensionAPI()">Test Extension API</button>
+      <button onclick="clearLogs()">Clear Logs</button>
+      <button onclick="exportLogs()">Export Logs</button>
+    </div>
+
+    <h3>Debug Logs</h3>
+    <div
+      id="debugConsole"
+      class="debug-console"
+    >
+      <div class="log-entry log-info">Debug console initialized - waiting for extension logs...</div>
+    </div>
+
+    <script>
+      const debugConsole = document.getElementById('debugConsole');
+      const statusText = document.getElementById('statusText');
+      const statusDiv = document.getElementById('extensionStatus');
+
+      let logs = [];
+
+      function addLog(level, message, details = null) {
+        const timestamp = new Date().toLocaleTimeString();
+        const logEntry = {
+          timestamp,
+          level,
+          message,
+          details,
+        };
+        logs.push(logEntry);
+
+        const logElement = document.createElement('div');
+        logElement.className = `log-entry log-${level}`;
+        logElement.innerHTML = `
+                <span style="color: #6a9955;">[${timestamp}]</span> 
+                <span class="log-${level}">[${level.toUpperCase()}]</span> 
+                ${message}
+                ${details ? `<br><span style="color: #9cdcfe; margin-left: 20px;">${JSON.stringify(details, null, 2)}</span>` : ''}
+            `;
+
+        debugConsole.appendChild(logElement);
+        debugConsole.scrollTop = debugConsole.scrollHeight;
+      }
+
+      function updateStatus(isGood, message) {
+        statusText.innerHTML = message;
+        statusDiv.className = `status ${isGood ? 'status-good' : 'status-bad'}`;
+      }
+
+      async function checkExtensionStatus() {
+        addLog('info', 'Checking extension status...');
+
+        if (!window.chrome || !window.chrome.runtime) {
+          updateStatus(false, '❌ Chrome extension API not available');
+          addLog('error', 'Chrome extension API not available');
+          return false;
+        }
+
+        try {
+          // Try to get extension ID
+          const extensionId = chrome.runtime.id;
+          addLog('info', `Extension ID: ${extensionId}`);
+
+          // Try to send a message to the extension
+          const response = await new Promise((resolve, reject) => {
+            chrome.runtime.sendMessage(
+              {
+                type: 'GET_STATUS',
+                timestamp: Date.now(),
+              },
+              response => {
+                if (chrome.runtime.lastError) {
+                  reject(new Error(chrome.runtime.lastError.message));
+                } else {
+                  resolve(response);
+                }
+              }
+            );
+          });
+
+          addLog('info', 'Extension responded successfully', response);
+          updateStatus(true, '✅ Extension is running and responsive');
+          return true;
+        } catch (error) {
+          addLog('error', 'Failed to communicate with extension', error.message);
+          updateStatus(false, `❌ Extension communication failed: ${error.message}`);
+          return false;
+        }
+      }
+
+      async function testContextMenus() {
+        addLog('info', 'Testing context menu functionality...');
+
+        try {
+          const response = await new Promise((resolve, reject) => {
+            chrome.runtime.sendMessage(
+              {
+                type: 'TEST_CONTEXT_MENUS',
+                timestamp: Date.now(),
+              },
+              response => {
+                if (chrome.runtime.lastError) {
+                  reject(new Error(chrome.runtime.lastError.message));
+                } else {
+                  resolve(response);
+                }
+              }
+            );
+          });
+
+          addLog('info', 'Context menu test response', response);
+        } catch (error) {
+          addLog('error', 'Context menu test failed', error.message);
+        }
+      }
+
+      async function testExtensionAPI() {
+        addLog('info', 'Testing extension API availability...');
+
+        const apis = [
+          'chrome.runtime',
+          'chrome.contextMenus',
+          'chrome.tabs',
+          'chrome.storage',
+          'chrome.notifications',
+          'chrome.scripting',
+        ];
+
+        apis.forEach(api => {
+          const parts = api.split('.');
+          let obj = window;
+          let available = true;
+
+          for (const part of parts) {
+            if (obj && obj[part]) {
+              obj = obj[part];
+            } else {
+              available = false;
+              break;
+            }
+          }
+
+          addLog(available ? 'info' : 'warn', `${api}: ${available ? 'Available' : 'Not Available'}`);
+        });
+      }
+
+      function clearLogs() {
+        logs = [];
+        debugConsole.innerHTML = '<div class="log-entry log-info">Debug console cleared</div>';
+      }
+
+      function exportLogs() {
+        const logText = logs
+          .map(
+            log =>
+              `[${log.timestamp}] [${log.level.toUpperCase()}] ${log.message}${log.details ? '\n' + JSON.stringify(log.details, null, 2) : ''}`
+          )
+          .join('\n');
+
+        const blob = new Blob([logText], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `prismweave-debug-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.txt`;
+        a.click();
+        URL.revokeObjectURL(url);
+
+        addLog('info', 'Logs exported to file');
+      }
+
+      // Initialize
+      addLog('info', 'Initializing debug console...');
+      checkExtensionStatus();
+
+      // Auto-refresh status every 30 seconds
+      setInterval(checkExtensionStatus, 30000);
+
+      // Listen for console messages from the page
+      const originalConsoleLog = console.log;
+      const originalConsoleError = console.error;
+      const originalConsoleWarn = console.warn;
+
+      console.log = function (...args) {
+        originalConsoleLog.apply(console, args);
+        addLog('debug', 'Console: ' + args.join(' '));
+      };
+
+      console.error = function (...args) {
+        originalConsoleError.apply(console, args);
+        addLog('error', 'Console Error: ' + args.join(' '));
+      };
+
+      console.warn = function (...args) {
+        originalConsoleWarn.apply(console, args);
+        addLog('warn', 'Console Warning: ' + args.join(' '));
+      };
+    </script>
+  </body>
+</html>
