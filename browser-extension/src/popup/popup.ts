@@ -340,16 +340,13 @@ export class PrismWeavePopup {
         { showProgress: true, progressValue: 15 }
       );
 
+      // Send trigger to service worker to handle content script communication
+      // This uses the same flow as keyboard shortcut but initiated from popup
       const message: IMessageData = {
-        type: MESSAGE_TYPES.CAPTURE_CONTENT,
+        type: 'TRIGGER_CAPTURE_FROM_POPUP',
         data: {
           tabId: this.currentTab.id,
-          url: this.currentTab.url,
-          tabInfo: {
-            url: this.currentTab.url,
-            title: this.currentTab.title,
-          },
-          settings: this.settings,
+          timestamp: Date.now(),
         },
       };
 
@@ -361,104 +358,31 @@ export class PrismWeavePopup {
         { showProgress: true, progressValue: 60 }
       );
 
-      logger.debug('Sending unified capture message:', message);
+      logger.debug(
+        'Sending capture trigger to service worker (same as keyboard shortcut):',
+        message
+      );
       const response = await this.sendMessageToBackground(message.type, message.data);
 
       if (response.success) {
-        const responseData = response.data as any;
-        const saveResult = responseData?.saveResult || (response as any)?.saveResult;
-        const contentType = responseData?.contentType;
-        const captureMethod = responseData?.captureMethod;
-
-        logger.debug('CAPTURE_CONTENT responseData:', {
-          contentType,
-          captureMethod,
-          hasData: !!responseData?.data,
-          hasResponseData: !!responseData,
-          saveResult: saveResult
-            ? { success: saveResult.success, committed: saveResult.committed }
-            : null,
-        });
-
-        // Try to extract content from the correct location
-        let capturedContent: string | null = null;
-        if (responseData?.data?.markdown) {
-          capturedContent = responseData.data.markdown;
-        } else if (responseData?.data?.content) {
-          capturedContent = responseData.data.content;
-        } else if (responseData?.markdown) {
-          capturedContent = responseData.markdown;
-        }
-
-        this.lastCapturedContent = capturedContent;
-        logger.debug('Stored captured content for preview, length:', capturedContent?.length || 0);
-
-        // Determine success message based on content type and save result
-        let statusTitle = `Content Captured Successfully!`;
-        let statusMessage = '';
-        let statusType: 'success' | 'warning' = 'success';
-
-        // Add content type information to the message
-        const contentTypeText = contentType === 'pdf' ? 'PDF Document' : 'Web Page';
-        const methodText = captureMethod ? ` using ${captureMethod}` : '';
-
-        if (saveResult?.success && saveResult.committed) {
-          statusMessage = `${contentTypeText} saved and committed${methodText}: ${responseData?.filename || 'document'}`;
-          if (saveResult.sha && saveResult.sha !== 'committed') {
-            statusMessage += ` (${saveResult.sha.substring(0, 7)})`;
+        // Simple success response like keyboard shortcut
+        // The content script has already handled the actual capture and shown notifications
+        // We just need to show a success message in the popup
+        this.updateCaptureStatus(
+          'Content Captured Successfully!',
+          'Page content has been captured and saved to your repository',
+          'success',
+          {
+            autoHide: 5000,
+            actions: [
+              {
+                label: 'View Repository',
+                action: () => this.openRepository(),
+                primary: true,
+              },
+            ],
           }
-        } else if (saveResult?.success && !saveResult.committed) {
-          statusTitle = `Content Captured (Not Committed)`;
-          statusMessage = `${contentTypeText} saved${methodText} as: ${responseData?.filename || 'document'}`;
-          if (saveResult.reason) {
-            statusMessage += ` - ${saveResult.reason}`;
-          }
-          statusType = 'warning';
-        } else if (saveResult && !saveResult.success) {
-          statusTitle = `Content Captured (Save Failed)`;
-          statusMessage = `${contentTypeText} extracted${methodText} but save failed: ${saveResult.error || 'Unknown error'}`;
-          statusType = 'warning';
-        } else {
-          statusMessage = `${contentTypeText} extracted${methodText} as: ${responseData?.filename || 'document'}`;
-        }
-
-        // Prepare actions based on save status
-        const actions = [];
-
-        if (saveResult?.success && saveResult.url) {
-          actions.push({
-            label: 'View on GitHub',
-            action: () => this.window.open(saveResult.url, '_blank'),
-            primary: true,
-          });
-        } else if (this.settings?.githubRepo) {
-          actions.push({
-            label: 'View Repository',
-            action: () => this.openRepository(),
-            primary: true,
-          });
-        }
-
-        // Add preview action for markdown content (only for HTML content)
-        if (this.lastCapturedContent && contentType !== 'pdf') {
-          actions.push({
-            label: 'Preview Markdown',
-            action: () => this.showMarkdownPreview(),
-          });
-        }
-
-        // Add retry action if save failed
-        if (saveResult && !saveResult.success) {
-          actions.push({
-            label: 'Check Settings',
-            action: () => this.openSettings(),
-          });
-        }
-
-        this.updateCaptureStatus(statusTitle, statusMessage, statusType, {
-          autoHide: statusType === 'success' ? 5000 : 8000,
-          actions,
-        });
+        );
       } else {
         throw new Error(response.error || 'Content capture failed');
       }
@@ -466,22 +390,55 @@ export class PrismWeavePopup {
       logger.error('Error capturing content:', error);
       const errorMessage = (error as Error).message;
 
+      // Provide more specific actions based on error type
+      const actions = [];
+
+      if (
+        errorMessage.includes('Content script not ready') ||
+        errorMessage.includes('refresh the page')
+      ) {
+        actions.push({
+          label: 'Refresh Page',
+          action: () => {
+            if (this.currentTab?.id) {
+              this.chrome.tabs.reload(this.currentTab.id);
+            }
+          },
+          primary: true,
+        });
+        actions.push({
+          label: 'Try Again',
+          action: () => {
+            this.resetCaptureStatus();
+            setTimeout(() => this.captureContent(), 1000);
+          },
+        });
+      } else if (errorMessage.includes('Extension needs to be reloaded')) {
+        actions.push({
+          label: 'Reload Extension',
+          action: () => {
+            this.chrome.runtime.reload();
+          },
+          primary: true,
+        });
+      } else {
+        actions.push({
+          label: 'Try Again',
+          action: () => {
+            this.resetCaptureStatus();
+            setTimeout(() => this.captureContent(), 100);
+          },
+          primary: true,
+        });
+        actions.push({
+          label: 'Open Settings',
+          action: () => this.openSettings(),
+        });
+      }
+
       this.updateCaptureStatus('Content Capture Failed', errorMessage, 'error', {
-        autoHide: 6000,
-        actions: [
-          {
-            label: 'Try Again',
-            action: () => {
-              this.resetCaptureStatus();
-              setTimeout(() => this.captureContent(), 100);
-            },
-            primary: true,
-          },
-          {
-            label: 'Open Settings',
-            action: () => this.openSettings(),
-          },
-        ],
+        autoHide: 8000,
+        actions,
       });
     } finally {
       this.isCapturing = false;

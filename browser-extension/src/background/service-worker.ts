@@ -536,6 +536,47 @@ export async function handleMessage(
       const statusData = getServiceWorkerStatus();
       return { success: true, data: statusData, timestamp: Date.now() };
 
+    case 'TRIGGER_CAPTURE_FROM_POPUP':
+      // Handle capture trigger from popup - use the same logic as keyboard shortcut
+      try {
+        const tabId = message.data?.tabId as number;
+        if (!tabId) {
+          throw new Error('No tab ID provided for popup capture trigger');
+        }
+
+        logger.info('Popup capture trigger - sending to content script');
+
+        // Send message to content script to trigger capture (same as keyboard shortcut)
+        try {
+          await chrome.tabs.sendMessage(tabId, {
+            type: 'TRIGGER_CAPTURE_SHORTCUT',
+            timestamp: Date.now(),
+          });
+          logger.info('Popup capture shortcut message sent to content script');
+          return { success: true, timestamp: Date.now() };
+        } catch (error) {
+          logger.error('Failed to send popup capture message to content script:', error);
+
+          // Provide more specific error messages based on the error type
+          const errorMessage = (error as Error).message;
+          if (
+            errorMessage.includes('Could not establish connection') ||
+            errorMessage.includes('Receiving end does not exist')
+          ) {
+            throw new Error('Content script not ready. Please refresh the page and try again.');
+          } else if (errorMessage.includes('Extension context invalidated')) {
+            throw new Error(
+              'Extension needs to be reloaded. Please refresh the browser extension.'
+            );
+          } else {
+            throw new Error(`Failed to communicate with page content script: ${errorMessage}`);
+          }
+        }
+      } catch (error) {
+        logger.error('Error handling popup capture trigger:', error);
+        throw error;
+      }
+
     default:
       const error = new Error(`Unknown message type: ${message.type}`);
       logger.error('Service Worker Message Unknown', error);
