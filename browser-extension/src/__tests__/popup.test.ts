@@ -48,7 +48,6 @@ const mockElements = {
   pageUrl: createMockElement('div'),
   captureButton: createMockElement('button'),
   capturePageButton: createMockElement('button'),
-  captureSelectionButton: createMockElement('button'),
   statusDiv: createMockElement('div'),
   settingsButton: createMockElement('button'),
   repositoryButton: createMockElement('button'),
@@ -69,8 +68,6 @@ beforeAll(() => {
         return mockElements.pageUrl;
       case 'capture-page':
         return mockElements.capturePageButton;
-      case 'capture-selection':
-        return mockElements.captureSelectionButton;
       case 'settings-btn':
         return mockElements.settingsButton;
       case 'view-repo':

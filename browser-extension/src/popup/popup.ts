@@ -179,17 +179,6 @@ export class PrismWeavePopup {
       });
     }
 
-    // Capture selection button
-    const captureSelectionBtn = this.document.getElementById('capture-selection');
-    if (captureSelectionBtn) {
-      captureSelectionBtn.addEventListener('click', e => {
-        e.stopPropagation();
-        e.preventDefault();
-        logger.debug('Capture selection button clicked');
-        this.captureSelection();
-      });
-    }
-
     // Settings button
     const settingsBtn = this.document.getElementById('settings-btn');
     if (settingsBtn) {
@@ -504,19 +493,14 @@ export class PrismWeavePopup {
     const isCapturable = this.isPageCapturable();
 
     const captureContentBtn = this.document.getElementById('capture-content') as HTMLButtonElement;
-    const captureSelectionBtn = this.document.getElementById(
-      'capture-selection'
-    ) as HTMLButtonElement;
     const warningContainer = this.document.getElementById('capture-warning');
 
     // Handle capture buttons
     if (isCapturable) {
       if (captureContentBtn) captureContentBtn.disabled = false;
-      if (captureSelectionBtn) captureSelectionBtn.disabled = false;
       if (warningContainer) warningContainer.style.display = 'none';
     } else {
       if (captureContentBtn) captureContentBtn.disabled = true;
-      if (captureSelectionBtn) captureSelectionBtn.disabled = true;
       if (warningContainer) {
         warningContainer.style.display = 'block';
         // The warning content is already set in the HTML
@@ -821,152 +805,6 @@ export class PrismWeavePopup {
 
   private isCurrentPagePDF(): boolean {
     return this.isPDFPage();
-  }
-
-  private async captureSelection(): Promise<void> {
-    if (this.isCapturing) return;
-
-    try {
-      this.isCapturing = true;
-
-      // Check if we have a current tab, and try to get it if not
-      if (!this.currentTab?.id) {
-        logger.warn('No current tab available, attempting to refresh tab info');
-        try {
-          await this.getCurrentTab();
-        } catch (error) {
-          logger.error('Failed to get current tab:', error);
-          this.updateCaptureStatus('No active tab available for capture', 'error');
-          setTimeout(() => this.resetCaptureStatus(), 3000);
-          return;
-        }
-      }
-
-      // Double-check we now have a valid tab ID
-      if (!this.currentTab?.id) {
-        this.updateCaptureStatus('Unable to identify current tab', 'error');
-        setTimeout(() => this.resetCaptureStatus(), 3000);
-        return;
-      } // Validate crucial settings before proceeding
-      const settingsValidation = this.validateCaptureSettings();
-      if (!settingsValidation.isValid) {
-        this.showMissingSettingsMessage(
-          settingsValidation.message!,
-          settingsValidation.missingSettings
-        );
-        return;
-      }
-
-      // Check if page is capturable
-      if (!this.isPageCapturable()) {
-        this.updateCaptureStatus(
-          'Page Cannot Be Captured',
-          'This type of page (browser internal page) cannot be captured.',
-          'error',
-          { autoHide: 4000 }
-        );
-        return;
-      }
-
-      this.updateCaptureStatus(
-        'Checking Selection...',
-        'Looking for selected text on the page',
-        'progress',
-        { showProgress: true, progressValue: 30 }
-      );
-
-      // First, check if there's a selection
-      const selectionCheck = await this.sendMessageToTab('GET_PAGE_INFO');
-      if (!(selectionCheck.data as any)?.hasSelection) {
-        this.updateCaptureStatus(
-          'No Selection Found',
-          'Please select some text on the page before capturing',
-          'warning',
-          {
-            autoHide: 5000,
-            actions: [
-              {
-                label: 'Capture Entire Page',
-                action: () => {
-                  this.resetCaptureStatus();
-                  setTimeout(() => this.capturePage(), 100);
-                },
-                primary: true,
-              },
-            ],
-          }
-        );
-        return;
-      }
-
-      this.updateCaptureStatus(
-        'Capturing Selection...',
-        'Processing selected content',
-        'progress',
-        { showProgress: true, progressValue: 70 }
-      );
-
-      const message: IMessageData = {
-        type: 'CAPTURE_SELECTION',
-        data: {
-          tabId: this.currentTab.id,
-          settings: this.settings,
-        },
-      };
-
-      const response = await this.sendMessageToTab(message.type, message.data);
-
-      if (response.success) {
-        const responseData = response.data as any;
-        this.updateCaptureStatus(
-          'Selection Captured Successfully!',
-          `Saved selected content as: ${responseData?.filename || 'selection.md'}`,
-          'success',
-          {
-            autoHide: 5000,
-            actions: [
-              {
-                label: 'View Repository',
-                action: () => this.openRepository(),
-                primary: true,
-              },
-              {
-                label: 'Capture More',
-                action: () => this.resetCaptureStatus(),
-              },
-            ],
-          }
-        );
-      } else {
-        throw new Error(response.error || 'Selection capture failed');
-      }
-    } catch (error) {
-      logger.error('Error capturing selection:', error);
-      const errorMessage = (error as Error).message;
-
-      this.updateCaptureStatus('Selection Capture Failed', errorMessage, 'error', {
-        autoHide: 6000,
-        actions: [
-          {
-            label: 'Try Again',
-            action: () => {
-              this.resetCaptureStatus();
-              setTimeout(() => this.captureSelection(), 100);
-            },
-            primary: true,
-          },
-          {
-            label: 'Capture Full Page',
-            action: () => {
-              this.resetCaptureStatus();
-              setTimeout(() => this.capturePage(), 100);
-            },
-          },
-        ],
-      });
-    } finally {
-      this.isCapturing = false;
-    }
   }
 
   private async capturePDF(): Promise<void> {
