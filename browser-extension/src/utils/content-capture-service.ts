@@ -298,13 +298,34 @@ export class ContentCaptureService implements IContentExtractor, IDocumentProces
       });
 
       // Step 4: Validate content
-      if (!markdown && !extractionResult.data.html) {
-        logger.error('Content validation failed - no markdown and no HTML:', {
+      logger.debug('Content validation check:', {
+        hasMarkdown: !!markdown,
+        markdownValue: markdown,
+        markdownType: typeof markdown,
+        markdownLength: markdown?.length || 0,
+        hasHtml: !!extractionResult.data.html,
+        htmlValue: extractionResult.data.html,
+        htmlType: typeof extractionResult.data.html,
+        htmlLength: extractionResult.data.html?.length || 0,
+        extractionDataKeys: Object.keys(extractionResult.data || {}),
+        fullExtractionData: extractionResult.data,
+      });
+
+      // Check for meaningful content (not just empty strings)
+      const hasValidMarkdown = markdown && markdown.trim().length > 0;
+      const hasValidHtml =
+        extractionResult.data.html && extractionResult.data.html.trim().length > 0;
+
+      if (!hasValidMarkdown && !hasValidHtml) {
+        logger.error('Content validation failed - no meaningful markdown and no meaningful HTML:', {
           markdown: markdown,
+          markdownTrimmed: markdown?.trim(),
           html: extractionResult.data.html,
+          htmlTrimmed: extractionResult.data.html?.trim(),
           extractionData: extractionResult.data,
+          extractionResult: extractionResult,
         });
-        throw new Error('No content extracted from page');
+        throw new Error('No meaningful content extracted from page');
       }
 
       // Step 5: Process document

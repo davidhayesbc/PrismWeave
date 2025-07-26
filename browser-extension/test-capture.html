@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0"
+    />
+    <title>Test Page for PrismWeave Capture</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+        line-height: 1.6;
+      }
+      .article {
+        background: #f9f9f9;
+        padding: 20px;
+        border-radius: 8px;
+        margin: 20px 0;
+      }
+      h1 {
+        color: #2c3e50;
+        border-bottom: 2px solid #3498db;
+        padding-bottom: 10px;
+      }
+      h2 {
+        color: #34495e;
+        margin-top: 30px;
+      }
+      .highlight {
+        background: #fff3cd;
+        padding: 15px;
+        border-left: 4px solid #ffc107;
+        margin: 20px 0;
+      }
+      code {
+        background: #f8f9fa;
+        padding: 2px 4px;
+        border-radius: 3px;
+        font-family: 'Courier New', monospace;
+      }
+    </style>
+  </head>
+  <body>
+    <article class="article">
+      <h1>Testing PrismWeave Document Capture with Direct Links</h1>
+
+      <p>
+        This is a test page to verify that the PrismWeave browser extension now provides direct links to captured
+        documents instead of just the repository root.
+      </p>
+
+      <h2>Key Features Being Tested</h2>
+
+      <ul>
+        <li>
+          <strong>Service Worker Integration</strong>
+          : The popup now communicates through the service worker instead of directly with content scripts
+        </li>
+        <li>
+          <strong>Document URL Extraction</strong>
+          : The capture process extracts GitHub document URLs from commit responses
+        </li>
+        <li>
+          <strong>Smart Button Behavior</strong>
+          : The "View Repository" button becomes "View Document" when a specific document URL is available
+        </li>
+        <li>
+          <strong>Enhanced User Experience</strong>
+          : Users can now navigate directly to their captured content on GitHub
+        </li>
+      </ul>
+
+      <div class="highlight">
+        <h3>Testing Instructions</h3>
+        <ol>
+          <li>Ensure your GitHub settings are configured in the extension options</li>
+          <li>Click the PrismWeave extension icon in the browser toolbar</li>
+          <li>Click "Capture Content" in the popup</li>
+          <li>
+            Verify that the success message shows either:
+            <ul>
+              <li>"View Document" button (if document URL is available)</li>
+              <li>"View Repository" button (if only repository root is available)</li>
+            </ul>
+          </li>
+          <li>Click the button to verify it opens the correct URL</li>
+        </ol>
+      </div>
+
+      <h2>Technical Implementation Details</h2>
+
+      <p>The implementation uses the unified capture service to:</p>
+
+      <ul>
+        <li>Extract content from web pages</li>
+        <li>Convert HTML to clean markdown</li>
+        <li>Commit files to GitHub repositories</li>
+        <li>Extract commit URLs from GitHub API responses</li>
+        <li>Return structured data to the popup interface</li>
+      </ul>
+
+      <p>
+        This test page contains sufficient content to trigger a successful capture and should result in a markdown file
+        being created in your configured GitHub repository.
+      </p>
+
+      <div class="highlight">
+        <p>
+          <strong>Expected Result:</strong>
+          After capture, you should see a "View Document" button that takes you directly to the captured markdown file
+          on GitHub, rather than the repository root.
+        </p>
+      </div>
+
+      <h2>Code Sample</h2>
+
+      <p>Here's an example of the key code change in the service worker:</p>
+
+      <pre><code>// Extract document URL using the same logic as the main capture handler
+const extractCommitUrl = (result: any): string | undefined => {
+  return (
+    result.data?.commitUrl ||
+    result.commitUrl ||
+    result.data?.url ||
+    result.data?.saveResult?.url ||
+    // ... other possible locations
+  );
+};
+
+const documentUrl = extractCommitUrl(unifiedCaptureResult);</code></pre>
+
+      <p>This ensures consistent URL extraction across all capture methods.</p>
+    </article>
+  </body>
+</html>

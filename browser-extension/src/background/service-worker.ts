@@ -537,23 +537,29 @@ export async function handleMessage(
       return { success: true, data: statusData, timestamp: Date.now() };
 
     case 'TRIGGER_CAPTURE_FROM_POPUP':
-      // Handle capture trigger from popup - use the same logic as keyboard shortcut
+      // Handle capture trigger from popup - use same path as keyboard shortcut
       try {
         const tabId = message.data?.tabId as number;
         if (!tabId) {
           throw new Error('No tab ID provided for popup capture trigger');
         }
 
-        logger.info('Popup capture trigger - sending to content script');
+        logger.info('Popup capture trigger - using same path as keyboard shortcut');
 
-        // Send message to content script to trigger capture (same as keyboard shortcut)
+        // Send TRIGGER_CAPTURE_SHORTCUT message to content script (same as keyboard shortcut)
         try {
-          await chrome.tabs.sendMessage(tabId, {
+          const response = await chrome.tabs.sendMessage(tabId, {
             type: 'TRIGGER_CAPTURE_SHORTCUT',
             timestamp: Date.now(),
           });
-          logger.info('Popup capture shortcut message sent to content script');
-          return { success: true, timestamp: Date.now() };
+
+          logger.info('Popup capture shortcut message sent to content script successfully');
+
+          // Return success - the content script handles the actual capture and shows notifications
+          return {
+            success: true,
+            timestamp: Date.now(),
+          };
         } catch (error) {
           logger.error('Failed to send popup capture message to content script:', error);
 

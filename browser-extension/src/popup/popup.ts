@@ -365,19 +365,22 @@ export class PrismWeavePopup {
       const response = await this.sendMessageToBackground(message.type, message.data);
 
       if (response.success) {
-        // Simple success response like keyboard shortcut
-        // The content script has already handled the actual capture and shown notifications
-        // We just need to show a success message in the popup
+        logger.debug(
+          'Capture initiated successfully via content script (same as keyboard shortcut)'
+        );
+
+        // The content script now handles the entire capture process including notifications
+        // Just show a simple "initiated" message in the popup
         this.updateCaptureStatus(
-          'Content Captured Successfully!',
-          'Page content has been captured and saved to your repository',
+          'Content Capture Initiated!',
+          'Using the same proven method as the keyboard shortcut. Check the page for progress updates.',
           'success',
           {
-            autoHide: 5000,
+            autoHide: 3000,
             actions: [
               {
-                label: 'View Repository',
-                action: () => this.openRepository(),
+                label: 'Close',
+                action: () => window.close(),
                 primary: true,
               },
             ],
@@ -1155,6 +1158,34 @@ export class PrismWeavePopup {
     } catch (error) {
       logger.error('Error in chrome.tabs.create:', error);
       this.showError('Failed to open repository');
+    }
+  }
+
+  private openDocument(documentUrl: string): void {
+    logger.debug('openDocument called with URL:', documentUrl);
+
+    if (!documentUrl) {
+      logger.warn('Cannot open document: no URL provided');
+      this.showError('Document URL not available');
+      return;
+    }
+
+    logger.debug('Opening document URL:', documentUrl);
+
+    try {
+      this.chrome.tabs.create({ url: documentUrl }, tab => {
+        if (this.chrome.runtime.lastError) {
+          logger.error('Failed to create tab for document:', this.chrome.runtime.lastError.message);
+          this.showError('Failed to open document tab');
+        } else {
+          logger.debug('Successfully created document tab:', tab?.id);
+          // Close the popup after successfully opening the document
+          window.close();
+        }
+      });
+    } catch (error) {
+      logger.error('Error in chrome.tabs.create for document:', error);
+      this.showError('Failed to open document');
     }
   }
 

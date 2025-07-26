@@ -598,14 +598,11 @@ async function extractPageContentWithUtilities(options?: any): Promise<IContentE
       contentExtractor = new ContentExtractor();
       markdownConverter = new MarkdownConverter();
     } catch (error) {
-      // If utilities fail to initialize (e.g., extension context invalidated),
+      // If utilities fail to initialize (e.g., extension context invalidated or other issues),
       // fall back to basic content extraction
-      if (error instanceof Error && error.message.includes('Extension context invalidated')) {
-        logger.warn('Extension context invalidated, falling back to basic extraction');
-        showNotification('Extension reloaded - using basic capture mode', 'info', 3000);
-        return await basicContentExtraction();
-      }
-      throw error;
+      logger.warn('Utility initialization failed, falling back to basic extraction:', error);
+      showNotification('Using basic capture mode', 'info', 3000);
+      return await basicContentExtraction();
     }
 
     // Extract content using the existing utility
@@ -648,14 +645,26 @@ async function extractPageContentWithUtilities(options?: any): Promise<IContentE
       ],
     };
 
-    const contentResult = await contentExtractor.extractContent(extractorOptions);
+    let contentResult;
+    try {
+      contentResult = await contentExtractor.extractContent(extractorOptions);
+    } catch (extractError) {
+      logger.warn('Content extractor failed, falling back to basic extraction:', extractError);
+      return await basicContentExtraction();
+    }
 
     // Convert to markdown with enhanced cleaning
-    const markdownResult = markdownConverter.convertToMarkdown(contentResult.content, {
-      preserveFormatting: options?.preserveFormatting === true,
-      includeMetadata: true,
-      generateFrontmatter: true,
-    });
+    let markdownResult;
+    try {
+      markdownResult = markdownConverter.convertToMarkdown(contentResult.content, {
+        preserveFormatting: options?.preserveFormatting === true,
+        includeMetadata: true,
+        generateFrontmatter: true,
+      });
+    } catch (markdownError) {
+      logger.warn('Markdown conversion failed, falling back to basic extraction:', markdownError);
+      return await basicContentExtraction();
+    }
 
     // Post-process markdown to remove any remaining unwanted content
     let cleanedMarkdown = markdownResult.markdown;
@@ -762,30 +771,54 @@ async function basicContentExtraction(): Promise<IContentExtractionData> {
     }
 
     // Fall back to body if no content area found
-    if (!contentElement) {
+    if (!contentElement || !contentElement.textContent?.trim()) {
       contentElement = document.body;
     }
 
-    const html = contentElement?.innerHTML || '';
-    const textContent = contentElement?.textContent || '';
-    const title = document.title || 'Untitled';
+    const html = contentElement?.innerHTML || document.body.innerHTML || '';
+    const textContent = contentElement?.textContent || document.body.textContent || '';
+    const title = document.title || 'Untitled Page';
+
+    // Ensure we have some content
+    if (!html.trim() && !textContent.trim()) {
+      throw new Error('No content found on page - completely empty document');
+    }
 
     // Basic word count
     const wordCount = textContent.split(/\s+/).filter(word => word.length > 0).length;
+
+    // Ensure minimum content
+    if (wordCount < 10) {
+      logger.warn('Very little content found on page, but proceeding with basic extraction');
+    }
 
     // Basic image extraction
     const images = Array.from(document.images)
       .map(img => img.src)
       .filter(src => src && !src.startsWith('data:'));
 
-    // Simple markdown conversion (very basic)
-    let markdown = textContent;
-    if (title) {
-      markdown = `# ${title}\n\n${textContent}`;
+    // Simple markdown conversion (very basic) - ensure we have some content
+    let markdown = textContent.trim();
+    if (title && title !== 'Untitled Page') {
+      markdown = `# ${title}\n\n${textContent.trim()}`;
+    } else if (markdown) {
+      markdown = `# Untitled Page\n\n${markdown}`;
+    } else {
+      markdown = '# Untitled Page\n\nNo readable content found on this page.';
     }
 
+    // Ensure frontmatter is valid
+    const frontmatter = `---
+title: "${title.replace(/"/g, '\\"')}"
+url: "${window.location.href}"
+captured: "${new Date().toISOString()}"
+extraction_method: "basic-fallback"
+word_count: ${wordCount}
+---
+`;
+
     const extractionData: IContentExtractionData = {
-      html,
+      html: html.trim(),
       title,
       url: window.location.href,
       metadata: {
@@ -795,10 +828,19 @@ async function basicContentExtraction(): Promise<IContentExtractionData> {
         readingTime: Math.ceil(wordCount / 200),
         extractionMethod: 'basic-fallback',
       },
-      markdown,
-      frontmatter: `---\ntitle: ${title}\nurl: ${window.location.href}\ncaptured: ${new Date().toISOString()}\n---\n`,
+      markdown: markdown,
+      frontmatter: frontmatter,
       images,
     };
+
+    logger.info('Basic content extraction completed:', {
+      hasHtml: !!extractionData.html,
+      htmlLength: extractionData.html?.length || 0,
+      hasMarkdown: !!extractionData.markdown,
+      markdownLength: extractionData.markdown?.length || 0,
+      wordCount,
+      imageCount: images.length,
+    });
 
     return extractionData;
   } catch (error) {
