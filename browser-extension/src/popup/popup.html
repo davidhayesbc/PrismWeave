@@ -6,6 +6,7 @@
       name="viewport"
       content="width=device-width, initial-scale=1"
     />
+    <title>PrismWeave</title>
     <link
       rel="stylesheet"
       href="popup.css"
@@ -13,14 +14,18 @@
   </head>
   <body>
     <div class="header">
+      <img
+        src="../../icons/icon64.png"
+        alt="PrismWeave Logo"
+        class="logo"
+      />
       <h1>PrismWeave</h1>
     </div>
 
     <div class="content">
       <div
         id="loading"
-        class="loading"
-        style="display: none"
+        class="hidden"
       >
         <div class="spinner"></div>
         <span>Processing...</span>
@@ -44,8 +49,7 @@
         </div>
         <div
           id="status"
-          class="status"
-          style="display: none"
+          class="status, hidden"
         >
           <p
             class="status-text"
@@ -55,8 +59,7 @@
         <!-- Enhanced Capture Status Messages -->
         <div
           id="capture-status"
-          class="capture-status-container"
-          style="display: none"
+          class="capture-status-container, hidden"
         >
           <div class="status-card">
             <div class="status-header">
@@ -85,21 +88,18 @@
               </button>
             </div>
             <div
-              class="status-details"
+              class="status-details, hidden"
               id="status-details"
-              style="display: none"
             >
               <div
-                class="progress-bar"
+                class="progress-bar, hidden"
                 id="progress-bar"
-                style="display: none"
               >
                 <div class="progress-fill"></div>
               </div>
               <div
-                class="status-actions"
+                class="status-actions, hidden"
                 id="status-actions"
-                style="display: none"
               ></div>
             </div>
           </div>
@@ -108,8 +108,7 @@
         <!-- Capture warning message -->
         <div
           id="capture-warning"
-          class="capture-warning-container"
-          style="display: none"
+          class="capture-warning-container, hidden"
         >
           <div class="warning-card">
             <div class="warning-icon">⚠️</div>
