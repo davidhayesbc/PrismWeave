@@ -173,6 +173,73 @@ class SettingsManager {
         default: true,
         description: 'Enable keyboard shortcuts for capture',
       },
+
+      // Bookmarklet Settings
+      'bookmarklet.enabled': {
+        type: 'boolean',
+        required: false,
+        sensitive: false,
+        default: false,
+        description: 'Enable bookmarklet functionality',
+      },
+      'bookmarklet.customDomain': {
+        type: 'string',
+        default: '',
+        required: false,
+        sensitive: false,
+        pattern: /^https?:\/\/[a-zA-Z0-9.-]+(?:\:[0-9]+)?(?:\/.*)?$/,
+        description: 'Custom domain for bookmarklet endpoint (optional)',
+      },
+      'bookmarklet.includeImages': {
+        type: 'boolean',
+        required: false,
+        sensitive: false,
+        default: true,
+        description: 'Include images in bookmarklet captures',
+      },
+      'bookmarklet.includeLinks': {
+        type: 'boolean',
+        required: false,
+        sensitive: false,
+        default: true,
+        description: 'Include links in bookmarklet captures',
+      },
+      'bookmarklet.cleanAds': {
+        type: 'boolean',
+        required: false,
+        sensitive: false,
+        default: true,
+        description: 'Remove advertisements in bookmarklet captures',
+      },
+      'bookmarklet.customSelectors': {
+        type: 'array',
+        default: [],
+        required: false,
+        sensitive: false,
+        description: 'Custom CSS selectors to include in bookmarklet captures',
+      },
+      'bookmarklet.excludeSelectors': {
+        type: 'array',
+        default: ['nav', 'header', 'footer', '.advertisement', '.ad'],
+        required: false,
+        sensitive: false,
+        description: 'CSS selectors to exclude from bookmarklet captures',
+      },
+      'bookmarklet.autoInstall': {
+        type: 'boolean',
+        required: false,
+        sensitive: false,
+        default: false,
+        description: 'Automatically update bookmarklet when settings change',
+      },
+      'bookmarklet.version': {
+        type: 'string',
+        default: '1.0.0',
+        required: false,
+        sensitive: false,
+        pattern: /^\d+\.\d+\.\d+$/,
+        description: 'Bookmarklet version for tracking updates',
+      },
     };
   }
 

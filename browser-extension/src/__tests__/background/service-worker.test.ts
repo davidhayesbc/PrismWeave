@@ -108,6 +108,16 @@ describe('Service Worker Comprehensive Tests - Phase 3.1', () => {
     debugMode: false,
     showNotifications: true,
     enableKeyboardShortcuts: true,
+    // Bookmarklet settings
+    'bookmarklet.enabled': false,
+    'bookmarklet.customDomain': '',
+    'bookmarklet.includeImages': true,
+    'bookmarklet.includeLinks': true,
+    'bookmarklet.cleanAds': true,
+    'bookmarklet.customSelectors': [],
+    'bookmarklet.excludeSelectors': ['nav', 'header', 'footer', '.advertisement', '.ad'],
+    'bookmarklet.autoInstall': false,
+    'bookmarklet.version': '1.0.0',
   };
 
   beforeEach(async () => {

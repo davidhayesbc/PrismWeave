@@ -67,6 +67,16 @@ describe('III. - SettingsManager - Comprehensive Functionality', () => {
         debugMode: false,
         showNotifications: true,
         enableKeyboardShortcuts: true,
+        // Bookmarklet defaults
+        'bookmarklet.enabled': false,
+        'bookmarklet.customDomain': '',
+        'bookmarklet.includeImages': true,
+        'bookmarklet.includeLinks': true,
+        'bookmarklet.cleanAds': true,
+        'bookmarklet.customSelectors': [],
+        'bookmarklet.excludeSelectors': ['nav', 'header', 'footer', '.advertisement', '.ad'],
+        'bookmarklet.autoInstall': false,
+        'bookmarklet.version': '1.0.0',
       });
 
       // Verify all required fields are present

@@ -29,6 +29,50 @@ export interface ISettings {
   // UI Preferences
   showNotifications: boolean;
   enableKeyboardShortcuts: boolean;
+
+  // Bookmarklet Settings (flattened for schema compatibility)
+  'bookmarklet.enabled': boolean;
+  'bookmarklet.customDomain': string;
+  'bookmarklet.includeImages': boolean;
+  'bookmarklet.includeLinks': boolean;
+  'bookmarklet.cleanAds': boolean;
+  'bookmarklet.customSelectors': string[];
+  'bookmarklet.excludeSelectors': string[];
+  'bookmarklet.autoInstall': boolean;
+  'bookmarklet.version': string;
+}
+
+export interface IBookmarkletSettings {
+  enabled: boolean;
+  customDomain?: string;
+  includeImages: boolean;
+  includeLinks: boolean;
+  cleanAds: boolean;
+  customSelectors: string[];
+  excludeSelectors: string[];
+  autoInstall: boolean;
+  version: string;
+}
+
+// Helper function to extract bookmarklet settings from flat ISettings
+export function extractBookmarkletSettings(settings: Partial<ISettings>): IBookmarkletSettings {
+  return {
+    enabled: settings['bookmarklet.enabled'] ?? false,
+    customDomain: settings['bookmarklet.customDomain'] ?? '',
+    includeImages: settings['bookmarklet.includeImages'] ?? true,
+    includeLinks: settings['bookmarklet.includeLinks'] ?? true,
+    cleanAds: settings['bookmarklet.cleanAds'] ?? true,
+    customSelectors: settings['bookmarklet.customSelectors'] ?? [],
+    excludeSelectors: settings['bookmarklet.excludeSelectors'] ?? [
+      'nav',
+      'header',
+      'footer',
+      '.advertisement',
+      '.ad',
+    ],
+    autoInstall: settings['bookmarklet.autoInstall'] ?? false,
+    version: settings['bookmarklet.version'] ?? '1.0.0',
+  };
 }
 
 export interface IMessageData {
@@ -115,7 +159,57 @@ export const MESSAGE_TYPES = {
   CAPTURE_CONTENT: 'CAPTURE_CONTENT', // New unified capture message
   GET_STATUS: 'GET_STATUS',
   TEST: 'TEST',
+  // Bookmarklet message types
+  GENERATE_BOOKMARKLET: 'GENERATE_BOOKMARKLET',
+  VALIDATE_BOOKMARKLET_CONFIG: 'VALIDATE_BOOKMARKLET_CONFIG',
+  GET_BOOKMARKLET_STATUS: 'GET_BOOKMARKLET_STATUS',
 };
+
+// Bookmarklet-specific interfaces
+export interface IBookmarkletConfig {
+  githubToken: string;
+  githubRepo: string;
+  defaultFolder?: string;
+  customFolder?: string;
+  fileNamingPattern?: string;
+  commitMessageTemplate?: string;
+  captureImages?: boolean;
+  removeAds?: boolean;
+  removeNavigation?: boolean;
+}
+
+export interface IBookmarkletGenerationOptions {
+  minify?: boolean;
+  includeDebugInfo?: boolean;
+  customDomain?: string;
+  version?: string;
+}
+
+export interface IBookmarkletResult {
+  success: boolean;
+  bookmarkletCode?: string;
+  bookmarkletName?: string;
+  installationInstructions?: string;
+  error?: string;
+  config?: IBookmarkletConfig;
+}
+
+export interface IBookmarkletValidationResult {
+  isValid: boolean;
+  errors: string[];
+  warnings: string[];
+  estimatedSize?: number;
+}
+
+export interface IBookmarkletContentData {
+  title: string;
+  url: string;
+  markdown: string;
+  frontmatter: string;
+  content: string;
+  wordCount: number;
+  extractedAt: string;
+}
 export interface IContentExtractionResult {
   success: boolean;
   data?: IContentExtractionData;
