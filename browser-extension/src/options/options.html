@@ -151,6 +151,45 @@
         <div class="help-text">Comma-separated CSS selectors for elements to remove during capture</div>
       </div>
     </div>    <div class="section">
+      <h2>Bookmarklet Integration</h2>
+
+      <div class="checkbox-group">
+        <input
+          type="checkbox"
+          id="enableBookmarklet"
+        />
+        <label for="enableBookmarklet">Enable bookmarklet functionality</label>
+      </div>
+
+      <div class="help-text bookmarklet-help">
+        Generate a bookmarklet that allows you to capture content from any device without installing the extension. 
+        <a href="bookmarklet.html" target="_blank">Manage bookmarklets →</a>
+      </div>
+
+      <div id="bookmarklet-quick-setup">
+        <div class="form-group">
+          <label>Quick Setup</label>
+          <div class="bookmarklet-actions">
+            <button type="button" class="btn btn-secondary" id="generate-bookmarklet">
+              Generate Bookmarklet
+            </button>
+            <button type="button" class="btn btn-secondary" id="copy-bookmarklet" disabled>
+              Copy to Clipboard
+            </button>
+            <button type="button" class="btn btn-secondary" id="open-bookmarklet-manager">
+              Full Manager
+            </button>
+          </div>
+        </div>
+
+        <div id="quick-bookmarklet-preview">
+          <div class="help-text">Generated bookmarklet (drag to bookmarks bar or copy and paste as bookmark URL):</div>
+          <div id="bookmarklet-code-preview"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
       <h2>Advanced Options</h2>
 
       <div class="form-group">
@@ -221,8 +260,8 @@
     <input
       type="file"
       id="import-file"
-      style="display: none"
       accept=".json"
+      hidden
     />
 
     <script type="module" src="options.js"></script>

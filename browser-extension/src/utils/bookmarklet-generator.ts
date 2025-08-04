@@ -22,7 +22,7 @@ export interface IBookmarkletGenerationOptions {
 
 export class BookmarkletGenerator {
   private static readonly BOOKMARKLET_VERSION = '1.0.0';
-  private static readonly MAX_BOOKMARKLET_LENGTH = 2000; // URL length limit
+  private static readonly MAX_BOOKMARKLET_LENGTH = 15000; // Modern browsers support longer URLs
 
   /**
    * Generate a complete bookmarklet JavaScript code

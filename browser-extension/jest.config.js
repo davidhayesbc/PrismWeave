@@ -33,6 +33,7 @@ module.exports = {
     'src/**/*.{js,ts}',
     '!src/libs/**',
     '!src/**/*.min.js',
+    '!src/bookmarklet/templates/**',
     '!**/node_modules/**',
     '!**/*.d.ts',
   ],

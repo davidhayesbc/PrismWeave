@@ -6,6 +6,8 @@
   "scripts": {
     "build": "node scripts/build-simple.js",
     "build:prod": "cross-env NODE_ENV=production node scripts/build-simple.js",
+    "build:bookmarklet": "node scripts/build-bookmarklet.js",
+    "build:bookmarklet:prod": "cross-env NODE_ENV=production node scripts/build-bookmarklet.js",
     "dev": "node scripts/build-simple.js --watch",
     "test": "jest",
     "test:watch": "jest --watch",

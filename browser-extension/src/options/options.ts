@@ -2,11 +2,13 @@
 // PrismWeave Options/Settings Page Script - TypeScript version
 
 import { IMessageData, IMessageResponse, ISettings } from '../types/index.js';
-import { createLogger } from '../utils/logger';
+import { BookmarkletGenerator } from '../utils/bookmarklet-generator.js';
+import { createLogger } from '../utils/logger.js';
 
 export class PrismWeaveOptions {
   private logger = createLogger('Options');
   private settings: Partial<ISettings> = {};
+  private currentBookmarklet: string = '';
 
   constructor() {
     this.initializeOptions();
@@ -52,6 +54,17 @@ export class PrismWeaveOptions {
       // UI Preferences
       showNotifications: true,
       enableKeyboardShortcuts: true,
+
+      // Bookmarklet Settings
+      'bookmarklet.enabled': false,
+      'bookmarklet.customDomain': '',
+      'bookmarklet.includeImages': true,
+      'bookmarklet.includeLinks': true,
+      'bookmarklet.cleanAds': true,
+      'bookmarklet.customSelectors': [],
+      'bookmarklet.excludeSelectors': ['nav', 'header', 'footer', '.advertisement', '.ad'],
+      'bookmarklet.autoInstall': false,
+      'bookmarklet.version': '1.0.0',
     };
   }
 
@@ -109,6 +122,10 @@ export class PrismWeaveOptions {
     // UI Preferences
     this.setCheckboxValue('showNotifications', this.settings.showNotifications ?? true);
     this.setCheckboxValue('enableKeyboardShortcuts', this.settings.enableKeyboardShortcuts ?? true);
+
+    // Bookmarklet Settings
+    this.setCheckboxValue('enableBookmarklet', this.settings['bookmarklet.enabled'] ?? false);
+    this.updateBookmarkletUI();
   }
   private setupEventListeners(): void {
     // Save button
@@ -156,6 +173,9 @@ export class PrismWeaveOptions {
 
     // Show/hide custom fields based on selections
     this.setupConditionalFields();
+
+    // Bookmarklet event listeners
+    this.setupBookmarkletEventListeners();
   }
 
   private validateGitHubToken(): void {
@@ -509,6 +529,7 @@ export class PrismWeaveOptions {
       debugMode: this.getCheckboxValue('debugMode'),
       showNotifications: this.getCheckboxValue('showNotifications'),
       enableKeyboardShortcuts: this.getCheckboxValue('enableKeyboardShortcuts'),
+      'bookmarklet.enabled': this.getCheckboxValue('enableBookmarklet'),
     };
   }
   // Helper methods for form manipulation
@@ -567,6 +588,168 @@ export class PrismWeaveOptions {
         }
       });
     });
+  }
+
+  // Bookmarklet-related methods
+  private setupBookmarkletEventListeners(): void {
+    const enableBookmarkletCheckbox = document.getElementById(
+      'enableBookmarklet'
+    ) as HTMLInputElement;
+    if (enableBookmarkletCheckbox) {
+      enableBookmarkletCheckbox.addEventListener('change', () => {
+        this.handleBookmarkletToggle();
+      });
+    }
+
+    const generateBtn = document.getElementById('generate-bookmarklet');
+    if (generateBtn) {
+      generateBtn.addEventListener('click', () => {
+        this.generateQuickBookmarklet();
+      });
+    }
+
+    const copyBtn = document.getElementById('copy-bookmarklet');
+    if (copyBtn) {
+      copyBtn.addEventListener('click', () => {
+        this.copyQuickBookmarklet();
+      });
+    }
+
+    const managerBtn = document.getElementById('open-bookmarklet-manager');
+    if (managerBtn) {
+      managerBtn.addEventListener('click', () => {
+        this.openBookmarkletManager();
+      });
+    }
+  }
+
+  private updateBookmarkletUI(): void {
+    const isEnabled = this.getCheckboxValue('enableBookmarklet');
+    const quickSetupSection = document.getElementById('bookmarklet-quick-setup');
+
+    if (quickSetupSection) {
+      quickSetupSection.style.display = isEnabled ? 'block' : 'none';
+    }
+
+    // Clear bookmarklet preview if disabled
+    if (!isEnabled) {
+      this.currentBookmarklet = '';
+      const previewSection = document.getElementById('quick-bookmarklet-preview');
+      if (previewSection) {
+        previewSection.style.display = 'none';
+      }
+
+      const copyBtn = document.getElementById('copy-bookmarklet') as HTMLButtonElement;
+      if (copyBtn) {
+        copyBtn.disabled = true;
+      }
+    }
+  }
+
+  private handleBookmarkletToggle(): void {
+    this.updateBookmarkletUI();
+
+    const isEnabled = this.getCheckboxValue('enableBookmarklet');
+
+    if (isEnabled) {
+      this.showMessage(
+        'Bookmarklet enabled. Generate a bookmarklet below or use the full manager.',
+        'info'
+      );
+    } else {
+      this.showMessage('Bookmarklet disabled.', 'info');
+    }
+  }
+
+  private async generateQuickBookmarklet(): Promise<void> {
+    try {
+      // Validate GitHub settings first
+      const githubToken = this.getInputValue('githubToken');
+      const githubRepo = this.getInputValue('githubRepo');
+
+      if (!githubToken || !githubRepo) {
+        this.showMessage(
+          'GitHub token and repository are required to generate bookmarklet',
+          'error'
+        );
+        return;
+      }
+
+      // Validate repo format
+      if (!/^[a-zA-Z0-9._-]+\/[a-zA-Z0-9._-]+$/.test(githubRepo.trim())) {
+        this.showMessage(
+          'Invalid repository format. Please use: username/repository-name',
+          'error'
+        );
+        return;
+      }
+
+      this.showMessage('Generating bookmarklet...', 'info');
+
+      const config = {
+        githubToken,
+        githubRepo,
+        defaultFolder: this.getSelectValue('defaultFolder') || 'unsorted',
+        fileNamingPattern: this.getSelectValue('fileNamingPattern'),
+        commitMessageTemplate: this.getInputValue('commitMessageTemplate'),
+        captureImages: this.getCheckboxValue('captureImages'),
+        removeAds: this.getCheckboxValue('removeAds'),
+        removeNavigation: this.getCheckboxValue('removeNavigation'),
+      };
+
+      this.currentBookmarklet = BookmarkletGenerator.generateBookmarklet(config);
+
+      // Display the bookmarklet
+      const previewDiv = document.getElementById('bookmarklet-code-preview');
+      const previewSection = document.getElementById('quick-bookmarklet-preview');
+      const copyBtn = document.getElementById('copy-bookmarklet') as HTMLButtonElement;
+
+      if (previewDiv && previewSection && copyBtn) {
+        previewDiv.textContent = this.currentBookmarklet;
+        previewSection.style.display = 'block';
+        copyBtn.disabled = false;
+      }
+
+      this.showMessage(
+        'Bookmarklet generated successfully! Copy it or drag to your bookmarks bar.',
+        'success'
+      );
+    } catch (error) {
+      this.logger.error('Failed to generate bookmarklet:', error);
+      this.showMessage('Failed to generate bookmarklet: ' + (error as Error).message, 'error');
+    }
+  }
+
+  private async copyQuickBookmarklet(): Promise<void> {
+    if (!this.currentBookmarklet) {
+      this.showMessage('No bookmarklet available to copy', 'error');
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(this.currentBookmarklet);
+      this.showMessage('Bookmarklet copied to clipboard!', 'success');
+    } catch (error) {
+      this.logger.error('Failed to copy to clipboard:', error);
+
+      // Fallback: select the text
+      const previewDiv = document.getElementById('bookmarklet-code-preview');
+      if (previewDiv) {
+        const range = document.createRange();
+        range.selectNodeContents(previewDiv);
+        const selection = window.getSelection();
+        if (selection) {
+          selection.removeAllRanges();
+          selection.addRange(range);
+        }
+      }
+
+      this.showMessage('Copy failed. Please select and copy the bookmarklet manually.', 'error');
+    }
+  }
+
+  private openBookmarkletManager(): void {
+    window.open('bookmarklet.html', '_blank');
   }
 }
 

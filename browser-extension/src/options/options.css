@@ -288,3 +288,55 @@ select.error {
   --text-warning: #856404;
   --text-error: #721c24;
 }
+
+/* Bookmarklet specific styles */
+#bookmarklet-quick-setup {
+  display: none;
+}
+
+.bookmarklet-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+#quick-bookmarklet-preview {
+  display: none;
+  margin-top: 12px;
+}
+
+#bookmarklet-code-preview {
+  background: var(--background-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  padding: 12px;
+  margin-top: 8px;
+  font-family: "Courier New", monospace;
+  font-size: 12px;
+  word-break: break-all;
+  max-height: 100px;
+  overflow-y: auto;
+}
+
+.help-text.bookmarklet-help {
+  margin-bottom: 16px;
+}
+
+.help-text.bookmarklet-help a {
+  color: #2196f3;
+  text-decoration: none;
+}
+
+.help-text.bookmarklet-help a:hover {
+  text-decoration: underline;
+}
+
+/* Button disabled state */
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn:disabled:hover {
+  background: #6c757d; /* Don't change color on hover when disabled */
+}

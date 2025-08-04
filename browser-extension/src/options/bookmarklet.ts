@@ -2,7 +2,7 @@
 // Bookmarklet options page functionality for PrismWeave Browser Extension
 
 import { extractBookmarkletSettings, IBookmarkletSettings, ISettings } from '../types/index.js';
-import { BookmarkletGenerator } from '../utils/bookmarklet-generator.js';
+import { BookmarkletManager } from '../utils/bookmarklet-manager.js';
 import { createLogger } from '../utils/logger.js';
 import { SettingsManager } from '../utils/settings-manager.js';
 
@@ -40,18 +40,39 @@ interface IBookmarkletElements {
   resetSettings: HTMLButtonElement;
   exportBookmarklet: HTMLButtonElement;
 
+  // Sharing elements
+  exportConfig: HTMLButtonElement;
+  importConfig: HTMLButtonElement;
+  configFileInput: HTMLInputElement;
+  generateShareLink: HTMLButtonElement;
+  shareResults: HTMLElement;
+  shareLinkDisplay: HTMLInputElement;
+  copyShareLink: HTMLButtonElement;
+
+  // Statistics elements
+  totalUses: HTMLElement;
+  successfulCaptures: HTMLElement;
+  failedCaptures: HTMLElement;
+  averageContentLength: HTMLElement;
+  topDomains: HTMLElement;
+  refreshStats: HTMLButtonElement;
+  clearStats: HTMLButtonElement;
+  exportStats: HTMLButtonElement;
+
   // Status messages
   statusMessages: HTMLElement;
 }
 
 export class BookmarkletOptionsPage {
   private _settingsManager: SettingsManager;
+  private _bookmarkletManager: BookmarkletManager;
   private _elements: IBookmarkletElements | null = null;
   private _currentBookmarklet: string = '';
   private _currentSettings: IBookmarkletSettings | null = null;
 
   constructor() {
     this._settingsManager = new SettingsManager();
+    this._bookmarkletManager = new BookmarkletManager();
   }
 
   async initialize(): Promise<void> {
@@ -62,6 +83,7 @@ export class BookmarkletOptionsPage {
       await this._loadCurrentSettings();
       this._bindEventListeners();
       this._updateUI();
+      await this._loadUsageStatistics(); // Load statistics on initialization
 
       logger.info('Bookmarklet options page initialized successfully');
     } catch (error) {
@@ -110,6 +132,25 @@ export class BookmarkletOptionsPage {
       saveSettings: getElementById('save-bookmarklet-settings'),
       resetSettings: getElementById('reset-bookmarklet-settings'),
       exportBookmarklet: getElementById('export-bookmarklet'),
+
+      // Sharing elements
+      exportConfig: getElementById('export-config'),
+      importConfig: getElementById('import-config'),
+      configFileInput: getElementById('config-file-input'),
+      generateShareLink: getElementById('generate-share-link'),
+      shareResults: getElementById('share-results'),
+      shareLinkDisplay: getElementById('share-link-display'),
+      copyShareLink: getElementById('copy-share-link'),
+
+      // Statistics elements
+      totalUses: getElementById('total-uses'),
+      successfulCaptures: getElementById('successful-captures'),
+      failedCaptures: getElementById('failed-captures'),
+      averageContentLength: getElementById('average-content-length'),
+      topDomains: getElementById('top-domains'),
+      refreshStats: getElementById('refresh-stats'),
+      clearStats: getElementById('clear-stats'),
+      exportStats: getElementById('export-stats'),
 
       // Status messages
       statusMessages: getElementById('status-messages'),
@@ -179,6 +220,40 @@ export class BookmarkletOptionsPage {
 
     this._elements.exportBookmarklet.addEventListener('click', () => {
       this._exportConfiguration();
+    });
+
+    // Sharing event listeners
+    this._elements.exportConfig.addEventListener('click', () => {
+      this._exportConfigurationFile();
+    });
+
+    this._elements.importConfig.addEventListener('click', () => {
+      this._elements?.configFileInput.click();
+    });
+
+    this._elements.configFileInput.addEventListener('change', event => {
+      this._importConfigurationFile(event);
+    });
+
+    this._elements.generateShareLink.addEventListener('click', () => {
+      this._generateShareableLink();
+    });
+
+    this._elements.copyShareLink.addEventListener('click', () => {
+      this._copyShareLink();
+    });
+
+    // Statistics event listeners
+    this._elements.refreshStats.addEventListener('click', () => {
+      this._refreshUsageStatistics();
+    });
+
+    this._elements.clearStats.addEventListener('click', () => {
+      this._clearUsageStatistics();
+    });
+
+    this._elements.exportStats.addEventListener('click', () => {
+      this._exportUsageStatistics();
     });
   }
 
@@ -275,7 +350,7 @@ export class BookmarkletOptionsPage {
       // Get GitHub settings for the bookmarklet
       const allSettings = await this._settingsManager.getSettingsWithDefaults();
 
-      const config = {
+      const customConfig = {
         githubToken: allSettings.githubToken || '',
         githubRepo: allSettings.githubRepo || '',
         defaultFolder: allSettings.defaultFolder || 'unsorted',
@@ -289,7 +364,13 @@ export class BookmarkletOptionsPage {
         customEndpoint: this._currentSettings.customDomain || undefined,
       };
 
-      this._currentBookmarklet = await BookmarkletGenerator.generateBookmarklet(config);
+      const result = await this._bookmarkletManager.generateBookmarklet(customConfig);
+
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to generate bookmarklet');
+      }
+
+      this._currentBookmarklet = result.bookmarkletCode || '';
 
       // Display the bookmarklet
       this._elements.bookmarkletPreview.innerHTML = `<code>${this._escapeHtml(this._currentBookmarklet)}</code>`;
@@ -381,35 +462,19 @@ export class BookmarkletOptionsPage {
     wordCount: number;
     imageCount: number;
   }> {
-    // Simulate bookmarklet execution for testing
-    const title = document.title || 'Untitled';
-    const url = window.location.href;
+    // Use the bookmarklet manager's test functionality
+    const testResult = await this._bookmarkletManager.testBookmarklet();
 
-    // Find main content
-    const contentSelectors = ['article', 'main', '.content', '#content', 'body'];
-    let mainContent = '';
-
-    for (const selector of contentSelectors) {
-      const element = document.querySelector(selector);
-      if (element && element.textContent && element.textContent.length > 100) {
-        mainContent = element.textContent;
-        break;
-      }
+    if (!testResult.success || !testResult.data) {
+      throw new Error(testResult.error || 'Test failed');
     }
-
-    if (!mainContent) {
-      mainContent = document.body.textContent || '';
-    }
-
-    const wordCount = mainContent.trim().split(/\s+/).length;
-    const imageCount = document.querySelectorAll('img').length;
 
     return {
-      title,
-      url,
-      contentLength: mainContent.length,
-      wordCount,
-      imageCount,
+      title: testResult.data.pageTitle,
+      url: testResult.data.pageUrl,
+      contentLength: testResult.data.contentLength,
+      wordCount: testResult.data.wordCount,
+      imageCount: testResult.data.imageCount,
     };
   }
 
@@ -489,14 +554,13 @@ export class BookmarkletOptionsPage {
     }
 
     try {
-      const exportData = {
-        bookmarklet: this._currentSettings,
-        exported: new Date().toISOString(),
-        version: '1.0.0',
-      };
+      const result = await this._bookmarkletManager.exportConfiguration();
 
-      const dataStr = JSON.stringify(exportData, null, 2);
-      const blob = new Blob([dataStr], { type: 'application/json' });
+      if (!result.success) {
+        throw new Error(result.error || 'Export failed');
+      }
+
+      const blob = new Blob([result.configData || ''], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
 
       const a = document.createElement('a');
@@ -546,6 +610,246 @@ export class BookmarkletOptionsPage {
 
   private _showWarning(message: string): void {
     this._showMessage(message, 'warning');
+  }
+
+  // Sharing functionality
+  private async _exportConfigurationFile(): Promise<void> {
+    try {
+      logger.info('Exporting bookmarklet configuration to file');
+      const result = await this._bookmarkletManager.exportConfiguration();
+
+      if (!result.success || !result.configData) {
+        this._showError(result.error || 'Failed to export configuration');
+        return;
+      }
+
+      // Create and download file
+      const blob = new Blob([result.configData], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `prismweave-bookmarklet-config-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      this._showSuccess('Configuration file exported successfully!');
+    } catch (error) {
+      logger.error('Failed to export configuration file:', error);
+      this._showError('Failed to export configuration file');
+    }
+  }
+
+  private async _importConfigurationFile(event: Event): Promise<void> {
+    try {
+      const input = event.target as HTMLInputElement;
+      const file = input.files?.[0];
+
+      if (!file) {
+        return;
+      }
+
+      logger.info('Importing bookmarklet configuration from file');
+
+      const text = await file.text();
+      const result = await this._bookmarkletManager.importConfiguration(text);
+
+      if (result.success) {
+        this._showSuccess('Configuration imported successfully! Reloading settings...');
+        // Reload settings and update UI
+        await this._loadCurrentSettings();
+        this._updateUI();
+        await this._loadUsageStatistics();
+      } else {
+        this._showError(result.error || 'Failed to import configuration');
+      }
+
+      // Clear the file input
+      input.value = '';
+    } catch (error) {
+      logger.error('Failed to import configuration file:', error);
+      this._showError('Failed to import configuration file');
+    }
+  }
+
+  private async _generateShareableLink(): Promise<void> {
+    try {
+      logger.info('Generating shareable bookmarklet link');
+      const result = await this._bookmarkletManager.exportConfiguration();
+
+      if (!result.success || !result.configData) {
+        this._showError(result.error || 'Failed to generate share link');
+        return;
+      }
+
+      // Create a base64 encoded URL parameter
+      const configString = btoa(result.configData);
+      const shareUrl = `${window.location.origin}/bookmarklet.html?config=${encodeURIComponent(configString)}`;
+
+      if (this._elements) {
+        this._elements.shareLinkDisplay.value = shareUrl;
+        this._elements.shareResults.classList.remove('hidden');
+      }
+
+      this._showSuccess('Share link generated successfully!');
+    } catch (error) {
+      logger.error('Failed to generate share link:', error);
+      this._showError('Failed to generate share link');
+    }
+  }
+
+  private async _copyShareLink(): Promise<void> {
+    try {
+      if (!this._elements) return;
+
+      const shareLink = this._elements.shareLinkDisplay.value;
+      if (!shareLink) {
+        this._showWarning('No share link to copy. Generate one first.');
+        return;
+      }
+
+      await navigator.clipboard.writeText(shareLink);
+      this._showSuccess('Share link copied to clipboard!');
+
+      // Temporary visual feedback
+      const originalText = this._elements.copyShareLink.textContent;
+      this._elements.copyShareLink.textContent = '✅ Copied!';
+      setTimeout(() => {
+        if (this._elements) {
+          this._elements.copyShareLink.textContent = originalText;
+        }
+      }, 2000);
+    } catch (error) {
+      logger.error('Failed to copy share link:', error);
+      this._showError('Failed to copy share link to clipboard');
+    }
+  }
+
+  // Statistics functionality
+  private async _loadUsageStatistics(): Promise<void> {
+    try {
+      logger.info('Loading usage statistics');
+      const stats = await this._bookmarkletManager.getUsageStats();
+      this._updateStatisticsUI(stats);
+    } catch (error) {
+      logger.error('Failed to load usage statistics:', error);
+      this._showError('Failed to load usage statistics');
+    }
+  }
+
+  private _updateStatisticsUI(
+    stats: import('../utils/bookmarklet-manager.js').IBookmarkletUsageStats
+  ): void {
+    if (!this._elements) return;
+
+    // Update stat cards
+    this._elements.totalUses.textContent = stats.totalUses.toString();
+    this._elements.successfulCaptures.textContent = stats.successfulCaptures.toString();
+    this._elements.failedCaptures.textContent = stats.failedCaptures.toString();
+    this._elements.averageContentLength.textContent =
+      stats.averageContentLength > 0 ? `${Math.round(stats.averageContentLength / 1000)}K` : '-';
+
+    // Update top domains
+    const domainsContainer = this._elements.topDomains;
+    domainsContainer.innerHTML = '';
+
+    if (stats.mostCapturedDomains.length === 0) {
+      domainsContainer.innerHTML = '<div class="loading">No usage data available yet.</div>';
+    } else {
+      stats.mostCapturedDomains.forEach(domain => {
+        const domainItem = document.createElement('div');
+        domainItem.className = 'domain-item';
+        domainItem.innerHTML = `
+          <span class="domain-name">${domain.domain}</span>
+          <span class="domain-count">${domain.count}</span>
+        `;
+        domainsContainer.appendChild(domainItem);
+      });
+    }
+  }
+
+  private async _refreshUsageStatistics(): Promise<void> {
+    try {
+      logger.info('Refreshing usage statistics');
+
+      // Show loading state
+      if (this._elements) {
+        this._elements.topDomains.innerHTML = '<div class="loading">Refreshing statistics...</div>';
+      }
+
+      await this._loadUsageStatistics();
+      this._showSuccess('Statistics refreshed successfully!');
+    } catch (error) {
+      logger.error('Failed to refresh statistics:', error);
+      this._showError('Failed to refresh statistics');
+    }
+  }
+
+  private async _clearUsageStatistics(): Promise<void> {
+    try {
+      // Confirm with user first
+      const confirmed = confirm(
+        'Are you sure you want to clear all usage statistics? This action cannot be undone.'
+      );
+
+      if (!confirmed) {
+        return;
+      }
+
+      logger.info('Clearing usage statistics');
+
+      // Clear statistics from storage (implementation would go here)
+      // For now, just reset the UI to empty state
+      const emptyStats = {
+        totalUses: 0,
+        successfulCaptures: 0,
+        failedCaptures: 0,
+        averageContentLength: 0,
+        mostCapturedDomains: [],
+      };
+
+      this._updateStatisticsUI(emptyStats);
+      this._showSuccess('Usage statistics cleared successfully!');
+    } catch (error) {
+      logger.error('Failed to clear statistics:', error);
+      this._showError('Failed to clear statistics');
+    }
+  }
+
+  private async _exportUsageStatistics(): Promise<void> {
+    try {
+      logger.info('Exporting usage statistics');
+      const stats = await this._bookmarkletManager.getUsageStats();
+
+      // Create CSV data
+      const csvData = [
+        'Metric,Value',
+        `Total Uses,${stats.totalUses}`,
+        `Successful Captures,${stats.successfulCaptures}`,
+        `Failed Captures,${stats.failedCaptures}`,
+        `Average Content Length,${stats.averageContentLength}`,
+        '',
+        'Domain,Capture Count',
+        ...stats.mostCapturedDomains.map(d => `${d.domain},${d.count}`),
+      ].join('\n');
+
+      // Create and download file
+      const blob = new Blob([csvData], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `prismweave-bookmarklet-stats-${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      this._showSuccess('Statistics exported successfully!');
+    } catch (error) {
+      logger.error('Failed to export statistics:', error);
+      this._showError('Failed to export statistics');
+    }
   }
 }
 

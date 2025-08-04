@@ -57,7 +57,13 @@
   ],
   "web_accessible_resources": [
     {
-      "resources": [],
+      "resources": [
+        "libs/turndown.min.js",
+        "bookmarklet/runtime.js",
+        "bookmarklet/bookmarklet.js",
+        "bookmarklet/template.html",
+        "bookmarklet/templates/*"
+      ],
       "matches": ["<all_urls>"]
     }
   ]
