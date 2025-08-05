@@ -104,9 +104,22 @@ export class ContentExtractionCore {
    */
   extractContent(rootElement?: Element | Document): IExtractedContent {
     const doc = rootElement || document;
+    console.log(
+      '[ContentExtractionCore] Starting extraction, document title:',
+      (doc as Document).title || 'N/A'
+    );
     const contentElement = this.findMainContent(doc);
 
     if (!contentElement) {
+      console.error(
+        '[ContentExtractionCore] No suitable content found - debugging available selectors'
+      );
+      console.log('[ContentExtractionCore] Available elements:', {
+        articles: doc.querySelectorAll('article').length,
+        mains: doc.querySelectorAll('main').length,
+        contentClasses: doc.querySelectorAll('[class*="content"]').length,
+        allElements: doc.querySelectorAll('*').length,
+      });
       throw new Error('No suitable content found');
     }
 
@@ -139,11 +152,15 @@ export class ContentExtractionCore {
    * Find the main content element using various strategies
    */
   findMainContent(doc: Element | Document): Element | null {
+    console.log('[ContentExtractionCore] Finding main content...');
+
     // Try custom selectors first
     if (this._config.customSelectors.length > 0) {
+      console.log('[ContentExtractionCore] Trying custom selectors:', this._config.customSelectors);
       for (const selector of this._config.customSelectors) {
         const element = this.safeQuerySelector(selector, doc);
         if (element && this.hasSubstantialContent(element)) {
+          console.log('[ContentExtractionCore] Found content via custom selector:', selector);
           return element;
         }
       }
@@ -159,9 +176,16 @@ export class ContentExtractionCore {
       'div[class*="content"]',
     ];
 
+    console.log('[ContentExtractionCore] Trying semantic selectors...');
     for (const selector of semanticSelectors) {
       const element = this.safeQuerySelector(selector, doc);
+      console.log(`[ContentExtractionCore] Selector '${selector}':`, {
+        found: !!element,
+        hasContent: element ? this.hasSubstantialContent(element) : false,
+        wordCount: element ? this.countWords(element.textContent || '') : 0,
+      });
       if (element && this.hasSubstantialContent(element)) {
+        console.log('[ContentExtractionCore] Found content via semantic selector:', selector);
         return element;
       }
     }

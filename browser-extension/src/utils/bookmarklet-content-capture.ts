@@ -7,11 +7,7 @@ import {
   IExtractedContent,
   IExtractionConfig,
 } from './content-extraction-core.js';
-import {
-  IConversionOptions,
-  IConversionResult,
-  MarkdownConverterCore,
-} from './markdown-converter-core.js';
+import { IConversionOptions, IConversionResult, MarkdownConverter } from './markdown-converter.js';
 
 export interface IBookmarkletCaptureOptions {
   // Content extraction options
@@ -62,7 +58,7 @@ export interface IBookmarkletCaptureResult {
 export class BookmarkletContentCapture {
   private readonly _options: IBookmarkletCaptureOptions;
   private readonly _extractor: ContentExtractionCore;
-  private readonly _converter: MarkdownConverterCore;
+  private readonly _converter: MarkdownConverter;
 
   constructor(options: Partial<IBookmarkletCaptureOptions> = {}) {
     this._options = this.normalizeOptions(options);
@@ -89,7 +85,7 @@ export class BookmarkletContentCapture {
       linkStyle: this._options.linkStyle === 'reference' ? 'referenced' : 'inlined',
     };
 
-    this._converter = new MarkdownConverterCore();
+    this._converter = new MarkdownConverter();
   }
 
   /**
@@ -100,11 +96,23 @@ export class BookmarkletContentCapture {
     const warnings: string[] = [];
 
     try {
+      console.log('[BookmarkletContentCapture] Starting capture process...');
+
       // Extract content from the current document
       const extractedContent = this._extractor.extractContent(document);
+      console.log('[BookmarkletContentCapture] Content extracted successfully:', {
+        title: extractedContent.title,
+        contentLength: extractedContent.content.length,
+        wordCount: extractedContent.metadata.wordCount,
+      });
 
       // Convert content to markdown
+      console.log('[BookmarkletContentCapture] Converting to markdown...');
       const conversionResult = this._converter.convertToMarkdown(extractedContent.content);
+      console.log('[BookmarkletContentCapture] Markdown conversion completed:', {
+        markdownLength: conversionResult.markdown.length,
+        success: !!conversionResult.markdown,
+      });
 
       // Combine warnings (conversion result doesn't have warnings in this implementation)
 
@@ -143,6 +151,11 @@ export class BookmarkletContentCapture {
         extractionTime,
       };
     } catch (error) {
+      console.error('[BookmarkletContentCapture] Capture failed with error:', error);
+      console.error(
+        '[BookmarkletContentCapture] Error stack:',
+        error instanceof Error ? error.stack : 'No stack'
+      );
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error occurred',

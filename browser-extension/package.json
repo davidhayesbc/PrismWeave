@@ -6,8 +6,10 @@
   "scripts": {
     "build": "node scripts/build-simple.js",
     "build:prod": "cross-env NODE_ENV=production node scripts/build-simple.js",
-    "build:bookmarklet": "node scripts/build-bookmarklet.js",
-    "build:bookmarklet:prod": "cross-env NODE_ENV=production node scripts/build-bookmarklet.js",
+    "build:bookmarklet": "node scripts/build-hybrid-bookmarklet.js",
+    "build:bookmarklet:dev": "node scripts/build-hybrid-bookmarklet.js --dev",
+    "build:bookmarklet:local": "node scripts/build-hybrid-bookmarklet.js --local-server=http://localhost:8080",
+    "build:bookmarklet:prod": "cross-env NODE_ENV=production node scripts/build-hybrid-bookmarklet.js",
     "dev": "node scripts/build-simple.js --watch",
     "test": "jest",
     "test:watch": "jest --watch",
@@ -23,7 +25,11 @@
     "dev-tools:setup": "cd dev-tools && npm install",
     "dev-tools:test": "cd dev-tools && npm run dev",
     "dev-tools:url": "cd dev-tools && npm run test-url",
-    "dev-tools:compare": "cd dev-tools && npm run compare"
+    "dev-tools:compare": "cd dev-tools && npm run compare",
+    "serve:local": "node scripts/serve-local.js",
+    "serve:local:dev": "node scripts/serve-local.js --port 3000",
+    "cleanup:bookmarklet": "node scripts/cleanup-bookmarklet.js",
+    "test:bookmarklet": "npm run cleanup:bookmarklet && npm run build:bookmarklet && npm run serve:local"
   },
   "keywords": [
     "browser-extension",

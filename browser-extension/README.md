@@ -223,678 +223,654 @@ git push
 
 For users who prefer a universal solution that works across all browsers
 (Chrome, Firefox, Safari, Edge, Opera) or can't install browser extensions,
-PrismWeave offers a powerful bookmarklet alternative.
+PrismWeave offers a comprehensive enhanced bookmarklet system.
 
 ### What is the PrismWeave Bookmarklet?
 
-The PrismWeave bookmarklet is a JavaScript-based tool that can be saved as a
-browser bookmark. When clicked, it extracts content from the current page,
-converts it to markdown, and saves it to your GitHub repository - all without
-requiring a browser extension.
-
-### Bookmarklet Setup
-
-#### 1. Create the Bookmarklet
-
-**Option A: Generate from Extension**
-
-1. Install the PrismWeave browser extension (if available in your browser)
-2. Open extension options
-3. Navigate to "Bookmarklet" tab
-4. Click "Generate Bookmarklet" - this creates a personalized bookmarklet with
-   your GitHub settings
-5. Drag the generated link to your bookmarks bar
-
-**Option B: Manual Creation**
-
-1. Copy the bookmarklet code below
-2. Create a new bookmark in your browser
-3. Set the name to "PrismWeave Capture"
-4. Paste the code as the URL (starting with `javascript:`)
-
-#### 2. Bookmarklet Code
-
-````javascript
-javascript: (function () {
-  /* PrismWeave Content Capture Bookmarklet v1.0 */
-  if (window.prismweaveBookmarklet) {
-    return;
-  }
-  window.prismweaveBookmarklet = true;
-
-  /* Configuration - Replace with your settings */
-  const CONFIG = {
-    githubToken: 'YOUR_GITHUB_TOKEN_HERE',
-    githubRepo: 'YOUR_USERNAME/YOUR_REPO_NAME',
-    githubBranch: 'main',
-    defaultFolder: 'documents/unsorted',
-    autoCommit: true,
-  };
-
-  /* Create UI */
-  const overlay = document.createElement('div');
-  overlay.style.cssText = `
-    position: fixed; top: 20px; right: 20px; z-index: 999999;
-    background: #2d3748; color: white; padding: 20px;
-    border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    max-width: 350px; font-size: 14px;
-  `;
-
-  const status = document.createElement('div');
-  status.innerHTML = '<strong>PrismWeave</strong><br/>Initializing...';
-  overlay.appendChild(status);
-
-  const progressBar = document.createElement('div');
-  progressBar.style.cssText = `
-    width: 100%; height: 4px; background: #4a5568;
-    border-radius: 2px; margin: 10px 0; overflow: hidden;
-  `;
-  const progress = document.createElement('div');
-  progress.style.cssText = `
-    height: 100%; background: #4299e1; width: 0%;
-    transition: width 0.3s ease;
-  `;
-  progressBar.appendChild(progress);
-  overlay.appendChild(progressBar);
-
-  const closeBtn = document.createElement('button');
-  closeBtn.textContent = '×';
-  closeBtn.style.cssText = `
-    position: absolute; top: 5px; right: 10px;
-    background: none; border: none; color: white;
-    font-size: 20px; cursor: pointer; padding: 0;
-    width: 20px; height: 20px; line-height: 1;
-  `;
-  closeBtn.onclick = () => {
-    document.body.removeChild(overlay);
-    window.prismweaveBookmarklet = false;
-  };
-  overlay.appendChild(closeBtn);
-
-  document.body.appendChild(overlay);
-
-  /* Content Extraction Functions */
-  function updateProgress(percent, message) {
-    progress.style.width = percent + '%';
-    status.innerHTML = '<strong>PrismWeave</strong><br/>' + message;
-  }
-
-  function detectMainContent() {
-    const selectors = [
-      'article',
-      'main',
-      '[role="main"]',
-      '.content',
-      '.post',
-      '.entry',
-      '.article',
-      '#content',
-      '#main',
-      '#post',
-      '#entry',
-    ];
-
-    for (const selector of selectors) {
-      const element = document.querySelector(selector);
-      if (element && element.textContent.trim().length > 200) {
-        return element;
-      }
-    }
-    return document.body;
-  }
-
-  function cleanContent(element) {
-    const clone = element.cloneNode(true);
-    const removeSelectors = [
-      'script',
-      'style',
-      'nav',
-      'header',
-      'footer',
-      '.advertisement',
-      '.ad',
-      '.ads',
-      '.popup',
-      '.modal',
-      '.social-share',
-      '.comments',
-      '.sidebar',
-    ];
-
-    removeSelectors.forEach(selector => {
-      const elements = clone.querySelectorAll(selector);
-      elements.forEach(el => el.remove());
-    });
-
-    return clone;
-  }
-
-  function htmlToMarkdown(html) {
-    let markdown = html;
-
-    /* Headers */
-    markdown = markdown.replace(
-      /<h([1-6])[^>]*>(.*?)<\/h[1-6]>/gi,
-      (match, level, content) => {
-        const headerLevel = '#'.repeat(parseInt(level));
-        return `\n${headerLevel} ${content.replace(/<[^>]*>/g, '').trim()}\n`;
-      }
-    );
-
-    /* Paragraphs */
-    markdown = markdown.replace(/<p[^>]*>(.*?)<\/p>/gi, '\n$1\n');
-
-    /* Bold/Strong */
-    markdown = markdown.replace(
-      /<(strong|b)[^>]*>(.*?)<\/(strong|b)>/gi,
-      '**$2**'
-    );
-
-    /* Italic/Emphasis */
-    markdown = markdown.replace(/<(em|i)[^>]*>(.*?)<\/(em|i)>/gi, '*$2*');
-
-    /* Links */
-    markdown = markdown.replace(
-      /<a[^>]*href=["']([^"']*)["'][^>]*>(.*?)<\/a>/gi,
-      '[$2]($1)'
-    );
-
-    /* Images */
-    markdown = markdown.replace(
-      /<img[^>]*src=["']([^"']*)["'][^>]*alt=["']([^"']*)["'][^>]*>/gi,
-      '![$2]($1)'
-    );
-    markdown = markdown.replace(
-      /<img[^>]*src=["']([^"']*)["'][^>]*>/gi,
-      '![]($1)'
-    );
-
-    /* Lists */
-    markdown = markdown.replace(/<ul[^>]*>(.*?)<\/ul>/gis, (match, content) => {
-      const items = content.replace(/<li[^>]*>(.*?)<\/li>/gi, '- $1\n');
-      return `\n${items}\n`;
-    });
-
-    /* Code blocks */
-    markdown = markdown.replace(
-      /<pre[^>]*><code[^>]*>(.*?)<\/code><\/pre>/gis,
-      '\n```\n$1\n```\n'
-    );
-    markdown = markdown.replace(/<code[^>]*>(.*?)<\/code>/gi, '`$1`');
-
-    /* Line breaks */
-    markdown = markdown.replace(/<br[^>]*>/gi, '\n');
-
-    /* Remove remaining HTML */
-    markdown = markdown.replace(/<[^>]*>/g, '');
-
-    /* Clean up whitespace */
-    markdown = markdown.replace(/\n\s*\n\s*\n/g, '\n\n').trim();
-
-    return markdown;
-  }
-
-  function generateFrontmatter(metadata) {
-    const frontmatter = [
-      '---',
-      `title: '${metadata.title.replace(/'/g, "''")}'`,
-      `url: '${metadata.url}'`,
-      `domain: '${metadata.domain}'`,
-      `captured_at: '${new Date().toISOString()}'`,
-    ];
-
-    if (metadata.author) {
-      frontmatter.push(`author: '${metadata.author.replace(/'/g, "''")}'`);
-    }
-
-    if (metadata.description) {
-      frontmatter.push(
-        `description: '${metadata.description.replace(/'/g, "''")}'`
-      );
-    }
-
-    if (metadata.keywords && metadata.keywords.length > 0) {
-      frontmatter.push(
-        `keywords: [${metadata.keywords.map(k => `'${k}'`).join(', ')}]`
-      );
-    }
-
-    frontmatter.push('---', '');
-    return frontmatter.join('\n');
-  }
-
-  function extractMetadata() {
-    const getMetaContent = name => {
-      const meta = document.querySelector(
-        `meta[name="${name}"], meta[property="${name}"]`
-      );
-      return meta ? meta.getAttribute('content') : null;
-    };
-
-    const title =
-      document.title ||
-      getMetaContent('og:title') ||
-      getMetaContent('twitter:title') ||
-      'Untitled Page';
-
-    const author =
-      getMetaContent('author') ||
-      getMetaContent('article:author') ||
-      document.querySelector('[rel="author"]')?.textContent?.trim();
-
-    const description =
-      getMetaContent('description') ||
-      getMetaContent('og:description') ||
-      getMetaContent('twitter:description');
-
-    const keywords =
-      getMetaContent('keywords')
-        ?.split(',')
-        .map(k => k.trim()) || [];
-
-    return {
-      title,
-      url: window.location.href,
-      domain: window.location.hostname,
-      author,
-      description,
-      keywords,
-    };
-  }
-
-  async function saveToGitHub(content, filename) {
-    const api = `https://api.github.com/repos/${CONFIG.githubRepo}/contents/${CONFIG.defaultFolder}/${filename}`;
-
-    /* Check if file exists */
-    let existingSha = null;
-    try {
-      const existing = await fetch(api, {
-        headers: { Authorization: `token ${CONFIG.githubToken}` },
-      });
-      if (existing.ok) {
-        const data = await existing.json();
-        existingSha = data.sha;
-      }
-    } catch (e) {
-      /* File doesn't exist, which is fine */
-    }
-
-    const commitData = {
-      message: `Add captured article: ${filename}`,
-      content: btoa(unescape(encodeURIComponent(content))),
-      branch: CONFIG.githubBranch,
-    };
-
-    if (existingSha) {
-      commitData.sha = existingSha;
-    }
-
-    const response = await fetch(api, {
-      method: 'PUT',
-      headers: {
-        Authorization: `token ${CONFIG.githubToken}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(commitData),
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(`GitHub API error: ${error.message}`);
-    }
-
-    return await response.json();
-  }
-
-  function generateFilename(title, domain) {
-    const date = new Date().toISOString().split('T')[0];
-    const cleanTitle = title
-      .toLowerCase()
-      .replace(/[^a-z0-9\s-]/g, '')
-      .replace(/\s+/g, '-')
-      .substring(0, 50);
-    const cleanDomain = domain.replace(/[^a-z0-9.-]/g, '');
-    return `${date}-${cleanDomain}-${cleanTitle}.md`;
-  }
-
-  /* Main Execution */
-  async function captureContent() {
-    try {
-      updateProgress(10, 'Extracting page content...');
-
-      const mainContent = detectMainContent();
-      const cleanedContent = cleanContent(mainContent);
-
-      updateProgress(30, 'Converting to markdown...');
-
-      const markdown = htmlToMarkdown(cleanedContent.innerHTML);
-      const metadata = extractMetadata();
-
-      updateProgress(50, 'Generating frontmatter...');
-
-      const frontmatter = generateFrontmatter(metadata);
-      const document = frontmatter + '\n' + markdown;
-
-      updateProgress(70, 'Saving to GitHub...');
-
-      const filename = generateFilename(metadata.title, metadata.domain);
-      const result = await saveToGitHub(document, filename);
-
-      updateProgress(
-        100,
-        `✅ Saved successfully!<br/><small>File: ${filename}</small>`
-      );
-
-      /* Show success for 3 seconds, then close */
-      setTimeout(() => {
-        if (overlay.parentNode) {
-          document.body.removeChild(overlay);
-          window.prismweaveBookmarklet = false;
-        }
-      }, 3000);
-    } catch (error) {
-      updateProgress(
-        0,
-        `❌ Error: ${error.message}<br/><small>Check console for details</small>`
-      );
-      console.error('PrismWeave Bookmarklet Error:', error);
-    }
-  }
-
-  /* Validate configuration */
-  if (!CONFIG.githubToken || CONFIG.githubToken === 'YOUR_GITHUB_TOKEN_HERE') {
-    updateProgress(
-      0,
-      '❌ Configuration required<br/><small>Please set your GitHub token in the bookmarklet code</small>'
-    );
-    return;
-  }
-
-  if (
-    !CONFIG.githubRepo ||
-    CONFIG.githubRepo === 'YOUR_USERNAME/YOUR_REPO_NAME'
-  ) {
-    updateProgress(
-      0,
-      '❌ Configuration required<br/><small>Please set your GitHub repository in the bookmarklet code</small>'
-    );
-    return;
-  }
-
-  /* Start capture */
-  captureContent();
-})();
-````
-
-#### 3. Customize Your Bookmarklet
-
-Before using the bookmarklet, you must customize it with your GitHub settings:
-
-1. **Replace `YOUR_GITHUB_TOKEN_HERE`** with your actual GitHub Personal Access
-   Token
-2. **Replace `YOUR_USERNAME/YOUR_REPO_NAME`** with your repository (e.g.,
-   `johndoe/my-documents`)
-3. **Adjust other settings** as needed:
-   - `githubBranch`: Target branch (default: `main`)
-   - `defaultFolder`: Where to save files (default: `documents/unsorted`)
-   - `autoCommit`: Whether to commit automatically (default: `true`)
-
-### Using the Bookmarklet
-
-#### Basic Usage
+The PrismWeave bookmarklet is a sophisticated JavaScript-based tool that can be
+saved as a browser bookmark. When clicked, it extracts content from the current
+page, converts it to markdown, and saves it to your GitHub repository - all
+without requiring a browser extension. The system features intelligent content
+analysis, quality assessment, and enhanced error handling.
+
+### Enhanced Bookmarklet System
+
+PrismWeave now offers **two versions** of the bookmarklet:
+
+#### 🚀 Standard Version (53KB)
+
+- Core content extraction and GitHub sync
+- Smart content detection and cleanup
+- Basic markdown conversion
+- Configuration dialog and progress tracking
+
+#### ⭐ Enhanced Version (60KB)
+
+- **Everything in Standard, plus:**
+- Smart content quality assessment
+- Enhanced document metadata extraction
+- Quick mode for faster processing
+- Advanced error handling with suggestions
+- Browser notifications support
+- Analytics tracking (privacy-conscious)
+
+### Installation Options
+
+#### Option 1: Interactive Installation Page (Recommended)
+
+Visit our hosted installation page for the easiest setup experience:
+
+**[📖 Install PrismWeave Bookmarklet](dist/bookmarklet/install.html)**
+
+The installation page features:
+
+- **Version Selection**: Choose between Standard and Enhanced versions
+- **Interactive Configuration**: Test your GitHub connection before saving
+- **Size Analysis**: Understand bookmarklet size implications
+- **Device Compatibility**: Optimized for desktop and mobile browsers
+- **Troubleshooting Guide**: Built-in help and diagnostics
+
+#### Option 2: Build Your Own
+
+For developers or users who want to customize the bookmarklet:
+
+```bash
+# Build the hybrid bookmarklet system
+cd browser-extension
+node scripts/build-hybrid-bookmarklet.js
+
+# Generated files will be in dist/bookmarklet/
+# - install.html (full-featured installation page)
+# - install-simple.html (simple installation page)
+# - Both standard and enhanced bookmarklet versions
+```
+
+### Current Size Considerations
+
+**Important:** Both bookmarklet versions exceed typical size limits:
+
+- **Standard**: 53KB (75KB encoded)
+- **Enhanced**: 60KB (84KB encoded)
+- **Typical Limit**: ~2KB for most browsers
+
+**Recommended Approach**: For production use, consider implementing the hybrid
+loader pattern:
+
+1. Create a lightweight (~800 character) loader bookmarklet
+2. Loader dynamically fetches full functionality from your website
+3. Maintains all features while staying within browser limits
+
+### Using the PrismWeave Bookmarklet
+
+#### First-Time Configuration
+
+When you use either bookmarklet version for the first time, you'll see a modern
+configuration dialog:
+
+1. **GitHub Personal Access Token**: Your token with repository access
+2. **GitHub Repository**: Your repository in format `username/repo-name`
+3. **Optional Advanced Settings**:
+   - **Branch**: Target branch (default: `main`)
+   - **Folder Path**: Where to save files (default: `documents`)
+   - **Auto Commit**: Whether to save automatically (default: enabled)
+   - **Quick Mode**: Faster processing with basic extraction (Enhanced version
+     only)
+
+#### Enhanced Features (Enhanced Version Only)
+
+**Smart Quality Assessment:**
+
+- Analyzes page content quality and reading complexity
+- Provides feedback on extraction confidence
+- Suggests manual review for low-quality captures
+
+**Advanced Document Processing:**
+
+- Enhanced metadata extraction including reading time estimates
+- Smarter filename generation based on content analysis
+- Better handling of complex page structures
+
+**User Experience Improvements:**
+
+- Browser desktop notifications for capture completion
+- More detailed progress tracking and status updates
+- Enhanced error messages with actionable suggestions
+- Analytics tracking for usage insights (privacy-focused)
+
+#### Basic Usage Workflow
 
 1. **Navigate** to any web page you want to capture
-2. **Click** the "PrismWeave Capture" bookmark in your bookmarks bar
-3. **Wait** for the overlay to show progress
-4. **Content is automatically extracted and saved** to your GitHub repository
+2. **Click** the "PrismWeave Capture" bookmark
+3. **Configure** (first time only): Fill in the setup dialog
+4. **Monitor Progress**: Watch the modern overlay showing extraction progress
+5. **Review Results**: Get notified when capture completes with commit link
 
-#### Bookmarklet Interface
+#### What Each Version Does
 
-The bookmarklet displays a small overlay with:
+**Content Processing Pipeline:**
 
-- **Progress indicator**: Shows current step and completion percentage
-- **Status messages**: Real-time feedback on processing
-- **Close button**: Manual close option (auto-closes on success)
-- **Error handling**: Clear error messages with troubleshooting hints
+1. **Page Analysis**: Detects content type and optimal extraction strategy
+2. **Smart Extraction**: Uses semantic selectors to find main content
+3. **Content Cleaning**: Removes ads, navigation, and clutter elements
+4. **Markdown Conversion**: Converts HTML to clean, formatted markdown
+5. **Metadata Generation**: Extracts comprehensive document metadata
+6. **Quality Assessment**: (Enhanced only) Evaluates content completeness
+7. **GitHub Integration**: Commits file with descriptive commit message
+8. **User Feedback**: Shows success notification with repository link
 
-#### What the Bookmarklet Does
+### Enhanced Bookmarklet Features
 
-1. **Content Detection**: Automatically finds the main content area using
-   semantic HTML
-2. **Content Cleaning**: Removes ads, navigation, sidebars, and other clutter
-3. **Markdown Conversion**: Converts HTML to clean, formatted markdown
-4. **Metadata Extraction**: Pulls title, author, description, and keywords
-5. **Frontmatter Generation**: Creates YAML frontmatter with metadata
-6. **GitHub Integration**: Commits the file directly to your repository
-7. **File Naming**: Generates descriptive filenames with date and source
+#### Content Processing Capabilities
 
-### Bookmarklet Features
+**Smart Content Detection & Analysis:**
 
-#### Content Processing
+- Multi-strategy content extraction using semantic HTML selectors
+- Content quality assessment with confidence scoring
+- Automatic detection of article structure and reading flow
+- Intelligent handling of single-page applications (SPAs)
 
-- **Smart Content Detection**: Uses multiple strategies to find main content
-- **Ad/Clutter Removal**: Automatically removes common unwanted elements
-- **Markdown Conversion**: Handles headers, paragraphs, lists, links, images,
-  and code
-- **Metadata Extraction**: Captures Open Graph, Twitter Card, and standard meta
-  tags
+**Advanced Content Cleaning:**
 
-#### File Management
+- Removes ads, navigation, sidebars, and promotional content
+- Filters out comment sections and social sharing widgets
+- Handles complex CSS layouts and framework-specific structures
+- Preserves essential formatting while removing visual clutter
 
-- **Intelligent Filename Generation**: `YYYY-MM-DD-domain-title.md` format
-- **Automatic Folder Organization**: Configurable target folders
-- **Frontmatter Generation**: YAML headers with comprehensive metadata
-- **Duplicate Handling**: Updates existing files if they already exist
+**Professional Markdown Conversion:**
 
-#### Error Handling
+- Handles headers, paragraphs, lists, links, images, and code blocks
+- Maintains proper markdown syntax and formatting
+- Converts HTML tables to markdown table format
+- Preserves code syntax highlighting information
 
-- **Configuration Validation**: Checks for required settings before processing
-- **Network Error Handling**: Graceful handling of GitHub API issues
-- **Content Validation**: Ensures substantial content before processing
-- **User Feedback**: Clear error messages and troubleshooting guidance
+**Comprehensive Metadata Extraction:**
 
-### Bookmarklet Testing
+- Captures Open Graph, Twitter Card, and JSON-LD structured data
+- Extracts author information, publication dates, and descriptions
+- Analyzes reading time and word count statistics
+- Identifies content categories and relevant keywords
 
-#### Test Setup
+#### File Management & Organization
 
-1. **Create a test repository** on GitHub for testing
-2. **Use a test token** with limited permissions initially
-3. **Test on simple pages** first (blog posts, articles)
-4. **Verify output** in your repository
+**Intelligent File Naming:**
 
-#### Test Procedure
+- `YYYY-MM-DD-domain-title.md` format for chronological organization
+- Automatic filename sanitization and length optimization
+- Handles international characters and special symbols
+- Prevents filename conflicts with automatic incrementing
+
+**Smart Folder Organization:**
+
+- Configurable target folders with automatic category detection
+- Support for nested folder structures (e.g., `documents/tech/articles`)
+- Date-based organization options (e.g., `2025/08/article-name.md`)
+- Custom folder mapping based on content type or source domain
+
+**Enhanced Frontmatter Generation:**
+
+```yaml
+---
+title: 'Complete Article Title'
+url: 'https://example.com/full-url'
+domain: 'example.com'
+author: 'Author Name'
+published_date: '2025-08-04'
+captured_at: '2025-08-04T15:30:45.123Z'
+description: 'Article summary and description'
+keywords: ['keyword1', 'keyword2', 'keyword3']
+category: 'tech'
+content_type: 'article'
+reading_time: '8 min'
+word_count: 1847
+quality_score: 0.92
+language: 'en'
+tags: ['technology', 'development', 'best-practices']
+---
+```
+
+#### Advanced User Experience (Enhanced Version)
+
+**Smart Quality Assessment:**
+
+- Content completeness scoring (0.0 - 1.0 scale)
+- Reading complexity analysis
+- Extraction confidence indicators
+- Recommendations for manual review when needed
+
+**Enhanced Error Handling:**
+
+- Contextual error messages with specific troubleshooting steps
+- Automatic retry mechanisms for transient failures
+- Fallback extraction methods for difficult pages
+- GitHub API error interpretation and suggested fixes
+
+**Modern Interface Design:**
+
+- Responsive overlay design that works on desktop and mobile
+- Real-time progress indicators with step-by-step feedback
+- Smooth animations and transitions for better user experience
+- Accessibility features including keyboard navigation and screen reader support
+
+**Browser Integration:**
+
+- Desktop notifications for capture completion (with permission)
+- Automatic commit link opening in new tab
+- Respectful of user's notification preferences
+- Works seamlessly across all major browsers
+
+### Testing Your Enhanced Bookmarklet
+
+#### Recommended Testing Approach
+
+**Phase 1: Initial Setup Testing**
+
+1. **Create a test repository** on GitHub specifically for bookmarklet testing
+2. **Generate a test token** with limited repository permissions initially
+3. **Use the installation page** to configure and test your GitHub connection
+4. **Test on simple content** first (clean blog posts, documentation pages)
+
+**Phase 2: Content Type Testing**
+
+Test the bookmarklet on various content types to validate extraction quality:
+
+| Content Type        | Test Site Examples              | Expected Quality Score | Notes                   |
+| ------------------- | ------------------------------- | ---------------------- | ----------------------- |
+| **Clean Articles**  | Medium, Dev.to, personal blogs  | 0.85 - 1.0             | Should work excellently |
+| **Technical Docs**  | GitHub wikis, API documentation | 0.80 - 0.95            | May need manual review  |
+| **News Articles**   | Major news sites                | 0.70 - 0.90            | Variable due to ads     |
+| **Complex Sites**   | E-commerce, social media        | 0.40 - 0.70            | Use Enhanced version    |
+| **Academic Papers** | arXiv, research journals        | 0.75 - 0.95            | Good structure usually  |
+
+#### Built-in Testing Tools
+
+**GitHub Connection Test:**
+
+The installation page includes a built-in connection tester that validates:
+
+- GitHub token authenticity and permissions
+- Repository existence and write access
+- API rate limit status and availability
+- Network connectivity and firewall restrictions
+
+**Content Quality Preview:**
+
+Enhanced version provides real-time feedback:
+
+- Content quality score (0.0 - 1.0 scale)
+- Extraction confidence level
+- Word count and reading time estimates
+- Identification of potential issues before saving
+
+#### Advanced Testing Scenarios
+
+**Hybrid Loader Testing (Future Implementation):**
+
+For production deployment, test the hybrid loader approach:
 
 ```javascript
-// Test the bookmarklet configuration
+// Lightweight loader bookmarklet (~800 characters)
 javascript: (function () {
-  const CONFIG = {
-    githubToken: 'YOUR_TOKEN',
-    githubRepo: 'YOUR_REPO',
-    githubBranch: 'main',
-    defaultFolder: 'test-captures',
-  };
-
-  // Test GitHub API connection
-  fetch(`https://api.github.com/repos/${CONFIG.githubRepo}`, {
-    headers: { Authorization: `token ${CONFIG.githubToken}` },
-  })
-    .then(response => response.json())
-    .then(data => {
-      if (data.name) {
-        alert(
-          `✅ Configuration test passed!\nRepository: ${data.full_name}\nAccess: ${data.permissions ? 'Full' : 'Read-only'}`
-        );
-      } else {
-        alert(`❌ Configuration test failed!\nError: ${data.message}`);
-      }
-    })
-    .catch(error => {
-      alert(`❌ Network error: ${error.message}`);
-    });
+  if (window.PrismWeaveLoader) return;
+  window.PrismWeaveLoader = true;
+  const script = document.createElement('script');
+  script.src = 'https://yoursite.com/prismweave-enhanced.js';
+  script.onload = () => PrismWeave.init();
+  script.onerror = () => alert('Failed to load PrismWeave');
+  document.head.appendChild(script);
 })();
 ```
 
-#### Common Test Scenarios
+This approach:
 
-1. **Simple Blog Post**: Test on a clean blog post or article
-2. **Complex Page**: Test on pages with lots of ads and navigation
-3. **Documentation**: Test on technical documentation sites
-4. **News Article**: Test on news websites with complex layouts
-5. **Academic Paper**: Test on research papers or academic content
+- Stays well within bookmarklet size limits
+- Loads full functionality from your website
+- Maintains all enhanced features
+- Provides better update mechanisms
 
-### Advanced Bookmarklet Customization
+### Advanced Customization Options
 
-#### Custom Content Selectors
+#### Site-Specific Extraction Rules
+
+The enhanced bookmarklet system supports advanced customization through
+configuration:
 
 ```javascript
-// Add to bookmarklet configuration
-const CUSTOM_SELECTORS = {
+// Advanced site-specific rules (configured via installation page)
+const SITE_RULES = {
   'medium.com': {
-    article: 'article',
-    title: 'h1',
-    exclude: ['.follow-button', '.clap-button'],
+    selectors: {
+      article: 'article',
+      title: 'h1',
+      author: '[rel="author"]',
+      content: '.post-content',
+    },
+    exclude: ['.follow-button', '.clap-button', '.response-count'],
+    quality_bonus: 0.1, // Boost quality score for known good sites
+    category: 'articles',
   },
   'dev.to': {
-    article: '#article-body',
-    title: '.crayons-article__header h1',
-    exclude: ['.reaction-button'],
+    selectors: {
+      article: '#article-body',
+      title: '.crayons-article__header h1',
+      author: '.crayons-article__subheader a',
+    },
+    exclude: ['.reaction-button', '.comment-subscription'],
+    preserve_code: true,
+    category: 'tech',
+  },
+  'github.com': {
+    selectors: {
+      content: '.markdown-body, .Box-body',
+    },
+    preserve_formatting: true,
+    include_links: true,
+    category: 'reference',
   },
 };
 ```
 
-#### Enhanced File Naming
+#### Custom Filename Generation
+
+Configure advanced filename patterns through the installation interface:
 
 ```javascript
-// Custom filename generation
-function generateFilename(title, domain, metadata) {
-  const date = new Date().toISOString().split('T')[0];
-  const category = detectCategory(domain, title);
-  const cleanTitle = title
-    .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, '')
-    .replace(/\s+/g, '-')
-    .substring(0, 40);
-
-  return `${date}-${category}-${domain}-${cleanTitle}.md`;
-}
-
-function detectCategory(domain, title) {
-  const techDomains = ['github.com', 'stackoverflow.com', 'dev.to'];
-  const newsDomains = ['cnn.com', 'bbc.com', 'reuters.com'];
-
-  if (techDomains.some(d => domain.includes(d))) return 'tech';
-  if (newsDomains.some(d => domain.includes(d))) return 'news';
-  return 'general';
-}
+// Available filename templates
+const FILENAME_PATTERNS = {
+  standard: 'YYYY-MM-DD-domain-title.md',
+  categorized: 'category/YYYY-MM-DD-title.md',
+  author: 'YYYY-MM-DD-author-title.md',
+  hierarchical: 'domain/YYYY/MM/DD-title.md',
+  simple: 'title-YYYY-MM-DD.md',
+};
 ```
 
 #### Multi-Repository Support
 
+Advanced users can configure repository routing based on content analysis:
+
 ```javascript
-// Repository selection based on content type
-const REPO_CONFIG = {
+// Repository selection based on detected content type
+const REPOSITORY_ROUTING = {
   tech: {
     repo: 'username/tech-docs',
     folder: 'articles',
+    commit_template: '📚 Add tech article: {title}',
   },
   news: {
     repo: 'username/news-clips',
-    folder: 'daily',
+    folder: 'daily/{YYYY}/{MM}',
+    commit_template: '📰 {date}: {title} ({domain})',
+  },
+  research: {
+    repo: 'username/research-papers',
+    folder: 'papers/{category}',
+    commit_template: '🔬 Add research: {title}',
   },
   default: {
     repo: 'username/general-docs',
     folder: 'unsorted',
+    commit_template: '📄 Capture: {title}',
   },
 };
 ```
 
-### Bookmarklet vs Extension Comparison
+#### Analytics and Performance Tracking
 
-| Feature                   | Browser Extension     | Bookmarklet             |
-| ------------------------- | --------------------- | ----------------------- |
-| **Installation**          | Chrome Web Store      | Copy/paste code         |
-| **Browser Support**       | Chrome, Edge, Firefox | All browsers            |
-| **Setup Complexity**      | Simple (UI-guided)    | Moderate (code editing) |
-| **Background Processing** | Yes                   | No                      |
-| **Context Menu**          | Yes                   | No                      |
-| **Keyboard Shortcuts**    | Yes                   | No                      |
-| **Settings Persistence**  | Full                  | Limited                 |
-| **Updates**               | Automatic             | Manual                  |
-| **Security**              | Sandboxed             | Runs on page            |
-| **Performance**           | Optimized             | Good                    |
-| **Customization**         | UI options            | Code modification       |
-
-### Bookmarklet Troubleshooting
-
-#### Common Issues
-
-**1. Configuration Errors**
-
-```
-❌ Configuration required - Please set your GitHub token
-```
-
-- Ensure you've replaced `YOUR_GITHUB_TOKEN_HERE` with your actual token
-- Verify the token has `repo` permissions
-- Check that the repository name is in `owner/repo` format
-
-**2. GitHub API Errors**
-
-```
-❌ GitHub API error: Bad credentials
-```
-
-- Token may be expired or invalid
-- Check token permissions include repository access
-- Verify repository exists and is accessible
-
-**3. Content Extraction Issues**
-
-```
-❌ No substantial content found
-```
-
-- Page may be primarily JavaScript-rendered
-- Try waiting for page to fully load before clicking bookmarklet
-- Some pages may have unusual content structures
-
-**4. Network Errors**
-
-```
-❌ Network error: Failed to fetch
-```
-
-- Check internet connection
-- GitHub API may be temporarily unavailable
-- Corporate firewalls may block GitHub API access
-
-#### Debug Mode
-
-Add this debug version for troubleshooting:
+The Enhanced version includes privacy-conscious analytics:
 
 ```javascript
-// Debug version - logs to console
+// Local analytics (never leaves your browser)
+const ANALYTICS_CONFIG = {
+  track_capture_time: true,
+  track_content_types: true,
+  track_success_rates: true,
+  track_site_performance: true,
+  generate_monthly_reports: true,
+  export_data: true, // For personal analysis
+};
+```
+
+### Enhanced Bookmarklet vs Extension Comparison
+
+| Feature                      | Browser Extension       | Enhanced Bookmarklet      | Standard Bookmarklet    |
+| ---------------------------- | ----------------------- | ------------------------- | ----------------------- |
+| **Installation**             | Chrome Web Store        | Copy/paste or installer   | Copy/paste or installer |
+| **Browser Support**          | Chrome, Edge, Firefox   | All browsers              | All browsers            |
+| **Setup Complexity**         | Simple (UI-guided)      | Moderate (config page)    | Moderate (config page)  |
+| **Background Processing**    | Yes                     | No                        | No                      |
+| **Context Menu**             | Yes                     | No                        | No                      |
+| **Keyboard Shortcuts**       | Yes                     | No                        | No                      |
+| **Settings Persistence**     | Full                    | localStorage              | localStorage            |
+| **Content Quality Analysis** | Basic                   | **Advanced**              | Basic                   |
+| **Error Handling**           | Good                    | **Enhanced**              | Basic                   |
+| **User Notifications**       | Extension notifications | **Desktop notifications** | Basic alerts            |
+| **Analytics Tracking**       | None                    | **Privacy-focused**       | None                    |
+| **Updates**                  | Automatic               | Manual page refresh       | Manual page refresh     |
+| **Security**                 | Sandboxed               | Page context              | Page context            |
+| **Performance**              | Optimized               | Good                      | Good                    |
+| **Customization**            | UI options              | Advanced configuration    | Basic configuration     |
+| **File Size**                | Extension package       | 60KB encoded              | 53KB encoded            |
+| **Quick Mode**               | No                      | **Yes**                   | No                      |
+
+### Production Deployment Considerations
+
+#### Size Limitation Strategy
+
+Both bookmarklet versions exceed typical browser limits. For production
+deployment, consider:
+
+**Hybrid Loader Approach (Recommended):**
+
+```javascript
+// Ultra-light loader (~800 chars)
 javascript: (function () {
-  console.log('PrismWeave Debug Mode');
-  window.PRISMWEAVE_DEBUG = true;
-  // ... rest of bookmarklet code with console.log statements
+  const s = document.createElement('script');
+  s.src = 'https://yoursite.com/prismweave.js';
+  s.onload = () => window.PrismWeave?.init();
+  document.head.appendChild(s);
 })();
 ```
 
-#### Performance Optimization
+**Benefits of Hybrid Approach:**
 
-For better performance on complex pages:
+- ✅ Stays within all browser bookmarklet size limits
+- ✅ Loads full Enhanced functionality from your website
+- ✅ Easy updates by updating hosted file
+- ✅ Better caching and performance
+- ✅ Analytics and usage tracking capabilities
+- ✅ A/B testing different versions
+
+#### Hosting Requirements
+
+For hybrid deployment, you'll need:
+
+- Static file hosting (GitHub Pages, Netlify, Vercel)
+- HTTPS support (required for GitHub API)
+- CORS headers configured properly
+- CDN for global performance (optional)
+
+### Enhanced Bookmarklet Troubleshooting
+
+#### Common Issues & Solutions
+
+**1. Configuration & Authentication**
+
+```
+❌ GitHub authentication failed - Invalid or expired token
+```
+
+**Solutions:**
+
+- **Verify Token**: Use the built-in connection tester on the installation page
+- **Check Permissions**: Ensure token has `repo` scope for full repository
+  access
+- **Token Format**: Confirm you're using a classic token (starts with `ghp_`)
+- **Expiration**: Check if token has expired in GitHub settings
+
+**Enhanced Diagnostic Features:**
+
+- Real-time connection testing during configuration
+- Detailed error messages with specific GitHub API response codes
+- Automatic retry with exponential backoff for transient failures
+
+---
+
+**2. Content Extraction Problems**
+
+```
+❌ Low quality content detected (Score: 0.3/1.0)
+⚠️ Content extraction confidence low - Manual review recommended
+```
+
+**Enhanced Version Solutions:**
+
+- **Quality Assessment**: Check the quality score and confidence indicators
+- **Quick Mode**: Try enabling Quick Mode for faster, simpler extraction
+- **Site-Specific Rules**: Configure custom extraction rules for problematic
+  sites
+- **Manual Verification**: Use the preview feature to verify content before
+  saving
+
+**Common Extraction Issues:**
+
+- JavaScript-heavy sites: Wait longer before clicking bookmarklet
+- Paywall content: May only capture preview text
+- Complex layouts: Enhanced version has better fallback strategies
+
+---
+
+**3. GitHub API & Network Issues**
+
+```
+❌ GitHub API rate limit exceeded (Retry after: 1234567890)
+❌ Network error: Failed to reach GitHub API
+```
+
+**Enhanced Error Handling:**
+
+- **Rate Limit Management**: Automatic retry scheduling with countdown display
+- **Network Diagnostics**: Tests connectivity and suggests firewall/proxy
+  solutions
+- **API Status Monitoring**: Checks GitHub API status and reports service issues
+- **Fallback Strategies**: Queues captures for retry when network recovers
+
+---
+
+**4. Browser-Specific Issues**
+
+```
+❌ Bookmarklet size exceeds browser limit
+⚠️ Some browsers may not support large bookmarklets
+```
+
+**Solutions by Browser:**
+
+- **Chrome/Edge**: Usually supports larger bookmarklets (~64KB)
+- **Firefox**: May have stricter limits (~8KB)
+- **Safari**: Most restrictive limits (~2KB)
+- **Mobile Browsers**: Generally more restrictive
+
+**Recommended Fix**: Use the hybrid loader approach for universal compatibility
+
+---
+
+**5. Performance & Memory Issues**
+
+```
+⚠️ Large page detected - Processing may take longer
+❌ Page processing timeout after 30 seconds
+```
+
+**Enhanced Performance Features:**
+
+- **Adaptive Timeout**: Automatically extends timeout for complex pages
+- **Memory Management**: Efficient processing with cleanup mechanisms
+- **Progress Tracking**: Real-time feedback on processing stages
+- **Quick Mode**: Simplified extraction for faster processing
+
+#### Advanced Debugging Tools
+
+**Built-in Debug Mode:**
+
+The Enhanced version includes comprehensive debugging:
 
 ```javascript
-// Optimized version for large pages
-const CONFIG = {
-  // ... your config
-  maxContentLength: 50000, // Limit content size
-  timeout: 30000, // 30 second timeout
-  enableCache: true, // Cache common operations
-};
+// Enable debug mode (accessible via installation page)
+localStorage.setItem('prismweave-debug', 'true');
+
+// Debug information includes:
+// - Content extraction timeline
+// - Quality assessment breakdown
+// - GitHub API request/response details
+// - Performance metrics and memory usage
+// - Error stack traces with context
 ```
+
+**Performance Analysis:**
+
+```javascript
+// View performance metrics (Enhanced version)
+console.log(PrismWeave.getPerformanceMetrics());
+
+// Output example:
+// {
+//   averageCaptureTime: 4200,
+//   successRate: 0.94,
+//   qualityScoreAverage: 0.78,
+//   mostProblematicSites: ['example.com'],
+//   topCategories: ['tech', 'news', 'articles']
+// }
+```
+
+#### Expert-Level Troubleshooting
+
+**Custom Extraction Rules Testing:**
+
+```javascript
+// Test custom rules on current page
+PrismWeave.testExtractionRules({
+  selectors: {
+    title: 'h1, .title, [data-title]',
+    content: 'article, .content, .post-body',
+  },
+  exclude: ['.ads', '.sidebar', '.comments'],
+});
+```
+
+**Manual Content Inspection:**
+
+```javascript
+// Inspect detected content elements
+PrismWeave.inspectPageStructure();
+
+// View quality assessment details
+PrismWeave.assessContentQuality(document.body);
+```
+
+#### Getting Additional Help
+
+**Self-Diagnostic Report:**
+
+The Enhanced version can generate comprehensive diagnostic reports:
+
+```javascript
+// Generate diagnostic report (Enhanced version only)
+PrismWeave.generateDiagnosticReport();
+
+// Includes:
+// - Browser and environment details
+// - Configuration settings (tokens redacted)
+// - Recent capture history and success rates
+// - Performance metrics and error logs
+// - Network connectivity test results
+```
+
+**Community Support:**
+
+- **GitHub Issues**: Report bugs with diagnostic information
+- **Feature Requests**: Suggest improvements based on usage patterns
+- **Configuration Help**: Share anonymized configs for troubleshooting
+- **Site-Specific Issues**: Contribute extraction rules for problematic sites
 
 ### Bookmarklet Security Considerations
 
