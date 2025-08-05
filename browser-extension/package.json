@@ -26,8 +26,8 @@
     "dev-tools:test": "cd dev-tools && npm run dev",
     "dev-tools:url": "cd dev-tools && npm run test-url",
     "dev-tools:compare": "cd dev-tools && npm run compare",
-    "serve:local": "node scripts/serve-local.js",
-    "serve:local:dev": "node scripts/serve-local.js --port 3000",
+    "serve:local": "node scripts/serve-local.js --port 8080",
+    "serve:local:dev": "node scripts/serve-local.js --port 8080",
     "cleanup:bookmarklet": "node scripts/cleanup-bookmarklet.js",
     "test:bookmarklet": "npm run cleanup:bookmarklet && npm run build:bookmarklet && npm run serve:local"
   },

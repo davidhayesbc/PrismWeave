@@ -64,9 +64,9 @@ export class GitHubAPIClient {
    * @param skipExistenceCheck If true, skips checking if file exists (avoids 404 in network tab)
    */
   async commitFile(
-    path: string, 
-    content: string, 
-    message: string, 
+    path: string,
+    content: string,
+    message: string,
     skipExistenceCheck: boolean = false
   ): Promise<IGitHubCommitResult> {
     try {
@@ -100,13 +100,13 @@ export class GitHubAPIClient {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        
+
         // If we skipped existence check and got 409 (conflict), the file exists - try with file info
         if (skipExistenceCheck && response.status === 409) {
           console.warn('File exists, retrying with file info...');
           return this.commitFile(path, content, message, false); // Retry with existence check
         }
-        
+
         throw new Error(
           `GitHub API error: ${response.status} - ${errorData.message || 'Unknown error'}`
         );
@@ -394,13 +394,13 @@ export class GitHubAPIClient {
 
     try {
       const response = await fetch(url, requestOptions);
-      
+
       // For file existence checks (GET requests to contents), don't log 404s
       if (response.status === 404 && method === 'GET' && endpoint.includes('/contents/')) {
         // This is likely a file existence check - 404 is expected, suppress logging
         return response;
       }
-      
+
       return response;
     } catch (error) {
       if (!suppressNetworkErrors) {
