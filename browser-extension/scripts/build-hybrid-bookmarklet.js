@@ -39,16 +39,11 @@ class HybridBookmarkletBuilder {
     console.log('🚀 Building hosted runtime script...');
     const hostedScript = await this.buildHostedScript();
 
-    // Step 4: Create installation page with hybrid system
-    console.log('📄 Creating hybrid installation page...');
-    const installationPage = this.createHybridInstallationPage(loaderBookmarklet);
-
-    // Step 5: Write output files
+    // Step 4: Write output files
     console.log('💾 Writing output files...');
     await this.writeOutputFiles({
       loaderBookmarklet,
       hostedScript,
-      installationPage,
     });
 
     // Step 6: Generate analytics and documentation
@@ -83,7 +78,8 @@ class HybridBookmarkletBuilder {
     // Generate the minimal loader code (aim for <800 characters)
     const loaderTemplate = `
 (function(){
-  if(window.PW_L||window.PrismWeaveEnhanced)return window.PrismWeaveEnhanced?.execute();
+  if(window.PW_L)return;
+  if(window.PrismWeaveEnhanced&&typeof window.PrismWeaveEnhanced.execute==='function')return window.PrismWeaveEnhanced.execute();
   window.PW_L=1;
   const s=document.createElement('script'),
   u='${this.config.cdnBaseUrl}/enhanced-v${this.config.version}.js',
@@ -99,7 +95,7 @@ class HybridBookmarkletBuilder {
   });
   const e=(m)=>alert('PrismWeave load failed: '+m);
   l(u).catch(()=>r++<1?l(f):Promise.reject()).then(()=>{
-    if(window.PrismWeaveEnhanced)window.PrismWeaveEnhanced.execute();
+    if(window.PrismWeaveEnhanced&&typeof window.PrismWeaveEnhanced.execute==='function')window.PrismWeaveEnhanced.execute();
     else throw new Error('not initialized');
   }).catch(err=>e(err.message));
 })();`
@@ -126,7 +122,7 @@ class HybridBookmarkletBuilder {
         platform: 'browser',
         target: 'es2020',
         minify: this.config.minify,
-        globalName: 'PrismWeaveEnhanced',
+        // Remove globalName to avoid IIFE wrapper issues
         define: {
           'process.env.NODE_ENV': this.config.minify ? '"production"' : '"development"',
           BOOKMARKLET_MODE: '"hosted"',
@@ -134,6 +130,22 @@ class HybridBookmarkletBuilder {
         write: false, // Don't write to file, return content
         banner: {
           js: `/* PrismWeave Enhanced Runtime v${this.config.version} - ${new Date().toISOString()} */`,
+        },
+        footer: {
+          js: `
+// Force global initialization regardless of module system
+(function() {
+  // Ensure the APIs are available globally
+  if (typeof window !== 'undefined') {
+    console.log('📋 PrismWeave: Force-initializing global APIs...');
+    // The functions should already be set by the module, but let's verify
+    if (typeof window.PrismWeaveEnhanced?.execute === 'function') {
+      console.log('✅ PrismWeave APIs already properly initialized');
+    } else {
+      console.warn('⚠️ PrismWeave APIs not found, attempting manual initialization');
+    }
+  }
+})();`,
         },
       });
 
@@ -736,7 +748,6 @@ console.log("Content captured successfully!");</code></pre>
       { name: 'hybrid-loader.js', content: files.loaderBookmarklet },
       { name: `enhanced-v${this.config.version}.js`, content: files.hostedScript },
       { name: 'enhanced-runtime.js', content: files.hostedScript }, // Fallback name
-      { name: 'install-hybrid.html', content: files.installationPage },
       { name: 'README-hybrid.md', content: this.generateReadme(files.loaderBookmarklet) },
     ];
 

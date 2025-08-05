@@ -99,9 +99,7 @@ class LocalTestingServer {
     server.listen(this.config.port, this.config.host, () => {
       console.log(`✅ Server running at http://${this.config.host}:${this.config.port}/`);
       console.log('📂 Available endpoints:');
-      console.log(
-        `   🏠 http://${this.config.host}:${this.config.port}/install-hybrid.html - Installation & Test page`
-      );
+      console.log(`   🏠 http://${this.config.host}:${this.config.port}/ - Server root`);
       console.log(
         `   ⚡ http://${this.config.host}:${this.config.port}/hybrid-loader.js - Loader bookmarklet`
       );
@@ -123,12 +121,7 @@ class LocalTestingServer {
 
         // Test file accessibility
         console.log('\n🔍 Server startup diagnostics:');
-        const testFiles = [
-          'install-hybrid.html',
-          'hybrid-loader.js',
-          'enhanced-runtime.js',
-          'build-analytics.json',
-        ];
+        const testFiles = ['hybrid-loader.js', 'enhanced-runtime.js', 'build-analytics.json'];
 
         testFiles.forEach(file => {
           const fullPath = path.join(this.config.distDir, file);
@@ -175,8 +168,9 @@ class LocalTestingServer {
     // Remove leading slash and handle root
     filePath = filePath.substring(1);
     if (!filePath || filePath === '/') {
-      filePath = 'install-hybrid.html';
-      this.debug(`   Redirecting root to: ${filePath}`);
+      // Serve a simple default page
+      this.debug(`   Serving default page for root request`);
+      return this.serveDefaultPage(res);
     }
 
     this.debug(`   Final file path: ${filePath}`);
@@ -252,6 +246,96 @@ class LocalTestingServer {
       this.sendError(res, 500, 'Internal Server Error', req.url);
     }
   }
+
+  serveDefaultPage(res) {
+    // Try to read the bookmarklet code
+    let bookmarkletCode = '';
+    try {
+      const loaderPath = path.join(this.config.distDir, 'hybrid-loader.js');
+      if (fs.existsSync(loaderPath)) {
+        bookmarkletCode = fs.readFileSync(loaderPath, 'utf8');
+      }
+    } catch (error) {
+      this.debug('Could not read bookmarklet code:', error.message);
+    }
+
+    const defaultHtml = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PrismWeave Bookmarklet Server</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+               max-width: 800px; margin: 50px auto; padding: 20px; line-height: 1.6; }
+        .header { text-align: center; margin-bottom: 40px; }
+        .logo { font-size: 2em; margin-bottom: 10px; }
+        .bookmarklet-section { background: #e8f4fd; padding: 20px; border-radius: 8px; margin: 20px 0; 
+                              border-left: 4px solid #0066cc; }
+        .bookmarklet-link { display: inline-block; padding: 12px 24px; background: #0066cc; 
+                           color: white; text-decoration: none; border-radius: 6px; font-weight: bold;
+                           margin: 10px 0; cursor: move; }
+        .bookmarklet-link:hover { background: #0052a3; }
+        .install-instructions { background: #fff9e6; padding: 15px; border-radius: 6px; 
+                               border-left: 4px solid #ffa500; margin: 15px 0; }
+        .files { background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0; }
+        .file-link { display: block; margin: 10px 0; padding: 10px; background: white; 
+                     border-radius: 4px; text-decoration: none; color: #0066cc; }
+        .file-link:hover { background: #e6f3ff; }
+        .status-indicator { display: inline-block; width: 10px; height: 10px; 
+                           background: #4CAF50; border-radius: 50%; margin-right: 8px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">📚 PrismWeave Bookmarklet Server</div>
+        <div><span class="status-indicator"></span>Server running at http://localhost:${this.config.port}/</div>
+        <p>Local development server for PrismWeave hybrid bookmarklet system.</p>
+    </div>
+    
+    ${
+      bookmarkletCode
+        ? `
+    <div class="bookmarklet-section">
+        <h3>🔗 Install PrismWeave Bookmarklet</h3>
+        <p><strong>Drag this link to your bookmarks bar:</strong></p>
+        <a href="${bookmarkletCode}" class="bookmarklet-link" draggable="true">📚 PrismWeave</a>
+        
+        <div class="install-instructions">
+            <h4>📋 Installation Instructions:</h4>
+            <ol>
+                <li><strong>Drag and Drop:</strong> Drag the blue "PrismWeave" button above to your browser's bookmarks bar</li>
+                <li><strong>Alternative:</strong> Right-click the button → "Bookmark this link" or "Add to bookmarks"</li>
+                <li><strong>Usage:</strong> Click the bookmark on any webpage to capture and save content</li>
+            </ol>
+            <p><strong>💡 Tip:</strong> Make sure your bookmarks bar is visible (Ctrl+Shift+B in most browsers)</p>
+        </div>
+    </div>
+    `
+        : '<div class="install-instructions"><p>⚠️ Bookmarklet code not available. Please build the project first.</p></div>'
+    }
+    
+    <div class="files">
+        <h3>📁 Available Files:</h3>
+        <a href="/hybrid-loader.js" class="file-link">📄 hybrid-loader.js - Bookmarklet loader</a>
+        <a href="/enhanced-runtime.js" class="file-link">⚡ enhanced-runtime.js - Runtime script</a>
+        <a href="/build-analytics.json" class="file-link">📊 build-analytics.json - Build stats</a>
+    </div>
+    
+    <div>
+        <h3>🚀 Development Info:</h3>
+        <p>The hybrid bookmarklet system loads a lightweight loader (~1KB) that dynamically fetches the full runtime (~126KB) from this server.</p>
+        <p><strong>Runtime served from:</strong> <code>http://localhost:${this.config.port}/enhanced-runtime.js</code></p>
+        <p><strong>Auto-rebuild:</strong> ${this.config.autoRebuild ? '✅ Enabled' : '❌ Disabled'}</p>
+        <p><strong>Debug logging:</strong> ${this.config.debug ? '✅ Enabled' : '❌ Disabled'}</p>
+    </div>
+</body>
+</html>`;
+
+    res.writeHead(200, { 'Content-Type': 'text/html' });
+    res.end(defaultHtml);
+  }
+
   sendError(res, statusCode, message, originalUrl = 'Unknown') {
     const timestamp = new Date().toISOString();
 

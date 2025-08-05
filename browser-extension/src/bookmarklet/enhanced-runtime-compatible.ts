@@ -752,7 +752,7 @@ export class EnhancedBookmarkletRuntime {
 }
 
 // Global execution function for the bookmarklet
-export function executeEnhancedBookmarklet(): void {
+function executeEnhancedBookmarklet(): void {
   // Prevent multiple instances
   if ((window as any).PrismWeaveActive) {
     console.log('PrismWeave already active');
@@ -788,3 +788,22 @@ export function executeEnhancedBookmarklet(): void {
 
 // Make available globally for the bookmarklet
 (window as any).executeEnhancedBookmarklet = executeEnhancedBookmarklet;
+
+// Also expose as PrismWeaveEnhanced for the hybrid loader compatibility
+(window as any).PrismWeaveEnhanced = {
+  execute: executeEnhancedBookmarklet,
+};
+
+// Debug logging to verify API is properly set
+console.log('PrismWeave Runtime APIs initialized:', {
+  executeEnhancedBookmarklet: typeof (window as any).executeEnhancedBookmarklet,
+  PrismWeaveEnhanced: typeof (window as any).PrismWeaveEnhanced,
+  PrismWeaveEnhanced_execute: typeof (window as any).PrismWeaveEnhanced?.execute,
+  timestamp: new Date().toISOString(),
+});
+
+// Default export for esbuild IIFE format compatibility
+export default {
+  execute: executeEnhancedBookmarklet,
+  EnhancedBookmarkletRuntime,
+};

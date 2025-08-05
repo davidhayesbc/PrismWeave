@@ -58,13 +58,26 @@ export class GitHubAPIClient {
 
   /**
    * Commit a file to the repository
+   * @param path File path in the repository
+   * @param content File content
+   * @param message Commit message
+   * @param skipExistenceCheck If true, skips checking if file exists (avoids 404 in network tab)
    */
-  async commitFile(path: string, content: string, message: string): Promise<IGitHubCommitResult> {
+  async commitFile(
+    path: string, 
+    content: string, 
+    message: string, 
+    skipExistenceCheck: boolean = false
+  ): Promise<IGitHubCommitResult> {
     try {
       const [owner, repo] = this.parseRepository(this._config.repository);
 
-      // Check if file already exists
-      const existingFile = await this.getFile(path);
+      let existingFile: IGitHubFileContent | null = null;
+
+      // Check if file already exists (unless skipped to avoid 404 in browser network tab)
+      if (!skipExistenceCheck) {
+        existingFile = await this.getFile(path);
+      }
 
       // Prepare commit data
       const commitData: any = {
@@ -87,6 +100,13 @@ export class GitHubAPIClient {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
+        
+        // If we skipped existence check and got 409 (conflict), the file exists - try with file info
+        if (skipExistenceCheck && response.status === 409) {
+          console.warn('File exists, retrying with file info...');
+          return this.commitFile(path, content, message, false); // Retry with existence check
+        }
+        
         throw new Error(
           `GitHub API error: ${response.status} - ${errorData.message || 'Unknown error'}`
         );
@@ -120,18 +140,23 @@ export class GitHubAPIClient {
 
   /**
    * Get file content from repository
+   * Note: This method will cause a 404 to appear in the browser's network tab when checking
+   * if a file exists - this is expected behavior and cannot be suppressed at the browser level.
    */
   async getFile(path: string): Promise<IGitHubFileContent | null> {
     try {
       const [owner, repo] = this.parseRepository(this._config.repository);
 
+      // Use suppressNetworkErrors for file existence checks since 404s are expected
       const response = await this.makeRequest(
         `repos/${owner}/${repo}/contents/${path}?ref=${this._config.branch}`,
-        'GET'
+        'GET',
+        undefined,
+        true // Suppress network error logging for expected 404s
       );
 
       if (response.status === 404) {
-        return null; // File doesn't exist
+        return null; // File doesn't exist - this is expected behavior, no error logging
       }
 
       if (!response.ok) {
@@ -143,7 +168,10 @@ export class GitHubAPIClient {
 
       return await response.json();
     } catch (error) {
-      console.error('Failed to get file from GitHub:', error);
+      // Only log errors that are not related to file existence checks
+      if (error instanceof Error && !error.message.includes('404')) {
+        console.error('Failed to get file from GitHub:', error);
+      }
       return null;
     }
   }
@@ -343,7 +371,8 @@ export class GitHubAPIClient {
   private async makeRequest(
     endpoint: string,
     method: 'GET' | 'POST' | 'PUT' | 'DELETE' = 'GET',
-    body?: any
+    body?: any,
+    suppressNetworkErrors: boolean = false
   ): Promise<Response> {
     const url = `${this._baseUrl}/${endpoint}`;
 
@@ -363,7 +392,22 @@ export class GitHubAPIClient {
       ...(body && { body: JSON.stringify(body) }),
     };
 
-    return await fetch(url, requestOptions);
+    try {
+      const response = await fetch(url, requestOptions);
+      
+      // For file existence checks (GET requests to contents), don't log 404s
+      if (response.status === 404 && method === 'GET' && endpoint.includes('/contents/')) {
+        // This is likely a file existence check - 404 is expected, suppress logging
+        return response;
+      }
+      
+      return response;
+    } catch (error) {
+      if (!suppressNetworkErrors) {
+        console.error('Network request failed:', error);
+      }
+      throw error;
+    }
   }
 
   private parseRepository(repository: string): [string, string] {
