@@ -2,259 +2,450 @@
 <html>
   <head>
     <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0"
+    />
     <title>PrismWeave Settings</title>
-    <link rel="stylesheet" href="options.css" />
+    <link
+      rel="stylesheet"
+      href="options.css"
+    />
   </head>
-  <body>
+  <body class="pw-surface">
     <!-- Header with Navigation -->
     <div class="header">
       <div class="header-content">
-        <h1>PrismWeave Settings</h1>
-        <p>Configure your document capture and repository settings</p>
+        <img
+          src="../../icons/icon64.png"
+          alt="PrismWeave Logo"
+          class="header-logo"
+        />
+        <div class="header-text">
+          <h1>PrismWeave Settings</h1>
+          <p class="pw-text-secondary">Configure your document capture and repository settings</p>
+        </div>
       </div>
       <nav class="nav-tabs">
-        <a href="options.html" class="nav-tab active">Settings</a>
-        <a href="bookmarklet.html" class="nav-tab">Bookmarklet</a>
+        <a
+          href="options.html"
+          class="nav-tab active pw-button pw-button-tab"
+        >
+          Settings
+        </a>
+        <a
+          href="bookmarklet.html"
+          class="nav-tab pw-button pw-button-tab"
+        >
+          Bookmarklet
+        </a>
       </nav>
     </div>
 
     <div
       id="message"
-      class="message"
+      class="message pw-alert hidden"
       style="display: none"
     ></div>
 
     <div
       id="status"
-      class="status"
+      class="status pw-status"
     ></div>
 
-    <div class="section">
-      <h2>Repository Configuration</h2>      <div class="form-group">
-        <label for="githubToken">GitHub Personal Access Token</label>
-        <input
-          type="password"
-          id="githubToken"
-          placeholder="ghp_..."
-        />
-        <div class="help-text">
-          Required for Git operations. Create one at GitHub Settings > Developer settings > Personal access tokens
-        </div>
-        <div class="validation-message" id="githubToken-validation" style="display: none;"></div>
-      </div>
+    <div class="main-content">
+      <div class="section pw-card">
+        <h2 class="section-title">
+          <span class="pw-icon">🔗</span>
+          Repository Configuration
+        </h2>
 
-      <div class="form-group">
-        <label for="githubRepo">GitHub Repository</label>
-        <input
-          type="text"
-          id="githubRepo"
-          placeholder="username/repository-name"
-        />
-        <div class="help-text">Format: username/repository-name</div>
-        <div class="validation-message" id="githubRepo-validation" style="display: none;"></div>
-      </div>
-
-      <div class="form-group">
-        <div class="test-connection">
-          <button
-            type="button"
-            class="btn btn-secondary"
-            id="test-connection"
+        <div class="form-group pw-form-group">
+          <label
+            for="githubToken"
+            class="pw-label"
           >
-            Test Connection
-          </button>
+            GitHub Personal Access Token
+          </label>
+          <input
+            type="password"
+            id="githubToken"
+            class="pw-input"
+            placeholder="ghp_..."
+          />
+          <div class="help-text pw-help-text">
+            Required for Git operations. Create one at GitHub Settings > Developer settings > Personal access tokens
+          </div>
           <div
-            id="connection-test-result"
-            class="test-result"
+            class="validation-message pw-validation-error"
+            id="githubToken-validation"
             style="display: none"
           ></div>
         </div>
-      </div>
-    </div>    <div class="section">
-      <h2>Capture Settings</h2>
 
-      <div class="form-group">
-        <label for="defaultFolder">Default Folder</label>
-        <select id="defaultFolder">
-          <option value="unsorted">Unsorted</option>
-          <option value="documents">Documents</option>
-          <option value="articles">Articles</option>
-          <option value="research">Research</option>
-          <option value="notes">Notes</option>
-          <option value="tech">Tech</option>
-          <option value="business">Business</option>
-          <option value="custom">Custom...</option>
-        </select>
-        <div class="help-text">Where new captures are saved by default</div>
-      </div>
+        <div class="form-group pw-form-group">
+          <label
+            for="githubRepo"
+            class="pw-label"
+          >
+            GitHub Repository
+          </label>
+          <input
+            type="text"
+            id="githubRepo"
+            class="pw-input"
+            placeholder="username/repository-name"
+          />
+          <div class="help-text pw-help-text">Format: username/repository-name</div>
+          <div
+            class="validation-message pw-validation-error"
+            id="githubRepo-validation"
+            style="display: none"
+          ></div>
+        </div>
 
-      <div class="form-group" id="customFolderField" style="display: none">
-        <label for="customFolder">Custom Folder Name</label>
-        <input
-          type="text"
-          id="customFolder"
-          placeholder="my-custom-folder"
-        />
-      </div>
-
-      <div class="form-group">
-        <label for="fileNamingPattern">File Naming Pattern</label>
-        <select id="fileNamingPattern">
-          <option value="YYYY-MM-DD-domain-title">Date-Domain-Title</option>
-          <option value="YYYY-MM-DD-title">Date-Title</option>
-          <option value="domain-YYYY-MM-DD-title">Domain-Date-Title</option>
-          <option value="title-YYYY-MM-DD">Title-Date</option>
-        </select>
-        <div class="help-text">How captured files are named</div>
-      </div>
-
-      <div class="checkbox-group">
-        <input
-          type="checkbox"
-          id="autoCommit"
-        />
-        <label for="autoCommit">Automatically commit captured documents</label>
-      </div>
-
-      <div class="checkbox-group">
-        <input
-          type="checkbox"
-          id="captureImages"
-        />
-        <label for="captureImages">Download and save images locally</label>
-      </div>
-    </div>    <div class="section">
-      <h2>Content Processing</h2>
-
-      <div class="checkbox-group">
-        <input
-          type="checkbox"
-          id="removeAds"
-        />
-        <label for="removeAds">Remove advertisements and promotional content</label>
-      </div>
-
-      <div class="checkbox-group">
-        <input
-          type="checkbox"
-          id="removeNavigation"
-        />
-        <label for="removeNavigation">Remove navigation and menu elements</label>
-      </div>
-
-      <div class="form-group">
-        <label for="customSelectors">Custom CSS Selectors to Remove</label>
-        <textarea
-          id="customSelectors"
-          placeholder=".sidebar, .comments, .related-articles"
-        ></textarea>
-        <div class="help-text">Comma-separated CSS selectors for elements to remove during capture</div>
-      </div>
-    </div>    <div class="section">
-      <h2>Bookmarklet Integration</h2>
-
-      <div class="checkbox-group">
-        <input
-          type="checkbox"
-          id="enableBookmarklet"
-        />
-        <label for="enableBookmarklet">Enable bookmarklet functionality</label>
-      </div>
-
-      <div class="help-text bookmarklet-help">
-        Generate a bookmarklet that allows you to capture content from any device without installing the extension. 
-        <a href="bookmarklet.html" target="_blank">Manage bookmarklets →</a>
-      </div>
-
-      <div id="bookmarklet-quick-setup">
-        <div class="form-group">
-          <label>Quick Setup</label>
-          <div class="bookmarklet-actions">
-            <button type="button" class="btn btn-secondary" id="generate-bookmarklet">
-              Generate Bookmarklet
+        <div class="form-group pw-form-group">
+          <div class="test-connection">
+            <button
+              type="button"
+              class="btn btn-secondary pw-button pw-button-secondary"
+              id="test-connection"
+            >
+              <span class="pw-icon">🔍</span>
+              Test Connection
             </button>
-            <button type="button" class="btn btn-secondary" id="copy-bookmarklet" disabled>
-              Copy to Clipboard
-            </button>
-            <button type="button" class="btn btn-secondary" id="open-bookmarklet-manager">
-              Full Manager
-            </button>
+            <div
+              id="connection-test-result"
+              class="test-result pw-test-result"
+              style="display: none"
+            ></div>
           </div>
         </div>
+      </div>
 
-        <div id="quick-bookmarklet-preview">
-          <div class="help-text">Generated bookmarklet (drag to bookmarks bar or copy and paste as bookmark URL):</div>
-          <div id="bookmarklet-code-preview"></div>
+      <div class="section pw-card">
+        <h2 class="section-title">
+          <span class="pw-icon">📄</span>
+          Capture Settings
+        </h2>
+
+        <div class="form-group pw-form-group">
+          <label
+            for="defaultFolder"
+            class="pw-label"
+          >
+            Default Folder
+          </label>
+          <select
+            id="defaultFolder"
+            class="pw-select"
+          >
+            <option value="unsorted">Unsorted</option>
+            <option value="documents">Documents</option>
+            <option value="articles">Articles</option>
+            <option value="research">Research</option>
+            <option value="notes">Notes</option>
+            <option value="tech">Tech</option>
+            <option value="business">Business</option>
+            <option value="custom">Custom...</option>
+          </select>
+          <div class="help-text pw-help-text">Where new captures are saved by default</div>
+        </div>
+
+        <div
+          class="form-group pw-form-group"
+          id="customFolderField"
+          style="display: none"
+        >
+          <label
+            for="customFolder"
+            class="pw-label"
+          >
+            Custom Folder Name
+          </label>
+          <input
+            type="text"
+            id="customFolder"
+            class="pw-input"
+            placeholder="my-custom-folder"
+          />
+        </div>
+
+        <div class="form-group pw-form-group">
+          <label
+            for="fileNamingPattern"
+            class="pw-label"
+          >
+            File Naming Pattern
+          </label>
+          <select
+            id="fileNamingPattern"
+            class="pw-select"
+          >
+            <option value="YYYY-MM-DD-domain-title">Date-Domain-Title</option>
+            <option value="YYYY-MM-DD-title">Date-Title</option>
+            <option value="domain-YYYY-MM-DD-title">Domain-Date-Title</option>
+            <option value="title-YYYY-MM-DD">Title-Date</option>
+          </select>
+          <div class="help-text pw-help-text">How captured files are named</div>
+        </div>
+
+        <div class="checkbox-group pw-checkbox-group">
+          <input
+            type="checkbox"
+            id="autoCommit"
+            class="pw-checkbox"
+          />
+          <label
+            for="autoCommit"
+            class="pw-checkbox-label"
+          >
+            Automatically commit captured documents
+          </label>
+        </div>
+
+        <div class="checkbox-group pw-checkbox-group">
+          <input
+            type="checkbox"
+            id="captureImages"
+            class="pw-checkbox"
+          />
+          <label
+            for="captureImages"
+            class="pw-checkbox-label"
+          >
+            Download and save images locally
+          </label>
         </div>
       </div>
-    </div>
 
-    <div class="section">
-      <h2>Advanced Options</h2>
+      <div class="section pw-card">
+        <h2 class="section-title">
+          <span class="pw-icon">🔧</span>
+          Content Processing
+        </h2>
 
-      <div class="form-group">
-        <label for="commitMessageTemplate">Commit Message Template</label>
-        <input
-          type="text"
-          id="commitMessageTemplate"
-          value="Add: {domain} - {title}"
-        />
-        <div class="help-text">Variables: {domain}, {title}, {date}, {filename}</div>
+        <div class="checkbox-group pw-checkbox-group">
+          <input
+            type="checkbox"
+            id="removeAds"
+            class="pw-checkbox"
+          />
+          <label
+            for="removeAds"
+            class="pw-checkbox-label"
+          >
+            Remove advertisements and promotional content
+          </label>
+        </div>
+
+        <div class="checkbox-group pw-checkbox-group">
+          <input
+            type="checkbox"
+            id="removeNavigation"
+            class="pw-checkbox"
+          />
+          <label
+            for="removeNavigation"
+            class="pw-checkbox-label"
+          >
+            Remove navigation and menu elements
+          </label>
+        </div>
+
+        <div class="form-group pw-form-group">
+          <label
+            for="customSelectors"
+            class="pw-label"
+          >
+            Custom CSS Selectors to Remove
+          </label>
+          <textarea
+            id="customSelectors"
+            class="pw-textarea"
+            placeholder=".sidebar, .comments, .related-articles"
+          ></textarea>
+          <div class="help-text pw-help-text">Comma-separated CSS selectors for elements to remove during capture</div>
+        </div>
       </div>
 
-      <div class="checkbox-group">
-        <input
-          type="checkbox"
-          id="enableKeyboardShortcuts"
-        />
-        <label for="enableKeyboardShortcuts">Enable keyboard shortcuts (Ctrl+Shift+S to capture)</label>
+      <div class="section pw-card">
+        <h2 class="section-title">
+          <span class="pw-icon">🔖</span>
+          Bookmarklet Integration
+        </h2>
+
+        <div class="checkbox-group pw-checkbox-group">
+          <input
+            type="checkbox"
+            id="enableBookmarklet"
+            class="pw-checkbox"
+          />
+          <label
+            for="enableBookmarklet"
+            class="pw-checkbox-label"
+          >
+            Enable bookmarklet functionality
+          </label>
+        </div>
+
+        <div class="help-text bookmarklet-help pw-help-text">
+          Generate a bookmarklet that allows you to capture content from any device without installing the extension.
+          <a
+            href="bookmarklet.html"
+            target="_blank"
+            class="pw-link"
+          >
+            Manage bookmarklets →
+          </a>
+        </div>
+
+        <div id="bookmarklet-quick-setup">
+          <div class="form-group pw-form-group">
+            <label class="pw-label">Quick Setup</label>
+            <div class="bookmarklet-actions pw-button-group">
+              <button
+                type="button"
+                class="btn btn-secondary pw-button pw-button-secondary"
+                id="generate-bookmarklet"
+              >
+                <span class="pw-icon">🔧</span>
+                Generate Bookmarklet
+              </button>
+              <button
+                type="button"
+                class="btn btn-secondary pw-button pw-button-secondary"
+                id="copy-bookmarklet"
+                disabled
+              >
+                <span class="pw-icon">📋</span>
+                Copy to Clipboard
+              </button>
+              <button
+                type="button"
+                class="btn btn-secondary pw-button pw-button-secondary"
+                id="open-bookmarklet-manager"
+              >
+                <span class="pw-icon">⚙️</span>
+                Full Manager
+              </button>
+            </div>
+          </div>
+
+          <div
+            id="quick-bookmarklet-preview"
+            class="pw-code-preview"
+          >
+            <div class="help-text pw-help-text">
+              Generated bookmarklet (drag to bookmarks bar or copy and paste as bookmark URL):
+            </div>
+            <div
+              id="bookmarklet-code-preview"
+              class="pw-code-block"
+            ></div>
+          </div>
+        </div>
       </div>
 
-      <div class="checkbox-group">
-        <input
-          type="checkbox"
-          id="showNotifications"
-        />
-        <label for="showNotifications">Show browser notifications for captures</label>
+      <div class="section pw-card">
+        <h2 class="section-title">
+          <span class="pw-icon">⚙️</span>
+          Advanced Options
+        </h2>
+
+        <div class="form-group pw-form-group">
+          <label
+            for="commitMessageTemplate"
+            class="pw-label"
+          >
+            Commit Message Template
+          </label>
+          <input
+            type="text"
+            id="commitMessageTemplate"
+            class="pw-input"
+            value="Add: {domain} - {title}"
+          />
+          <div class="help-text pw-help-text">Variables: {domain}, {title}, {date}, {filename}</div>
+        </div>
+
+        <div class="checkbox-group pw-checkbox-group">
+          <input
+            type="checkbox"
+            id="enableKeyboardShortcuts"
+            class="pw-checkbox"
+          />
+          <label
+            for="enableKeyboardShortcuts"
+            class="pw-checkbox-label"
+          >
+            Enable keyboard shortcuts (Ctrl+Shift+S to capture)
+          </label>
+        </div>
+
+        <div class="checkbox-group pw-checkbox-group">
+          <input
+            type="checkbox"
+            id="showNotifications"
+            class="pw-checkbox"
+          />
+          <label
+            for="showNotifications"
+            class="pw-checkbox-label"
+          >
+            Show browser notifications for captures
+          </label>
+        </div>
+
+        <div class="checkbox-group pw-checkbox-group">
+          <input
+            type="checkbox"
+            id="debugMode"
+            class="pw-checkbox"
+          />
+          <label
+            for="debugMode"
+            class="pw-checkbox-label"
+          >
+            Enable debug mode for troubleshooting
+          </label>
+        </div>
       </div>
 
-      <div class="checkbox-group">
-        <input
-          type="checkbox"
-          id="debugMode"
-        />
-        <label for="debugMode">Enable debug mode for troubleshooting</label>
+      <div class="button-group pw-button-group-vertical">
+        <button
+          type="button"
+          class="btn btn-primary pw-button pw-button-primary"
+          id="save-settings"
+        >
+          <span class="pw-icon">💾</span>
+          Save Settings
+        </button>
+        <button
+          type="button"
+          class="btn btn-secondary pw-button pw-button-secondary"
+          id="reset-settings"
+        >
+          <span class="pw-icon">🔄</span>
+          Reset to Defaults
+        </button>
+        <button
+          type="button"
+          class="btn btn-secondary pw-button pw-button-secondary"
+          id="export-settings"
+        >
+          <span class="pw-icon">📤</span>
+          Export Settings
+        </button>
+        <button
+          type="button"
+          class="btn btn-secondary pw-button pw-button-secondary"
+          id="import-settings"
+        >
+          <span class="pw-icon">📥</span>
+          Import Settings
+        </button>
       </div>
-    </div><div class="button-group">
-      <button
-        type="button"
-        class="btn btn-primary"
-        id="save-settings"
-      >
-        Save Settings
-      </button>
-      <button
-        type="button"
-        class="btn btn-secondary"
-        id="reset-settings"
-      >
-        Reset to Defaults
-      </button>
-      <button
-        type="button"
-        class="btn btn-secondary"
-        id="export-settings"
-      >
-        Export Settings
-      </button>
-      <button
-        type="button"
-        class="btn btn-secondary"
-        id="import-settings"
-      >
-        Import Settings
-      </button>
-    </div>
     </div>
 
     <input
@@ -264,6 +455,9 @@
       hidden
     />
 
-    <script type="module" src="options.js"></script>
+    <script
+      type="module"
+      src="options.js"
+    ></script>
   </body>
 </html>

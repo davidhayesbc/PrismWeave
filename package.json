@@ -1,5 +1,33 @@
 {
+  "name": "prismweave",
+  "version": "1.0.0",
+  "description": "PrismWeave - Unified document management and content creation system",
+  "private": true,
+  "type": "commonjs",
+  "workspaces": [
+    "browser-extension",
+    "browser-extension/dev-tools",
+    "vscode-extension",
+    "ai-processing"
+  ],
+  "scripts": {
+    "build": "node build.js build",
+    "build:browser-extension": "node build.js build browser-extension",
+    "build:bookmarklet": "node build.js build bookmarklet",
+    "build:dev-tools": "node build.js build dev-tools",
+    "build:web": "node build.js web",
+    "clean": "node build.js clean",
+    "test": "npm run test --workspaces",
+    "test:browser-extension": "cd browser-extension && npm test",
+    "serve:web": "cd dist/web && python -m http.server 8080"
+  },
   "devDependencies": {
-    "@types/jest": "^30.0.0"
+    "@types/jest": "^30.0.0",
+    "@types/node": "^20.0.0",
+    "esbuild": "^0.19.0"
+  },
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=8.0.0"
   }
 }

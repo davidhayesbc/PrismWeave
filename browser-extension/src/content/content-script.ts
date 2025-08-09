@@ -450,6 +450,22 @@ async function handleMessage(
     case 'PING':
       return { status: 'ready', timestamp: Date.now() };
 
+    case 'TRIGGER_CAPTURE_SHORTCUT':
+      // Triggered by keyboard shortcut from service worker
+      logger.info('Capture triggered by keyboard shortcut via service worker');
+      handleShortcutAction('capture-page').catch(error => {
+        logger.error('Error handling shortcut capture:', error);
+      });
+      return { success: true };
+
+    case 'TRIGGER_CAPTURE_CONTEXT_MENU':
+      // Triggered by context menu from service worker
+      logger.info('Capture triggered by context menu via service worker');
+      handleShortcutAction('capture-page').catch(error => {
+        logger.error('Error handling context menu capture:', error);
+      });
+      return { success: true };
+
     case 'UPDATE_KEYBOARD_SHORTCUTS':
       if (message.data && typeof message.data.enabled === 'boolean') {
         contentScriptState.keyboardShortcutsEnabled = message.data.enabled;
@@ -473,26 +489,6 @@ async function handleMessage(
         logger.info('Notification shown:', message.data.message);
       }
       return { success: true };
-
-    case 'TRIGGER_CAPTURE_SHORTCUT':
-      // Handle keyboard shortcut trigger from service worker
-      try {
-        await handleCapturePageShortcut();
-        return { success: true };
-      } catch (error) {
-        logger.error('Failed to handle capture shortcut:', error);
-        return { success: false, error: (error as Error).message };
-      }
-
-    case 'TRIGGER_CAPTURE_CONTEXT_MENU':
-      // Handle context menu trigger from service worker
-      try {
-        await handleCapturePageShortcut(); // Use the same handler as keyboard shortcut
-        return { success: true };
-      } catch (error) {
-        logger.error('Failed to handle context menu capture:', error);
-        return { success: false, error: (error as Error).message };
-      }
 
     case 'EXTRACT_AND_CONVERT_TO_MARKDOWN':
       // This is called by the service worker for content extraction

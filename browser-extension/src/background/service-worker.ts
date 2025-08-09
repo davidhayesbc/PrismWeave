@@ -15,6 +15,10 @@ logger.info('=== SERVICE WORKER STARTING ===');
 logger.info('Service worker file loaded at:', new Date().toISOString());
 logger.info('Chrome extension API available:', !!globalThis.chrome);
 logger.info('Context menus API available:', !!globalThis.chrome?.contextMenus);
+logger.info(
+  'Content script injection capability available:',
+  !!globalThis.chrome?.scripting?.executeScript
+);
 
 // Utility function to create notifications with proper callback handling
 function createNotification(
@@ -234,6 +238,90 @@ async function createContextMenus(): Promise<void> {
     logger.info('Context menu creation process completed');
   } catch (error) {
     logger.error('Fatal error in createContextMenus:', error);
+  }
+}
+
+// Content Script Injection and Management
+async function ensureContentScriptInjected(tabId: number): Promise<void> {
+  try {
+    logger.debug('Ensuring content script is injected in tab:', tabId);
+
+    // Get tab info to validate it's a valid web page
+    const tab = await chrome.tabs.get(tabId);
+    if (
+      !tab.url ||
+      tab.url.startsWith('chrome://') ||
+      tab.url.startsWith('chrome-extension://') ||
+      tab.url.startsWith('moz-extension://') ||
+      tab.url.startsWith('edge://') ||
+      tab.url.startsWith('about:')
+    ) {
+      throw new Error('Cannot inject content script into special pages');
+    }
+
+    // Check if content script is already available by sending a ping
+    const pingResult = await new Promise<boolean>(resolve => {
+      const timeout = setTimeout(() => resolve(false), 1000); // 1 second timeout for ping
+
+      chrome.tabs.sendMessage(tabId, { type: 'PING' }, response => {
+        clearTimeout(timeout);
+        if (chrome.runtime.lastError) {
+          logger.debug(
+            'Ping failed (expected if script not injected):',
+            chrome.runtime.lastError.message
+          );
+          resolve(false);
+        } else {
+          resolve(!!response);
+        }
+      });
+    });
+
+    if (pingResult) {
+      logger.debug('Content script already active');
+      return;
+    }
+
+    // Inject content script if not available
+    logger.debug('Injecting content script...');
+    try {
+      await chrome.scripting.executeScript({
+        target: { tabId },
+        files: ['content/content-script.js'],
+      });
+
+      logger.debug('Content script injected successfully');
+
+      // Wait a bit for the script to initialize
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Verify injection worked by sending another ping
+      const verifyResult = await new Promise<boolean>(resolve => {
+        const timeout = setTimeout(() => resolve(false), 2000);
+
+        chrome.tabs.sendMessage(tabId, { type: 'PING' }, response => {
+          clearTimeout(timeout);
+          if (chrome.runtime.lastError) {
+            logger.debug('Verification ping failed:', chrome.runtime.lastError.message);
+            resolve(false);
+          } else {
+            resolve(!!response);
+          }
+        });
+      });
+
+      if (!verifyResult) {
+        throw new Error('Content script injection verification failed');
+      }
+
+      logger.debug('Content script injection verified successfully');
+    } catch (scriptError) {
+      logger.error('Failed to inject content script:', scriptError);
+      throw new Error('Content script injection failed - page may need to be refreshed');
+    }
+  } catch (error) {
+    logger.error('Failed to ensure content script injection:', error);
+    throw error;
   }
 }
 
@@ -537,14 +625,17 @@ export async function handleMessage(
       return { success: true, data: statusData, timestamp: Date.now() };
 
     case 'TRIGGER_CAPTURE_FROM_POPUP':
-      // Handle capture trigger from popup - use same path as keyboard shortcut
+      // Handle capture trigger from popup - use same path as keyboard shortcut with content script injection
       try {
         const tabId = message.data?.tabId as number;
         if (!tabId) {
           throw new Error('No tab ID provided for popup capture trigger');
         }
 
-        logger.info('Popup capture trigger - using same path as keyboard shortcut');
+        logger.info('Popup capture trigger - ensuring content script is available');
+
+        // Ensure content script is injected and ready
+        await ensureContentScriptInjected(tabId);
 
         // Send TRIGGER_CAPTURE_SHORTCUT message to content script (same as keyboard shortcut)
         try {
@@ -656,8 +747,11 @@ chrome.commands.onCommand.addListener(async (command: string) => {
         return;
       }
 
-      // Send message to content script to trigger capture
+      // Ensure content script is injected before sending message
       try {
+        await ensureContentScriptInjected(activeTab.id);
+
+        // Send message to content script to trigger capture
         await chrome.tabs.sendMessage(activeTab.id, {
           type: 'TRIGGER_CAPTURE_SHORTCUT',
           timestamp: Date.now(),
@@ -665,7 +759,7 @@ chrome.commands.onCommand.addListener(async (command: string) => {
         logger.info('Capture shortcut message sent to content script');
       } catch (error) {
         logger.error('Failed to send capture shortcut message:', error);
-        // Optionally show browser notification if content script communication fails
+        // Show browser notification if content script communication fails
         if (chrome.notifications) {
           createNotification({
             type: 'basic',
@@ -839,6 +933,9 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
           }
 
           try {
+            // Ensure content script is injected before sending message
+            await ensureContentScriptInjected(tab.id);
+
             // Send message to content script to trigger capture
             await chrome.tabs.sendMessage(tab.id, {
               type: 'TRIGGER_CAPTURE_CONTEXT_MENU',

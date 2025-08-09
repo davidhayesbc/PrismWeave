@@ -12,7 +12,7 @@
       href="popup.css"
     />
   </head>
-  <body>
+  <body class="pw-surface">
     <div class="header">
       <img
         src="../../icons/icon64.png"
@@ -25,25 +25,25 @@
     <div class="content">
       <div
         id="loading"
-        class="hidden"
+        class="hidden pw-loading"
       >
-        <div class="spinner"></div>
-        <span>Processing...</span>
+        <div class="pw-spinner"></div>
+        <span class="pw-text-secondary">Processing...</span>
       </div>
 
       <div id="main-content">
         <div
           id="page-info"
-          class="page-info"
+          class="page-info pw-card"
         >
           <div
-            class="page-title"
+            class="page-title pw-text-primary"
             id="page-title"
           >
             Loading...
           </div>
           <div
-            class="page-url"
+            class="page-url pw-text-secondary"
             id="page-url"
           ></div>
         </div>
@@ -61,7 +61,7 @@
           id="capture-status"
           class="capture-status-container, hidden"
         >
-          <div class="status-card">
+          <div class="status-card pw-card">
             <div class="status-header">
               <div class="status-icon-wrapper">
                 <div
@@ -80,7 +80,7 @@
                 ></div>
               </div>
               <button
-                class="status-close"
+                class="status-close pw-button-icon"
                 id="status-close"
                 aria-label="Close"
               >
@@ -110,33 +110,36 @@
           id="capture-warning"
           class="capture-warning-container, hidden"
         >
-          <div class="warning-card">
-            <div class="warning-icon">⚠️</div>
+          <div class="warning-card pw-card pw-card-warning">
+            <div class="warning-icon pw-icon">⚠️</div>
             <div class="warning-content">
-              <div class="warning-title">Page Not Capturable</div>
-              <div class="warning-message">Cannot capture browser internal pages</div>
+              <div class="warning-title pw-text-primary">Page Not Capturable</div>
+              <div class="warning-message pw-text-secondary">Cannot capture browser internal pages</div>
             </div>
           </div>
         </div>
 
         <button
           id="capture-content"
-          class="action-button"
+          class="action-button pw-button pw-button-primary"
         >
-          📄 Capture Content
+          <span class="pw-icon">📄</span>
+          Capture Content
         </button>
 
         <button
           id="settings-btn"
-          class="secondary-button"
+          class="secondary-button pw-button pw-button-secondary"
         >
-          ⚙️ Settings
+          <span class="pw-icon">⚙️</span>
+          Settings
         </button>
         <button
           id="view-repo"
-          class="secondary-button repo-button"
+          class="secondary-button repo-button pw-button pw-button-secondary"
         >
-          🔗 View Repository
+          <span class="pw-icon">🔗</span>
+          View Repository
         </button>
       </div>
     </div>

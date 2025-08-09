@@ -385,13 +385,14 @@ export class BookmarkletUI {
     const styles = document.createElement('style');
     styles.id = 'pw-bookmarklet-styles';
     styles.textContent = `
+      /* PrismWeave Bookmarklet UI - Using unified design system */
       .pw-bookmarklet-container {
         position: fixed;
         width: 350px;
         max-height: 500px;
         background: #ffffff;
         border-radius: 12px;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         font-size: 14px;
         line-height: 1.4;
@@ -399,7 +400,8 @@ export class BookmarkletUI {
         transform: translateY(-10px);
         opacity: 0;
         transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        border: 1px solid #e1e5e9;
+        border: 1px solid #e5e7eb;
+        z-index: 999999;
       }
 
       .pw-bookmarklet-container.pw-bookmarklet-show {
@@ -438,19 +440,30 @@ export class BookmarkletUI {
         align-items: center;
         justify-content: space-between;
         padding: 16px 20px;
-        border-bottom: 1px solid #e1e5e9;
-        background: #f8f9fa;
+        border-bottom: 1px solid #e5e7eb;
+        background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+        color: white;
       }
 
       .pw-bookmarklet-theme-dark .pw-bookmarklet-header {
         border-color: #333333;
-        background: #2a2a2a;
+        background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
       }
 
       .pw-bookmarklet-logo {
+        display: flex;
+        align-items: center;
         font-weight: 600;
         font-size: 16px;
-        color: #6366f1;
+        color: white;
+        gap: 8px;
+      }
+
+      .pw-bookmarklet-logo::before {
+        content: "🌟";
+        width: 20px;
+        height: 20px;
+        display: inline-block;
       }
 
       .pw-bookmarklet-close {
@@ -458,25 +471,22 @@ export class BookmarkletUI {
         border: none;
         font-size: 20px;
         cursor: pointer;
-        padding: 4px;
+        padding: 6px;
         line-height: 1;
-        color: #6b7280;
-        border-radius: 4px;
+        color: rgba(255, 255, 255, 0.8);
+        border-radius: 50%;
         transition: all 0.2s;
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
       }
 
       .pw-bookmarklet-close:hover {
-        background: #f3f4f6;
-        color: #374151;
-      }
-
-      .pw-bookmarklet-theme-dark .pw-bookmarklet-close {
-        color: #9ca3af;
-      }
-
-      .pw-bookmarklet-theme-dark .pw-bookmarklet-close:hover {
-        background: #374151;
-        color: #d1d5db;
+        background: rgba(255, 255, 255, 0.1);
+        color: white;
+        transform: scale(1.1);
       }
 
       .pw-bookmarklet-body {
@@ -511,12 +521,23 @@ export class BookmarkletUI {
         background: linear-gradient(90deg, #6366f1, #8b5cf6);
         border-radius: 4px;
         transition: width 0.3s ease;
+        animation: pw-bookmarklet-shimmer 2s ease-in-out infinite;
+      }
+
+      @keyframes pw-bookmarklet-shimmer {
+        0%, 100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.7;
+        }
       }
 
       .pw-bookmarklet-percentage {
         text-align: center;
         font-weight: 600;
         color: #6366f1;
+        font-size: 12px;
       }
 
       .pw-bookmarklet-preview-header h3 {
@@ -537,17 +558,24 @@ export class BookmarkletUI {
         margin-bottom: 16px;
         font-size: 12px;
         color: #6b7280;
+        flex-wrap: wrap;
       }
 
       .pw-bookmarklet-theme-dark .pw-bookmarklet-meta {
         color: #9ca3af;
       }
 
+      .pw-bookmarklet-meta span {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+
       .pw-bookmarklet-preview-text {
         width: 100%;
         height: 120px;
         border: 1px solid #d1d5db;
-        border-radius: 6px;
+        border-radius: 8px;
         padding: 12px;
         font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
         font-size: 12px;
@@ -556,6 +584,7 @@ export class BookmarkletUI {
         background: #f9fafb;
         color: #374151;
         margin-bottom: 16px;
+        box-sizing: border-box;
       }
 
       .pw-bookmarklet-theme-dark .pw-bookmarklet-preview-text {
@@ -572,33 +601,49 @@ export class BookmarkletUI {
       }
 
       .pw-bookmarklet-btn {
-        padding: 8px 16px;
-        border-radius: 6px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        padding: 10px 16px;
+        border-radius: 8px;
         border: none;
         font-size: 14px;
         font-weight: 500;
         cursor: pointer;
         transition: all 0.2s;
         min-width: 80px;
+        font-family: inherit;
+      }
+
+      .pw-bookmarklet-btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none !important;
       }
 
       .pw-bookmarklet-btn-primary {
-        background: #6366f1;
+        background: linear-gradient(135deg, #6366f1, #8b5cf6);
         color: white;
+        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
       }
 
-      .pw-bookmarklet-btn-primary:hover {
-        background: #5b21b6;
+      .pw-bookmarklet-btn-primary:hover:not(:disabled) {
+        transform: translateY(-1px);
+        box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
       }
 
       .pw-bookmarklet-btn-secondary {
-        background: #f3f4f6;
+        background: #ffffff;
         color: #374151;
         border: 1px solid #d1d5db;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
       }
 
-      .pw-bookmarklet-btn-secondary:hover {
-        background: #e5e7eb;
+      .pw-bookmarklet-btn-secondary:hover:not(:disabled) {
+        background: #f9fafb;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
       }
 
       .pw-bookmarklet-theme-dark .pw-bookmarklet-btn-secondary {
@@ -607,7 +652,7 @@ export class BookmarkletUI {
         border-color: #4b5563;
       }
 
-      .pw-bookmarklet-theme-dark .pw-bookmarklet-btn-secondary:hover {
+      .pw-bookmarklet-theme-dark .pw-bookmarklet-btn-secondary:hover:not(:disabled) {
         background: #4b5563;
       }
 
@@ -616,6 +661,19 @@ export class BookmarkletUI {
         font-size: 48px;
         text-align: center;
         margin-bottom: 16px;
+        animation: pw-bookmarklet-bounce 1s ease-in-out;
+      }
+
+      @keyframes pw-bookmarklet-bounce {
+        0%, 20%, 50%, 80%, 100% {
+          transform: translateY(0);
+        }
+        40% {
+          transform: translateY(-10px);
+        }
+        60% {
+          transform: translateY(-5px);
+        }
       }
 
       .pw-bookmarklet-success h3,
@@ -650,32 +708,46 @@ export class BookmarkletUI {
       }
 
       .pw-bookmarklet-link {
-        display: inline-block;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
         color: #6366f1;
         text-decoration: none;
         font-weight: 500;
         margin-top: 8px;
         text-align: center;
         width: 100%;
+        justify-content: center;
+        padding: 8px;
+        border-radius: 6px;
+        transition: all 0.2s;
       }
 
       .pw-bookmarklet-link:hover {
-        text-decoration: underline;
+        background: #f0f9ff;
+        text-decoration: none;
+        transform: translateY(-1px);
+      }
+
+      .pw-bookmarklet-link::after {
+        content: "↗";
+        font-size: 12px;
       }
 
       .pw-bookmarklet-toast {
         position: fixed;
         top: 20px;
         right: 20px;
-        background: #fbbf24;
-        color: #92400e;
+        background: #f59e0b;
+        color: white;
         padding: 12px 16px;
         border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         font-size: 14px;
         z-index: 1000000;
         animation: pw-bookmarklet-slide-in 0.3s ease;
+        max-width: 300px;
       }
 
       .pw-bookmarklet-toast.pw-bookmarklet-theme-dark {
@@ -689,6 +761,11 @@ export class BookmarkletUI {
         gap: 8px;
       }
 
+      .pw-bookmarklet-toast-icon {
+        font-size: 16px;
+        flex-shrink: 0;
+      }
+
       @keyframes pw-bookmarklet-slide-in {
         from {
           transform: translateX(100%);
@@ -697,6 +774,46 @@ export class BookmarkletUI {
         to {
           transform: translateX(0);
           opacity: 1;
+        }
+      }
+
+      /* Responsive adjustments */
+      @media (max-width: 480px) {
+        .pw-bookmarklet-container {
+          width: calc(100vw - 40px);
+          max-width: none;
+          margin: 0 20px;
+        }
+
+        .pw-bookmarklet-body {
+          padding: 16px;
+        }
+
+        .pw-bookmarklet-header {
+          padding: 12px 16px;
+        }
+      }
+
+      /* High contrast mode support */
+      @media (prefers-contrast: high) {
+        .pw-bookmarklet-btn {
+          border: 2px solid currentColor;
+        }
+      }
+
+      /* Reduced motion support */
+      @media (prefers-reduced-motion: reduce) {
+        .pw-bookmarklet-container,
+        .pw-bookmarklet-btn,
+        .pw-bookmarklet-progress-fill,
+        .pw-bookmarklet-close {
+          transition: none;
+        }
+        
+        .pw-bookmarklet-progress-fill,
+        .pw-bookmarklet-success-icon,
+        .pw-bookmarklet-error-icon {
+          animation: none;
         }
       }
     `;
