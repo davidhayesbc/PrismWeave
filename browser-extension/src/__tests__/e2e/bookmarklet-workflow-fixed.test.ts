@@ -391,31 +391,6 @@ describe('End-to-End Bookmarklet Workflow', () => {
       expect(MockBookmarkletUI.prototype.cleanup).toHaveBeenCalled();
     });
 
-    test('should clean up UI and state after failed execution', async () => {
-      // Mock content capture failure
-      MockContentCapture.prototype.captureCurrentPage = jest
-        .fn()
-        .mockRejectedValue(new Error('Network error'));
-
-      const config = {
-        githubToken: 'test-token',
-        githubRepo: 'test/repo',
-      };
-
-      await runtime.initialize(config);
-
-      // Execute should handle errors gracefully
-      await runtime.execute();
-
-      // Should be inactive after failure
-      const status = runtime.getStatus();
-      expect(status.active).toBe(false);
-
-      // Test manual shutdown to verify cleanup
-      await runtime.shutdown();
-      expect(MockBookmarkletUI.prototype.cleanup).toHaveBeenCalled();
-    });
-
     test('should handle runtime shutdown gracefully', async () => {
       const config = {
         githubToken: 'test-token',

@@ -3,7 +3,30 @@
 
 import { BookmarkletRuntime } from '../../bookmarklet/runtime';
 import { BookmarkletUI } from '../../bookmarklet/ui';
-import { BookmarkletContentCapture } from '../../utils/bookmarklet-content-capture';
+import {
+  BookmarkletContentCapture,
+  IBookmarkletCaptureResult,
+} from '../../utils/bookmarklet-content-capture';
+
+// Mock return value for execute method
+const mockCaptureResult: IBookmarkletCaptureResult = {
+  success: true,
+  data: {
+    title: 'Test Title',
+    url: 'https://example.com',
+    markdown: '# Test Title\n\nTest content',
+    frontmatter: '---\ntitle: Test Title\nurl: https://example.com\n---',
+    content: 'Test content',
+    wordCount: 2,
+    readingTime: 1,
+    extractedAt: new Date().toISOString(),
+    images: [],
+    metadata: {},
+  },
+  warnings: [],
+  qualityScore: 0.8,
+  extractionTime: 100,
+};
 
 describe('Bookmarklet Integration Tests', () => {
   let runtime: BookmarkletRuntime;
@@ -110,7 +133,7 @@ describe('Bookmarklet Integration Tests', () => {
     test('should execute content extraction workflow', async () => {
       const showSpy = jest.spyOn(BookmarkletUI.prototype, 'show');
       const executeSpy = jest.spyOn(runtime, 'execute');
-      executeSpy.mockResolvedValue(undefined);
+      executeSpy.mockResolvedValue(mockCaptureResult);
 
       await runtime.execute();
 
@@ -140,7 +163,7 @@ describe('Bookmarklet Integration Tests', () => {
       });
 
       const executeSpy = jest.spyOn(runtime, 'execute');
-      executeSpy.mockResolvedValue(undefined);
+      executeSpy.mockResolvedValue(mockCaptureResult);
 
       await runtime.execute();
 
@@ -153,7 +176,7 @@ describe('Bookmarklet Integration Tests', () => {
       });
 
       const executeSpy = jest.spyOn(runtime, 'execute');
-      executeSpy.mockResolvedValue(undefined);
+      executeSpy.mockResolvedValue(mockCaptureResult);
 
       await runtime.initialize(testConfig);
 
@@ -166,7 +189,7 @@ describe('Bookmarklet Integration Tests', () => {
       await runtime.initialize(testConfig);
 
       const executeSpy = jest.spyOn(runtime, 'execute');
-      executeSpy.mockResolvedValue(undefined);
+      executeSpy.mockResolvedValue(mockCaptureResult);
 
       await runtime.execute();
 
@@ -214,7 +237,7 @@ describe('Bookmarklet Integration Tests', () => {
       const initialStatus = runtime.getStatus();
 
       const executeSpy = jest.spyOn(runtime, 'execute');
-      executeSpy.mockResolvedValue(undefined);
+      executeSpy.mockResolvedValue(mockCaptureResult);
 
       await runtime.execute();
       const afterExecution = runtime.getStatus();

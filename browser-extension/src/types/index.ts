@@ -169,10 +169,26 @@ export const MESSAGE_TYPES = {
 export interface IBookmarkletConfig {
   githubToken: string;
   githubRepo: string;
+  githubBranch?: string;
+  folderPath?: string;
+  autoCommit?: boolean;
+  includeImages?: boolean;
+  includeLinks?: boolean;
+  cleanHtml?: boolean;
+  showPreview?: boolean;
+  uiTheme?: 'light' | 'dark' | 'auto';
+  autoSave?: boolean;
+  captureOptions?: {
+    includeImages: boolean;
+    includeLinks: boolean;
+    cleanHtml: boolean;
+    generateFrontmatter: boolean;
+    includeMetadata: boolean;
+  };
+  commitMessageTemplate?: string;
   defaultFolder?: string;
   customFolder?: string;
   fileNamingPattern?: string;
-  commitMessageTemplate?: string;
   captureImages?: boolean;
   removeAds?: boolean;
   removeNavigation?: boolean;

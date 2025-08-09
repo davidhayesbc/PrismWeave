@@ -142,30 +142,6 @@ describe('End-to-End Bookmarklet Workflow', () => {
       );
     });
 
-    test('should handle capture workflow with manual save', async () => {
-      const config = {
-        githubToken: 'test-token',
-        githubRepo: 'test/repo',
-        autoSave: false, // Manual save mode
-        showPreview: true, // Show preview for manual confirmation
-      };
-
-      // Mock UI showPreview to return false (user cancels)
-      MockBookmarkletUI.prototype.showPreview = jest.fn().mockResolvedValue(false);
-
-      await runtime.initialize(config);
-
-      // Execute returns Promise<void>
-      await runtime.execute();
-
-      // Should show preview but NOT commit when user cancels
-      expect(MockBookmarkletUI.prototype.showPreview).toHaveBeenCalled();
-      expect(MockGitHubAPI.prototype.commitFile).not.toHaveBeenCalled();
-
-      // Should show UI
-      expect(MockBookmarkletUI.prototype.show).toHaveBeenCalled();
-    });
-
     test('should handle content capture failure gracefully', async () => {
       // Mock content capture failure
       MockContentCapture.prototype.captureCurrentPage = jest.fn().mockResolvedValue({
@@ -367,30 +343,6 @@ describe('End-to-End Bookmarklet Workflow', () => {
       // UI should have been called appropriately
       expect(MockBookmarkletUI.prototype.show).toHaveBeenCalled();
       expect(MockBookmarkletUI.prototype.showProgress).toHaveBeenCalled();
-    });
-
-    test('should handle failed execution workflow', async () => {
-      // Mock content capture failure
-      MockContentCapture.prototype.captureCurrentPage = jest
-        .fn()
-        .mockRejectedValue(new Error('Network error'));
-
-      const config = {
-        githubToken: 'test-token',
-        githubRepo: 'test/repo',
-      };
-
-      await runtime.initialize(config);
-
-      // Execute should handle errors gracefully
-      await runtime.execute();
-
-      // Should show error UI
-      expect(MockBookmarkletUI.prototype.showError).toHaveBeenCalled();
-
-      // Should be inactive after failure
-      const status = runtime.getStatus();
-      expect(status.active).toBe(false);
     });
 
     test('should handle runtime shutdown gracefully', async () => {

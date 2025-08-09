@@ -22,6 +22,17 @@ jest.mock('../../bookmarklet/ui');
 jest.mock('../../bookmarklet/github-api-client');
 jest.mock('../../utils/bookmarklet-content-capture');
 
+// Import mocked classes
+import { GitHubAPIClient } from '../../bookmarklet/github-api-client';
+import { BookmarkletUI } from '../../bookmarklet/ui';
+import { BookmarkletContentCapture } from '../../utils/bookmarklet-content-capture';
+
+const MockBookmarkletUI = BookmarkletUI as jest.MockedClass<typeof BookmarkletUI>;
+const MockGitHubAPI = GitHubAPIClient as jest.MockedClass<typeof GitHubAPIClient>;
+const MockContentCapture = BookmarkletContentCapture as jest.MockedClass<
+  typeof BookmarkletContentCapture
+>;
+
 describe('BookmarkletRuntime', () => {
   let runtime: BookmarkletRuntime;
 
@@ -29,6 +40,28 @@ describe('BookmarkletRuntime', () => {
     runtime = new BookmarkletRuntime();
     jest.clearAllMocks();
     mockLocalStorage.getItem.mockReturnValue(null);
+
+    // Set up default mock implementations
+    MockContentCapture.prototype.captureCurrentPage = jest.fn().mockResolvedValue({
+      success: true,
+      title: 'Test Page',
+      content: 'Test content',
+      url: 'https://example.com',
+      markdown: '# Test Page\n\nTest content',
+      metadata: {},
+      images: [],
+    });
+
+    MockGitHubAPI.prototype.commitFile = jest.fn().mockResolvedValue({
+      success: true,
+      commitHash: 'abc123',
+      url: 'https://github.com/test/repo/commit/abc123',
+    });
+
+    MockBookmarkletUI.prototype.show = jest.fn();
+    MockBookmarkletUI.prototype.hide = jest.fn();
+    MockBookmarkletUI.prototype.showError = jest.fn();
+    MockBookmarkletUI.prototype.cleanup = jest.fn();
   });
 
   describe('initialization', () => {
@@ -280,11 +313,8 @@ describe('BookmarkletRuntime', () => {
       const providedConfig = {
         githubToken: 'test-token',
         githubRepo: 'owner/repo',
-        autoSave: true,
         // Note: NOT providing folderPath, so stored config should be used
-        captureOptions: {
-          includeImages: false,
-        },
+        captureImages: false,
       };
 
       await runtime.initialize(providedConfig);
