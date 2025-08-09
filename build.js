@@ -110,6 +110,7 @@ class PrismWeaveBuildSystem {
           ],
           assets: [
             { from: `${basePath}src/bookmarklet/help.html`, to: `${basePath}dist/bookmarklet/help.html` },
+            { from: `${basePath}src/bookmarklet/install.html`, to: `${basePath}dist/bookmarklet/install.html` },
             { from: `${basePath}src/bookmarklet/README.md`, to: `${basePath}dist/bookmarklet/README.md` }
           ]
         },

@@ -1,0 +1,180 @@
+name: Quick Patch Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      description:
+        description: 'Brief description of changes (optional)'
+        required: false
+        default: 'Bug fixes and improvements'
+        type: string
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  quick-patch:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+      - name: Get current version and calculate patch
+        id: version
+        run: |
+          echo "🔍 Finding current version..."
+          
+          # Get current version from package.json
+          CURRENT_VERSION=$(node -e "console.log(require('./package.json').version)")
+          echo "Current package.json version: $CURRENT_VERSION"
+          
+          # Parse version components
+          MAJOR=$(echo $CURRENT_VERSION | cut -d. -f1)
+          MINOR=$(echo $CURRENT_VERSION | cut -d. -f2)
+          PATCH=$(echo $CURRENT_VERSION | cut -d. -f3)
+          
+          # Get latest tag for this major.minor to ensure we don't conflict
+          LATEST_TAG=$(git tag -l "v${MAJOR}.${MINOR}.*" | sort -V | tail -n1)
+          
+          if [ ! -z "$LATEST_TAG" ]; then
+            LATEST_PATCH=$(echo $LATEST_TAG | sed "s/v${MAJOR}\.${MINOR}\.//" | sed 's/[^0-9].*//')
+            echo "Latest tag patch version: $LATEST_PATCH"
+            
+            # Use the higher of current package.json patch or latest tag patch, then increment
+            if [ "$LATEST_PATCH" -ge "$PATCH" ]; then
+              NEW_PATCH=$((LATEST_PATCH + 1))
+            else
+              NEW_PATCH=$((PATCH + 1))
+            fi
+          else
+            NEW_PATCH=$((PATCH + 1))
+          fi
+          
+          NEW_VERSION="${MAJOR}.${MINOR}.${NEW_PATCH}"
+          NEW_TAG="v${NEW_VERSION}"
+          
+          echo "🎯 New version: $NEW_VERSION"
+          echo "🏷️  New tag: $NEW_TAG"
+          
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "new_tag=$NEW_TAG" >> $GITHUB_OUTPUT
+          
+          # Double-check tag doesn't exist
+          if git tag -l "$NEW_TAG" | grep -q "$NEW_TAG"; then
+            echo "❌ Tag $NEW_TAG already exists!"
+            exit 1
+          fi
+          
+      - name: Update versions and build
+        run: |
+          echo "📝 Updating to version ${{ steps.version.outputs.new_version }}"
+          
+          # Update package.json files
+          npm version ${{ steps.version.outputs.new_version }} --no-git-tag-version
+          
+          if [ -f "browser-extension/package.json" ]; then
+            cd browser-extension && npm version ${{ steps.version.outputs.new_version }} --no-git-tag-version && cd ..
+          fi
+          
+          if [ -f "vscode-extension/package.json" ]; then
+            cd vscode-extension && npm version ${{ steps.version.outputs.new_version }} --no-git-tag-version && cd ..
+          fi
+          
+          # Install and build
+          npm install esbuild
+          cd browser-extension && npm install && cd ..
+          node build.js build
+          
+      - name: Package and release
+        run: |
+          echo "📦 Creating release packages..."
+          
+          mkdir -p dist/releases
+          
+          # Package extension
+          cd browser-extension/dist
+          zip -r "../../dist/releases/prismweave-extension-${{ steps.version.outputs.new_tag }}.zip" .
+          cd ../..
+          
+          # Package bookmarklet
+          if [ -d "browser-extension/dist/bookmarklet" ]; then
+            cd browser-extension/dist/bookmarklet
+            zip -r "../../../dist/releases/prismweave-bookmarklet-${{ steps.version.outputs.new_tag }}.zip" .
+            cd ../../..
+          fi
+          
+      - name: Generate simple release notes
+        run: |
+          VERSION=${{ steps.version.outputs.new_tag }}
+          DATE=$(date +"%Y-%m-%d")
+          DESCRIPTION="${{ github.event.inputs.description }}"
+          
+          cat > release-notes.md << EOF
+          # PrismWeave ${VERSION} - Quick Patch
+          
+          **Released:** ${DATE}  
+          **Type:** Patch release
+          
+          ## 📋 Changes
+          
+          ${DESCRIPTION}
+          
+          ## 📁 Downloads
+          
+          - **prismweave-extension-${VERSION}.zip** - Browser extension
+          - **prismweave-bookmarklet-${VERSION}.zip** - Universal bookmarklet
+          
+          ## 🚀 Installation
+          
+          - **Extension**: Extract ZIP → Load unpacked in Chrome/Edge developer mode
+          - **Bookmarklet**: Visit https://davidhayesbc.github.io/PrismWeave/ and drag to bookmarks
+          
+          **Documentation**: https://davidhayesbc.github.io/PrismWeave/
+          EOF
+          
+      - name: Commit, tag and release
+        run: |
+          # Commit changes
+          git add .
+          git commit -m "🚀 Quick patch release ${{ steps.version.outputs.new_version }}"
+          
+          # Create and push tag
+          git tag ${{ steps.version.outputs.new_tag }}
+          git push origin main
+          git push origin ${{ steps.version.outputs.new_tag }}
+          
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.version.outputs.new_tag }}
+          name: "PrismWeave ${{ steps.version.outputs.new_tag }}"
+          body_path: release-notes.md
+          draft: false
+          prerelease: false
+          files: |
+            ./dist/releases/prismweave-extension-${{ steps.version.outputs.new_tag }}.zip
+            ./dist/releases/prismweave-bookmarklet-${{ steps.version.outputs.new_tag }}.zip
+          
+      - name: Success message
+        run: |
+          echo "🎉 Quick patch release ${{ steps.version.outputs.new_tag }} completed!"
+          echo "📦 Packages created and uploaded"
+          echo "🌐 Website will auto-update via deploy-website workflow"

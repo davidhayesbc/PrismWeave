@@ -1,0 +1,401 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0"
+    />
+    <title>PrismWeave Bookmarklet - Install</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        line-height: 1.6;
+        color: #333;
+        background: #f8fafc;
+      }
+
+      .container {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 2rem;
+      }
+
+      .header {
+        text-align: center;
+        margin-bottom: 3rem;
+        background: linear-gradient(135deg, #2563eb, #1d4ed8);
+        color: white;
+        padding: 3rem 2rem;
+        border-radius: 12px;
+      }
+
+      .header h1 {
+        font-size: 2.5rem;
+        margin-bottom: 1rem;
+      }
+
+      .header p {
+        font-size: 1.2rem;
+        opacity: 0.9;
+      }
+
+      .install-section {
+        background: white;
+        border-radius: 12px;
+        padding: 3rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+      }
+
+      .install-section h2 {
+        color: #2563eb;
+        margin-bottom: 1.5rem;
+        text-align: center;
+      }
+
+      .bookmarklet-area {
+        background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
+        border: 2px dashed #0ea5e9;
+        border-radius: 12px;
+        padding: 2rem;
+        text-align: center;
+        margin: 2rem 0;
+      }
+
+      .bookmarklet-button {
+        display: inline-block;
+        background: linear-gradient(135deg, #6366f1, #8b5cf6);
+        color: white;
+        padding: 15px 30px;
+        border-radius: 10px;
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 1.2rem;
+        cursor: move;
+        transition: all 0.2s;
+        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+        margin: 1rem;
+      }
+
+      .bookmarklet-button:hover {
+        background: linear-gradient(135deg, #4f46e5, #7c3aed);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+        text-decoration: none;
+        color: white;
+      }
+
+      .drag-instruction {
+        font-size: 1.1rem;
+        color: #0369a1;
+        font-weight: 500;
+        margin-top: 1rem;
+      }
+
+      .steps {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.5rem;
+        margin-top: 2rem;
+      }
+
+      .step {
+        background: #f8fafc;
+        border-radius: 8px;
+        padding: 1.5rem;
+        border-left: 4px solid #2563eb;
+      }
+
+      .step-number {
+        display: inline-block;
+        background: #2563eb;
+        color: white;
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        text-align: center;
+        line-height: 30px;
+        font-weight: bold;
+        margin-bottom: 1rem;
+      }
+
+      .step h3 {
+        color: #1e293b;
+        margin-bottom: 0.5rem;
+      }
+
+      .features {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-top: 2rem;
+      }
+
+      .feature {
+        background: #f0f9ff;
+        border-radius: 8px;
+        padding: 1rem;
+        text-align: center;
+        border: 1px solid #e0f2fe;
+      }
+
+      .feature-icon {
+        font-size: 2rem;
+        margin-bottom: 0.5rem;
+      }
+
+      .feature h4 {
+        color: #0369a1;
+        margin-bottom: 0.5rem;
+      }
+
+      .warning {
+        background: #fef3c7;
+        color: #92400e;
+        padding: 1rem;
+        border-radius: 8px;
+        border-left: 4px solid #f59e0b;
+        margin: 1.5rem 0;
+      }
+
+      .success {
+        background: #dcfce7;
+        color: #166534;
+        padding: 1rem;
+        border-radius: 8px;
+        border-left: 4px solid #16a34a;
+        margin: 1.5rem 0;
+      }
+
+      .code {
+        background: #1e293b;
+        color: #e2e8f0;
+        padding: 1rem;
+        border-radius: 8px;
+        font-family: 'Monaco', 'Consolas', monospace;
+        font-size: 0.9rem;
+        margin: 1rem 0;
+        overflow-x: auto;
+      }
+
+      .center-section {
+        text-align: center;
+      }
+
+      .link-spacing {
+        margin-top: 2rem;
+      }
+
+      .doc-link {
+        color: #2563eb;
+        text-decoration: none;
+        font-weight: 600;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>🌟 PrismWeave Bookmarklet</h1>
+        <p>Capture web pages as clean markdown - No extension required!</p>
+      </div>
+
+      <div class="install-section">
+        <h2>🚀 Quick Installation</h2>
+
+        <div class="success">
+          <strong>✅ Universal Compatibility</strong>
+          <br />
+          Works in Chrome, Firefox, Safari, Edge, and any modern browser. No extensions needed!
+        </div>
+
+        <div class="bookmarklet-area">
+          <h3>Drag this button to your bookmarks bar:</h3>
+          <a
+            href="javascript:(function(){if(window.prismweaveBookmarklet){return;}var s=document.createElement('script');s.src='https://davidhayesbc.github.io/PrismWeave/bookmarklet/loader.js';s.onload=function(){if(window.executeBookmarklet){window.executeBookmarklet();}};document.head.appendChild(s);window.prismweaveBookmarklet=true;})();"
+            class="bookmarklet-button"
+            draggable="true"
+          >
+            🌟 PrismWeave Capture
+          </a>
+          <div class="drag-instruction">👆 Drag the button above to your bookmarks bar</div>
+        </div>
+
+        <div class="steps">
+          <div class="step">
+            <div class="step-number">1</div>
+            <h3>Show Bookmarks Bar</h3>
+            <p>Make sure your browser's bookmarks toolbar is visible (usually below the address bar).</p>
+          </div>
+
+          <div class="step">
+            <div class="step-number">2</div>
+            <h3>Drag & Drop</h3>
+            <p>Drag the "PrismWeave Capture" button above to your bookmarks bar. It will create a bookmark.</p>
+          </div>
+
+          <div class="step">
+            <div class="step-number">3</div>
+            <h3>Configure GitHub</h3>
+            <p>Click the bookmark on any page. On first use, you'll set up your GitHub token and repository.</p>
+          </div>
+
+          <div class="step">
+            <div class="step-number">4</div>
+            <h3>Start Capturing!</h3>
+            <p>Use the bookmark on any webpage to extract clean markdown and save it to your repository.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="install-section">
+        <h2>✨ What You Get</h2>
+
+        <div class="features">
+          <div class="feature">
+            <div class="feature-icon">📝</div>
+            <h4>Clean Markdown</h4>
+            <p>Converts messy web pages into clean, readable markdown format</p>
+          </div>
+
+          <div class="feature">
+            <div class="feature-icon">🔄</div>
+            <h4>GitHub Sync</h4>
+            <p>Automatically commits captured content to your GitHub repository</p>
+          </div>
+
+          <div class="feature">
+            <div class="feature-icon">🎯</div>
+            <h4>Smart Extraction</h4>
+            <p>Intelligently identifies main content, ignoring ads and navigation</p>
+          </div>
+
+          <div class="feature">
+            <div class="feature-icon">⚡</div>
+            <h4>Lightning Fast</h4>
+            <p>One-click capture from any webpage without leaving your browser</p>
+          </div>
+
+          <div class="feature">
+            <div class="feature-icon">🔒</div>
+            <h4>Privacy First</h4>
+            <p>Your data stays secure - direct communication with GitHub API only</p>
+          </div>
+
+          <div class="feature">
+            <div class="feature-icon">🌍</div>
+            <h4>Universal</h4>
+            <p>Works on any website, any browser, without installing extensions</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="install-section">
+        <h2>🔧 GitHub Configuration</h2>
+
+        <div class="warning">
+          <strong>⚠️ Required Setup</strong>
+          <br />
+          You'll need a GitHub personal access token to save captured content to your repository.
+        </div>
+
+        <div class="steps">
+          <div class="step">
+            <div class="step-number">1</div>
+            <h3>Create Token</h3>
+            <p>Go to GitHub Settings → Developer settings → Personal access tokens → Generate new token</p>
+          </div>
+
+          <div class="step">
+            <div class="step-number">2</div>
+            <h3>Set Permissions</h3>
+            <p>Select "repo" scope for full repository access (or "public_repo" for public repos only)</p>
+          </div>
+
+          <div class="step">
+            <div class="step-number">3</div>
+            <h3>Copy Token</h3>
+            <p>Copy the generated token and keep it secure - you'll enter it when first using the bookmarklet</p>
+          </div>
+
+          <div class="step">
+            <div class="step-number">4</div>
+            <h3>Configure Repository</h3>
+            <p>Specify your repository in "owner/repo" format where captured content will be saved</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="install-section">
+        <h2>🛠️ Troubleshooting</h2>
+
+        <h3>Common Issues:</h3>
+
+        <div class="step">
+          <h4>❌ Bookmarklet doesn't work</h4>
+          <p>
+            <strong>Solution:</strong>
+            Some websites block external scripts. Try refreshing the page and clicking again, or use the browser
+            extension instead.
+          </p>
+        </div>
+
+        <div class="step">
+          <h4>🔐 GitHub API errors</h4>
+          <p>
+            <strong>Solution:</strong>
+            Check that your personal access token is valid and has the correct repository permissions.
+          </p>
+        </div>
+
+        <div class="step">
+          <h4>📄 No content captured</h4>
+          <p>
+            <strong>Solution:</strong>
+            The page structure may be unusual. Try different content extraction settings or capture specific sections
+            manually.
+          </p>
+        </div>
+
+        <div class="step">
+          <h4>📏 File too large</h4>
+          <p>
+            <strong>Solution:</strong>
+            GitHub has file size limits. Enable content truncation or capture smaller sections of the page.
+          </p>
+        </div>
+      </div>
+
+      <div class="install-section center-section">
+        <h2>🎉 You're All Set!</h2>
+        <p>
+          The PrismWeave bookmarklet is now ready to use. Click it on any webpage to start capturing clean markdown
+          content!
+        </p>
+
+        <div class="success">
+          <strong>💡 Pro Tip:</strong>
+          <br />
+          For more advanced features like keyboard shortcuts and batch processing, consider installing the full
+          PrismWeave browser extension.
+        </div>
+
+        <p class="link-spacing">
+          <a
+            href="https://github.com/davidhayesbc/PrismWeave"
+            class="doc-link"
+          >
+            📚 View Documentation & Source Code →
+          </a>
+        </p>
+      </div>
+    </div>
+  </body>
+</html>

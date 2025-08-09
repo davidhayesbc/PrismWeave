@@ -79,6 +79,92 @@
         .btn:hover { background: #1d4ed8; }
         .btn-secondary { background: #64748b; }
         .btn-secondary:hover { background: #475569; }
+        
+        .bookmarklet-section {
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+            border: 2px dashed #d1d5db;
+            text-align: center;
+        }
+        
+        .bookmarklet-section h4 {
+            font-size: 1.1rem;
+            margin-bottom: 15px;
+            color: #1e293b;
+        }
+        
+        .bookmarklet-drag-area {
+            margin: 15px 0;
+        }
+        
+        .bookmarklet-link {
+            display: inline-block;
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 1.1rem;
+            cursor: move;
+            transition: all 0.2s;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+        }
+        
+        .bookmarklet-link:hover {
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+            color: white;
+            text-decoration: none;
+        }
+        
+        .bookmarklet-instructions {
+            margin-top: 10px;
+            color: #64748b;
+            font-style: italic;
+        }
+        
+        .usage-guide {
+            padding: 4rem 0;
+            background: #f8fafc;
+        }
+        
+        .usage-steps {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+        
+        .usage-step {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        
+        .step-number {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            background: #2563eb;
+            color: white;
+            border-radius: 50%;
+            line-height: 40px;
+            font-weight: bold;
+            margin-bottom: 1rem;
+        }
+        
+        .usage-step h4 {
+            font-size: 1.25rem;
+            margin-bottom: 1rem;
+            color: #1e293b;
+        }
+        
         footer { 
             background: #1e293b; 
             color: white; 
@@ -128,10 +214,10 @@
                 <h3>🧩 Browser Extension</h3>
                 <p>Full-featured Chrome/Edge extension with keyboard shortcuts, advanced settings, and seamless integration.</p>
                 <div class="btn-group">
-                    <a href="https://github.com/davidhayesbc/PrismWeave/releases" class="btn">
+                    <a href="https://github.com/davidhayesbc/PrismWeave/releases/latest" class="btn">
                         📁 Download Extension
                     </a>
-                    <a href="https://github.com/davidhayesbc/PrismWeave#installation" class="btn btn-secondary">
+                    <a href="https://raw.githubusercontent.com/davidhayesbc/PrismWeave/main/EXTENSION_INSTALL.md" class="btn btn-secondary">
                         📖 Installation Guide
                     </a>
                 </div>
@@ -140,13 +226,104 @@
             <div class="component">
                 <h3>🔖 Bookmarklet</h3>
                 <p>Lightweight bookmarklet for quick page capture without installing an extension. Works in any browser.</p>
+                
+                <div class="bookmarklet-section">
+                    <h4>Drag this to your bookmarks bar:</h4>
+                    <div class="bookmarklet-drag-area">
+                        <a href="javascript:(function(){if(window.prismweaveBookmarklet){return;}var s=document.createElement('script');s.src='https://davidhayesbc.github.io/PrismWeave/bookmarklet/loader.js';s.onload=function(){if(window.executeBookmarklet){window.executeBookmarklet();}};document.head.appendChild(s);window.prismweaveBookmarklet=true;})();" class="bookmarklet-link" draggable="true">
+                            🌟 PrismWeave Capture
+                        </a>
+                    </div>
+                    <p class="bookmarklet-instructions">
+                        <small>� Drag the button above to your bookmarks bar, then click it on any webpage to capture content!</small>
+                    </p>
+                </div>
+                
                 <div class="btn-group">
-                    <a href="https://github.com/davidhayesbc/PrismWeave#bookmarklet" class="btn">
-                        📁 Get Bookmarklet
+                    <a href="./bookmarklet/install.html" class="btn">
+                        📖 Installation Guide
                     </a>
-                    <a href="https://github.com/davidhayesbc/PrismWeave#usage" class="btn btn-secondary">
-                        📖 Usage Instructions
+                    <a href="https://raw.githubusercontent.com/davidhayesbc/PrismWeave/main/USAGE_GUIDE.md" class="btn btn-secondary">
+                        🎮 Usage Instructions
                     </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="usage-guide" id="usage-guide">
+        <div class="container">
+            <h2>How to Use PrismWeave</h2>
+            <div class="usage-steps">
+                <div class="usage-step">
+                    <div class="step-number">1</div>
+                    <h4>Install Your Tool</h4>
+                    <p>Choose either the browser extension for full integration or drag the bookmarklet to your bookmarks bar for quick access.</p>
+                </div>
+                <div class="usage-step">
+                    <div class="step-number">2</div>
+                    <h4>Configure GitHub</h4>
+                    <p>Set up your GitHub personal access token and repository details in the settings. This is where your captured content will be saved.</p>
+                </div>
+                <div class="usage-step">
+                    <div class="step-number">3</div>
+                    <h4>Capture Content</h4>
+                    <p>Navigate to any webpage and click the extension icon or bookmarklet to extract clean markdown content automatically.</p>
+                </div>
+                <div class="usage-step">
+                    <div class="step-number">4</div>
+                    <h4>Review & Save</h4>
+                    <p>Preview the extracted content, make any adjustments, and save it directly to your GitHub repository as organized markdown files.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="components" id="extension-installation">
+        <div class="container">
+            <h2>📋 Installation Instructions</h2>
+            
+            <div class="component">
+                <h3>🧩 Browser Extension Setup</h3>
+                <p>Step-by-step guide to install the PrismWeave browser extension:</p>
+                <div class="usage-steps">
+                    <div class="usage-step">
+                        <div class="step-number">1</div>
+                        <h4>Download</h4>
+                        <p>Download the latest release from GitHub and extract the ZIP file to a folder on your computer.</p>
+                    </div>
+                    <div class="usage-step">
+                        <div class="step-number">2</div>
+                        <h4>Enable Developer Mode</h4>
+                        <p>Go to <code>chrome://extensions/</code> and toggle "Developer mode" on in the top-right corner.</p>
+                    </div>
+                    <div class="usage-step">
+                        <div class="step-number">3</div>
+                        <h4>Load Extension</h4>
+                        <p>Click "Load unpacked" and select the extracted extension folder. The PrismWeave icon will appear in your toolbar.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="component">
+                <h3>🔖 Bookmarklet Setup</h3>
+                <p>Quick setup for the browser-agnostic bookmarklet:</p>
+                <div class="usage-steps">
+                    <div class="usage-step">
+                        <div class="step-number">1</div>
+                        <h4>Show Bookmarks Bar</h4>
+                        <p>Make sure your bookmarks toolbar is visible in your browser (usually under the address bar).</p>
+                    </div>
+                    <div class="usage-step">
+                        <div class="step-number">2</div>
+                        <h4>Drag & Drop</h4>
+                        <p>Drag the "🌟 PrismWeave Capture" button above to your bookmarks bar. It will create a new bookmark.</p>
+                    </div>
+                    <div class="usage-step">
+                        <div class="step-number">3</div>
+                        <h4>Test It Out</h4>
+                        <p>Navigate to any webpage and click the bookmark. Configure your GitHub settings on first use.</p>
+                    </div>
                 </div>
             </div>
         </div>

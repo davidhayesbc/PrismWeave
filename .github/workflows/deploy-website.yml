@@ -3,6 +3,8 @@ name: Deploy Website
 on:
   push:
     branches: [ main ]
+  release:
+    types: [ published, created ]
   workflow_dispatch:
 
 permissions:
@@ -27,27 +29,53 @@ jobs:
         with:
           node-version: '20'
           
+      - name: Install dependencies
+        run: npm install
+          
+      - name: Build extension and bookmarklet
+        run: |
+          echo "🔨 Building extension and bookmarklet..."
+          node build.js build
+          
       - name: Generate website
         run: |
           echo "🚀 Generating PrismWeave website..."
           mkdir -p dist/web
           
-          # Get version from package.json
+          # Get version from package.json and latest release
           VERSION=$(node -e "console.log(require('./package.json').version || '1.0.0')" 2>/dev/null || echo "1.0.0")
           LAST_MODIFIED=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
           
-          echo "Using version: $VERSION"
+          # Try to get latest release info from GitHub API
+          LATEST_RELEASE=$(curl -s https://api.github.com/repos/davidhayesbc/PrismWeave/releases/latest || echo '{}')
+          LATEST_VERSION=$(echo "$LATEST_RELEASE" | grep '"tag_name"' | cut -d'"' -f4 | sed 's/^v//' || echo "$VERSION")
+          
+          echo "Package version: $VERSION"
+          echo "Latest release: $LATEST_VERSION" 
           echo "Last modified: $LAST_MODIFIED"
           
-          # Process HTML template with version substitution
-          sed "s/{{VERSION}}/$VERSION/g" .github/templates/index.html > dist/web/index.html
+          # Use latest release version if available, otherwise package.json version
+          DISPLAY_VERSION=$LATEST_VERSION
+          if [ "$DISPLAY_VERSION" == "" ] || [ "$DISPLAY_VERSION" == "null" ]; then
+            DISPLAY_VERSION=$VERSION
+          fi
           
-          # Process sitemap with last modified date
+          echo "Using display version: $DISPLAY_VERSION"
+          
+          # Process HTML template with version substitution
+          sed "s/{{VERSION}}/$DISPLAY_VERSION/g" .github/templates/index.html > dist/web/index.html
+          
+          # Process sitemap with last modified date  
           sed "s/{{LAST_MODIFIED}}/$LAST_MODIFIED/g" .github/templates/sitemap.xml > dist/web/sitemap.xml
           
           # Copy other static files
           cp .github/templates/404.html dist/web/404.html
           cp .github/templates/robots.txt dist/web/robots.txt
+          
+          # Copy bookmarklet assets to web deployment
+          echo "📁 Copying bookmarklet assets..."
+          mkdir -p dist/web/bookmarklet
+          cp -r browser-extension/dist/bookmarklet/* dist/web/bookmarklet/
           
       - name: List generated files
         run: |
