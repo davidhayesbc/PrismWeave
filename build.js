@@ -341,39 +341,274 @@ class PrismWeaveBuildSystem {
   }
 
   async generateWebIndex(webDir) {
+    const buildTime = new Date().toISOString();
+    const version = require('./package.json').version || '1.0.0';
+    
     const indexHtml = `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PrismWeave - Web Components</title>
+    <title>PrismWeave - Document Capture Tools</title>
+    <meta name="description" content="PrismWeave browser extension and bookmarklet for capturing web pages as clean markdown and syncing to your document repository.">
+    <meta name="keywords" content="document capture, markdown, browser extension, bookmarklet, web scraping, note taking">
+    <meta property="og:title" content="PrismWeave - Document Capture Tools">
+    <meta property="og:description" content="Capture web pages as clean markdown with PrismWeave browser extension and bookmarklet.">
+    <meta property="og:type" content="website">
+    <link rel="icon" type="image/png" href="./extension/icons/icon32.png">
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; max-width: 800px; margin: 0 auto; padding: 2rem; }
-        .component { margin: 2rem 0; padding: 1.5rem; border: 1px solid #ddd; border-radius: 8px; }
-        .component h2 { margin-top: 0; color: #333; }
-        .component a { color: #0066cc; text-decoration: none; }
-        .component a:hover { text-decoration: underline; }
+        :root {
+          --primary-color: #2563eb;
+          --primary-hover: #1d4ed8;
+          --secondary-color: #64748b;
+          --success-color: #10b981;
+          --background: #ffffff;
+          --surface: #f8fafc;
+          --border: #e2e8f0;
+          --text-primary: #1e293b;
+          --text-secondary: #64748b;
+          --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+        }
+        
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body { 
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+          line-height: 1.6; 
+          color: var(--text-primary);
+          background: var(--background);
+        }
+        
+        .container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+        
+        header { 
+          text-align: center; 
+          margin-bottom: 4rem; 
+          padding: 3rem 0;
+          background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-hover) 100%);
+          color: white;
+          border-radius: 12px;
+          margin: 0 -2rem 4rem -2rem;
+        }
+        
+        .logo { font-size: 3rem; margin-bottom: 1rem; }
+        h1 { font-size: 2.5rem; margin-bottom: 1rem; font-weight: 700; }
+        .subtitle { font-size: 1.2rem; opacity: 0.9; max-width: 600px; margin: 0 auto; }
+        
+        .features {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+          gap: 2rem;
+          margin-bottom: 4rem;
+        }
+        
+        .feature {
+          background: var(--surface);
+          border: 1px solid var(--border);
+          border-radius: 12px;
+          padding: 2rem;
+          text-align: center;
+          transition: all 0.2s ease;
+        }
+        
+        .feature:hover {
+          transform: translateY(-4px);
+          box-shadow: var(--shadow);
+          border-color: var(--primary-color);
+        }
+        
+        .feature-icon { font-size: 3rem; margin-bottom: 1rem; }
+        .feature h3 { font-size: 1.5rem; margin-bottom: 1rem; color: var(--text-primary); }
+        .feature p { color: var(--text-secondary); margin-bottom: 1.5rem; }
+        
+        .component {
+          background: white;
+          border: 1px solid var(--border);
+          border-radius: 12px;
+          padding: 2rem;
+          margin-bottom: 2rem;
+          box-shadow: 0 2px 4px rgb(0 0 0 / 0.05);
+          transition: all 0.2s ease;
+        }
+        
+        .component:hover {
+          box-shadow: var(--shadow);
+          border-color: var(--primary-color);
+        }
+        
+        .component h2 { 
+          font-size: 1.5rem; 
+          margin-bottom: 1rem; 
+          color: var(--text-primary);
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+        }
+        
+        .component-icon { font-size: 1.5rem; }
+        
+        .btn {
+          display: inline-block;
+          padding: 0.75rem 1.5rem;
+          background: var(--primary-color);
+          color: white;
+          text-decoration: none;
+          border-radius: 8px;
+          font-weight: 600;
+          transition: all 0.2s ease;
+          margin-right: 1rem;
+          margin-bottom: 0.5rem;
+        }
+        
+        .btn:hover {
+          background: var(--primary-hover);
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgb(37 99 235 / 0.3);
+        }
+        
+        .btn-secondary {
+          background: var(--secondary-color);
+          color: white;
+        }
+        
+        .btn-secondary:hover {
+          background: #475569;
+        }
+        
+        .installation-steps {
+          background: var(--surface);
+          border-radius: 12px;
+          padding: 2rem;
+          margin-top: 1.5rem;
+        }
+        
+        .installation-steps h4 {
+          margin-bottom: 1rem;
+          color: var(--text-primary);
+        }
+        
+        .installation-steps ol {
+          margin-left: 1.5rem;
+          color: var(--text-secondary);
+        }
+        
+        .installation-steps li {
+          margin-bottom: 0.5rem;
+        }
+        
+        .installation-steps code {
+          background: #f1f5f9;
+          padding: 0.2rem 0.4rem;
+          border-radius: 4px;
+          font-family: 'Monaco', 'Consolas', monospace;
+          font-size: 0.9rem;
+        }
+        
+        footer {
+          text-align: center;
+          margin-top: 4rem;
+          padding: 2rem 0;
+          border-top: 1px solid var(--border);
+          color: var(--text-secondary);
+        }
+        
+        .status-badge {
+          display: inline-block;
+          padding: 0.25rem 0.75rem;
+          background: var(--success-color);
+          color: white;
+          border-radius: 20px;
+          font-size: 0.8rem;
+          font-weight: 600;
+          margin-left: 1rem;
+        }
+        
+        @media (max-width: 768px) {
+          .container { padding: 1rem; }
+          header { margin: 0 -1rem 3rem -1rem; padding: 2rem 1rem; }
+          h1 { font-size: 2rem; }
+          .features { grid-template-columns: 1fr; gap: 1rem; }
+          .feature, .component { padding: 1.5rem; }
+        }
     </style>
 </head>
 <body>
-    <h1>🌟 PrismWeave Web Components</h1>
-    <p>Welcome to PrismWeave's web-deployable components.</p>
-    
-    <div class="component">
-        <h2>Browser Extension</h2>
-        <p><a href="./extension/">View Extension Files →</a></p>
-        <p>Chrome/Edge browser extension for capturing web pages.</p>
+    <div class="container">
+        <header>
+            <div class="logo">🌟</div>
+            <h1>PrismWeave</h1>
+            <p class="subtitle">Capture web pages as clean markdown and sync to your document repository. Available as a browser extension and bookmarklet.</p>
+        </header>
+        
+        <div class="features">
+            <div class="feature">
+                <div class="feature-icon">📝</div>
+                <h3>Clean Markdown</h3>
+                <p>Converts web pages to clean, readable markdown with proper formatting and structure preservation.</p>
+            </div>
+            
+            <div class="feature">
+                <div class="feature-icon">🔄</div>
+                <h3>GitHub Sync</h3>
+                <p>Automatically commits captured content to your GitHub repository with organized folder structure.</p>
+            </div>
+            
+            <div class="feature">
+                <div class="feature-icon">⚡</div>
+                <h3>Multiple Methods</h3>
+                <p>Use the browser extension for full integration or the bookmarklet for quick, universal access.</p>
+            </div>
+        </div>
+        
+        <div class="component">
+            <h2><span class="component-icon">🧩</span> Browser Extension <span class="status-badge">Recommended</span></h2>
+            <p>Full-featured Chrome/Edge extension with keyboard shortcuts, context menus, and advanced settings.</p>
+            
+            <div style="margin: 1.5rem 0;">
+                <a href="./extension/" class="btn">📁 Download Extension</a>
+                <a href="./extension/options/options.html" class="btn btn-secondary">⚙️ Preview Settings</a>
+            </div>
+            
+            <div class="installation-steps">
+                <h4>📋 Installation Instructions:</h4>
+                <ol>
+                    <li>Download the extension files from the link above</li>
+                    <li>Open Chrome/Edge and go to <code>chrome://extensions/</code></li>
+                    <li>Enable "Developer mode" (toggle in top-right)</li>
+                    <li>Click "Load unpacked" and select the downloaded extension folder</li>
+                    <li>Configure your GitHub token and repository in the extension options</li>
+                </ol>
+            </div>
+        </div>
+        
+        <div class="component">
+            <h2><span class="component-icon">🔖</span> Bookmarklet</h2>
+            <p>Lightweight bookmarklet for quick page capture without installing an extension. Works in any browser.</p>
+            
+            <div style="margin: 1.5rem 0;">
+                <a href="./bookmarklet/" class="btn">📁 Get Bookmarklet</a>
+                <a href="./bookmarklet/help.html" class="btn btn-secondary">📖 Instructions</a>
+            </div>
+            
+            <div class="installation-steps">
+                <h4>📋 Quick Setup:</h4>
+                <ol>
+                    <li>Visit the bookmarklet page above</li>
+                    <li>Drag the "PrismWeave Capture" button to your bookmarks bar</li>
+                    <li>Configure your GitHub settings in the setup form</li>
+                    <li>Click the bookmark on any page to capture content</li>
+                </ol>
+            </div>
+        </div>
+        
+        <footer>
+            <p>
+                <strong>PrismWeave v${version}</strong> • 
+                Built on ${buildTime.split('T')[0]} • 
+                <a href="https://github.com/davidhayesbc/PrismWeave" style="color: var(--primary-color);">View Source on GitHub</a>
+            </p>
+        </footer>
     </div>
-    
-    <div class="component">
-        <h2>Bookmarklet</h2>
-        <p><a href="./bookmarklet/">View Bookmarklet →</a></p>
-        <p>Standalone bookmarklet for web page capture without extension.</p>
-    </div>
-    
-    <footer>
-        <p><small>Built on ${new Date().toISOString()}</small></p>
-    </footer>
 </body>
 </html>`;
 

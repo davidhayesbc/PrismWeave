@@ -1,0 +1,153 @@
+name: Deploy PrismWeave Website
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'browser-extension/**'
+      - 'build.js'
+      - 'package.json'
+      - '.github/workflows/deploy-website.yml'
+  
+  # Allow manual triggering
+  workflow_dispatch:
+
+# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
+# However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Install browser extension dependencies
+        run: |
+          cd browser-extension
+          npm ci
+          
+      - name: Build extension and web components
+        run: |
+          npm run build
+          node build.js web
+          
+      - name: Create website structure
+        run: |
+          # Create website root
+          mkdir -p website
+          
+          # Copy web build output
+          cp -r dist/web/* website/
+          
+          # Add additional files
+          cp README.md website/
+          cp logo.png website/ 2>/dev/null || echo "No logo.png found, skipping"
+          cp logo.svg website/ 2>/dev/null || echo "No logo.svg found, skipping"
+          
+          # Create robots.txt
+          echo "User-agent: *" > website/robots.txt
+          echo "Disallow:" >> website/robots.txt
+          
+          # Create sitemap.xml
+          cat > website/sitemap.xml << EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+            <url>
+              <loc>https://davidhayesbc.github.io/PrismWeave/</loc>
+              <changefreq>weekly</changefreq>
+              <priority>1.0</priority>
+            </url>
+            <url>
+              <loc>https://davidhayesbc.github.io/PrismWeave/extension/</loc>
+              <changefreq>weekly</changefreq>
+              <priority>0.8</priority>
+            </url>
+            <url>
+              <loc>https://davidhayesbc.github.io/PrismWeave/bookmarklet/</loc>
+              <changefreq>weekly</changefreq>
+              <priority>0.8</priority>
+            </url>
+          </urlset>
+          EOF
+          
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+        
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: './website'
+          
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+  # Optional: Create release artifacts
+  create-release:
+    runs-on: ubuntu-latest
+    needs: build-and-deploy
+    if: startsWith(github.ref, 'refs/tags/v')
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          
+      - name: Install dependencies and build
+        run: |
+          npm ci
+          cd browser-extension && npm ci && cd ..
+          npm run build
+          
+      - name: Create extension package
+        run: |
+          cd browser-extension/dist
+          zip -r ../../prismweave-extension.zip . -x "bookmarklet/*"
+          cd ../..
+          
+      - name: Create bookmarklet package
+        run: |
+          cd browser-extension/dist/bookmarklet
+          zip -r ../../../prismweave-bookmarklet.zip .
+          cd ../../..
+          
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            prismweave-extension.zip
+            prismweave-bookmarklet.zip
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
