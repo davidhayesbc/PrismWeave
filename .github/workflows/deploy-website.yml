@@ -30,7 +30,24 @@ jobs:
       - name: Generate website
         run: |
           echo "🚀 Generating PrismWeave website..."
-          node generate-website.js
+          mkdir -p dist/web
+          
+          # Get version from package.json
+          VERSION=$(node -e "console.log(require('./package.json').version || '1.0.0')" 2>/dev/null || echo "1.0.0")
+          LAST_MODIFIED=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          
+          echo "Using version: $VERSION"
+          echo "Last modified: $LAST_MODIFIED"
+          
+          # Process HTML template with version substitution
+          sed "s/{{VERSION}}/$VERSION/g" .github/templates/index.html > dist/web/index.html
+          
+          # Process sitemap with last modified date
+          sed "s/{{LAST_MODIFIED}}/$LAST_MODIFIED/g" .github/templates/sitemap.xml > dist/web/sitemap.xml
+          
+          # Copy other static files
+          cp .github/templates/404.html dist/web/404.html
+          cp .github/templates/robots.txt dist/web/robots.txt
           
       - name: List generated files
         run: |

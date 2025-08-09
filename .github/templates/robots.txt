@@ -1,0 +1,5 @@
+User-agent: *
+Disallow:
+
+# Sitemap
+Sitemap: https://davidhayesbc.github.io/PrismWeave/sitemap.xml
