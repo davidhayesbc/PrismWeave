@@ -1,0 +1,362 @@
+name: Deploy Website
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build-website:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          
+      - name: Install minimal dependencies
+        run: |
+          # Create a minimal package.json for the build
+          cat > temp-package.json << 'EOF'
+          {
+            "name": "prismweave-website-build",
+            "version": "1.0.0",
+            "dependencies": {
+              "esbuild": "^0.21.5"
+            }
+          }
+          EOF
+          
+          # Install only esbuild for the web build
+          npm install --package-lock-only esbuild
+          
+      - name: Build web components (minimal)
+        run: |
+          # Ensure directories exist
+          mkdir -p dist/web
+          mkdir -p dist/web/extension
+          mkdir -p dist/web/bookmarklet
+          
+          # Copy existing built files if they exist
+          if [ -d "browser-extension/dist" ]; then
+            cp -r browser-extension/dist/* dist/web/extension/ || true
+          fi
+          
+          # Generate the website using Node.js directly
+          node -e "
+          const fs = require('fs');
+          const path = require('path');
+          
+          // Create web index
+          const version = '1.0.0';
+          const buildTime = new Date().toISOString();
+          
+          const indexHtml = \`<!DOCTYPE html>
+<html lang=\"en\">
+<head>
+    <meta charset=\"UTF-8\">
+    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">
+    <title>PrismWeave - Document Capture Tools</title>
+    <meta name=\"description\" content=\"PrismWeave browser extension and bookmarklet for capturing web pages as clean markdown.\">
+    <style>
+        :root {
+          --primary: #2563eb;
+          --primary-hover: #1d4ed8;
+          --bg: #ffffff;
+          --surface: #f8fafc;
+          --border: #e2e8f0;
+          --text: #1e293b;
+          --text-secondary: #64748b;
+        }
+        
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body { 
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+          line-height: 1.6; 
+          color: var(--text);
+          background: var(--bg);
+        }
+        
+        .container { max-width: 1000px; margin: 0 auto; padding: 2rem; }
+        
+        header { 
+          text-align: center; 
+          margin-bottom: 3rem; 
+          padding: 3rem 0;
+          background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
+          color: white;
+          border-radius: 12px;
+          margin: 0 -2rem 3rem -2rem;
+        }
+        
+        .logo { font-size: 3rem; margin-bottom: 1rem; }
+        h1 { font-size: 2.5rem; margin-bottom: 1rem; font-weight: 700; }
+        .subtitle { font-size: 1.2rem; opacity: 0.9; max-width: 600px; margin: 0 auto; }
+        
+        .features {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+          gap: 2rem;
+          margin-bottom: 3rem;
+        }
+        
+        .feature {
+          background: var(--surface);
+          border: 1px solid var(--border);
+          border-radius: 12px;
+          padding: 2rem;
+          text-align: center;
+        }
+        
+        .feature-icon { font-size: 3rem; margin-bottom: 1rem; }
+        .feature h3 { font-size: 1.5rem; margin-bottom: 1rem; }
+        .feature p { color: var(--text-secondary); }
+        
+        .component {
+          background: white;
+          border: 1px solid var(--border);
+          border-radius: 12px;
+          padding: 2rem;
+          margin-bottom: 2rem;
+          box-shadow: 0 2px 4px rgb(0 0 0 / 0.05);
+        }
+        
+        .component h2 { 
+          font-size: 1.5rem; 
+          margin-bottom: 1rem; 
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+        }
+        
+        .btn {
+          display: inline-block;
+          padding: 0.75rem 1.5rem;
+          background: var(--primary);
+          color: white;
+          text-decoration: none;
+          border-radius: 8px;
+          font-weight: 600;
+          margin-right: 1rem;
+          margin-bottom: 0.5rem;
+        }
+        
+        .btn:hover {
+          background: var(--primary-hover);
+        }
+        
+        .btn-secondary {
+          background: var(--text-secondary);
+        }
+        
+        .steps {
+          background: var(--surface);
+          border-radius: 12px;
+          padding: 2rem;
+          margin-top: 1.5rem;
+        }
+        
+        .steps h4 { margin-bottom: 1rem; }
+        .steps ol { margin-left: 1.5rem; color: var(--text-secondary); }
+        .steps li { margin-bottom: 0.5rem; }
+        
+        footer {
+          text-align: center;
+          margin-top: 4rem;
+          padding: 2rem 0;
+          border-top: 1px solid var(--border);
+          color: var(--text-secondary);
+        }
+        
+        @media (max-width: 768px) {
+          .container { padding: 1rem; }
+          header { margin: 0 -1rem 2rem -1rem; padding: 2rem 1rem; }
+          h1 { font-size: 2rem; }
+          .features { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class=\"container\">
+        <header>
+            <div class=\"logo\">🌟</div>
+            <h1>PrismWeave</h1>
+            <p class=\"subtitle\">Capture web pages as clean markdown and sync to your document repository.</p>
+        </header>
+        
+        <div class=\"features\">
+            <div class=\"feature\">
+                <div class=\"feature-icon\">📝</div>
+                <h3>Clean Markdown</h3>
+                <p>Converts web pages to clean, readable markdown with proper formatting.</p>
+            </div>
+            
+            <div class=\"feature\">
+                <div class=\"feature-icon\">🔄</div>
+                <h3>GitHub Sync</h3>
+                <p>Automatically commits captured content to your GitHub repository.</p>
+            </div>
+            
+            <div class=\"feature\">
+                <div class=\"feature-icon\">⚡</div>
+                <h3>Multiple Methods</h3>
+                <p>Use the browser extension or bookmarklet for flexible access.</p>
+            </div>
+        </div>
+        
+        <div class=\"component\">
+            <h2>🧩 Browser Extension</h2>
+            <p>Full-featured Chrome/Edge extension with keyboard shortcuts and advanced settings.</p>
+            
+            <div style=\"margin: 1.5rem 0;\">
+                <a href=\"./extension/\" class=\"btn\">📁 Download Extension</a>
+                <a href=\"https://github.com/davidhayesbc/PrismWeave\" class=\"btn btn-secondary\">📖 Documentation</a>
+            </div>
+            
+            <div class=\"steps\">
+                <h4>Installation:</h4>
+                <ol>
+                    <li>Download the extension files</li>
+                    <li>Open Chrome/Edge and go to chrome://extensions/</li>
+                    <li>Enable Developer mode</li>
+                    <li>Click Load unpacked and select the extension folder</li>
+                    <li>Configure your GitHub settings</li>
+                </ol>
+            </div>
+        </div>
+        
+        <div class=\"component\">
+            <h2>🔖 Bookmarklet</h2>
+            <p>Lightweight bookmarklet for quick page capture without installing an extension.</p>
+            
+            <div style=\"margin: 1.5rem 0;\">
+                <a href=\"./bookmarklet/\" class=\"btn\">📁 Get Bookmarklet</a>
+                <a href=\"./bookmarklet/help.html\" class=\"btn btn-secondary\">📖 Instructions</a>
+            </div>
+            
+            <div class=\"steps\">
+                <h4>Quick Setup:</h4>
+                <ol>
+                    <li>Visit the bookmarklet page</li>
+                    <li>Drag the PrismWeave Capture button to your bookmarks</li>
+                    <li>Configure your GitHub settings</li>
+                    <li>Click the bookmark on any page to capture</li>
+                </ol>
+            </div>
+        </div>
+        
+        <footer>
+            <p>
+                <strong>PrismWeave v\${version}</strong> • 
+                Built on \${buildTime.split('T')[0]} • 
+                <a href=\"https://github.com/davidhayesbc/PrismWeave\" style=\"color: var(--primary);\">GitHub</a>
+            </p>
+        </footer>
+    </div>
+</body>
+</html>\`;
+          
+          // Write the index file
+          fs.writeFileSync('dist/web/index.html', indexHtml);
+          
+          console.log('✅ Website generated successfully');
+          "
+          
+      - name: Create additional website files
+        run: |
+          # Create bookmarklet directory and files
+          mkdir -p dist/web/bookmarklet
+          
+          # Simple bookmarklet page
+          cat > dist/web/bookmarklet/index.html << 'EOF'
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+              <meta charset="UTF-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <title>PrismWeave Bookmarklet</title>
+              <style>
+                  body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; max-width: 800px; margin: 0 auto; padding: 2rem; }
+                  .btn { display: inline-block; padding: 1rem 2rem; background: #2563eb; color: white; text-decoration: none; border-radius: 8px; font-weight: 600; }
+                  .instructions { background: #f8fafc; padding: 2rem; border-radius: 8px; margin: 2rem 0; }
+              </style>
+          </head>
+          <body>
+              <h1>🔖 PrismWeave Bookmarklet</h1>
+              <p>Drag this button to your bookmarks bar:</p>
+              <p><a href="javascript:(function(){alert('PrismWeave bookmarklet - Configure your settings first!')})();" class="btn">PrismWeave Capture</a></p>
+              
+              <div class="instructions">
+                  <h3>How to use:</h3>
+                  <ol>
+                      <li>Drag the button above to your bookmarks bar</li>
+                      <li>Configure your GitHub settings (token and repository)</li>
+                      <li>Click the bookmark on any page to capture content</li>
+                  </ol>
+              </div>
+              
+              <p><a href="../">← Back to main page</a></p>
+          </body>
+          </html>
+          EOF
+          
+          # Create extension directory with placeholder
+          mkdir -p dist/web/extension
+          echo '<h1>Extension files will be available here after full build</h1>' > dist/web/extension/index.html
+          
+          # Create robots.txt
+          cat > dist/web/robots.txt << 'EOF'
+          User-agent: *
+          Disallow:
+          EOF
+          
+          # Create sitemap.xml
+          cat > dist/web/sitemap.xml << 'EOF'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+            <url>
+              <loc>https://davidhayesbc.github.io/PrismWeave/</loc>
+              <changefreq>weekly</changefreq>
+              <priority>1.0</priority>
+            </url>
+          </urlset>
+          EOF
+          
+      - name: Setup GitHub Pages
+        uses: actions/configure-pages@v4
+        
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./dist/web
+          
+  deploy:
+    needs: build-website
+    if: github.ref == 'refs/heads/main'
+    
+    runs-on: ubuntu-latest
+    
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+      
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
