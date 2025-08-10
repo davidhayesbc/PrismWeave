@@ -5,11 +5,19 @@
 // Usage: npm run capture <url>
 // Uses the same algorithms as the browser extension but adapted for Node.js
 
-import chalk from 'chalk';
 import { mkdirSync, writeFileSync } from 'fs';
 import { JSDOM } from 'jsdom';
-import fetch from 'node-fetch';
 import { join } from 'path';
+
+// Simple console colors without chalk dependency
+const colors = {
+  blue: (text: string) => `\x1b[34m${text}\x1b[0m`,
+  green: (text: string) => `\x1b[32m${text}\x1b[0m`,
+  red: (text: string) => `\x1b[31m${text}\x1b[0m`,
+  yellow: (text: string) => `\x1b[33m${text}\x1b[0m`,
+  cyan: (text: string) => `\x1b[36m${text}\x1b[0m`,
+  gray: (text: string) => `\x1b[90m${text}\x1b[0m`,
+};
 
 interface ICaptureResult {
   html: string;
@@ -267,17 +275,17 @@ class PrismWeaveCapture {
   }
 
   async captureUrl(url: string): Promise<ICaptureResult> {
-    console.log(chalk.blue(`🔄 Fetching: ${url}`));
+    console.log(colors.blue(`🔄 Fetching: ${url}`));
 
     try {
-      // Fetch the page
+      // Fetch the page using built-in Node.js fetch (18+)
       const response = await fetch(url);
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
       const html = await response.text();
-      console.log(chalk.green(`✅ Fetched ${html.length} characters`));
+      console.log(colors.green(`✅ Fetched ${html.length} characters`));
 
       // Set up JSDOM environment to simulate browser
       const dom = new JSDOM(html, {
@@ -295,10 +303,10 @@ class PrismWeaveCapture {
       const extractor = new SimpleContentExtractor();
       const converter = new SimpleMarkdownConverter();
 
-      console.log(chalk.blue('🔄 Extracting content...'));
+      console.log(colors.blue('🔄 Extracting content...'));
       const contentResult = extractor.extractContent();
 
-      console.log(chalk.blue('🔄 Converting to markdown...'));
+      console.log(colors.blue('🔄 Converting to markdown...'));
       const markdown = converter.convertToMarkdown(contentResult.content);
 
       // Generate filename
@@ -320,9 +328,9 @@ class PrismWeaveCapture {
         readingTime: contentResult.readingTime,
       };
 
-      console.log(chalk.green('✅ Extraction complete'));
-      console.log(chalk.cyan(`📝 Word count: ${contentResult.wordCount}`));
-      console.log(chalk.cyan(`⏱️  Reading time: ${contentResult.readingTime} min`));
+      console.log(colors.green('✅ Extraction complete'));
+      console.log(colors.cyan(`📝 Word count: ${contentResult.wordCount}`));
+      console.log(colors.cyan(`⏱️  Reading time: ${contentResult.readingTime} min`));
 
       return {
         html,
@@ -331,7 +339,7 @@ class PrismWeaveCapture {
         filename,
       };
     } catch (error) {
-      console.error(chalk.red('❌ Capture failed:'), (error as Error).message);
+      console.error(colors.red('❌ Capture failed:'), (error as Error).message);
       throw error;
     }
   }
@@ -342,19 +350,19 @@ class PrismWeaveCapture {
     // Save HTML
     const htmlPath = join(this.outputDir, `${filename}.html`);
     writeFileSync(htmlPath, html, 'utf8');
-    console.log(chalk.gray(`💾 Saved HTML: ${htmlPath}`));
+    console.log(colors.gray(`💾 Saved HTML: ${htmlPath}`));
 
     // Save Markdown with frontmatter
     const frontmatter = this.generateFrontmatter(metadata);
     const fullMarkdown = `${frontmatter}\n${markdown}`;
     const mdPath = join(this.outputDir, `${filename}.md`);
     writeFileSync(mdPath, fullMarkdown, 'utf8');
-    console.log(chalk.gray(`💾 Saved Markdown: ${mdPath}`));
+    console.log(colors.gray(`💾 Saved Markdown: ${mdPath}`));
 
     // Save metadata as JSON
     const jsonPath = join(this.outputDir, `${filename}.json`);
     writeFileSync(jsonPath, JSON.stringify(metadata, null, 2), 'utf8');
-    console.log(chalk.gray(`💾 Saved metadata: ${jsonPath}`));
+    console.log(colors.gray(`💾 Saved metadata: ${jsonPath}`));
   }
 
   private generateFrontmatter(metadata: any): string {
@@ -387,9 +395,9 @@ async function main() {
   const url = process.argv[2];
 
   if (!url) {
-    console.error(chalk.red('❌ Please provide a URL to capture'));
-    console.log(chalk.yellow('Usage: npm run capture <url>'));
-    console.log(chalk.yellow('Example: npm run capture "https://example.com/article"'));
+    console.error(colors.red('❌ Please provide a URL to capture'));
+    console.log(colors.yellow('Usage: npm run capture <url>'));
+    console.log(colors.yellow('Example: npm run capture "https://example.com/article"'));
     process.exit(1);
   }
 
@@ -398,10 +406,10 @@ async function main() {
     const result = await capture.captureUrl(url);
     capture.saveResults(result);
 
-    console.log(chalk.green('\n🎉 Capture completed successfully!'));
-    console.log(chalk.blue(`📁 Files saved in: ${capture['outputDir']}`));
+    console.log(colors.green('\n🎉 Capture completed successfully!'));
+    console.log(colors.blue(`📁 Files saved in: ${capture['outputDir']}`));
   } catch (error) {
-    console.error(chalk.red('❌ Capture failed:'), (error as Error).message);
+    console.error(colors.red('❌ Capture failed:'), (error as Error).message);
     process.exit(1);
   }
 }

@@ -119,9 +119,11 @@ jobs:
     - name: Create compatibility report
       run: |
         echo "## ONNX Runtime Compatibility Report" >> $GITHUB_STEP_SUMMARY
-        echo "| Platform | Node.js | ONNX Runtime | Status |" >> $GITHUB_STEP_SUMMARY
-        echo "|----------|---------|--------------|---------|" >> $GITHUB_STEP_SUMMARY
-        echo "| Linux | 20.x | ${{ env.ONNX_AVAILABLE }} | ✅ Extension builds successfully |" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "Platform: Linux" >> $GITHUB_STEP_SUMMARY
+        echo "Node.js: 20.x" >> $GITHUB_STEP_SUMMARY
+        echo "ONNX Runtime: ${{ env.ONNX_AVAILABLE }}" >> $GITHUB_STEP_SUMMARY
+        echo "Status: ✅ Extension builds successfully" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "The extension is designed to work with or without ONNX Runtime." >> $GITHUB_STEP_SUMMARY
         echo "When ONNX Runtime is not available, the extension falls back to external AI services." >> $GITHUB_STEP_SUMMARY
