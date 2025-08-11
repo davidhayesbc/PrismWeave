@@ -107,18 +107,20 @@ export class EnhancedBookmarkletRuntime {
       this._state.startTime = Date.now();
       this.saveState();
 
-      // Check if page is suitable for capture
+      // Check if page is suitable for capture - disabled to match browser extension behavior
       const pageQuality = await this.assessPageQuality();
-      if (pageQuality.confidence === 'low') {
-        const proceed = await this.showSimpleConfirm(
-          'Content Quality Warning',
-          `This page may not capture well. Quality score: ${pageQuality.score}/100\\n\\nIssues:\\n${pageQuality.issues.join('\\n')}\\n\\nDo you want to proceed anyway?`
-        );
-        if (!proceed) {
-          this.cleanup();
-          return;
-        }
-      }
+      // Quality warnings disabled - browser extension doesn't show these warnings
+      // This keeps behavior consistent between bookmarklet and extension
+      // if (pageQuality.confidence === 'low') {
+      //   const proceed = await this.showSimpleConfirm(
+      //     'Content Quality Warning',
+      //     `This page may not capture well. Quality score: ${pageQuality.score}/100\\n\\nIssues:\\n${pageQuality.issues.join('\\n')}\\n\\nDo you want to proceed anyway?`
+      //   );
+      //   if (!proceed) {
+      //     this.cleanup();
+      //     return;
+      //   }
+      // }
 
       // Configuration check with smart defaults
       if (!this.isConfigured()) {
