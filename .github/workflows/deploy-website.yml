@@ -3,6 +3,14 @@ name: Deploy Website
 on:
   push:
     branches: [ main ]
+    # Only trigger when relevant files change to avoid unnecessary builds
+    paths-ignore:
+      - 'README.md'
+      - 'CHANGELOG.md'
+      - 'docs/**'
+      - '**/*.md'
+      - '.gitignore'
+      - 'LICENSE'
   release:
     types: [ published, created ]
   workflow_dispatch:
