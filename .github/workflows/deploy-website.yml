@@ -52,7 +52,7 @@ jobs:
           
           # Get version from package.json and latest release
           VERSION=$(node -e "console.log(require('./package.json').version || '1.0.0')" 2>/dev/null || echo "1.0.0")
-          LAST_MODIFIED=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          LAST_MODIFIED=$(date -u +"%B %d, %Y")
           
           # Try to get latest release info from GitHub API
           LATEST_RELEASE=$(curl -s https://api.github.com/repos/davidhayesbc/PrismWeave/releases/latest || echo '{}')
@@ -70,8 +70,8 @@ jobs:
           
           echo "Using display version: $DISPLAY_VERSION"
           
-          # Process HTML template with version substitution
-          sed "s/{{VERSION}}/$DISPLAY_VERSION/g" .github/templates/index.html > dist/web/index.html
+          # Process HTML template with version and date substitution
+          sed -e "s/{{VERSION}}/$DISPLAY_VERSION/g" -e "s/{{LAST_MODIFIED}}/$LAST_MODIFIED/g" .github/templates/index.html > dist/web/index.html
           
           # Process sitemap with last modified date  
           sed "s/{{LAST_MODIFIED}}/$LAST_MODIFIED/g" .github/templates/sitemap.xml > dist/web/sitemap.xml

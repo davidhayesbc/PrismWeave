@@ -1,6 +1,6 @@
 {
   "name": "prismweave",
-  "version": "1.0.0",
+  "version": "1.2.0",
   "description": "PrismWeave - Unified document management and content creation system",
   "private": true,
   "type": "commonjs",
