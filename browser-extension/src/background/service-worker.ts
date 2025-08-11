@@ -624,6 +624,73 @@ export async function handleMessage(
       const statusData = getServiceWorkerStatus();
       return { success: true, data: statusData, timestamp: Date.now() };
 
+    case 'STORE_BOOKMARKLET_CONFIG':
+      // Handle bookmarklet configuration storage for cross-domain persistence
+      if (!message.data || !message.data.config) {
+        throw new Error('Invalid bookmarklet config data provided');
+      }
+
+      try {
+        await new Promise<void>((resolve, reject) => {
+          chrome.storage.sync.set(
+            {
+              prismweave_bookmarklet_config: message.data!.config,
+            },
+            () => {
+              if (chrome.runtime.lastError) {
+                reject(new Error(chrome.runtime.lastError.message));
+              } else {
+                resolve();
+              }
+            }
+          );
+        });
+        logger.debug('Bookmarklet config stored successfully');
+        return { success: true, timestamp: Date.now() };
+      } catch (error) {
+        logger.error('Failed to store bookmarklet config:', error);
+        throw new Error('Failed to store bookmarklet configuration');
+      }
+
+    case 'GET_BOOKMARKLET_CONFIG':
+      // Handle bookmarklet configuration retrieval for cross-domain persistence
+      try {
+        const stored = await new Promise<any>((resolve, reject) => {
+          chrome.storage.sync.get('prismweave_bookmarklet_config', result => {
+            if (chrome.runtime.lastError) {
+              reject(new Error(chrome.runtime.lastError.message));
+            } else {
+              resolve(result);
+            }
+          });
+        });
+        const config = stored.prismweave_bookmarklet_config || null;
+        logger.debug('Bookmarklet config retrieved:', !!config);
+        return { success: true, data: { config }, timestamp: Date.now() };
+      } catch (error) {
+        logger.error('Failed to retrieve bookmarklet config:', error);
+        throw new Error('Failed to retrieve bookmarklet configuration');
+      }
+
+    case 'CLEAR_BOOKMARKLET_CONFIG':
+      // Handle bookmarklet configuration clearing for cross-domain persistence
+      try {
+        await new Promise<void>((resolve, reject) => {
+          chrome.storage.sync.remove('prismweave_bookmarklet_config', () => {
+            if (chrome.runtime.lastError) {
+              reject(new Error(chrome.runtime.lastError.message));
+            } else {
+              resolve();
+            }
+          });
+        });
+        logger.debug('Bookmarklet config cleared successfully');
+        return { success: true, timestamp: Date.now() };
+      } catch (error) {
+        logger.error('Failed to clear bookmarklet config:', error);
+        throw new Error('Failed to clear bookmarklet configuration');
+      }
+
     case 'TRIGGER_CAPTURE_FROM_POPUP':
       // Handle capture trigger from popup - use same path as keyboard shortcut with content script injection
       try {

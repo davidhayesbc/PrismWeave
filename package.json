@@ -19,7 +19,8 @@
     "clean": "node build.js clean",
     "test": "npm run test --workspaces",
     "test:browser-extension": "cd browser-extension && npm test",
-    "serve:web": "cd dist/web && python -m http.server 8080"
+    "serve:web": "node serve-web.js",
+    "serve:web:python": "cd dist/web && python -m http.server 8080"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",

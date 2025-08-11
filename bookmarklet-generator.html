@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PrismWeave Bookmarklet Generator</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        button {
+            background: #007acc;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            width: 100%;
+        }
+        button:hover {
+            background: #005fa3;
+        }
+        .help-text {
+            font-size: 14px;
+            color: #666;
+            margin-top: 5px;
+        }
+        .security-note {
+            background: #fff3e0;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #ff9800;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔖 Generate Your Personal PrismWeave Bookmarklet</h1>
+        
+        <p>Create a personalized bookmarklet with your GitHub PAT embedded. This bookmarklet will work on <strong>any website, any domain</strong> without requiring localStorage, extension storage, or any external dependencies.</p>
+        
+        <div class="security-note">
+            <h4>🔒 Privacy & Security</h4>
+            <p>Your PAT is processed entirely in your browser - no data is sent to any server. The generated bookmarklet contains your encoded PAT, so keep it private.</p>
+        </div>
+        
+        <form id="bookmarkletForm">
+            <div class="form-group">
+                <label for="githubToken">GitHub Personal Access Token *</label>
+                <input type="password" id="githubToken" required 
+                       placeholder="ghp_your_token_here">
+                <div class="help-text">
+                    Create a PAT at <a href="https://github.com/settings/tokens" target="_blank">GitHub Settings > Developer settings > Personal access tokens</a><br>
+                    Required scopes: <code>repo</code> (for private repos) or <code>public_repo</code> (for public repos)
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="githubRepo">GitHub Repository *</label>
+                <input type="text" id="githubRepo" required 
+                       placeholder="username/repository-name">
+                <div class="help-text">
+                    Format: owner/repository (e.g., john/my-documents)
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="defaultFolder">Default Folder</label>
+                <input type="text" id="defaultFolder" 
+                       placeholder="documents" value="documents">
+                <div class="help-text">
+                    Folder where captured documents will be stored
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="commitMessage">Commit Message Template</label>
+                <input type="text" id="commitMessage" 
+                       placeholder="Add document via PrismWeave" value="Add document via PrismWeave">
+                <div class="help-text">
+                    Template for commit messages (page title will be appended)
+                </div>
+            </div>
+            
+            <button type="submit">🚀 Generate My Personal Bookmarklet</button>
+        </form>
+    </div>
+    
+    <script>
+        function generatePersonalBookmarklet(config) {
+            const configString = JSON.stringify({
+                githubToken: config.githubToken,
+                githubRepo: config.githubRepo,
+                defaultFolder: config.defaultFolder || 'documents',
+                commitMessage: config.commitMessage || 'Add document via PrismWeave',
+                generatedAt: new Date().toISOString(),
+                version: '1.0.0'
+            });
+            
+            const encodedConfig = btoa(configString);
+            
+            // Minified bookmarklet code with embedded configuration
+            const bookmarkletCode = `javascript:(function(){
+const cfg=JSON.parse(atob('${encodedConfig}'));
+const h='<div style="position:fixed;top:20px;right:20px;background:#333;color:white;padding:20px;border-radius:8px;z-index:9999;font-family:Arial;max-width:300px"><h3>🔖 PrismWeave</h3><p>Capturing page content...</p><div id="pw-status">Initializing...</div></div>';
+document.body.insertAdjacentHTML('beforeend',h);
+const st=document.getElementById('pw-status');
+st.innerText='Extracting content...';
+const t=document.title||'Untitled';
+const u=window.location.href;
+const c=document.querySelector('article,main,[role="main"],.content,#content')||document.body;
+const ps=Array.from(c.querySelectorAll('p,h1,h2,h3,h4,h5,h6')).map(e=>e.innerText.trim()).filter(t=>t.length>0);
+const md='# '+t+'\\n\\n'+ps.join('\\n\\n');
+const fn=t.replace(/[^a-zA-Z0-9]/g,'-').toLowerCase().substring(0,50)+'.md';
+const fp=cfg.defaultFolder+'/'+fn;
+st.innerText='Committing to GitHub...';
+const content='---\\ntitle: '+t+'\\nurl: '+u+'\\ncaptured: '+new Date().toISOString()+'\\n---\\n\\n'+md;
+fetch('https://api.github.com/repos/'+cfg.githubRepo+'/contents/'+fp,{
+method:'PUT',
+headers:{'Authorization':'token '+cfg.githubToken,'Content-Type':'application/json'},
+body:JSON.stringify({message:cfg.commitMessage+' - '+t,content:btoa(unescape(encodeURIComponent(content)))})
+}).then(r=>r.ok?st.innerText='✅ Saved successfully!':st.innerText='❌ Failed: '+r.status).catch(e=>st.innerText='❌ Error: '+e.message);
+})();`;
+
+            return bookmarkletCode;
+        }
+
+        function generateBookmarkletPage(config) {
+            const bookmarklet = generatePersonalBookmarklet(config);
+            
+            return `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Personal PrismWeave Bookmarklet</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .bookmarklet-container {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            margin: 20px 0;
+        }
+        .bookmarklet-link {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            text-decoration: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-weight: bold;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+        .instructions {
+            background: #e3f2fd;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #2196f3;
+        }
+        .step {
+            margin: 15px 0;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            border-left: 4px solid #2196f3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔖 Your Personal PrismWeave Bookmarklet</h1>
+        
+        <p>Your bookmarklet has been generated! This will work on <strong>any website</strong> without requiring storage or extensions.</p>
+        
+        <div class="bookmarklet-container">
+            <h3>📌 Drag this bookmark to your bookmarks bar:</h3>
+            <a href="${bookmarklet}" class="bookmarklet-link" draggable="true">
+                🚀 PrismWeave (Personal)
+            </a>
+        </div>
+        
+        <div class="instructions">
+            <h3>📋 How to Use:</h3>
+            <div class="step">1. <strong>Install:</strong> Drag the bookmark above to your browser's bookmarks bar</div>
+            <div class="step">2. <strong>Navigate:</strong> Go to any webpage with content you want to capture</div>
+            <div class="step">3. <strong>Capture:</strong> Click the "PrismWeave (Personal)" bookmark</div>
+            <div class="step">4. <strong>Done:</strong> Content automatically saved to ${config.githubRepo}!</div>
+        </div>
+        
+        <h3>✅ Benefits:</h3>
+        <ul>
+            <li>Works on ANY domain (no localStorage limitations)</li>
+            <li>No browser extension required</li>
+            <li>No external dependencies</li>
+            <li>Instant capture and commit to GitHub</li>
+        </ul>
+        
+        <h3>🔒 Security:</h3>
+        <ul>
+            <li>Your PAT is base64 encoded in the bookmarklet</li>
+            <li>Keep this bookmarklet private</li>
+            <li>You can revoke the GitHub token anytime</li>
+            <li>No data sent to external servers</li>
+        </ul>
+    </div>
+</body>
+</html>`;
+        }
+
+        document.getElementById('bookmarkletForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const config = {
+                githubToken: document.getElementById('githubToken').value,
+                githubRepo: document.getElementById('githubRepo').value,
+                defaultFolder: document.getElementById('defaultFolder').value || 'documents',
+                commitMessage: document.getElementById('commitMessage').value || 'Add document via PrismWeave'
+            };
+            
+            // Basic validation
+            if (!config.githubToken || !config.githubRepo) {
+                alert('Please fill in required fields');
+                return;
+            }
+            
+            if (!/^[\w\-\.]+\/[\w\-\.]+$/.test(config.githubRepo)) {
+                alert('Repository format should be: owner/repo');
+                return;
+            }
+            
+            // Generate bookmarklet page
+            const bookmarkletPage = generateBookmarkletPage(config);
+            
+            // Open in new window
+            const newWindow = window.open('', '_blank');
+            newWindow.document.write(bookmarkletPage);
+            newWindow.document.close();
+        });
+    </script>
+</body>
+</html>

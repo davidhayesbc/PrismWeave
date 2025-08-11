@@ -106,9 +106,18 @@ class PrismWeaveBuildSystem {
                 'BOOKMARKLET_MODE': '"standalone"',
                 'BOOKMARKLET_VERSION': '"2.0.0"'
               }
+            },
+            {
+              name: 'bookmarklet-generator',
+              entry: `${basePath}src/bookmarklet/generator.ts`,
+              outfile: `${basePath}dist/bookmarklet/generator.js`,
+              format: 'iife',
+              platform: 'browser'
             }
           ],
           assets: [
+            { from: `${basePath}src/bookmarklet/index.html`, to: `${basePath}dist/bookmarklet/index.html` },
+            { from: `${basePath}src/bookmarklet/generator.html`, to: `${basePath}dist/bookmarklet/generator.html` },
             { from: `${basePath}src/bookmarklet/help.html`, to: `${basePath}dist/bookmarklet/help.html` },
             { from: `${basePath}src/bookmarklet/install.html`, to: `${basePath}dist/bookmarklet/install.html` },
             { from: `${basePath}src/bookmarklet/README.md`, to: `${basePath}dist/bookmarklet/README.md` }
@@ -587,18 +596,24 @@ class PrismWeaveBuildSystem {
             <p>Lightweight bookmarklet for quick page capture without installing an extension. Works in any browser.</p>
             
             <div style="margin: 1.5rem 0;">
-                <a href="./bookmarklet/" class="btn">📁 Get Bookmarklet</a>
+                <a href="./bookmarklet/generator.html" class="btn">🎯 Generate Personal Bookmarklet</a>
+                <a href="./bookmarklet/" class="btn btn-secondary">📁 Browse Files</a>
                 <a href="./bookmarklet/help.html" class="btn btn-secondary">📖 Instructions</a>
             </div>
             
             <div class="installation-steps">
                 <h4>📋 Quick Setup:</h4>
                 <ol>
-                    <li>Visit the bookmarklet page above</li>
-                    <li>Drag the "PrismWeave Capture" button to your bookmarks bar</li>
-                    <li>Configure your GitHub settings in the setup form</li>
+                    <li>Click "Generate Personal Bookmarklet" above</li>
+                    <li>Enter your GitHub Personal Access Token and repository</li>
+                    <li>Click "Generate" to create your custom bookmarklet</li>
+                    <li>Drag the generated bookmarklet to your bookmarks bar</li>
                     <li>Click the bookmark on any page to capture content</li>
                 </ol>
+                
+                <div style="background: #f0f8ff; padding: 1rem; border-radius: 6px; margin-top: 1rem;">
+                    <strong>✨ New:</strong> Personal bookmarklets embed your GitHub settings directly in the code, eliminating the need for cross-domain storage and ensuring universal compatibility across all websites.
+                </div>
             </div>
         </div>
         

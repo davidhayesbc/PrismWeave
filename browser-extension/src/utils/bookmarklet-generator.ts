@@ -109,8 +109,9 @@ class PrismweaveBookmarkletRuntime {
     this.isVisible = false;
     this.overlay = null;
     this.STORAGE_KEY = 'prismweave_bookmarklet_config';
+    this.EXTENSION_ID = 'your-extension-id'; // Will be replaced during build
     
-    // Store config in localStorage for persistence across tabs/sessions
+    // Store config using extension storage API for true cross-domain persistence
     this.storeConfig(config);
   }
 
@@ -119,48 +120,104 @@ class PrismweaveBookmarkletRuntime {
     this.show();
   }
 
-  // Store configuration in localStorage for cross-tab persistence
+  // Store configuration using browser extension storage API for cross-domain persistence
   storeConfig(config) {
+    try {
+      // Try to use browser extension storage API for true cross-domain persistence
+      if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
+        chrome.runtime.sendMessage(this.EXTENSION_ID, {
+          type: 'STORE_BOOKMARKLET_CONFIG',
+          config: config
+        }, (response) => {
+          if (chrome.runtime.lastError) {
+            console.warn('PrismWeave: Extension storage failed, falling back to localStorage:', chrome.runtime.lastError.message);
+            this.fallbackStoreConfig(config);
+          } else {
+            console.log('PrismWeave: Configuration stored via extension storage');
+          }
+        });
+      } else {
+        // Fallback to localStorage with domain isolation warning
+        console.warn('PrismWeave: Extension not available, using localStorage (domain-isolated)');
+        this.fallbackStoreConfig(config);
+      }
+    } catch (error) {
+      console.warn('PrismWeave: Extension communication failed, using localStorage fallback:', error);
+      this.fallbackStoreConfig(config);
+    }
+  }
+
+  // Fallback storage method (domain-isolated)
+  fallbackStoreConfig(config) {
     try {
       const storedConfig = {
         ...config,
         lastUpdated: new Date().toISOString(),
-        version: '1.0.0'
+        version: '1.0.0',
+        storageMethod: 'localStorage' // Track which storage method was used
       };
       localStorage.setItem(this.STORAGE_KEY, JSON.stringify(storedConfig));
-      console.log('PrismWeave: Configuration stored successfully');
+      console.log('PrismWeave: Configuration stored in localStorage (domain-isolated)');
     } catch (error) {
-      console.warn('PrismWeave: Failed to store configuration:', error);
+      console.warn('PrismWeave: Failed to store configuration in localStorage:', error);
       // Fallback to session storage if localStorage is not available
       try {
         sessionStorage.setItem(this.STORAGE_KEY, JSON.stringify(config));
-        console.log('PrismWeave: Configuration stored in sessionStorage as fallback');
+        console.log('PrismWeave: Configuration stored in sessionStorage as final fallback');
       } catch (sessionError) {
         console.error('PrismWeave: Failed to store configuration in any storage:', sessionError);
       }
     }
   }
 
-  // Load configuration from localStorage (used by future bookmarklet instances)
+  // Load configuration with extension storage API priority
   loadStoredConfig() {
+    return new Promise((resolve) => {
+      try {
+        // Try to use browser extension storage API first
+        if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
+          chrome.runtime.sendMessage(this.EXTENSION_ID, {
+            type: 'GET_BOOKMARKLET_CONFIG'
+          }, (response) => {
+            if (chrome.runtime.lastError || !response) {
+              console.warn('PrismWeave: Extension storage unavailable, falling back to localStorage');
+              resolve(this.fallbackLoadConfig());
+            } else {
+              console.log('PrismWeave: Configuration loaded from extension storage');
+              resolve(response.config || {});
+            }
+          });
+        } else {
+          // Fallback to localStorage
+          resolve(this.fallbackLoadConfig());
+        }
+      } catch (error) {
+        console.warn('PrismWeave: Extension communication failed, using localStorage fallback:', error);
+        resolve(this.fallbackLoadConfig());
+      }
+    });
+  }
+
+  // Fallback config loading (domain-isolated)
+  fallbackLoadConfig() {
     try {
       const stored = localStorage.getItem(this.STORAGE_KEY) || sessionStorage.getItem(this.STORAGE_KEY);
       if (stored) {
         const config = JSON.parse(stored);
-        console.log('PrismWeave: Configuration loaded from storage');
+        console.log('PrismWeave: Configuration loaded from localStorage (domain-isolated)');
         return config;
       }
     } catch (error) {
       console.warn('PrismWeave: Failed to load stored configuration:', error);
     }
-    return null;
+    return {};
   }
 
-  // Get effective configuration (stored config takes precedence over embedded config)
-  getEffectiveConfig() {
-    const storedConfig = this.loadStoredConfig();
+  // Get effective configuration (extension storage > stored config > embedded config)
+  async getEffectiveConfig() {
+    const storedConfig = await this.loadStoredConfig();
     if (storedConfig && storedConfig.githubToken && storedConfig.githubRepo) {
-      console.log('PrismWeave: Using stored configuration');
+      console.log('PrismWeave: Using stored configuration from ' + (storedConfig.storageMethod || 'extension storage'));
       return storedConfig;
     }
     console.log('PrismWeave: Using embedded configuration');
@@ -466,17 +523,18 @@ class PrismweaveBookmarkletRuntime {
     });
   }
 
-  updateConfigInfo() {
+  async updateConfigInfo() {
     const configInfo = this.overlay.querySelector('#prismweave-config-info');
     const configSource = this.overlay.querySelector('#config-source');
-    const storedConfig = this.loadStoredConfig();
+    const storedConfig = await this.loadStoredConfig();
     
     if (storedConfig && storedConfig.githubToken && storedConfig.githubRepo) {
       configInfo.style.display = 'block';
       const repoDisplay = storedConfig.githubRepo.length > 30 ? 
         storedConfig.githubRepo.substring(0, 30) + '...' : 
         storedConfig.githubRepo;
-      configSource.textContent = \`Using stored config for \${repoDisplay}\`;
+      const storageMethod = storedConfig.storageMethod || 'extension storage';
+      configSource.textContent = \`Using stored config for \${repoDisplay} (\${storageMethod})\`;
     } else if (this.config.githubToken && this.config.githubRepo) {
       configInfo.style.display = 'block';
       const repoDisplay = this.config.githubRepo.length > 30 ? 
@@ -487,7 +545,7 @@ class PrismweaveBookmarkletRuntime {
   }
 
   showSettingsPanel() {
-    const currentConfig = this.getEffectiveConfig();
+    this.getEffectiveConfig().then(currentConfig => {
     
     // Create settings form
     const settingsHTML = \`
@@ -528,6 +586,9 @@ class PrismweaveBookmarkletRuntime {
           <button class="prismweave-btn" id="clear-stored-settings" title="Clear stored settings">
             Clear Stored
           </button>
+          <button class="prismweave-btn" id="test-cross-domain-storage" title="Test cross-domain storage functionality">
+            Test Storage
+          </button>
         </div>
       </div>
     \`;
@@ -543,6 +604,7 @@ class PrismweaveBookmarkletRuntime {
     
     // Bind settings events
     this.bindSettingsEvents();
+    });
   }
 
   bindSettingsEvents() {
@@ -553,6 +615,12 @@ class PrismweaveBookmarkletRuntime {
     saveBtn.addEventListener('click', () => this.saveSettings());
     cancelBtn.addEventListener('click', () => this.hideSettingsPanel());
     clearBtn.addEventListener('click', () => this.clearStoredSettings());
+    
+    // Add test storage button event listener
+    const testBtn = this.overlay.querySelector('#test-cross-domain-storage');
+    if (testBtn) {
+      testBtn.addEventListener('click', () => this.testCrossDomainStorage());
+    }
   }
 
   saveSettings() {
@@ -582,7 +650,7 @@ class PrismweaveBookmarkletRuntime {
     this.storeConfig(newConfig);
     this.config = newConfig; // Update current session config
     
-    this.updateStatus('✅', 'Settings saved successfully!', false);
+    this.updateStatus('✅', 'Settings saved successfully! (Cross-domain storage)', false);
     this.hideSettingsPanel();
     this.updateConfigInfo();
     
@@ -598,11 +666,53 @@ class PrismweaveBookmarkletRuntime {
     }
   }
 
-  clearStoredSettings() {
+  async testCrossDomainStorage() {
     try {
+      this.updateStatus('🧪', 'Testing cross-domain storage...', false);
+
+      // Dynamic import of the test module
+      const testModule = await import('./cross-domain-storage-test');
+      const tester = new testModule.CrossDomainStorageTest();
+      
+      const results = await tester.runFullTestSuite();
+      
+      if (results.overallSuccess) {
+        this.updateStatus('✅', 'All storage tests passed (' + results.tests.length + ' tests)', false);
+        console.log('📊 Cross-domain storage test results:', results);
+      } else {
+        const passedCount = results.tests.filter(t => t.success).length;
+        this.updateStatus('⚠️', 'Some storage tests failed (' + passedCount + '/' + results.tests.length + ' passed)', false);
+        console.warn('📊 Cross-domain storage test results:', results);
+      }
+
+      // Show detailed results in console
+      console.log(results.summary);
+      
+      return results;
+    } catch (error) {
+      this.updateStatus('❌', 'Storage test failed to run', false);
+      console.error('Error running cross-domain storage test:', error);
+      return null;
+    }
+  }
+
+  clearStoredSettings() {
+      // Clear extension storage first
+      if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
+        chrome.runtime.sendMessage(this.EXTENSION_ID, {
+          type: 'CLEAR_BOOKMARKLET_CONFIG'
+        }, (response) => {
+          if (!chrome.runtime.lastError) {
+            console.log('PrismWeave: Extension storage cleared');
+          }
+        });
+      }
+      
+      // Also clear fallback storage
       localStorage.removeItem(this.STORAGE_KEY);
       sessionStorage.removeItem(this.STORAGE_KEY);
-      this.updateStatus('🗑️', 'Stored settings cleared', false);
+      
+      this.updateStatus('🗑️', 'All stored settings cleared (cross-domain)', false);
       this.hideSettingsPanel();
       this.updateConfigInfo();
       
@@ -610,7 +720,7 @@ class PrismweaveBookmarkletRuntime {
         this.updateStatus('📄', 'Ready to capture content from this page', false);
       }, 2000);
     } catch (error) {
-      this.updateStatus('❌', 'Failed to clear settings', false);
+      this.updateStatus('❌', 'Failed to clear all settings', false);
     }
   }
     
