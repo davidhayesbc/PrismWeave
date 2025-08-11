@@ -163,7 +163,7 @@ const html = `<!DOCTYPE html>
                 <p>Lightweight bookmarklet for quick page capture without installing an extension. Works in any browser.</p>
                 <div style="background: #f1f5f9; padding: 1.5rem; border-radius: 8px; margin: 1rem 0;">
                     <h4 style="margin-bottom: 1rem; color: #1e293b;">📌 Drag this link to your bookmarks bar:</h4>
-                    <a href="javascript:(function(){if(window.prismweaveBookmarklet){return;}var s=document.createElement('script');s.src='https://davidhayesbc.github.io/PrismWeave/bookmarklet/loader.js';s.onload=function(){if(window.executeBookmarklet){window.executeBookmarklet();}};document.head.appendChild(s);window.prismweaveBookmarklet=true;})();" 
+                    <a href="javascript:(function(){var s=document.createElement('script');s.src='https://raw.githubusercontent.com/davidhayesbc/PrismWeave/main/browser-extension/dist/bookmarklet/standalone.js';s.onload=function(){if(window.PrismWeaveEnhanced){window.PrismWeaveEnhanced.execute();}else{alert('PrismWeave loading...');}};s.onerror=function(){alert('Failed to load PrismWeave. Check your internet connection.')};document.head.appendChild(s);})();" 
                        style="display: inline-block; padding: 12px 24px; background: #059669; color: white; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 16px; cursor: move;">
                         🌟 PrismWeave Capture
                     </a>
