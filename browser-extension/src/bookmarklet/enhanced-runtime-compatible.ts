@@ -334,7 +334,8 @@ export class EnhancedBookmarkletRuntime {
 
     // More reasonable content ratio check - only flag severely markup-heavy pages
     const contentRatio = textContent.length / document.body.innerHTML.length;
-    if (contentRatio < 0.05) { // Changed from 0.1 to 0.05 - much more lenient
+    if (contentRatio < 0.05) {
+      // Changed from 0.1 to 0.05 - much more lenient
       score -= 20;
       issues.push('Very high markup-to-content ratio');
       recommendations.push('Try capturing from the main article or content section');
@@ -342,7 +343,8 @@ export class EnhancedBookmarkletRuntime {
 
     // Less aggressive dynamic content detection
     const dynamicElements = document.querySelectorAll('[data-react-class], [data-vue], .ng-scope');
-    if (dynamicElements.length > 5) { // Only penalize if many dynamic elements
+    if (dynamicElements.length > 5) {
+      // Only penalize if many dynamic elements
       score -= 5; // Reduced penalty from 10 to 5
       issues.push('Heavy dynamic content detected - may need time to load');
       recommendations.push('Wait for content to fully load before capturing');
@@ -350,19 +352,22 @@ export class EnhancedBookmarkletRuntime {
 
     // More specific paywall detection - avoid false positives
     const paywallIndicators = [
-      '.paywall', '.login-required', '.subscription-required', 
-      '.premium-content', '[class*="paywall"]'
+      '.paywall',
+      '.login-required',
+      '.subscription-required',
+      '.premium-content',
+      '[class*="paywall"]',
     ];
-    const hasPaywallElements = paywallIndicators.some(selector => 
-      document.querySelector(selector) !== null
+    const hasPaywallElements = paywallIndicators.some(
+      selector => document.querySelector(selector) !== null
     );
-    
+
     // Only check for paywall text if we don't have substantial content
-    const hasPaywallText = wordCount < 300 && (
-      document.body.textContent?.toLowerCase().includes('subscribe to continue reading') ||
-      document.body.textContent?.toLowerCase().includes('sign in to read more') ||
-      document.body.textContent?.toLowerCase().includes('premium subscription required')
-    );
+    const hasPaywallText =
+      wordCount < 300 &&
+      (document.body.textContent?.toLowerCase().includes('subscribe to continue reading') ||
+        document.body.textContent?.toLowerCase().includes('sign in to read more') ||
+        document.body.textContent?.toLowerCase().includes('premium subscription required'));
 
     if (hasPaywallElements || hasPaywallText) {
       score -= 15;
@@ -372,9 +377,11 @@ export class EnhancedBookmarkletRuntime {
 
     // More reasonable confidence thresholds
     let confidence: 'high' | 'medium' | 'low';
-    if (score >= 70) { // Lowered from 80
+    if (score >= 70) {
+      // Lowered from 80
       confidence = 'high';
-    } else if (score >= 50) { // Lowered from 60
+    } else if (score >= 50) {
+      // Lowered from 60
       confidence = 'medium';
     } else {
       confidence = 'low';
