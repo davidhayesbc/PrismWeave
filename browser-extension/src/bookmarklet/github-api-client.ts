@@ -130,7 +130,17 @@ export class GitHubAPIClient {
         },
       };
     } catch (error) {
-      console.error('GitHub commit failed:', error);
+      // Don't log GitHub API errors that are related to expected 404 file checks
+      if (
+        !(
+          error instanceof Error &&
+          (error.message.includes('404') ||
+            error.message.includes('Not Found') ||
+            error.message.toLowerCase().includes('file not found'))
+        )
+      ) {
+        console.error('GitHub commit failed:', error);
+      }
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -140,8 +150,9 @@ export class GitHubAPIClient {
 
   /**
    * Get file content from repository
-   * Note: This method will cause a 404 to appear in the browser's network tab when checking
-   * if a file exists - this is expected behavior and cannot be suppressed at the browser level.
+   * Note: A 404 will appear in the browser's network tab when checking if a file exists -
+   * this is normal GitHub API behavior and cannot be suppressed at the browser level.
+   * This method suppresses console logging for expected 404s.
    */
   async getFile(path: string): Promise<IGitHubFileContent | null> {
     try {
@@ -156,7 +167,9 @@ export class GitHubAPIClient {
       );
 
       if (response.status === 404) {
-        return null; // File doesn't exist - this is expected behavior, no error logging
+        // File doesn't exist - this is expected behavior for new files
+        // No console logging to keep logs clean
+        return null;
       }
 
       if (!response.ok) {
@@ -168,10 +181,17 @@ export class GitHubAPIClient {
 
       return await response.json();
     } catch (error) {
-      // Only log errors that are not related to file existence checks
-      if (error instanceof Error && !error.message.includes('404')) {
-        console.error('Failed to get file from GitHub:', error);
+      // Completely suppress 404-related errors since they're expected for new files
+      if (
+        error instanceof Error &&
+        (error.message.includes('404') ||
+          error.message.includes('Not Found') ||
+          error.message.toLowerCase().includes('file not found'))
+      ) {
+        return null; // Silent handling of expected 404s
       }
+
+      console.error('Failed to get file from GitHub:', error);
       return null;
     }
   }
@@ -395,9 +415,10 @@ export class GitHubAPIClient {
     try {
       const response = await fetch(url, requestOptions);
 
-      // For file existence checks (GET requests to contents), don't log 404s
+      // For file existence checks (GET requests to contents), don't log 404s - they're expected
       if (response.status === 404 && method === 'GET' && endpoint.includes('/contents/')) {
-        // This is likely a file existence check - 404 is expected, suppress logging
+        // This is expected behavior when checking if a file exists before creating it
+        // The 404 will still appear in the browser's Network tab, but we won't log it to console
         return response;
       }
 
