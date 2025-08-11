@@ -3,6 +3,7 @@
 
 import { extractBookmarkletSettings, IBookmarkletSettings, ISettings } from '../types/index.js';
 import { BookmarkletManager } from '../utils/bookmarklet-manager.js';
+import { BookmarkletStorageValidator } from '../utils/bookmarklet-storage-validator.js';
 import { createLogger } from '../utils/logger.js';
 import { SettingsManager } from '../utils/settings-manager.js';
 
@@ -58,6 +59,12 @@ interface IBookmarkletElements {
   refreshStats: HTMLButtonElement;
   clearStats: HTMLButtonElement;
   exportStats: HTMLButtonElement;
+
+  // Validation and testing elements
+  validateStorage: HTMLButtonElement;
+  validationResults: HTMLElement;
+  runStorageTests: HTMLButtonElement;
+  testBookmarkletStorage: HTMLButtonElement;
 
   // Status messages
   statusMessages: HTMLElement;
@@ -151,6 +158,12 @@ export class BookmarkletOptionsPage {
       refreshStats: getElementById('refresh-stats'),
       clearStats: getElementById('clear-stats'),
       exportStats: getElementById('export-stats'),
+
+      // Validation and testing elements
+      validateStorage: getElementById('validate-storage'),
+      validationResults: getElementById('validation-results'),
+      runStorageTests: getElementById('run-storage-tests'),
+      testBookmarkletStorage: getElementById('test-bookmarklet-storage'),
 
       // Status messages
       statusMessages: getElementById('status-messages'),
@@ -254,6 +267,19 @@ export class BookmarkletOptionsPage {
 
     this._elements.exportStats.addEventListener('click', () => {
       this._exportUsageStatistics();
+    });
+
+    // Validation event listeners
+    this._elements.validateStorage.addEventListener('click', () => {
+      this._validateBookmarkletStorage();
+    });
+
+    this._elements.runStorageTests.addEventListener('click', () => {
+      this._runStorageTests();
+    });
+
+    this._elements.testBookmarkletStorage.addEventListener('click', () => {
+      this._testBookmarkletStorageIntegration();
     });
   }
 
@@ -849,6 +875,252 @@ export class BookmarkletOptionsPage {
     } catch (error) {
       logger.error('Failed to export statistics:', error);
       this._showError('Failed to export statistics');
+    }
+  }
+
+  // Storage Validation Methods
+  private async _validateBookmarkletStorage(): Promise<void> {
+    if (!this._elements) return;
+
+    try {
+      logger.info('Starting bookmarklet storage validation');
+
+      this._elements.validationResults.innerHTML = `
+        <div class="loading">
+          <div class="status-dot"></div>
+          Validating storage system...
+        </div>
+      `;
+
+      const validationResults = await BookmarkletStorageValidator.validateStorageSystem();
+
+      // Display results
+      let resultHtml = '<div class="validation-results">';
+
+      if (validationResults.isValid) {
+        resultHtml += '<div class="success"><h4>✅ Storage Validation Passed</h4></div>';
+      } else {
+        resultHtml += '<div class="error"><h4>❌ Storage Validation Failed</h4></div>';
+      }
+
+      // Add summary
+      resultHtml += `
+        <div class="test-summary">
+          <p><strong>Tests:</strong> ${validationResults.summary.passed}/${validationResults.summary.totalTests} passed</p>
+        </div>
+      `;
+
+      // Add detailed results
+      validationResults.tests.forEach((test: any) => {
+        const statusClass = test.success ? 'success' : 'error';
+        const statusIcon = test.success ? '✅' : '❌';
+
+        resultHtml += `
+          <div class="${statusClass} test-result">
+            <p><strong>${statusIcon} ${test.testName}</strong></p>
+            <p>Duration: ${test.duration}ms</p>
+            ${test.error ? `<p class="error">Error: ${test.error}</p>` : ''}
+            ${test.result ? `<pre><code>${JSON.stringify(test.result, null, 2)}</code></pre>` : ''}
+          </div>
+        `;
+      });
+
+      // Add recommendations if any
+      if (validationResults.recommendations.length > 0) {
+        resultHtml += '<div class="recommendations"><h5>Recommendations:</h5><ul>';
+        validationResults.recommendations.forEach(rec => {
+          resultHtml += `<li>${rec}</li>`;
+        });
+        resultHtml += '</ul></div>';
+      }
+
+      resultHtml += '</div>';
+
+      this._elements.validationResults.innerHTML = resultHtml;
+
+      if (validationResults.isValid) {
+        this._showSuccess('Storage validation completed successfully!');
+      } else {
+        this._showError('Storage validation found issues. Check results above.');
+      }
+
+      logger.info('Storage validation completed:', validationResults);
+    } catch (error) {
+      logger.error('Storage validation failed:', error);
+
+      this._elements.validationResults.innerHTML = `
+        <div class="error">
+          <h4>Validation Failed</h4>
+          <p>${error instanceof Error ? error.message : 'Unknown error occurred'}</p>
+        </div>
+      `;
+
+      this._showError('Storage validation failed');
+    }
+  }
+
+  private async _runStorageTests(): Promise<void> {
+    if (!this._elements) return;
+
+    try {
+      logger.info('Running comprehensive storage tests');
+
+      this._elements.validationResults.innerHTML = `
+        <div class="loading">
+          <div class="status-dot"></div>
+          Running comprehensive storage tests...
+        </div>
+      `;
+
+      // Use the comprehensive validation which runs all tests
+      const validationResults = await BookmarkletStorageValidator.validateStorageSystem();
+
+      let resultHtml = '<div class="comprehensive-test-results">';
+      resultHtml += '<h4>🧪 Comprehensive Storage Tests</h4>';
+
+      // Display each test result
+      validationResults.tests.forEach(test => {
+        const statusClass = test.success ? 'success' : 'error';
+        const statusIcon = test.success ? '✅' : '❌';
+
+        resultHtml += `
+          <div class="${statusClass} test-result">
+            <p><strong>${statusIcon} ${test.testName}</strong></p>
+            <p>Duration: ${test.duration}ms</p>
+            ${test.error ? `<p class="error">Error: ${test.error}</p>` : ''}
+            ${test.result ? `<p class="result">${test.result}</p>` : ''}
+          </div>
+        `;
+      });
+
+      // Add summary
+      const { summary } = validationResults;
+      resultHtml += `
+        <div class="test-summary ${summary.passed === summary.totalTests ? 'success' : 'warning'}">
+          <h5>Test Summary: ${summary.passed}/${summary.totalTests} tests passed</h5>
+        </div>
+      `;
+
+      // Add recommendations
+      if (validationResults.recommendations.length > 0) {
+        resultHtml += '<div class="recommendations"><h5>Recommendations:</h5><ul>';
+        validationResults.recommendations.forEach(rec => {
+          resultHtml += `<li>${rec}</li>`;
+        });
+        resultHtml += '</ul></div>';
+      }
+
+      resultHtml += '</div>';
+
+      this._elements.validationResults.innerHTML = resultHtml;
+
+      if (summary.passed === summary.totalTests) {
+        this._showSuccess(`All ${summary.totalTests} storage tests passed!`);
+      } else {
+        this._showWarning(
+          `${summary.passed}/${summary.totalTests} storage tests passed. Check failed tests above.`
+        );
+      }
+
+      logger.info('Comprehensive storage tests completed:', validationResults);
+    } catch (error) {
+      logger.error('Comprehensive storage tests failed:', error);
+
+      this._elements.validationResults.innerHTML = `
+        <div class="error">
+          <h4>Tests Failed</h4>
+          <p>${error instanceof Error ? error.message : 'Unknown error occurred'}</p>
+        </div>
+      `;
+
+      this._showError('Comprehensive storage tests failed');
+    }
+  }
+
+  private async _testBookmarkletStorageIntegration(): Promise<void> {
+    if (!this._elements || !this._currentSettings) return;
+
+    try {
+      logger.info('Testing bookmarklet storage integration');
+
+      this._elements.validationResults.innerHTML = `
+        <div class="loading">
+          <div class="status-dot"></div>
+          Testing bookmarklet storage integration...
+        </div>
+      `;
+
+      // Generate test bookmarklet
+      const testBookmarklet = BookmarkletStorageValidator.generateTestBookmarklet();
+
+      // Run validation to test storage functionality
+      const validationResults = await BookmarkletStorageValidator.validateStorageSystem();
+      const storageTests = validationResults.tests.filter(
+        t => t.testName.includes('Storage') || t.testName.includes('storage')
+      );
+
+      let resultHtml = '<div class="integration-test-results">';
+      resultHtml += '<h4>🔗 Bookmarklet Storage Integration Test</h4>';
+
+      // Display test bookmarklet
+      resultHtml += `
+        <div class="info test-result">
+          <p><strong>📋 Generated Test Bookmarklet</strong></p>
+          <p>Bookmarklet generated successfully (${testBookmarklet.length} characters)</p>
+          <pre><code>${this._escapeHtml(testBookmarklet.substring(0, 200))}...</code></pre>
+        </div>
+      `;
+
+      // Display storage-related test results
+      storageTests.forEach(test => {
+        const statusClass = test.success ? 'success' : 'error';
+        const statusIcon = test.success ? '✅' : '❌';
+
+        resultHtml += `
+          <div class="${statusClass} test-result">
+            <p><strong>${statusIcon} ${test.testName}</strong></p>
+            <p>Duration: ${test.duration}ms</p>
+            ${test.error ? `<p class="error">Error: ${test.error}</p>` : ''}
+            ${test.result ? `<p class="result">${test.result}</p>` : ''}
+          </div>
+        `;
+      });
+
+      // Show current stored config
+      const storedConfig = BookmarkletStorageValidator.getCurrentStoredConfig();
+      resultHtml += `
+        <div class="info test-result">
+          <p><strong>💾 Current Stored Configuration</strong></p>
+          <pre><code>${JSON.stringify(storedConfig, null, 2)}</code></pre>
+        </div>
+      `;
+
+      resultHtml += '</div>';
+
+      this._elements.validationResults.innerHTML = resultHtml;
+
+      const allStorageTestsPassed = storageTests.every(t => t.success);
+      if (allStorageTestsPassed) {
+        this._showSuccess('Bookmarklet storage integration tests passed!');
+      } else {
+        this._showError('Some integration tests failed. Check results above.');
+      }
+
+      logger.info('Bookmarklet storage integration tests completed:', {
+        allStorageTestsPassed,
+        storedConfig,
+      });
+    } catch (error) {
+      logger.error('Bookmarklet storage integration test failed:', error);
+
+      this._elements.validationResults.innerHTML = `
+        <div class="error">
+          <h4>Integration Test Failed</h4>
+          <p>${error instanceof Error ? error.message : 'Unknown error occurred'}</p>
+        </div>
+      `;
+
+      this._showError('Bookmarklet storage integration test failed');
     }
   }
 }

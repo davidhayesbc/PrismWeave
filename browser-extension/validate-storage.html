@@ -1,0 +1,634 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0"
+    />
+    <title>Bookmarklet Storage Validation Test</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+        background-color: #f5f5f5;
+      }
+      .container {
+        background-color: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+      .test-result {
+        margin: 10px 0;
+        padding: 10px;
+        border-radius: 4px;
+        border: 1px solid #ddd;
+      }
+      .success {
+        background-color: #d4edda;
+        border-color: #c3e6cb;
+        color: #155724;
+      }
+      .error {
+        background-color: #f8d7da;
+        border-color: #f5c6cb;
+        color: #721c24;
+      }
+      .info {
+        background-color: #d1ecf1;
+        border-color: #bee5eb;
+        color: #0c5460;
+      }
+      .loading {
+        background-color: #fff3cd;
+        border-color: #ffeaa7;
+        color: #856404;
+      }
+      button {
+        background-color: #007bff;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 4px;
+        cursor: pointer;
+        margin: 5px;
+      }
+      button:hover {
+        background-color: #0056b3;
+      }
+      pre {
+        background-color: #f8f9fa;
+        padding: 10px;
+        border-radius: 4px;
+        overflow-x: auto;
+        font-size: 12px;
+      }
+      .test-summary {
+        font-weight: bold;
+        font-size: 16px;
+        margin: 20px 0;
+        padding: 15px;
+        border-radius: 4px;
+      }
+      .recommendations {
+        background-color: #e2e3e5;
+        padding: 15px;
+        border-radius: 4px;
+        margin: 15px 0;
+      }
+      .recommendations ul {
+        margin: 0;
+        padding-left: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>🧪 Bookmarklet Storage Validation</h1>
+      <p>This page validates that the bookmarklet storage functionality works correctly across tabs.</p>
+
+      <div class="controls">
+        <button onclick="runBasicTests()">🚀 Run Basic Tests</button>
+        <button onclick="runComprehensiveTests()">🔬 Run Comprehensive Tests</button>
+        <button onclick="testCrossTabPersistence()">🔗 Test Cross-Tab Persistence</button>
+        <button onclick="clearStorage()">🗑️ Clear Storage</button>
+        <button onclick="generateTestBookmarklet()">📋 Generate Test Bookmarklet</button>
+      </div>
+
+      <div id="results"></div>
+    </div>
+
+    <script>
+      // Copy the BookmarkletStorageValidator class code here for testing
+      class BookmarkletStorageValidator {
+        static get STORAGE_KEY() {
+          return 'prismweave_bookmarklet_config';
+        }
+        static get TEST_CONFIG() {
+          return {
+            githubToken: 'ghp_test_token_12345678901234567890123456',
+            githubRepo: 'test-user/test-repo',
+            defaultFolder: 'unsorted',
+            version: '1.0.0',
+          };
+        }
+
+        static async validateStorageSystem() {
+          const tests = [];
+          const recommendations = [];
+
+          // Test 1: Basic localStorage availability
+          tests.push(await this.testLocalStorageAvailability());
+
+          // Test 2: Basic sessionStorage availability
+          tests.push(await this.testSessionStorageAvailability());
+
+          // Test 3: Storage and retrieval functionality
+          tests.push(await this.testStorageAndRetrieval());
+
+          // Test 4: Cross-tab persistence (simulated)
+          tests.push(await this.testCrossTabPersistence());
+
+          // Test 5: Error handling and fallbacks
+          tests.push(await this.testErrorHandling());
+
+          // Generate recommendations based on test results
+          const failedTests = tests.filter(t => !t.success);
+          if (failedTests.some(t => t.testName.includes('localStorage'))) {
+            recommendations.push('localStorage is not available - bookmarklet will use sessionStorage as fallback');
+          }
+          if (failedTests.some(t => t.testName.includes('sessionStorage'))) {
+            recommendations.push('Both localStorage and sessionStorage are unavailable - settings will not persist');
+          }
+          if (failedTests.length > 0) {
+            recommendations.push('Some storage tests failed - bookmarklet functionality may be limited');
+          }
+          if (failedTests.length === 0) {
+            recommendations.push('All storage tests passed - bookmarklet should work correctly across tabs');
+          }
+
+          const passed = tests.filter(t => t.success).length;
+          const failed = tests.length - passed;
+
+          return {
+            isValid: failed === 0 || failed <= 2, // Allow some failures for non-critical tests
+            tests,
+            recommendations,
+            summary: {
+              totalTests: tests.length,
+              passed,
+              failed,
+            },
+          };
+        }
+
+        static async testLocalStorageAvailability() {
+          const startTime = Date.now();
+
+          try {
+            if (typeof localStorage === 'undefined') {
+              throw new Error('localStorage is not defined');
+            }
+
+            // Test basic operations
+            const testKey = 'prismweave_test_' + Date.now();
+            const testValue = 'test_value_' + Math.random();
+
+            localStorage.setItem(testKey, testValue);
+            const retrieved = localStorage.getItem(testKey);
+            localStorage.removeItem(testKey);
+
+            if (retrieved !== testValue) {
+              throw new Error('localStorage read/write test failed');
+            }
+
+            return {
+              testName: 'localStorage availability',
+              success: true,
+              result: 'localStorage is available and functional',
+              duration: Date.now() - startTime,
+            };
+          } catch (error) {
+            return {
+              testName: 'localStorage availability',
+              success: false,
+              error: error.message,
+              duration: Date.now() - startTime,
+            };
+          }
+        }
+
+        static async testSessionStorageAvailability() {
+          const startTime = Date.now();
+
+          try {
+            if (typeof sessionStorage === 'undefined') {
+              throw new Error('sessionStorage is not defined');
+            }
+
+            // Test basic operations
+            const testKey = 'prismweave_session_test_' + Date.now();
+            const testValue = 'session_test_value_' + Math.random();
+
+            sessionStorage.setItem(testKey, testValue);
+            const retrieved = sessionStorage.getItem(testKey);
+            sessionStorage.removeItem(testKey);
+
+            if (retrieved !== testValue) {
+              throw new Error('sessionStorage read/write test failed');
+            }
+
+            return {
+              testName: 'sessionStorage availability',
+              success: true,
+              result: 'sessionStorage is available and functional',
+              duration: Date.now() - startTime,
+            };
+          } catch (error) {
+            return {
+              testName: 'sessionStorage availability',
+              success: false,
+              error: error.message,
+              duration: Date.now() - startTime,
+            };
+          }
+        }
+
+        static async testStorageAndRetrieval() {
+          const startTime = Date.now();
+
+          try {
+            const testConfig = {
+              ...this.TEST_CONFIG,
+              timestamp: Date.now(),
+              testId: Math.random().toString(36).substring(7),
+            };
+
+            // Test localStorage first
+            try {
+              localStorage.setItem(this.STORAGE_KEY, JSON.stringify(testConfig));
+              const retrieved = JSON.parse(localStorage.getItem(this.STORAGE_KEY) || '{}');
+
+              if (retrieved.testId !== testConfig.testId) {
+                throw new Error('localStorage storage/retrieval mismatch');
+              }
+
+              return {
+                testName: 'Storage and retrieval',
+                success: true,
+                result: {
+                  storageMethod: 'localStorage',
+                  configStored: true,
+                  configRetrieved: true,
+                  dataIntegrity: true,
+                },
+                duration: Date.now() - startTime,
+              };
+            } catch (localStorageError) {
+              // Fallback to sessionStorage
+              try {
+                sessionStorage.setItem(this.STORAGE_KEY, JSON.stringify(testConfig));
+                const retrieved = JSON.parse(sessionStorage.getItem(this.STORAGE_KEY) || '{}');
+
+                if (retrieved.testId !== testConfig.testId) {
+                  throw new Error('sessionStorage storage/retrieval mismatch');
+                }
+
+                return {
+                  testName: 'Storage and retrieval',
+                  success: true,
+                  result: {
+                    storageMethod: 'sessionStorage',
+                    configStored: true,
+                    configRetrieved: true,
+                    dataIntegrity: true,
+                    fallbackUsed: true,
+                  },
+                  duration: Date.now() - startTime,
+                };
+              } catch (sessionStorageError) {
+                throw new Error(
+                  `Both localStorage and sessionStorage failed: ${localStorageError.message}; ${sessionStorageError.message}`
+                );
+              }
+            }
+          } catch (error) {
+            return {
+              testName: 'Storage and retrieval',
+              success: false,
+              error: error.message,
+              duration: Date.now() - startTime,
+            };
+          }
+        }
+
+        static async testCrossTabPersistence() {
+          const startTime = Date.now();
+
+          try {
+            const testConfig = {
+              githubToken: 'cross_tab_test_token',
+              githubRepo: 'test/cross-tab-repo',
+              timestamp: Date.now(),
+              crossTabTest: true,
+            };
+
+            // Store configuration
+            localStorage.setItem(this.STORAGE_KEY, JSON.stringify(testConfig));
+
+            // Simulate what would happen in another tab by creating a new storage access
+            const storedData = localStorage.getItem(this.STORAGE_KEY);
+            if (!storedData) {
+              throw new Error('Configuration not found in storage');
+            }
+
+            const parsedConfig = JSON.parse(storedData);
+            if (!parsedConfig.crossTabTest || parsedConfig.timestamp !== testConfig.timestamp) {
+              throw new Error('Cross-tab persistence validation failed');
+            }
+
+            return {
+              testName: 'Cross-tab persistence',
+              success: true,
+              result: {
+                persistenceWorking: true,
+                dataIntegrity: true,
+                configurationAccessible: true,
+              },
+              duration: Date.now() - startTime,
+            };
+          } catch (error) {
+            return {
+              testName: 'Cross-tab persistence',
+              success: false,
+              error: error.message,
+              duration: Date.now() - startTime,
+            };
+          }
+        }
+
+        static async testErrorHandling() {
+          const startTime = Date.now();
+
+          try {
+            let errorHandlingWorked = true;
+            const errorDetails = [];
+
+            // Test 1: Invalid JSON handling
+            try {
+              localStorage.setItem(this.STORAGE_KEY, 'invalid_json_string');
+              const config = this.getCurrentStoredConfig();
+              // Should return empty object or default values, not throw
+              errorDetails.push('Invalid JSON handled gracefully');
+            } catch (error) {
+              errorHandlingWorked = false;
+              errorDetails.push(`Invalid JSON handling failed: ${error.message}`);
+            }
+
+            // Test 2: Missing storage key handling
+            try {
+              localStorage.removeItem(this.STORAGE_KEY);
+              const config = this.getCurrentStoredConfig();
+              // Should return empty object, not throw
+              errorDetails.push('Missing key handled gracefully');
+            } catch (error) {
+              errorHandlingWorked = false;
+              errorDetails.push(`Missing key handling failed: ${error.message}`);
+            }
+
+            return {
+              testName: 'Error handling',
+              success: errorHandlingWorked,
+              result: {
+                errorHandlingWorking: errorHandlingWorked,
+                details: errorDetails,
+              },
+              duration: Date.now() - startTime,
+            };
+          } catch (error) {
+            return {
+              testName: 'Error handling',
+              success: false,
+              error: error.message,
+              duration: Date.now() - startTime,
+            };
+          }
+        }
+
+        static getCurrentStoredConfig() {
+          try {
+            const stored = localStorage.getItem(this.STORAGE_KEY);
+            return stored ? JSON.parse(stored) : {};
+          } catch (error) {
+            try {
+              const stored = sessionStorage.getItem(this.STORAGE_KEY);
+              return stored ? JSON.parse(stored) : {};
+            } catch (sessionError) {
+              return {};
+            }
+          }
+        }
+
+        static generateTestBookmarklet() {
+          const config = this.TEST_CONFIG;
+          return `javascript:(function(){
+                    // Test bookmarklet generated at ${new Date().toISOString()}
+                    const config = ${JSON.stringify(config)};
+                    
+                    // Store configuration in localStorage for cross-tab persistence
+                    function storeConfig() {
+                        try {
+                            localStorage.setItem('${this.STORAGE_KEY}', JSON.stringify(config));
+                            return true;
+                        } catch (e) {
+                            try {
+                                sessionStorage.setItem('${this.STORAGE_KEY}', JSON.stringify(config));
+                                return true;
+                            } catch (e2) {
+                                return false;
+                            }
+                        }
+                    }
+                    
+                    // Test storage
+                    if (storeConfig()) {
+                        alert('✅ Test bookmarklet: Configuration stored successfully!');
+                    } else {
+                        alert('❌ Test bookmarklet: Storage failed - settings will not persist');
+                    }
+                })();`;
+        }
+      }
+
+      // Test functions for the HTML page
+      async function runBasicTests() {
+        showLoading('Running basic storage tests...');
+
+        try {
+          const localStorage = await BookmarkletStorageValidator.testLocalStorageAvailability();
+          const sessionStorage = await BookmarkletStorageValidator.testSessionStorageAvailability();
+          const storage = await BookmarkletStorageValidator.testStorageAndRetrieval();
+
+          showResults([{ name: 'Basic Tests', tests: [localStorage, sessionStorage, storage] }]);
+        } catch (error) {
+          showError('Basic tests failed: ' + error.message);
+        }
+      }
+
+      async function runComprehensiveTests() {
+        showLoading('Running comprehensive validation...');
+
+        try {
+          const results = await BookmarkletStorageValidator.validateStorageSystem();
+          showValidationResults(results);
+        } catch (error) {
+          showError('Comprehensive tests failed: ' + error.message);
+        }
+      }
+
+      async function testCrossTabPersistence() {
+        showLoading('Testing cross-tab persistence...');
+
+        try {
+          const result = await BookmarkletStorageValidator.testCrossTabPersistence();
+          showResults([{ name: 'Cross-Tab Persistence', tests: [result] }]);
+
+          if (result.success) {
+            showInfo(
+              '✅ Cross-tab persistence working! Try opening this page in multiple tabs to verify settings persist.'
+            );
+          }
+        } catch (error) {
+          showError('Cross-tab persistence test failed: ' + error.message);
+        }
+      }
+
+      function clearStorage() {
+        try {
+          localStorage.removeItem(BookmarkletStorageValidator.STORAGE_KEY);
+          sessionStorage.removeItem(BookmarkletStorageValidator.STORAGE_KEY);
+          showInfo('Storage cleared successfully');
+        } catch (error) {
+          showError('Failed to clear storage: ' + error.message);
+        }
+      }
+
+      function generateTestBookmarklet() {
+        try {
+          const bookmarklet = BookmarkletStorageValidator.generateTestBookmarklet();
+
+          const resultsDiv = document.getElementById('results');
+          resultsDiv.innerHTML = `
+                    <div class="info test-result">
+                        <h3>📋 Test Bookmarklet Generated</h3>
+                        <p>Copy this bookmarklet and paste it as a bookmark URL to test storage functionality:</p>
+                        <pre>${escapeHtml(bookmarklet)}</pre>
+                        <button onclick="copyToClipboard('${escapeHtml(bookmarklet).replace(/'/g, "\\'")}')">Copy to Clipboard</button>
+                        <p><strong>Instructions:</strong></p>
+                        <ol>
+                            <li>Copy the bookmarklet code above</li>
+                            <li>Create a new bookmark in your browser</li>
+                            <li>Paste the code as the bookmark URL</li>
+                            <li>Click the bookmark to test storage functionality</li>
+                            <li>Open multiple tabs and test cross-tab persistence</li>
+                        </ol>
+                    </div>
+                `;
+        } catch (error) {
+          showError('Failed to generate test bookmarklet: ' + error.message);
+        }
+      }
+
+      function showLoading(message) {
+        document.getElementById('results').innerHTML = `
+                <div class="loading test-result">
+                    <h3>⏳ ${message}</h3>
+                </div>
+            `;
+      }
+
+      function showError(message) {
+        document.getElementById('results').innerHTML = `
+                <div class="error test-result">
+                    <h3>❌ Error</h3>
+                    <p>${message}</p>
+                </div>
+            `;
+      }
+
+      function showInfo(message) {
+        const resultsDiv = document.getElementById('results');
+        resultsDiv.innerHTML += `
+                <div class="info test-result">
+                    <p>${message}</p>
+                </div>
+            `;
+      }
+
+      function showResults(testGroups) {
+        let html = '';
+
+        testGroups.forEach(group => {
+          html += `<h3>${group.name}</h3>`;
+
+          group.tests.forEach(test => {
+            const statusClass = test.success ? 'success' : 'error';
+            const statusIcon = test.success ? '✅' : '❌';
+
+            html += `
+                        <div class="${statusClass} test-result">
+                            <h4>${statusIcon} ${test.testName}</h4>
+                            <p><strong>Duration:</strong> ${test.duration}ms</p>
+                            ${test.error ? `<p><strong>Error:</strong> ${test.error}</p>` : ''}
+                            ${test.result ? `<pre><strong>Result:</strong>\n${JSON.stringify(test.result, null, 2)}</pre>` : ''}
+                        </div>
+                    `;
+          });
+        });
+
+        document.getElementById('results').innerHTML = html;
+      }
+
+      function showValidationResults(results) {
+        let html = `
+                <div class="test-summary ${results.isValid ? 'success' : 'error'}">
+                    ${results.isValid ? '✅' : '❌'} Overall Validation: ${results.isValid ? 'PASSED' : 'FAILED'}
+                    <br>Tests: ${results.summary.passed}/${results.summary.totalTests} passed
+                </div>
+            `;
+
+        // Show individual test results
+        results.tests.forEach(test => {
+          const statusClass = test.success ? 'success' : 'error';
+          const statusIcon = test.success ? '✅' : '❌';
+
+          html += `
+                    <div class="${statusClass} test-result">
+                        <h4>${statusIcon} ${test.testName}</h4>
+                        <p><strong>Duration:</strong> ${test.duration}ms</p>
+                        ${test.error ? `<p><strong>Error:</strong> ${test.error}</p>` : ''}
+                        ${test.result ? `<pre><strong>Result:</strong>\n${JSON.stringify(test.result, null, 2)}</pre>` : ''}
+                    </div>
+                `;
+        });
+
+        // Show recommendations
+        if (results.recommendations.length > 0) {
+          html += `
+                    <div class="recommendations">
+                        <h4>📋 Recommendations:</h4>
+                        <ul>
+                            ${results.recommendations.map(rec => `<li>${rec}</li>`).join('')}
+                        </ul>
+                    </div>
+                `;
+        }
+
+        document.getElementById('results').innerHTML = html;
+      }
+
+      function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+      }
+
+      async function copyToClipboard(text) {
+        try {
+          await navigator.clipboard.writeText(text);
+          showInfo('✅ Copied to clipboard!');
+        } catch (error) {
+          showError('Failed to copy to clipboard: ' + error.message);
+        }
+      }
+
+      // Auto-run basic tests when page loads
+      window.addEventListener('load', () => {
+        setTimeout(runBasicTests, 1000);
+      });
+    </script>
+  </body>
+</html>

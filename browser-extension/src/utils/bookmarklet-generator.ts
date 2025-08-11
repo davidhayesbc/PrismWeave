@@ -60,12 +60,16 @@ export class BookmarkletGenerator {
     return `
 function() {
   // PrismWeave Bookmarklet v${version}
+  console.log('PrismWeave Bookmarklet v${version} - Starting...');
+  
+  // Check if already running
   if (window.prismweaveBookmarklet) {
+    console.log('PrismWeave: Bookmarklet already active, showing interface...');
     window.prismweaveBookmarklet.show();
     return;
   }
 
-  const config = ${configJson};
+  const embeddedConfig = ${configJson};
   
   // Create and inject the bookmarklet runtime
   const script = document.createElement('script');
@@ -75,9 +79,18 @@ function() {
   
   document.head.appendChild(script);
   
-  // Initialize the bookmarklet
+  // Initialize the bookmarklet with config priority: stored > embedded
   setTimeout(() => {
     if (window.prismweaveBookmarkletRuntime) {
+      console.log('PrismWeave: Runtime loaded, initializing...');
+      window.prismweaveBookmarklet = new window.prismweaveBookmarkletRuntime(embeddedConfig);
+      window.prismweaveBookmarklet.init();
+    } else {
+      console.error('PrismWeave: Failed to load bookmarklet runtime');
+      alert('PrismWeave: Failed to initialize bookmarklet');
+    }
+  }, 100);
+}
       window.prismweaveBookmarklet = new window.prismweaveBookmarkletRuntime(config);
       window.prismweaveBookmarklet.init();
     }
@@ -95,11 +108,63 @@ class PrismweaveBookmarkletRuntime {
     this.config = config;
     this.isVisible = false;
     this.overlay = null;
+    this.STORAGE_KEY = 'prismweave_bookmarklet_config';
+    
+    // Store config in localStorage for persistence across tabs/sessions
+    this.storeConfig(config);
   }
 
   init() {
     this.createOverlay();
     this.show();
+  }
+
+  // Store configuration in localStorage for cross-tab persistence
+  storeConfig(config) {
+    try {
+      const storedConfig = {
+        ...config,
+        lastUpdated: new Date().toISOString(),
+        version: '1.0.0'
+      };
+      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(storedConfig));
+      console.log('PrismWeave: Configuration stored successfully');
+    } catch (error) {
+      console.warn('PrismWeave: Failed to store configuration:', error);
+      // Fallback to session storage if localStorage is not available
+      try {
+        sessionStorage.setItem(this.STORAGE_KEY, JSON.stringify(config));
+        console.log('PrismWeave: Configuration stored in sessionStorage as fallback');
+      } catch (sessionError) {
+        console.error('PrismWeave: Failed to store configuration in any storage:', sessionError);
+      }
+    }
+  }
+
+  // Load configuration from localStorage (used by future bookmarklet instances)
+  loadStoredConfig() {
+    try {
+      const stored = localStorage.getItem(this.STORAGE_KEY) || sessionStorage.getItem(this.STORAGE_KEY);
+      if (stored) {
+        const config = JSON.parse(stored);
+        console.log('PrismWeave: Configuration loaded from storage');
+        return config;
+      }
+    } catch (error) {
+      console.warn('PrismWeave: Failed to load stored configuration:', error);
+    }
+    return null;
+  }
+
+  // Get effective configuration (stored config takes precedence over embedded config)
+  getEffectiveConfig() {
+    const storedConfig = this.loadStoredConfig();
+    if (storedConfig && storedConfig.githubToken && storedConfig.githubRepo) {
+      console.log('PrismWeave: Using stored configuration');
+      return storedConfig;
+    }
+    console.log('PrismWeave: Using embedded configuration');
+    return this.config;
   }
 
   show() {
@@ -145,9 +210,18 @@ class PrismweaveBookmarkletRuntime {
             <div class="prismweave-icon">📄</div>
             <div class="prismweave-message">Ready to capture content from this page</div>
           </div>
+          <div id="prismweave-config-info" class="prismweave-config-info" style="display:none;">
+            <div class="prismweave-config-status">
+              <span id="config-source">Using stored configuration</span>
+              <button id="update-config-btn" class="prismweave-link-btn" title="Update settings">⚙️</button>
+            </div>
+          </div>
           <div class="prismweave-actions">
             <button class="prismweave-btn prismweave-btn-primary" id="prismweave-capture">
               Capture Page
+            </button>
+            <button class="prismweave-btn" id="prismweave-settings" title="Update Settings">
+              Settings
             </button>
             <button class="prismweave-btn" id="prismweave-cancel">
               Cancel
@@ -274,6 +348,69 @@ class PrismweaveBookmarkletRuntime {
         background: #006ba1;
       }
       
+      .prismweave-config-info {
+        padding: 8px 12px;
+        background: #f0f8ff;
+        border: 1px solid #b3d9ff;
+        border-radius: 4px;
+        margin-bottom: 16px;
+        font-size: 12px;
+      }
+      
+      .prismweave-config-status {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      
+      .prismweave-link-btn {
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-size: 14px;
+        padding: 2px;
+        border-radius: 2px;
+      }
+      
+      .prismweave-link-btn:hover {
+        background: rgba(0, 0, 0, 0.1);
+      }
+      
+      .prismweave-settings-panel {
+        background: white;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        padding: 16px;
+        margin: 12px 0;
+        box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+      }
+      
+      .prismweave-form-group {
+        margin-bottom: 12px;
+      }
+      
+      .prismweave-form-group label {
+        display: block;
+        font-size: 12px;
+        font-weight: 500;
+        margin-bottom: 4px;
+        color: #333;
+      }
+      
+      .prismweave-form-group input, .prismweave-form-group select {
+        width: 100%;
+        padding: 6px 8px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 13px;
+      }
+      
+      .prismweave-form-group input:focus, .prismweave-form-group select:focus {
+        outline: none;
+        border-color: #007cba;
+        box-shadow: 0 0 0 2px rgba(0, 124, 186, 0.2);
+      }
+      
       .prismweave-progress {
         width: 100%;
         height: 4px;
@@ -300,10 +437,182 @@ class PrismweaveBookmarkletRuntime {
     const closeBtn = this.overlay.querySelector('.prismweave-close');
     const cancelBtn = this.overlay.querySelector('#prismweave-cancel');
     const captureBtn = this.overlay.querySelector('#prismweave-capture');
+    const settingsBtn = this.overlay.querySelector('#prismweave-settings');
+    const updateConfigBtn = this.overlay.querySelector('#update-config-btn');
     
     closeBtn.addEventListener('click', () => this.hide());
     cancelBtn.addEventListener('click', () => this.hide());
     captureBtn.addEventListener('click', () => this.captureContent());
+    settingsBtn.addEventListener('click', () => this.showSettingsPanel());
+    if (updateConfigBtn) {
+      updateConfigBtn.addEventListener('click', () => this.showSettingsPanel());
+    }
+    
+    // Show config info if we have stored settings
+    this.updateConfigInfo();
+    
+    // Close on overlay click
+    this.overlay.addEventListener('click', (e) => {
+      if (e.target === this.overlay) {
+        this.hide();
+      }
+    });
+    
+    // Close on Escape key
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && this.isVisible) {
+        this.hide();
+      }
+    });
+  }
+
+  updateConfigInfo() {
+    const configInfo = this.overlay.querySelector('#prismweave-config-info');
+    const configSource = this.overlay.querySelector('#config-source');
+    const storedConfig = this.loadStoredConfig();
+    
+    if (storedConfig && storedConfig.githubToken && storedConfig.githubRepo) {
+      configInfo.style.display = 'block';
+      const repoDisplay = storedConfig.githubRepo.length > 30 ? 
+        storedConfig.githubRepo.substring(0, 30) + '...' : 
+        storedConfig.githubRepo;
+      configSource.textContent = \`Using stored config for \${repoDisplay}\`;
+    } else if (this.config.githubToken && this.config.githubRepo) {
+      configInfo.style.display = 'block';
+      const repoDisplay = this.config.githubRepo.length > 30 ? 
+        this.config.githubRepo.substring(0, 30) + '...' : 
+        this.config.githubRepo;
+      configSource.textContent = \`Using embedded config for \${repoDisplay}\`;
+    }
+  }
+
+  showSettingsPanel() {
+    const currentConfig = this.getEffectiveConfig();
+    
+    // Create settings form
+    const settingsHTML = \`
+      <div class="prismweave-settings-panel" id="settings-panel">
+        <h4 style="margin: 0 0 12px 0; font-size: 14px;">Bookmarklet Settings</h4>
+        
+        <div class="prismweave-form-group">
+          <label for="settings-github-token">GitHub Token</label>
+          <input type="password" id="settings-github-token" value="\${currentConfig.githubToken || ''}" 
+                 placeholder="ghp_xxxxxxxxxxxxxxxxxxxxx">
+        </div>
+        
+        <div class="prismweave-form-group">
+          <label for="settings-github-repo">GitHub Repository</label>
+          <input type="text" id="settings-github-repo" value="\${currentConfig.githubRepo || ''}" 
+                 placeholder="username/repository-name">
+        </div>
+        
+        <div class="prismweave-form-group">
+          <label for="settings-default-folder">Default Folder</label>
+          <select id="settings-default-folder">
+            <option value="documents" \${currentConfig.defaultFolder === 'documents' ? 'selected' : ''}>documents</option>
+            <option value="unsorted" \${currentConfig.defaultFolder === 'unsorted' ? 'selected' : ''}>unsorted</option>
+            <option value="tech" \${currentConfig.defaultFolder === 'tech' ? 'selected' : ''}>tech</option>
+            <option value="business" \${currentConfig.defaultFolder === 'business' ? 'selected' : ''}>business</option>
+            <option value="research" \${currentConfig.defaultFolder === 'research' ? 'selected' : ''}>research</option>
+            <option value="news" \${currentConfig.defaultFolder === 'news' ? 'selected' : ''}>news</option>
+          </select>
+        </div>
+        
+        <div class="prismweave-actions" style="margin-top: 16px;">
+          <button class="prismweave-btn prismweave-btn-primary" id="save-settings">
+            Save Settings
+          </button>
+          <button class="prismweave-btn" id="cancel-settings">
+            Cancel
+          </button>
+          <button class="prismweave-btn" id="clear-stored-settings" title="Clear stored settings">
+            Clear Stored
+          </button>
+        </div>
+      </div>
+    \`;
+    
+    // Insert settings panel before actions
+    const actionsDiv = this.overlay.querySelector('.prismweave-actions');
+    const existingPanel = this.overlay.querySelector('#settings-panel');
+    if (existingPanel) {
+      existingPanel.remove();
+    }
+    
+    actionsDiv.insertAdjacentHTML('beforebegin', settingsHTML);
+    
+    // Bind settings events
+    this.bindSettingsEvents();
+  }
+
+  bindSettingsEvents() {
+    const saveBtn = this.overlay.querySelector('#save-settings');
+    const cancelBtn = this.overlay.querySelector('#cancel-settings');
+    const clearBtn = this.overlay.querySelector('#clear-stored-settings');
+    
+    saveBtn.addEventListener('click', () => this.saveSettings());
+    cancelBtn.addEventListener('click', () => this.hideSettingsPanel());
+    clearBtn.addEventListener('click', () => this.clearStoredSettings());
+  }
+
+  saveSettings() {
+    const token = this.overlay.querySelector('#settings-github-token').value.trim();
+    const repo = this.overlay.querySelector('#settings-github-repo').value.trim();
+    const folder = this.overlay.querySelector('#settings-default-folder').value;
+    
+    if (!token || !repo) {
+      this.updateStatus('⚠️', 'GitHub token and repository are required', false);
+      return;
+    }
+    
+    // Validate repository format
+    if (!/^[\\w\\-\\.]+\/[\\w\\-\\.]+$/.test(repo)) {
+      this.updateStatus('⚠️', 'Repository must be in format: owner/repo', false);
+      return;
+    }
+    
+    const newConfig = {
+      ...this.config,
+      githubToken: token,
+      githubRepo: repo,
+      defaultFolder: folder,
+      lastUpdated: new Date().toISOString()
+    };
+    
+    this.storeConfig(newConfig);
+    this.config = newConfig; // Update current session config
+    
+    this.updateStatus('✅', 'Settings saved successfully!', false);
+    this.hideSettingsPanel();
+    this.updateConfigInfo();
+    
+    setTimeout(() => {
+      this.updateStatus('📄', 'Ready to capture content from this page', false);
+    }, 2000);
+  }
+
+  hideSettingsPanel() {
+    const panel = this.overlay.querySelector('#settings-panel');
+    if (panel) {
+      panel.remove();
+    }
+  }
+
+  clearStoredSettings() {
+    try {
+      localStorage.removeItem(this.STORAGE_KEY);
+      sessionStorage.removeItem(this.STORAGE_KEY);
+      this.updateStatus('🗑️', 'Stored settings cleared', false);
+      this.hideSettingsPanel();
+      this.updateConfigInfo();
+      
+      setTimeout(() => {
+        this.updateStatus('📄', 'Ready to capture content from this page', false);
+      }, 2000);
+    } catch (error) {
+      this.updateStatus('❌', 'Failed to clear settings', false);
+    }
+  }
     
     // Close on overlay click
     this.overlay.addEventListener('click', (e) => {
@@ -492,10 +801,12 @@ tags: []
   }
 
   async saveToGitHub(content) {
-    const { githubToken, githubRepo } = this.config;
+    // Use effective configuration (stored config takes precedence)
+    const effectiveConfig = this.getEffectiveConfig();
+    const { githubToken, githubRepo } = effectiveConfig;
     
     if (!githubToken || !githubRepo) {
-      throw new Error('GitHub token and repository must be configured');
+      throw new Error('GitHub token and repository must be configured. Please click Settings to configure.');
     }
     
     // Generate filename
@@ -507,8 +818,8 @@ tags: []
       .substring(0, 50);
     
     const filename = \`\${timestamp}-\${titleSlug}.md\`;
-    const filePath = this.config.defaultFolder ? 
-      \`\${this.config.defaultFolder}/\${filename}\` : 
+    const filePath = effectiveConfig.defaultFolder ? 
+      \`\${effectiveConfig.defaultFolder}/\${filename}\` : 
       \`documents/\${filename}\`;
     
     // Commit to GitHub
@@ -516,7 +827,11 @@ tags: []
     const apiUrl = \`https://api.github.com/repos/\${owner}/\${repo}/contents/\${filePath}\`;
     
     const commitData = {
-      message: \`Add captured content: \${content.title}\`,
+      message: effectiveConfig.commitMessageTemplate ? 
+        effectiveConfig.commitMessageTemplate
+          .replace('{title}', content.title)
+          .replace('{domain}', new URL(content.url).hostname) :
+        \`Add captured content: \${content.title}\`,
       content: btoa(unescape(encodeURIComponent(content.content))),
       branch: 'main'
     };
