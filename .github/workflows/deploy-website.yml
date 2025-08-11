@@ -11,8 +11,6 @@ on:
       - '**/*.md'
       - '.gitignore'
       - 'LICENSE'
-  release:
-    types: [ published, created ]
   workflow_dispatch:
 
 permissions:
