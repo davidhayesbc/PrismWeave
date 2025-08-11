@@ -170,6 +170,16 @@ const html = `<!DOCTYPE html>
                     <p style="margin-top: 1rem; font-size: 0.9rem; color: #64748b;">
                         Drag the green button above to your bookmarks bar, then click it on any webpage to capture content.
                     </p>
+                    <div style="margin-top: 1rem; padding: 1rem; background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 6px;">
+                        <p style="margin-bottom: 0.5rem; font-weight: 600; color: #856404;">🧪 Test the bookmarklet right here:</p>
+                        <button onclick="(function(){var s=document.createElement('script');s.src='https://raw.githubusercontent.com/davidhayesbc/PrismWeave/main/browser-extension/dist/bookmarklet/standalone.js';s.onload=function(){if(window.PrismWeaveEnhanced){window.PrismWeaveEnhanced.execute();}else{alert('PrismWeave loading...');}};s.onerror=function(){alert('Failed to load PrismWeave. Check your internet connection.')};document.head.appendChild(s);})()"
+                               style="padding: 8px 16px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">
+                            🧪 Test Bookmarklet Now
+                        </button>
+                        <p style="margin-top: 0.5rem; font-size: 0.85rem; color: #856404;">
+                            Click this button to test if the bookmarklet loads. You should see either a PrismWeave interface or an alert message.
+                        </p>
+                    </div>
                 </div>
                 <div class="btn-group">
                     <a href="https://github.com/davidhayesbc/PrismWeave#usage" class="btn btn-secondary">
