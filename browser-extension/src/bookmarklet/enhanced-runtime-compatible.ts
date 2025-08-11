@@ -309,57 +309,72 @@ export class EnhancedBookmarkletRuntime {
     const textContent = document.body.textContent || '';
     const wordCount = textContent.trim().split(/\\s+/).length;
 
-    if (wordCount < 100) {
-      score -= 30;
-      issues.push('Very short content (less than 100 words)');
+    if (wordCount < 50) {
+      score -= 40;
+      issues.push('Very short content (less than 50 words)');
       recommendations.push('Consider capturing multiple pages or waiting for content to load');
-    } else if (wordCount < 300) {
-      score -= 15;
-      issues.push('Short content (less than 300 words)');
+    } else if (wordCount < 200) {
+      score -= 20;
+      issues.push('Short content (less than 200 words)');
     }
 
-    // Check for main content elements
+    // Check for main content elements - more lenient detection
     const mainElements = document.querySelectorAll(
-      'article, main, [role="main"], .content, .post, .entry'
+      'article, main, [role="main"], .content, .post, .entry, .blog-post, .article-content'
     );
     if (mainElements.length === 0) {
-      score -= 20;
-      issues.push('No clear main content structure detected');
-      recommendations.push('This page may not have well-structured content');
+      // Additional check for common blog patterns
+      const blogElements = document.querySelectorAll('h1, h2, .title, .headline, [class*="post"]');
+      if (blogElements.length === 0) {
+        score -= 15;
+        issues.push('No clear main content structure detected');
+        recommendations.push('This page may not have well-structured content');
+      }
     }
 
-    // Check for navigation/menu heavy pages
-    const navElements = document.querySelectorAll('nav, .nav, .menu, .sidebar, .navigation');
+    // More reasonable content ratio check - only flag severely markup-heavy pages
     const contentRatio = textContent.length / document.body.innerHTML.length;
-    if (contentRatio < 0.1) {
-      score -= 25;
-      issues.push('High markup-to-content ratio (likely navigation-heavy)');
+    if (contentRatio < 0.05) { // Changed from 0.1 to 0.05 - much more lenient
+      score -= 20;
+      issues.push('Very high markup-to-content ratio');
       recommendations.push('Try capturing from the main article or content section');
     }
 
-    // Check for dynamic content
-    if (document.querySelectorAll('[data-react-class], [data-vue], .ng-scope').length > 0) {
-      score -= 10;
-      issues.push('Dynamic content detected - may need time to load');
+    // Less aggressive dynamic content detection
+    const dynamicElements = document.querySelectorAll('[data-react-class], [data-vue], .ng-scope');
+    if (dynamicElements.length > 5) { // Only penalize if many dynamic elements
+      score -= 5; // Reduced penalty from 10 to 5
+      issues.push('Heavy dynamic content detected - may need time to load');
       recommendations.push('Wait for content to fully load before capturing');
     }
 
-    // Check for paywall or login requirements
-    if (
-      document.body.textContent?.includes('subscribe') ||
-      document.body.textContent?.includes('sign in') ||
-      document.querySelector('.paywall, .login-required, .subscription')
-    ) {
+    // More specific paywall detection - avoid false positives
+    const paywallIndicators = [
+      '.paywall', '.login-required', '.subscription-required', 
+      '.premium-content', '[class*="paywall"]'
+    ];
+    const hasPaywallElements = paywallIndicators.some(selector => 
+      document.querySelector(selector) !== null
+    );
+    
+    // Only check for paywall text if we don't have substantial content
+    const hasPaywallText = wordCount < 300 && (
+      document.body.textContent?.toLowerCase().includes('subscribe to continue reading') ||
+      document.body.textContent?.toLowerCase().includes('sign in to read more') ||
+      document.body.textContent?.toLowerCase().includes('premium subscription required')
+    );
+
+    if (hasPaywallElements || hasPaywallText) {
       score -= 15;
       issues.push('Possible paywall or login requirement detected');
       recommendations.push('Ensure you have access to the full content');
     }
 
-    // Determine confidence level
+    // More reasonable confidence thresholds
     let confidence: 'high' | 'medium' | 'low';
-    if (score >= 80) {
+    if (score >= 70) { // Lowered from 80
       confidence = 'high';
-    } else if (score >= 60) {
+    } else if (score >= 50) { // Lowered from 60
       confidence = 'medium';
     } else {
       confidence = 'low';
