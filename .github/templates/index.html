@@ -240,8 +240,16 @@
                 <h3>🔖 Bookmarklet</h3>
                 <p>Lightweight bookmarklet for quick page capture without installing an extension. Works in any browser.</p>
                 
+                <div style="background: #f0f8ff; border: 1px solid #0ea5e9; border-radius: 8px; padding: 1.5rem; margin-bottom: 2rem;">
+                    <h4 style="color: #0369a1; margin-bottom: 1rem; font-size: 1.25rem;">✨ New: Personal Bookmarklet Generator</h4>
+                    <p style="color: #0c4a6e; margin-bottom: 1rem;">Generate a custom bookmarklet with your GitHub settings embedded directly in the code. No cross-domain storage issues - works universally on any website!</p>
+                    <a href="./bookmarklet/generator.html" class="btn" style="background: linear-gradient(135deg, #10b981, #059669); font-size: 1.1rem; padding: 1rem 2rem; display: inline-flex; align-items: center; gap: 0.5rem;">
+                        🎯 Generate Your Personal Bookmarklet
+                    </a>
+                </div>
+                
                 <div class="bookmarklet-section">
-                    <h4>Drag this to your bookmarks bar:</h4>
+                    <h4>Or try the basic demo bookmarklet:</h4>
                     <div class="bookmarklet-drag-area">
                         <a href="javascript:(function(){var s=document.createElement('script');s.src='https://davidhayesbc.github.io/PrismWeave/bookmarklet/standalone.js';s.onload=function(){if(window.PrismWeaveEnhanced){window.PrismWeaveEnhanced.execute();}else{alert('PrismWeave loading...');}};s.onerror=function(){alert('Failed to load PrismWeave. Check your internet connection.')};document.head.appendChild(s);})();" class="bookmarklet-link" draggable="true">
                             🌟 PrismWeave Capture
@@ -255,6 +263,9 @@
                 <div class="btn-group">
                     <a href="./bookmarklet/install.html" class="btn">
                         📖 Installation Guide
+                    </a>
+                    <a href="./bookmarklet/" class="btn btn-secondary">
+                        📁 Browse All Files
                     </a>
                     <a href="https://raw.githubusercontent.com/davidhayesbc/PrismWeave/main/USAGE_GUIDE.md" class="btn btn-secondary">
                         🎮 Usage Instructions
@@ -320,23 +331,28 @@
             
             <div class="component">
                 <h3>🔖 Bookmarklet Setup</h3>
-                <p>Quick setup for the browser-agnostic bookmarklet:</p>
+                <p>Recommended: Use the Personal Bookmarklet Generator for the best experience:</p>
                 <div class="usage-steps">
                     <div class="usage-step">
                         <div class="step-number">1</div>
-                        <h4>Show Bookmarks Bar</h4>
-                        <p>Make sure your bookmarks toolbar is visible in your browser (usually under the address bar).</p>
+                        <h4>Generate Personal Bookmarklet</h4>
+                        <p>Visit the <a href="./bookmarklet/generator.html" style="color: #2563eb; text-decoration: underline;">Personal Bookmarklet Generator</a> and enter your GitHub token and repository details.</p>
                     </div>
                     <div class="usage-step">
                         <div class="step-number">2</div>
                         <h4>Drag & Drop</h4>
-                        <p>Drag the "🌟 PrismWeave Capture" button above to your bookmarks bar. It will create a new bookmark.</p>
+                        <p>Drag the generated custom bookmarklet to your bookmarks bar. Your settings are embedded - no configuration needed!</p>
                     </div>
                     <div class="usage-step">
                         <div class="step-number">3</div>
-                        <h4>Test It Out</h4>
-                        <p>Navigate to any webpage and click the bookmark. Configure your GitHub settings on first use.</p>
+                        <h4>Capture Content</h4>
+                        <p>Navigate to any webpage and click your custom bookmark. Content will be automatically captured and saved to your GitHub repository.</p>
                     </div>
+                </div>
+                
+                <div style="background: #fff7ed; border: 1px solid #fb923c; border-radius: 8px; padding: 1rem; margin-top: 2rem;">
+                    <h5 style="color: #ea580c; margin-bottom: 0.5rem;">📝 Alternative: Basic Setup</h5>
+                    <p style="color: #9a3412; font-size: 0.9rem; margin: 0;">You can also use the demo bookmarklet above, but you'll need to configure your GitHub settings each time you use it on a new domain.</p>
                 </div>
             </div>
         </div>
