@@ -90,6 +90,16 @@ class PrismWeaveBuildSystem {
               }
             },
             {
+              name: 'bookmarklet-main',
+              entry: `${basePath}src/bookmarklet/main.ts`,
+              outfile: `${basePath}dist/web/bookmarklet.js`,
+              format: 'iife',
+              platform: 'browser',
+              define: {
+                'BOOKMARKLET_VERSION': '"2.0.0"'
+              }
+            },
+            {
               name: 'bookmarklet-loader',
               entry: `${basePath}src/bookmarklet/hybrid-loader.ts`,
               outfile: `${basePath}dist/bookmarklet/loader.js`,

@@ -25,22 +25,61 @@ export class BookmarkletGenerator {
   private static readonly MAX_BOOKMARKLET_LENGTH = 15000; // Modern browsers support longer URLs
 
   /**
-   * Generate a complete bookmarklet JavaScript code
+   * Encode configuration as URL parameters for short bookmarklet
+   */
+  private static encodeConfigAsParams(config: IBookmarkletConfig): string {
+    const params = new URLSearchParams();
+    
+    // Encode essential config as URL parameters
+    if (config.githubToken) params.set('token', config.githubToken);
+    if (config.githubRepo) params.set('repo', config.githubRepo);
+    if (config.defaultFolder) params.set('folder', config.defaultFolder);
+    if (config.commitMessageTemplate) params.set('msgTpl', config.commitMessageTemplate);
+    
+    // Boolean flags as single characters to save space
+    if (config.captureImages === false) params.set('noImg', '1');
+    if (config.removeAds === true) params.set('noAds', '1');
+    if (config.removeNavigation === true) params.set('noNav', '1');
+    
+    return params.toString();
+  }
+
+  /**
+   * Generate a short loader-style bookmarklet that loads the main script
    */
   static generateBookmarklet(
     config: IBookmarkletConfig,
     options: IBookmarkletGenerationOptions = {}
   ): string {
-    const coreScript = this.generateCoreScript(config, options);
-    const minifiedScript = options.minify !== false ? this.minifyScript(coreScript) : coreScript;
+    const baseUrl = options.customDomain || 'https://davidhayesbc.github.io/PrismWeave';
+    const version = options.version || this.BOOKMARKLET_VERSION;
+    
+    // Create a short loader that loads the main script with encoded config
+    const configParams = this.encodeConfigAsParams(config);
+    const loaderScript = `
+(function(){
+  if(window.prismweaveBookmarklet){
+    window.prismweaveBookmarklet.show();
+    return;
+  }
+  var s=document.createElement('script');
+  s.src='${baseUrl}/bookmarklet.js?v=${version}&${configParams}';
+  s.onload=function(){
+    if(window.PrismWeaveBookmarklet){
+      window.prismweaveBookmarklet=new window.PrismWeaveBookmarklet();
+      window.prismweaveBookmarklet.init();
+    }
+  };
+  document.head.appendChild(s);
+})()`;
 
-    // Wrap in bookmarklet format
-    const bookmarklet = `javascript:(${minifiedScript})();`;
+    const minifiedScript = options.minify !== false ? this.minifyScript(loaderScript) : loaderScript;
+    const bookmarklet = `javascript:${minifiedScript}`;
 
-    // Check length constraints
-    if (bookmarklet.length > this.MAX_BOOKMARKLET_LENGTH) {
+    // This should be much shorter now
+    if (bookmarklet.length > 2000) { // Much lower limit for short bookmarklets
       throw new Error(
-        `Generated bookmarklet is too long (${bookmarklet.length} chars). Maximum is ${this.MAX_BOOKMARKLET_LENGTH} chars.`
+        `Generated bookmarklet is too long (${bookmarklet.length} chars). Maximum is 2000 chars for short bookmarklets.`
       );
     }
 
@@ -48,54 +87,42 @@ export class BookmarkletGenerator {
   }
 
   /**
-   * Generate the core bookmarklet functionality
+   * Generate a static bookmarklet script that will be served at the baseUrl
+   * This method creates the main script that gets loaded by the short bookmarklet
    */
-  private static generateCoreScript(
-    config: IBookmarkletConfig,
-    options: IBookmarkletGenerationOptions
-  ): string {
-    const configJson = JSON.stringify(config);
-    const version = options.version || this.BOOKMARKLET_VERSION;
-
+  static generateMainBookmarkletScript(): string {
     return `
-function() {
-  // PrismWeave Bookmarklet v${version}
-  console.log('PrismWeave Bookmarklet v${version} - Starting...');
-  
-  // Check if already running
-  if (window.prismweaveBookmarklet) {
-    console.log('PrismWeave: Bookmarklet already active, showing interface...');
-    window.prismweaveBookmarklet.show();
-    return;
-  }
+// PrismWeave Bookmarklet Main Script v${this.BOOKMARKLET_VERSION}
 
-  const embeddedConfig = ${configJson};
+// Parse configuration from URL parameters
+function parseConfigFromUrl() {
+  const script = document.querySelector('script[src*="bookmarklet.js"]');
+  if (!script || !script.src) return {};
   
-  // Create and inject the bookmarklet runtime
-  const script = document.createElement('script');
-  script.textContent = \`
-    ${this.generateRuntimeScript()}
-  \`;
+  const url = new URL(script.src);
+  const params = url.searchParams;
   
-  document.head.appendChild(script);
-  
-  // Initialize the bookmarklet with config priority: stored > embedded
-  setTimeout(() => {
-    if (window.prismweaveBookmarkletRuntime) {
-      console.log('PrismWeave: Runtime loaded, initializing...');
-      window.prismweaveBookmarklet = new window.prismweaveBookmarkletRuntime(embeddedConfig);
-      window.prismweaveBookmarklet.init();
-    } else {
-      console.error('PrismWeave: Failed to load bookmarklet runtime');
-      alert('PrismWeave: Failed to initialize bookmarklet');
-    }
-  }, 100);
+  return {
+    githubToken: params.get('token') || '',
+    githubRepo: params.get('repo') || '',
+    defaultFolder: params.get('folder') || 'documents',
+    commitMessageTemplate: params.get('msgTpl') || 'Add captured content: {title}',
+    captureImages: params.get('noImg') !== '1',
+    removeAds: params.get('noAds') === '1',
+    removeNavigation: params.get('noNav') === '1'
+  };
 }
-      window.prismweaveBookmarklet = new window.prismweaveBookmarkletRuntime(config);
-      window.prismweaveBookmarklet.init();
-    }
-  }, 100);
-}`;
+
+${this.generateRuntimeScript()}
+
+// Initialize with config from URL parameters
+const config = parseConfigFromUrl();
+window.PrismWeaveBookmarklet = function() {
+  return new PrismweaveBookmarkletRuntime(config);
+};
+
+console.log('PrismWeave Bookmarklet Main Script loaded with config:', config);
+`;
   }
 
   /**
