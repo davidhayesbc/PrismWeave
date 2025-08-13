@@ -1,15 +1,19 @@
 # GitHub Actions workflow for VS Code Extension
 # Handles ONNX Runtime cross-platform compatibility issues
+# Only runs when VS Code extension files are modified
 
 name: VS Code Extension Build
 
 on:
+  # Only trigger on changes to vscode-extension files
   push:
     branches: [ main, develop ]
     paths: [ 'vscode-extension/**' ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, develop ]  # Fixed: was missing develop branch for PR
     paths: [ 'vscode-extension/**' ]
+  # Manual trigger for testing
+  workflow_dispatch:
 
 jobs:
   build:

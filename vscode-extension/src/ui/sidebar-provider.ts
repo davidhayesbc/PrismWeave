@@ -4,7 +4,7 @@
 import * as vscode from 'vscode';
 import { ModelManager } from '../models/model-manager';
 import { DocumentRetriever } from '../rag/document-retriever';
-import { ISearchResult, IRetrievedDocument } from '../types/rag';
+import { ISearchResult } from '../types/rag';
 import { IChatMessage, IChatSession, IWebviewMessage } from '../types/ui';
 import { Logger } from '../utils/logger';
 

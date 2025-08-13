@@ -1,5 +1,6 @@
 name: CI/CD Pipeline
 
+# Main comprehensive CI/CD pipeline - runs on all pushes and PRs
 on:
   push:
     branches: [ main, develop ]
