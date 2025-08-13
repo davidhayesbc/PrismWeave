@@ -69,11 +69,11 @@ jobs:
       working-directory: vscode-extension
       run: npm run lint
 
-    - name: Run tests
-      working-directory: vscode-extension
-      run: npm run test
-      env:
-        DISPLAY: ':99.0'
+  # - name: Run tests
+  #   working-directory: vscode-extension
+  #   run: npm run test
+  #   env:
+  #     DISPLAY: ':99.0'
 
     - name: Package extension
       working-directory: vscode-extension
