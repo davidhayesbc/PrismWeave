@@ -77,7 +77,10 @@ jobs:
         
       - name: Install VS Code extension dependencies
         working-directory: vscode-extension
-        run: npm install
+        run: |
+          npm install
+          # Install optional dependencies separately to handle failures gracefully
+          npm install onnxruntime-node || echo "Optional dependency onnxruntime-node failed to install, continuing..."
         
       - name: Run type checking
         working-directory: vscode-extension

@@ -3,7 +3,7 @@
 // Tests all message handlers, Chrome extension lifecycle, error scenarios, and integration patterns
 // Consolidated from multiple test files with comprehensive coverage
 
-import { jest } from '@jest/globals';
+/// <reference types="jest" />
 
 // Mock Chrome APIs BEFORE importing service worker to prevent runtime errors
 const mockChrome = {
@@ -36,13 +36,13 @@ const mockChrome = {
   },
   storage: {
     sync: {
-      get: jest.fn() as jest.MockedFunction<(keys: any, callback: (result: any) => void) => void>,
-      set: jest.fn() as jest.MockedFunction<(items: any, callback?: () => void) => void>,
+      get: jest.fn() as jest.MockedFunction<(keys: string | string[] | Record<string, unknown>, callback: (result: Record<string, unknown>) => void) => void>,
+      set: jest.fn() as jest.MockedFunction<(items: Record<string, unknown>, callback?: () => void) => void>,
       remove: jest.fn(),
     },
     local: {
-      get: jest.fn() as jest.MockedFunction<(keys: any, callback: (result: any) => void) => void>,
-      set: jest.fn() as jest.MockedFunction<(items: any, callback?: () => void) => void>,
+      get: jest.fn() as jest.MockedFunction<(keys: string | string[] | Record<string, unknown>, callback: (result: Record<string, unknown>) => void) => void>,
+      set: jest.fn() as jest.MockedFunction<(items: Record<string, unknown>, callback?: () => void) => void>,
       remove: jest.fn(),
     },
   },
@@ -50,8 +50,8 @@ const mockChrome = {
     query: jest.fn(),
     sendMessage: jest.fn(),
     get: jest.fn(),
-    create: jest.fn() as any,
-    remove: jest.fn() as any,
+    create: jest.fn() as jest.MockedFunction<(options: chrome.tabs.CreateProperties, callback?: (tab: chrome.tabs.Tab) => void) => void>,
+    remove: jest.fn() as jest.MockedFunction<(tabId: number | number[], callback?: () => void) => void>,
   },
   scripting: {
     executeScript: jest.fn(),
@@ -60,10 +60,10 @@ const mockChrome = {
 
 // Mock fetch for getTurndownLibrary
 const mockFetch = jest.fn() as jest.MockedFunction<typeof fetch>;
-(global as any).fetch = mockFetch;
+(global as Record<string, unknown>).fetch = mockFetch;
 
 // Set up global Chrome mock
-(global as any).chrome = mockChrome;
+(global as Record<string, unknown>).chrome = mockChrome;
 
 // Mock console to reduce test output noise
 const originalConsole = global.console;
@@ -128,10 +128,10 @@ describe('Service Worker Comprehensive Tests - Phase 3.1', () => {
     (mockChrome.runtime as any).lastError = null;
 
     // Set up storage mock responses
-    (mockChrome.storage.sync.get as any).mockImplementation((keys: any, callback: any) => {
+    (mockChrome.storage.sync.get as jest.MockedFunction<typeof mockChrome.storage.sync.get>).mockImplementation((keys: string | string[] | Record<string, unknown>, callback: (result: Record<string, unknown>) => void) => {
       callback({ prismWeaveSettings: VALID_SETTINGS });
     });
-    (mockChrome.storage.sync.set as any).mockImplementation((data: any, callback: any) => {
+    (mockChrome.storage.sync.set as jest.MockedFunction<typeof mockChrome.storage.sync.set>).mockImplementation((data: Record<string, unknown>, callback?: () => void) => {
       if (callback) callback();
     });
 

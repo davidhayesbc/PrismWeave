@@ -53,14 +53,14 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 
     const message: IWebviewMessage = {
       type: 'showSearchResults',
-      data: {
+      payload: {
         query,
         results: results.map(result => ({
           title: result.document.title,
           snippet: result.snippet,
           score: result.score,
-          source: result.document.metadata.source,
-          metadata: result.document.metadata
+          source: result.document.path,
+          metadata: result.document
         })),
         totalResults: results.length,
         executionTime: 0 // This will be calculated in the actual implementation
@@ -77,22 +77,25 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
   }
 
   private _initializeSession(): void {
+    const now = new Date();
     this._currentSession = {
       id: `session-${Date.now()}`,
       title: 'New Chat',
       messages: [],
-      createdAt: new Date(),
-      updatedAt: new Date()
+      startedAt: now,
+      lastActivity: now,
+      createdAt: now,
+      updatedAt: now
     };
 
-    Logger.info(`New chat session initialized: ${this._currentSession.id}`);
+    Logger.info(`New chat session initialized: ${this._currentSession?.id}`);
   }
 
   private async _handleWebviewMessage(message: IWebviewMessage): Promise<void> {
     try {
       switch (message.type) {
         case 'sendMessage':
-          await this._handleSendMessage(message.data as { content: string });
+          await this._handleSendMessage((message.data || message.payload) as { content: string });
           break;
         case 'clearChat':
           await this._handleClearChat();
@@ -111,7 +114,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       
       const errorMessage: IWebviewMessage = {
         type: 'error',
-        data: {
+        payload: {
           message: error instanceof Error ? error.message : 'Unknown error occurred'
         }
       };
@@ -163,7 +166,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         content: response,
         timestamp: new Date(),
         metadata: {
-          sources: searchResults.map(r => r.document.metadata.source || ''),
+          sources: searchResults.map(r => r.document.metadata?.source || r.document.path),
           citations: searchResults.map(r => r.document.title),
           model: this._modelManager.currentModel?.name || 'unknown'
         }
@@ -221,7 +224,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       const previousUserMessage = this._currentSession.messages
         .slice()
         .reverse()
-        .find(msg => msg.type === 'user');
+        .find((msg: IChatMessage) => msg.type === 'user');
 
       if (previousUserMessage) {
         await this._handleSendMessage({ content: previousUserMessage.content });
@@ -246,7 +249,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         data: {
           name: currentModel.name,
           provider: currentModel.provider,
-          isLoaded: currentModel.isLoaded
+          isLoaded: currentModel.loaded
         }
       });
     }
@@ -260,7 +263,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 
     // Build context from search results
     const context = searchResults.map(result => 
-      `Document: ${result.document.title}\nContent: ${result.snippet}\nSource: ${result.document.metadata.source}\n`
+      `Document: ${result.document.title}\nContent: ${result.snippet}\nSource: ${result.document.metadata?.source || result.document.path}\n`
     ).join('\n---\n');
 
     // Build prompt
@@ -274,10 +277,10 @@ Question: ${query}
 Answer:`;
 
     // Generate response
-    const response = await currentModel.generate(prompt, {
+    const response = await currentModel.generate?.(prompt, {
       maxTokens: 512,
       temperature: 0.7
-    });
+    }) || 'Model does not support text generation';
 
     return response;
   }

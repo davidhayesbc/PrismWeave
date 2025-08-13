@@ -67,9 +67,16 @@ export class DocumentRetriever implements IDocumentRetriever {
         {
           document: {
             id: 'doc1',
+            path: 'PrismWeaveDocs/documents/tech/ml-trends-2025.md',
+            lastModified: new Date('2025-01-15'),
+            tags: ['machine-learning', 'ai', 'trends'],
             title: 'Machine Learning Trends 2025',
             content: 'This document discusses the latest trends in machine learning...',
             metadata: {
+              path: 'PrismWeaveDocs/documents/tech/ml-trends-2025.md',
+              lastModified: new Date('2025-01-15'),
+              size: 2500,
+              type: 'markdown',
               source: 'PrismWeaveDocs/documents/tech/ml-trends-2025.md',
               date: new Date('2025-01-15'),
               category: 'tech',
@@ -83,9 +90,16 @@ export class DocumentRetriever implements IDocumentRetriever {
         {
           document: {
             id: 'doc2',
+            path: 'PrismWeaveDocs/documents/business/ai-business-2025.md',
+            lastModified: new Date('2025-02-01'),
+            tags: ['ai', 'business', 'automation'],
             title: 'AI in Business Applications',
             content: 'Exploring how AI is transforming business processes...',
             metadata: {
+              path: 'PrismWeaveDocs/documents/business/ai-business-2025.md',
+              lastModified: new Date('2025-02-01'),
+              size: 3200,
+              type: 'markdown',
               source: 'PrismWeaveDocs/documents/business/ai-business-2025.md',
               date: new Date('2025-02-01'),
               category: 'business',
@@ -129,9 +143,16 @@ export class DocumentRetriever implements IDocumentRetriever {
       // Mock document
       const mockDocument: IDocument = {
         id,
+        path: `PrismWeaveDocs/documents/sample-${id}.md`,
+        lastModified: new Date(),
+        tags: ['sample'],
         title: 'Sample Document',
         content: 'This is a sample document content...',
         metadata: {
+          path: `PrismWeaveDocs/documents/sample-${id}.md`,
+          lastModified: new Date(),
+          size: 1000,
+          type: 'markdown',
           source: `PrismWeaveDocs/documents/sample-${id}.md`,
           date: new Date(),
           category: 'sample',
@@ -165,9 +186,9 @@ export class DocumentRetriever implements IDocumentRetriever {
       }
       
       // Then search for similar documents using the document's content
-      const results = await this.search(document.content.substring(0, 500), {
-        ...options,
-        limit: limit + 1 // Get one extra to exclude the original document
+      const searchQuery = document.content.substring(0, 500);
+      const results = await this.search(searchQuery, {
+        maxResults: limit + 1 // Get one extra to exclude the original document
       });
       
       // Filter out the original document
@@ -222,5 +243,17 @@ export class DocumentRetriever implements IDocumentRetriever {
       Logger.error('Failed to get collection stats:', error);
       throw error;
     }
+  }
+
+  async addDocument(document: IDocument): Promise<void> {
+    // Placeholder implementation for adding a document
+    Logger.info(`Adding document: ${document.title}`);
+    // In a real implementation, this would add the document to the vector database
+  }
+
+  async removeDocument(documentId: string): Promise<void> {
+    // Placeholder implementation for removing a document
+    Logger.info(`Removing document: ${documentId}`);
+    // In a real implementation, this would remove the document from the vector database
   }
 }

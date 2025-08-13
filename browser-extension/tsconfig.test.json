@@ -4,7 +4,8 @@
     "types": ["jest", "@types/chrome", "node"],
     "noEmit": true,
     "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true
+    "allowSyntheticDefaultImports": true,
+    "module": "CommonJS"
   },
-  "include": ["src/**/*.test.ts", "src/**/*.test.js", "jest.setup.js"]
+  "include": ["src/**/*.test.ts", "src/**/__tests__/**/*.test.ts", "src/**/*.test.js", "jest.setup.js"]
 }

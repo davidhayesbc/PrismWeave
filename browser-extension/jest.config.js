@@ -67,6 +67,14 @@ module.exports = {
   // Setup files
   setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
 
+  // Explicitly configure test environment globals
+  testEnvironmentOptions: {
+    customExportConditions: ['node', 'node-addons'],
+  },
+
+  // Configure globals
+  setupFiles: ['<rootDir>/jest.setup.js'],
+
   // Test timeout
   testTimeout: 10000,
 
