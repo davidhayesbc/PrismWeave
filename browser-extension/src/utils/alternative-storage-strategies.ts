@@ -164,6 +164,11 @@ class FileSystemStorage {
         });
       }
 
+      // TypeScript null check: ensure fileHandle exists after potential assignment
+      if (!this.fileHandle) {
+        throw new Error('Failed to obtain file handle');
+      }
+
       const writable = await this.fileHandle.createWritable();
       await writable.write(JSON.stringify(config, null, 2));
       await writable.close();
