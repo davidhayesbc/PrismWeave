@@ -19,13 +19,18 @@ module.exports = {
         tsconfig: 'tsconfig.test.json',
       },
     ],
-    '^.+\\.js$': 'babel-jest',
+    '^.+\\.js$': [
+      'babel-jest',
+      {
+        presets: [['@babel/preset-env', { targets: { node: 'current' } }]],
+      },
+    ],
   },
 
   // Module file extensions
   moduleFileExtensions: ['ts', 'js', 'json'],
 
-  // Coverage configuration - DISABLED to prevent babel-plugin-istanbul errors
+  // Coverage configuration - disabled (using c8 external coverage)
   collectCoverage: false,
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov', 'html'],

@@ -1,0 +1,24 @@
+{
+  "include": ["src/**/*.ts", "src/**/*.js"],
+  "exclude": [
+    "src/**/__tests__/**",
+    "src/**/*.test.ts",
+    "src/**/*.test.js",
+    "src/libs/**",
+    "src/**/*.d.ts",
+    "src/**/*.min.js",
+    "src/bookmarklet/templates/**",
+    "src/bookmarklet/examples/**",
+    "node_modules/**",
+    "dist/**",
+    "coverage/**"
+  ],
+  "reporter": ["text", "lcov", "html"],
+  "reports-dir": "coverage",
+  "all": true,
+  "check-coverage": false,
+  "lines": 30,
+  "functions": 55,
+  "branches": 69,
+  "statements": 30
+}

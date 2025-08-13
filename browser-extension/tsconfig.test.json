@@ -5,7 +5,8 @@
     "noEmit": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
-    "module": "CommonJS"
+    "module": "CommonJS",
+    "isolatedModules": true
   },
   "include": [
     "src/**/*.test.ts",
