@@ -414,9 +414,8 @@ describe('End-to-End Bookmarklet Workflow', () => {
       const config = {
         githubToken: 'test-token',
         githubRepo: 'test/repo',
-        githubBranch: 'main',
-        folderPath: 'documents',
-        autoSave: true,
+        defaultFolder: 'documents',
+        commitMessageTemplate: 'Add: {title}',
       };
 
       const bookmarkletCode = BookmarkletGenerator.generateBookmarklet(config);
@@ -424,10 +423,10 @@ describe('End-to-End Bookmarklet Workflow', () => {
       // Should be valid JavaScript bookmark
       expect(bookmarkletCode).toMatch(/^javascript:/);
 
-      // Should contain runtime configuration
-      expect(bookmarkletCode).toContain('test/repo');
+      // Should contain runtime configuration (URL encoded)
+      expect(bookmarkletCode).toContain('test%2Frepo'); // URL encoded test/repo
       expect(bookmarkletCode).toContain('documents');
-      expect(bookmarkletCode).toContain('main');
+      expect(bookmarkletCode).toContain('test-token');
 
       // Should be properly minified and URL-encoded
       expect(bookmarkletCode.length).toBeGreaterThan(100);

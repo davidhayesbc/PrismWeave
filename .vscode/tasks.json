@@ -118,6 +118,106 @@
             "options": {
                 "cwd": "${workspaceFolder}/vscode-extension"
             }
+        },
+        {
+            "label": "Browser Extension: npm: test",
+            "type": "shell",
+            "command": "npm",
+            "args": ["run", "test"],
+            "group": "test",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "options": {
+                "cwd": "${workspaceFolder}/browser-extension"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Browser Extension: npm: test with coverage",
+            "type": "shell",
+            "command": "npm",
+            "args": ["run", "test:coverage"],
+            "group": "test",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "options": {
+                "cwd": "${workspaceFolder}/browser-extension"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Browser Extension: npm: build",
+            "type": "shell",
+            "command": "npm",
+            "args": ["run", "build"],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "options": {
+                "cwd": "${workspaceFolder}/browser-extension"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Browser Extension: npm: build production",
+            "type": "shell",
+            "command": "npm",
+            "args": ["run", "build:prod"],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "options": {
+                "cwd": "${workspaceFolder}/browser-extension"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Run All Tests",
+            "dependsOrder": "parallel",
+            "dependsOn": [
+                "AI Processing: Run Tests",
+                "Browser Extension: npm: test",
+                "vscode-extension: npm: test"
+            ],
+            "group": "test",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            }
+        },
+        {
+            "label": "Build All Components",
+            "dependsOrder": "sequence",
+            "dependsOn": [
+                "Run All Tests",
+                "Browser Extension: npm: build",
+                "vscode-extension: npm: compile"
+            ],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            }
         }
     ]
 }

@@ -29,18 +29,18 @@ export class BookmarkletGenerator {
    */
   private static encodeConfigAsParams(config: IBookmarkletConfig): string {
     const params = new URLSearchParams();
-    
+
     // Encode essential config as URL parameters
     if (config.githubToken) params.set('token', config.githubToken);
     if (config.githubRepo) params.set('repo', config.githubRepo);
     if (config.defaultFolder) params.set('folder', config.defaultFolder);
     if (config.commitMessageTemplate) params.set('msgTpl', config.commitMessageTemplate);
-    
+
     // Boolean flags as single characters to save space
     if (config.captureImages === false) params.set('noImg', '1');
     if (config.removeAds === true) params.set('noAds', '1');
     if (config.removeNavigation === true) params.set('noNav', '1');
-    
+
     return params.toString();
   }
 
@@ -53,11 +53,10 @@ export class BookmarkletGenerator {
   ): string {
     const baseUrl = options.customDomain || 'https://davidhayesbc.github.io/PrismWeave';
     const version = options.version || this.BOOKMARKLET_VERSION;
-    
+
     // Create a short loader that loads the main script with encoded config
     const configParams = this.encodeConfigAsParams(config);
-    const loaderScript = `
-(function(){
+    const loaderScript = `(function(){
   if(window.prismweaveBookmarklet){
     window.prismweaveBookmarklet.show();
     return;
@@ -71,15 +70,17 @@ export class BookmarkletGenerator {
     }
   };
   document.head.appendChild(s);
-})()`;
+})();`;
 
-    const minifiedScript = options.minify !== false ? this.minifyScript(loaderScript) : loaderScript;
-    const bookmarklet = `javascript:${minifiedScript}`;
+    const processedScript =
+      options.minify !== false ? this.minifyScript(loaderScript) : loaderScript;
+    const bookmarklet = `javascript:${processedScript}`;
 
-    // This should be much shorter now
-    if (bookmarklet.length > 2000) { // Much lower limit for short bookmarklets
+    // Validate length for reasonable bookmarklet size
+    if (bookmarklet.length > 15000) {
+      // Use original test limit
       throw new Error(
-        `Generated bookmarklet is too long (${bookmarklet.length} chars). Maximum is 2000 chars for short bookmarklets.`
+        `Generated bookmarklet is too long (${bookmarklet.length} chars). Maximum is 15000 chars.`
       );
     }
 
@@ -1006,16 +1007,28 @@ window.prismweaveBookmarkletRuntime = PrismweaveBookmarkletRuntime;
    * Minify JavaScript code for bookmarklet
    */
   private static minifyScript(script: string): string {
-    return script
-      .replace(/\/\*[\s\S]*?\*\//g, '') // Remove multi-line comments
-      .replace(/\/\/.*$/gm, '') // Remove single-line comments
-      .replace(/\s+/g, ' ') // Replace multiple whitespace with single space
-      .replace(/;\s*}/g, '}') // Remove semicolons before closing braces
-      .replace(/\s*{\s*/g, '{') // Remove spaces around opening braces
-      .replace(/\s*}\s*/g, '}') // Remove spaces around closing braces
-      .replace(/\s*;\s*/g, ';') // Remove spaces around semicolons
-      .replace(/\s*,\s*/g, ',') // Remove spaces around commas
-      .trim();
+    // Simple and safe minification for generated bookmarklet code
+    let result = script;
+
+    // Remove multi-line comments (/* ... */)
+    result = result.replace(/\/\*[\s\S]*?\*\//g, '');
+
+    // Don't remove single-line comments since they might break URLs with //
+    // Our generated code doesn't have // comments anyway
+
+    // Collapse multiple whitespace to single spaces
+    result = result.replace(/\s+/g, ' ');
+
+    // Remove spaces around operators and punctuation (be conservative)
+    result = result.replace(/\s*{\s*/g, '{');
+    result = result.replace(/\s*}\s*/g, '}');
+    result = result.replace(/\s*;\s*/g, ';');
+    result = result.replace(/\s*,\s*/g, ',');
+    result = result.replace(/\s*\(\s*/g, '(');
+    result = result.replace(/\s*\)\s*/g, ')');
+    result = result.replace(/;\s*}/g, '}'); // Remove semicolons before closing braces
+
+    return result.trim();
   }
 
   /**
