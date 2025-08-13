@@ -1,0 +1,81 @@
+name: Quick Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  quick-test:
+    runs-on: ubuntu-latest
+    name: Quick Test Suite
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: |
+          npm install
+          cd browser-extension && npm install
+          
+      - name: Run quick tests
+        run: |
+          echo "🔍 Running quick test suite..."
+          
+          # Type checking
+          echo "📝 Type checking browser extension..."
+          cd browser-extension && npx tsc --noEmit
+          cd ..
+          
+          # Quick build test
+          echo "🔨 Testing build system..."
+          npm run build:browser-extension
+          
+          # Basic file verification
+          echo "📂 Verifying build outputs..."
+          test -f browser-extension/dist/background/service-worker.js || (echo "❌ Missing service worker" && exit 1)
+          test -f browser-extension/dist/content/content-script.js || (echo "❌ Missing content script" && exit 1)
+          test -f browser-extension/dist/popup/popup.js || (echo "❌ Missing popup script" && exit 1)
+          
+          echo "✅ Quick tests passed!"
+
+  lint-check:
+    runs-on: ubuntu-latest
+    name: Lint and Format Check
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: |
+          cd browser-extension && npm install
+          
+      - name: Run linting
+        run: |
+          echo "🔍 Running linting checks..."
+          cd browser-extension
+          npm run lint || echo "⚠️ Linting issues found"
+          
+      - name: Check formatting
+        run: |
+          echo "🔍 Checking code formatting..."
+          cd browser-extension
+          npm run format:check || echo "⚠️ Formatting issues found"

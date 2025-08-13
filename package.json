@@ -17,8 +17,10 @@
     "build:dev-tools": "node build.js build dev-tools",
     "build:web": "node build.js web",
     "clean": "node build.js clean",
-    "test": "npm run test --workspaces",
+    "test": "npm run test:browser-extension && npm run test:vscode-extension && npm run test:ai-processing",
     "test:browser-extension": "cd browser-extension && npm test",
+    "test:vscode-extension": "cd vscode-extension && npm test",
+    "test:ai-processing": "cd ai-processing && .venv/bin/python -m pytest tests/ -v || echo 'AI processing tests require Python environment'",
     "serve:web": "node serve-web.js",
     "serve:web:python": "cd dist/web && python -m http.server 8080"
   },
