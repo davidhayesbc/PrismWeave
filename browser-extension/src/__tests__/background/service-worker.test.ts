@@ -132,7 +132,7 @@ describe('Service Worker Comprehensive Tests - Phase 3.1', () => {
       callback({ prismWeaveSettings: VALID_SETTINGS });
     });
     (mockChrome.storage.sync.set as jest.MockedFunction<typeof mockChrome.storage.sync.set>).mockImplementation((data: Record<string, unknown>, callback?: () => void) => {
-      if (callback) callback();
+      if (callback) {callback();}
     });
 
     // Set up fetch mock for getTurndownLibrary

@@ -140,6 +140,73 @@ export default [
     },
   },
   {
+    // Test files - Jest environment with more relaxed rules
+    files: ['**/__tests__/**/*.js', '**/__tests__/**/*.ts', '**/*.test.js', '**/*.test.ts'],
+    languageOptions: {
+      parser: tsparser,
+      parserOptions: {
+        ecmaVersion: 2022,
+        sourceType: 'module',
+        project: './tsconfig.test.json',
+      },
+      globals: {
+        // Jest globals
+        jest: 'readonly',
+        describe: 'readonly',
+        it: 'readonly',
+        test: 'readonly',
+        expect: 'readonly',
+        beforeEach: 'readonly',
+        afterEach: 'readonly',
+        beforeAll: 'readonly',
+        afterAll: 'readonly',
+        
+        // Browser extension globals
+        chrome: 'readonly',
+        browser: 'readonly',
+        
+        // Browser globals
+        window: 'readonly',
+        document: 'readonly',
+        console: 'readonly',
+        URL: 'readonly',
+        fetch: 'readonly',
+        setTimeout: 'readonly',
+        clearTimeout: 'readonly',
+        setInterval: 'readonly',
+        clearInterval: 'readonly',
+        
+        // Service Worker globals
+        importScripts: 'readonly',
+        self: 'readonly',
+        
+        // Global classes available in tests
+        global: 'readonly',
+      },
+    },
+    plugins: {
+      '@typescript-eslint': tseslint,
+    },
+    rules: {
+      ...tseslint.configs.recommended.rules,
+      '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
+      '@typescript-eslint/no-explicit-any': 'off', // More relaxed for test mocks
+      '@typescript-eslint/explicit-function-return-type': 'off',
+      '@typescript-eslint/no-non-null-assertion': 'off',
+      'prefer-const': 'error',
+      'no-var': 'error',
+      'no-console': 'off', // Allow console in tests
+      'no-debugger': 'warn', // More relaxed for tests
+      eqeqeq: 'error',
+      curly: 'error',
+      semi: ['error', 'always'],
+      quotes: ['error', 'single', { allowTemplateLiterals: true }],
+      indent: ['error', 2],
+      'no-trailing-spaces': 'error',
+      'no-multiple-empty-lines': ['error', { max: 2 }],
+    },
+  },
+  {
     // Ignore build output and dependencies
     ignores: ['dist/**', 'node_modules/**', '*.min.js', 'lib/**'],
   },
