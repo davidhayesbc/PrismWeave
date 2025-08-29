@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PrismWeave Bookmarklet Generator - Local Development</title>
+    <meta name="description" content="Local development version of the PrismWeave bookmarklet generator using compiled TypeScript code." />
+    
+    <!-- Use the existing shared CSS from the project -->
+    <link rel="stylesheet" href="../src/styles/shared-ui.css" />
+    
+    <style>
+        .dev-header {
+            background: linear-gradient(135deg, #059669 0%, #047857 100%);
+            color: white;
+            padding: 1rem;
+            text-align: center;
+            margin: -2rem -2rem 2rem -2rem;
+            border-radius: 0 0 12px 12px;
+        }
+        
+        .dev-header h1 {
+            margin: 0;
+            font-size: 1.5rem;
+        }
+        
+        .dev-header p {
+            margin: 0.5rem 0 0 0;
+            opacity: 0.9;
+            font-size: 0.9rem;
+        }
+        
+        .dev-status {
+            background: #f0fdf4;
+            border: 1px solid #16a34a;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .dev-status.loading {
+            background: #fef3c7;
+            border-color: #f59e0b;
+        }
+        
+        .dev-status.error {
+            background: #fef2f2;
+            border-color: #ef4444;
+        }
+        
+        .build-info {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 2rem;
+            font-family: 'Monaco', 'Consolas', monospace;
+            font-size: 0.8rem;
+            color: #64748b;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 2rem;
+        }
+        
+        #generator-container {
+            min-height: 400px;
+        }
+        
+        .loading-spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 50%;
+            border-top-color: #3b82f6;
+            animation: spin 1s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="dev-header">
+            <h1>🛠️ PrismWeave Generator - Local Development</h1>
+            <p>Using compiled TypeScript generator with live reload capabilities</p>
+        </div>
+        
+        <div id="dev-status" class="dev-status loading">
+            <span class="loading-spinner"></span>
+            <span>Loading compiled generator...</span>
+        </div>
+        
+        <div class="build-info">
+            <strong>Build Info:</strong><br>
+            • Using TypeScript generator.ts compiled to generator.js<br>
+            • Local development server: <span id="server-url">http://localhost:8080</span><br>
+            • Auto-reload: Enabled<br>
+            • Source: browser-extension/src/bookmarklet/generator.ts
+        </div>
+        
+        <!-- Container where the TypeScript generator will be loaded -->
+        <div id="generator-container">
+            <!-- Content will be loaded dynamically from compiled generator.js -->
+        </div>
+    </div>
+
+    <script>
+        // Local development utilities
+        class LocalDevGenerator {
+            constructor() {
+                this.statusEl = document.getElementById('dev-status');
+                this.containerEl = document.getElementById('generator-container');
+                this.generatorLoaded = false;
+                this.retryCount = 0;
+                this.maxRetries = 3;
+            }
+
+            updateStatus(message, type = 'loading') {
+                this.statusEl.className = `dev-status ${type}`;
+                
+                let icon = '';
+                switch (type) {
+                    case 'loading':
+                        icon = '<span class="loading-spinner"></span>';
+                        break;
+                    case 'success':
+                        icon = '✅';
+                        break;
+                    case 'error':
+                        icon = '❌';
+                        break;
+                }
+                
+                this.statusEl.innerHTML = `${icon} <span>${message}</span>`;
+            }
+
+            async loadGenerator() {
+                try {
+                    this.updateStatus('Building TypeScript generator...', 'loading');
+                    
+                    // First, try to build the generator
+                    await this.buildGenerator();
+                    
+                    this.updateStatus('Loading compiled generator...', 'loading');
+                    
+                    // Load the compiled generator script
+                    await this.loadGeneratorScript();
+                    
+                    // Load the original HTML template
+                    await this.loadGeneratorHTML();
+                    
+                    this.updateStatus('Generator loaded successfully!', 'success');
+                    
+                    // Hide status after a delay
+                    setTimeout(() => {
+                        this.statusEl.style.display = 'none';
+                    }, 2000);
+                    
+                } catch (error) {
+                    console.error('Failed to load generator:', error);
+                    this.updateStatus(`Failed to load generator: ${error.message}`, 'error');
+                    
+                    if (this.retryCount < this.maxRetries) {
+                        this.retryCount++;
+                        setTimeout(() => {
+                            this.updateStatus(`Retrying... (${this.retryCount}/${this.maxRetries})`, 'loading');
+                            this.loadGenerator();
+                        }, 2000);
+                    } else {
+                        this.showFallbackInstructions();
+                    }
+                }
+            }
+
+            async buildGenerator() {
+                // Check if generator.js already exists
+                try {
+                    const response = await fetch('../dist/bookmarklet/generator.js');
+                    if (response.ok) {
+                        console.log('Generator already built');
+                        return;
+                    }
+                } catch (e) {
+                    // File doesn't exist, continue with build
+                }
+
+                // Show build instructions if no pre-built file
+                throw new Error('Please run the build command first: npm run build:bookmarklet');
+            }
+
+            async loadGeneratorScript() {
+                return new Promise((resolve, reject) => {
+                    const script = document.createElement('script');
+                    script.src = '../dist/bookmarklet/generator.js';
+                    script.onload = () => {
+                        console.log('Generator script loaded');
+                        resolve();
+                    };
+                    script.onerror = () => {
+                        reject(new Error('Failed to load generator.js - run "npm run build:bookmarklet" first'));
+                    };
+                    document.head.appendChild(script);
+                });
+            }
+
+            async loadGeneratorHTML() {
+                try {
+                    // Load the original generator HTML template
+                    const response = await fetch('../src/bookmarklet/generator.html');
+                    if (!response.ok) {
+                        throw new Error('Failed to load generator.html template');
+                    }
+                    
+                    const htmlContent = await response.text();
+                    
+                    // Extract just the form and result sections from the template
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(htmlContent, 'text/html');
+                    
+                    // Get the main content (everything except head and the script tag)
+                    const form = doc.querySelector('form#generator-form');
+                    const resultSection = doc.querySelector('#result-section');
+                    const statusMessage = doc.querySelector('#status-message');
+                    
+                    if (form) {
+                        this.containerEl.appendChild(form.cloneNode(true));
+                    }
+                    
+                    if (statusMessage) {
+                        this.containerEl.appendChild(statusMessage.cloneNode(true));
+                    }
+                    
+                    if (resultSection) {
+                        this.containerEl.appendChild(resultSection.cloneNode(true));
+                    }
+                    
+                    // Initialize the generator if it's available
+                    if (window.BookmarkletGeneratorUI) {
+                        new window.BookmarkletGeneratorUI();
+                        console.log('BookmarkletGeneratorUI initialized');
+                    } else {
+                        console.warn('BookmarkletGeneratorUI not available in global scope');
+                    }
+                    
+                } catch (error) {
+                    throw new Error(`Failed to load HTML template: ${error.message}`);
+                }
+            }
+
+            showFallbackInstructions() {
+                this.containerEl.innerHTML = `
+                    <div style="background: #fef2f2; border: 1px solid #ef4444; border-radius: 8px; padding: 2rem; text-align: center;">
+                        <h3 style="color: #dc2626; margin-bottom: 1rem;">🔧 Build Required</h3>
+                        <p style="margin-bottom: 1.5rem;">The TypeScript generator needs to be compiled first.</p>
+                        
+                        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 1rem; margin: 1rem 0;">
+                            <h4 style="margin-bottom: 0.5rem;">Run this command:</h4>
+                            <code style="background: #1f2937; color: #f9fafb; padding: 0.5rem 1rem; border-radius: 4px; display: inline-block; font-family: monospace;">
+                                npm run build:bookmarklet
+                            </code>
+                        </div>
+                        
+                        <p style="color: #6b7280; font-size: 0.9rem;">
+                            Then refresh this page to load the compiled generator.
+                        </p>
+                        
+                        <button onclick="window.location.reload()" style="background: #3b82f6; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 6px; margin-top: 1rem; cursor: pointer;">
+                            🔄 Refresh Page
+                        </button>
+                    </div>
+                `;
+            }
+        }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            const devGenerator = new LocalDevGenerator();
+            devGenerator.loadGenerator();
+        });
+
+        // Update server URL dynamically
+        document.getElementById('server-url').textContent = window.location.origin;
+    </script>
+</body>
+</html>

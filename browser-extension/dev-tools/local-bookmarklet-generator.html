@@ -1,0 +1,1124 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0"
+    />
+    <title>PrismWeave Bookmarklet Generator - Local Development</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        line-height: 1.6;
+        color: #333;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        padding: 2rem;
+      }
+
+      .container {
+        max-width: 800px;
+        margin: 0 auto;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+      }
+
+      .header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 2rem;
+        text-align: center;
+      }
+
+      .header h1 {
+        font-size: 2rem;
+        margin-bottom: 0.5rem;
+      }
+
+      .header p {
+        opacity: 0.9;
+        font-size: 1.1rem;
+      }
+
+      .form-section {
+        padding: 2rem;
+      }
+
+      .form-group {
+        margin-bottom: 1.5rem;
+      }
+
+      .form-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 600;
+        color: #555;
+      }
+
+      .form-group input,
+      .form-group select,
+      .form-group textarea {
+        width: 100%;
+        padding: 0.75rem;
+        border: 2px solid #e1e5e9;
+        border-radius: 6px;
+        font-size: 1rem;
+        transition: border-color 0.3s ease;
+      }
+
+      .form-group input:focus,
+      .form-group select:focus,
+      .form-group textarea:focus {
+        outline: none;
+        border-color: #667eea;
+      }
+
+      .validation-error {
+        color: #dc3545;
+        font-size: 0.875rem;
+        margin-top: 0.25rem;
+        display: block;
+      }
+
+      .generate-btn {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        padding: 1rem 2rem;
+        font-size: 1.1rem;
+        font-weight: 600;
+        border-radius: 6px;
+        cursor: pointer;
+        width: 100%;
+        transition: transform 0.2s ease;
+      }
+
+      .generate-btn:hover {
+        transform: translateY(-2px);
+      }
+
+      .generate-btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .status-message {
+        padding: 1rem;
+        border-radius: 6px;
+        margin: 1rem 0;
+        font-weight: 500;
+      }
+
+      .status-info {
+        background: #d1ecf1;
+        color: #0c5460;
+        border: 1px solid #bee5eb;
+      }
+
+      .status-success {
+        background: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+      }
+
+      .status-error {
+        background: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+      }
+
+      .result-section {
+        margin-top: 2rem;
+        padding: 2rem;
+        background: #f8f9fa;
+        border-top: 1px solid #e9ecef;
+        opacity: 0;
+        transform: translateY(20px);
+        transition: all 0.3s ease;
+      }
+
+      .result-section.show {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      .bookmarklet-display {
+        background: white;
+        border: 2px dashed #667eea;
+        border-radius: 8px;
+        padding: 2rem;
+        text-align: center;
+        margin: 1rem 0;
+      }
+
+      .bookmarklet-link {
+        display: inline-block;
+        background: #667eea;
+        color: white;
+        text-decoration: none;
+        padding: 1rem 2rem;
+        border-radius: 6px;
+        font-weight: 600;
+        margin: 1rem;
+        transition: background 0.3s ease;
+      }
+
+      .bookmarklet-link:hover {
+        background: #5a67d8;
+      }
+
+      .action-buttons {
+        display: flex;
+        gap: 1rem;
+        margin-top: 1rem;
+      }
+
+      .action-btn {
+        flex: 1;
+        padding: 0.75rem;
+        border: 2px solid #667eea;
+        background: white;
+        color: #667eea;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: all 0.3s ease;
+      }
+
+      .action-btn:hover {
+        background: #667eea;
+        color: white;
+      }
+
+      .code-display {
+        background: #2d3748;
+        color: #e2e8f0;
+        padding: 1rem;
+        border-radius: 6px;
+        font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+        font-size: 0.875rem;
+        line-height: 1.5;
+        overflow-x: auto;
+        margin: 1rem 0;
+      }
+
+      .test-section {
+        background: #fff3cd;
+        border: 1px solid #ffeaa7;
+        border-radius: 6px;
+        padding: 1.5rem;
+        margin-top: 2rem;
+      }
+
+      .test-section h3 {
+        color: #856404;
+        margin-bottom: 1rem;
+      }
+
+      .test-content {
+        background: white;
+        border: 1px solid #e9ecef;
+        border-radius: 6px;
+        padding: 1rem;
+        margin: 1rem 0;
+      }
+
+      .dev-info {
+        background: #e7f3ff;
+        border: 1px solid #b8daff;
+        border-radius: 6px;
+        padding: 1rem;
+        margin: 1rem 0;
+        font-size: 0.9rem;
+      }
+
+      .tabs {
+        display: flex;
+        background: #f8f9fa;
+        border-radius: 6px 6px 0 0;
+        margin-top: 2rem;
+      }
+
+      .tab {
+        flex: 1;
+        padding: 1rem;
+        text-align: center;
+        cursor: pointer;
+        border: none;
+        background: transparent;
+        font-weight: 600;
+        color: #6c757d;
+        transition: all 0.3s ease;
+      }
+
+      .tab.active {
+        background: white;
+        color: #667eea;
+        border-radius: 6px 6px 0 0;
+      }
+
+      .tab-content {
+        background: white;
+        padding: 2rem;
+        border-radius: 0 0 6px 6px;
+        border: 1px solid #e9ecef;
+        border-top: none;
+      }
+
+      .tab-panel {
+        display: none;
+      }
+
+      .tab-panel.active {
+        display: block;
+      }
+
+      @media (max-width: 768px) {
+        body {
+          padding: 1rem;
+        }
+
+        .action-buttons {
+          flex-direction: column;
+        }
+
+        .tabs {
+          flex-direction: column;
+        }
+
+        .tab {
+          border-radius: 0;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>🌟 PrismWeave Bookmarklet Generator</h1>
+        <p>Local Development Environment</p>
+      </div>
+
+      <div class="tabs">
+        <button
+          class="tab active"
+          onclick="switchTab('generator')"
+        >
+          Generator
+        </button>
+        <button
+          class="tab"
+          onclick="switchTab('test')"
+        >
+          Test Page
+        </button>
+        <button
+          class="tab"
+          onclick="switchTab('debug')"
+        >
+          Debug Tools
+        </button>
+      </div>
+
+      <div class="tab-content">
+        <!-- Generator Tab -->
+        <div
+          id="generator-tab"
+          class="tab-panel active"
+        >
+          <form id="generator-form">
+            <div class="form-group">
+              <label for="github-token">GitHub Personal Access Token *</label>
+              <input
+                type="password"
+                id="github-token"
+                placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
+                required
+              />
+              <span
+                id="token-error"
+                class="validation-error"
+              ></span>
+              <div class="dev-info">
+                💡
+                <strong>Dev Tip:</strong>
+                Create a token at
+                <a
+                  href="https://github.com/settings/tokens"
+                  target="_blank"
+                >
+                  github.com/settings/tokens
+                </a>
+                with "Contents" write permissions.
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="github-repo">GitHub Repository *</label>
+              <input
+                type="text"
+                id="github-repo"
+                placeholder="username/repository-name"
+                required
+              />
+              <span
+                id="repo-error"
+                class="validation-error"
+              ></span>
+            </div>
+
+            <div class="form-group">
+              <label for="default-folder">Default Folder</label>
+              <select id="default-folder">
+                <option value="documents">documents</option>
+                <option value="captures">captures</option>
+                <option value="content">content</option>
+                <option value="notes">notes</option>
+                <option value="">Root directory</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="commit-message">Commit Message Template</label>
+              <input
+                type="text"
+                id="commit-message"
+                value="PrismWeave: Add {title}"
+                placeholder="PrismWeave: Add {title}"
+              />
+              <small>Use {title} as placeholder for page title</small>
+            </div>
+
+            <div class="form-group">
+              <label for="file-naming">File Naming Pattern</label>
+              <select id="file-naming">
+                <option value="title-date">Title + Date</option>
+                <option value="date-title">Date + Title</option>
+                <option value="domain-title-date">Domain + Title + Date</option>
+              </select>
+            </div>
+
+            <button
+              type="submit"
+              class="generate-btn"
+            >
+              🚀 Generate Bookmarklet
+            </button>
+          </form>
+
+          <div id="status-message"></div>
+
+          <div
+            id="result-section"
+            class="result-section"
+          >
+            <h3>📚 Your Personal Bookmarklet</h3>
+            <div class="bookmarklet-display">
+              <p><strong>Drag this to your bookmarks bar:</strong></p>
+              <a
+                href="#"
+                id="bookmarklet-link"
+                class="bookmarklet-link"
+              >
+                📄 PrismWeave
+              </a>
+              <p><small>Click the button below to test it on this page!</small></p>
+            </div>
+
+            <div class="action-buttons">
+              <button
+                class="action-btn"
+                id="copy-btn"
+              >
+                📋 Copy Code
+              </button>
+              <button
+                class="action-btn"
+                id="download-btn"
+              >
+                💾 Download HTML
+              </button>
+              <button
+                class="action-btn"
+                id="test-btn"
+              >
+                🧪 Test on This Page
+              </button>
+            </div>
+
+            <details>
+              <summary style="cursor: pointer; font-weight: 600; margin: 1rem 0">View Generated Code</summary>
+              <div
+                id="bookmarklet-code-display"
+                class="code-display"
+              ></div>
+            </details>
+          </div>
+        </div>
+
+        <!-- Test Page Tab -->
+        <div
+          id="test-tab"
+          class="tab-panel"
+        >
+          <div class="test-section">
+            <h3>🧪 Test Content Page</h3>
+            <p>
+              Use this page to test your generated bookmarklets. The content below simulates a typical article structure
+              that PrismWeave should be able to capture.
+            </p>
+          </div>
+
+          <article class="test-content">
+            <h1>Sample Article: The Future of Web Content Management</h1>
+
+            <p>
+              <strong>Published:</strong>
+              <time datetime="2025-08-23">August 23, 2025</time>
+            </p>
+
+            <h2>Introduction</h2>
+            <p>
+              This is a sample article designed to test the PrismWeave bookmarklet functionality. It contains various
+              HTML elements that should be properly captured and converted to markdown format.
+            </p>
+
+            <h2>Key Features</h2>
+            <p>PrismWeave offers several advantages for content management:</p>
+            <ul>
+              <li>
+                <strong>Automatic Capture:</strong>
+                One-click content extraction from any webpage
+              </li>
+              <li>
+                <strong>Markdown Conversion:</strong>
+                Clean, readable format suitable for documentation
+              </li>
+              <li>
+                <strong>GitHub Integration:</strong>
+                Direct saving to your repository with proper organization
+              </li>
+              <li>
+                <strong>Metadata Preservation:</strong>
+                Captures important document information
+              </li>
+            </ul>
+
+            <h3>Technical Implementation</h3>
+            <p>
+              The bookmarklet uses modern JavaScript APIs to extract content efficiently. Here's a simple code example:
+            </p>
+
+            <pre><code>// Content extraction example
+const content = document.querySelector('article, main, .content');
+const markdown = convertToMarkdown(content.innerHTML);</code></pre>
+
+            <blockquote>
+              <p>
+                "The best way to manage web content is to capture it when you find it valuable, and PrismWeave makes
+                this process seamless." - Anonymous Developer
+              </p>
+            </blockquote>
+
+            <h2>Conclusion</h2>
+            <p>
+              Testing your bookmarklet on this content should demonstrate its ability to extract structured information
+              and save it to your GitHub repository. The captured markdown will preserve the document structure while
+              removing unnecessary styling and navigation elements.
+            </p>
+
+            <p>
+              <em>
+                This test content includes headers, paragraphs, lists, code blocks, and quotes to provide a
+                comprehensive test case.
+              </em>
+            </p>
+          </article>
+
+          <div class="dev-info">
+            <strong>🔧 Testing Instructions:</strong>
+            <ol>
+              <li>Generate your bookmarklet in the Generator tab</li>
+              <li>Either drag it to your bookmarks bar or click "Test on This Page"</li>
+              <li>Check your GitHub repository to verify the content was captured</li>
+              <li>Review the generated markdown for accuracy and formatting</li>
+            </ol>
+          </div>
+        </div>
+
+        <!-- Debug Tools Tab -->
+        <div
+          id="debug-tab"
+          class="tab-panel"
+        >
+          <div class="test-section">
+            <h3>🔧 Debug Tools</h3>
+            <p>Tools for debugging and analyzing bookmarklet behavior.</p>
+          </div>
+
+          <div class="form-group">
+            <label for="debug-url">Test URL</label>
+            <input
+              type="url"
+              id="debug-url"
+              placeholder="https://example.com/article"
+              value=""
+            />
+            <small>URL to simulate for testing (leave blank for current page)</small>
+          </div>
+
+          <div class="action-buttons">
+            <button
+              class="action-btn"
+              onclick="analyzeCurrentPage()"
+            >
+              📊 Analyze Page Structure
+            </button>
+            <button
+              class="action-btn"
+              onclick="previewMarkdown()"
+            >
+              👁️ Preview Markdown
+            </button>
+            <button
+              class="action-btn"
+              onclick="testGitHubAPI()"
+            >
+              🔗 Test GitHub API
+            </button>
+          </div>
+
+          <div
+            id="debug-output"
+            class="code-display"
+            style="min-height: 200px; white-space: pre-wrap"
+          >
+            Debug output will appear here...
+          </div>
+
+          <div class="dev-info">
+            <strong>🛠️ Debug Features:</strong>
+            <ul>
+              <li>
+                <strong>Analyze Page:</strong>
+                Shows what content would be extracted
+              </li>
+              <li>
+                <strong>Preview Markdown:</strong>
+                Shows the markdown conversion result
+              </li>
+              <li>
+                <strong>Test GitHub API:</strong>
+                Validates your token and repository access
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Generator functionality (embedded TypeScript-like code)
+      class LocalBookmarkletGenerator {
+        constructor() {
+          this.form = document.getElementById('generator-form');
+          this.statusMessage = document.getElementById('status-message');
+          this.resultSection = document.getElementById('result-section');
+          this.bookmarkletLink = document.getElementById('bookmarklet-link');
+          this.bookmarkletCodeDisplay = document.getElementById('bookmarklet-code-display');
+          this.currentBookmarkletCode = '';
+
+          this.init();
+        }
+
+        init() {
+          this.bindEvents();
+          this.loadSavedSettings();
+        }
+
+        bindEvents() {
+          this.form.addEventListener('submit', e => this.handleSubmit(e));
+
+          // Real-time validation
+          const tokenInput = document.getElementById('github-token');
+          const repoInput = document.getElementById('github-repo');
+
+          tokenInput.addEventListener('blur', () => this.validateToken());
+          repoInput.addEventListener('blur', () => this.validateRepo());
+
+          // Result section buttons
+          document.getElementById('copy-btn')?.addEventListener('click', () => this.copyBookmarklet());
+          document.getElementById('download-btn')?.addEventListener('click', () => this.downloadBookmarklet());
+          document.getElementById('test-btn')?.addEventListener('click', () => this.testBookmarklet());
+        }
+
+        loadSavedSettings() {
+          try {
+            const saved = localStorage.getItem('prismweave_local_generator_settings');
+            if (saved) {
+              const settings = JSON.parse(saved);
+
+              // Don't restore the token for security
+              if (settings.githubRepo) {
+                document.getElementById('github-repo').value = settings.githubRepo;
+              }
+              if (settings.defaultFolder) {
+                document.getElementById('default-folder').value = settings.defaultFolder;
+              }
+              if (settings.commitMessage) {
+                document.getElementById('commit-message').value = settings.commitMessage;
+              }
+              if (settings.fileNaming) {
+                document.getElementById('file-naming').value = settings.fileNaming;
+              }
+            }
+          } catch (error) {
+            console.warn('Failed to load saved settings:', error);
+          }
+        }
+
+        saveSettings(formData) {
+          try {
+            const settingsToSave = {
+              githubRepo: formData.githubRepo,
+              defaultFolder: formData.defaultFolder,
+              commitMessage: formData.commitMessage,
+              fileNaming: formData.fileNaming,
+              // Intentionally not saving the token
+            };
+
+            localStorage.setItem('prismweave_local_generator_settings', JSON.stringify(settingsToSave));
+          } catch (error) {
+            console.warn('Failed to save settings:', error);
+          }
+        }
+
+        handleSubmit(e) {
+          e.preventDefault();
+
+          const formData = this.getFormData();
+
+          if (!this.validateForm(formData)) {
+            this.showStatus('Please fix the validation errors above.', 'error');
+            return;
+          }
+
+          this.showStatus('Generating your personalized bookmarklet...', 'info');
+
+          try {
+            const bookmarkletCode = this.generateCompactBookmarklet(formData);
+
+            this.currentBookmarkletCode = bookmarkletCode;
+            this.displayResult(bookmarkletCode, formData);
+            this.saveSettings(formData);
+
+            this.showStatus('✅ Bookmarklet generated successfully!', 'success');
+          } catch (error) {
+            this.showStatus(`❌ Generation failed: ${error.message}`, 'error');
+            console.error('Bookmarklet generation failed:', error);
+          }
+        }
+
+        getFormData() {
+          return {
+            githubToken: document.getElementById('github-token').value.trim(),
+            githubRepo: document.getElementById('github-repo').value.trim(),
+            defaultFolder: document.getElementById('default-folder').value,
+            commitMessage: document.getElementById('commit-message').value.trim(),
+            fileNaming: document.getElementById('file-naming').value,
+          };
+        }
+
+        generateCompactBookmarklet(formData) {
+          const token = formData.githubToken;
+          const repo = formData.githubRepo;
+          const folder = formData.defaultFolder;
+          const msgTemplate = formData.commitMessage || 'PrismWeave: Add {title}';
+
+          const compactScript = `(function(){
+var t=document.title||'Untitled',u=location.href;
+var c=document.querySelector('article,main,.content')||document.body;
+var md='# '+t+'\\n\\n'+Array.from(c.querySelectorAll('p,h1,h2,h3')).map(e=>e.innerText.trim()).filter(x=>x).join('\\n\\n');
+var fn=t.replace(/[^\\w]/g,'-').toLowerCase().slice(0,30)+'-'+new Date().toISOString().slice(0,10)+'.md';
+var content='---\\ntitle: "'+t+'"\\nurl: "'+u+'"\\ncaptured: "'+new Date().toISOString()+'"\\n---\\n\\n'+md;
+fetch('https://api.github.com/repos/${repo}/contents/${folder}/'+fn,{
+method:'PUT',
+headers:{'Authorization':'token ${token}','Content-Type':'application/json'},
+body:JSON.stringify({message:'${msgTemplate}'.replace('{title}',t),content:btoa(unescape(encodeURIComponent(content)))})
+}).then(r=>r.ok?alert('✅ Saved!'):alert('❌ Failed')).catch(e=>alert('❌ Error'));
+})();`;
+
+          return `javascript:${compactScript}`;
+        }
+
+        validateForm(formData) {
+          let isValid = true;
+
+          // Clear previous errors
+          document.querySelectorAll('.validation-error').forEach(el => {
+            el.textContent = '';
+          });
+
+          // Validate token
+          if (!formData.githubToken) {
+            this.showFieldError('token-error', 'GitHub token is required');
+            isValid = false;
+          } else if (formData.githubToken.length < 20) {
+            this.showFieldError('token-error', 'GitHub token appears to be invalid (too short)');
+            isValid = false;
+          } else if (!formData.githubToken.startsWith('ghp_') && !formData.githubToken.startsWith('github_pat_')) {
+            this.showFieldError(
+              'token-error',
+              'Token should start with "ghp_" (classic) or "github_pat_" (fine-grained)'
+            );
+            isValid = false;
+          }
+
+          // Validate repository
+          if (!formData.githubRepo) {
+            this.showFieldError('repo-error', 'GitHub repository is required');
+            isValid = false;
+          } else if (!/^[\w\-\.]+\/[\w\-\.]+$/.test(formData.githubRepo)) {
+            this.showFieldError('repo-error', 'Repository must be in format: owner/repo');
+            isValid = false;
+          }
+
+          return isValid;
+        }
+
+        validateToken() {
+          const token = document.getElementById('github-token').value.trim();
+          const errorEl = document.getElementById('token-error');
+
+          if (!token) {
+            errorEl.textContent = 'GitHub token is required';
+          } else if (token.length < 20) {
+            errorEl.textContent = 'GitHub token appears to be invalid (too short)';
+          } else if (!token.startsWith('ghp_') && !token.startsWith('github_pat_')) {
+            errorEl.textContent = 'Token should start with "ghp_" or "github_pat_"';
+          } else {
+            errorEl.textContent = '';
+          }
+        }
+
+        validateRepo() {
+          const repo = document.getElementById('github-repo').value.trim();
+          const errorEl = document.getElementById('repo-error');
+
+          if (!repo) {
+            errorEl.textContent = 'GitHub repository is required';
+          } else if (!/^[\w\-\.]+\/[\w\-\.]+$/.test(repo)) {
+            errorEl.textContent = 'Repository must be in format: owner/repo';
+          } else {
+            errorEl.textContent = '';
+          }
+        }
+
+        showFieldError(fieldId, message) {
+          const errorEl = document.getElementById(fieldId);
+          if (errorEl) {
+            errorEl.textContent = message;
+          }
+        }
+
+        showStatus(message, type) {
+          this.statusMessage.innerHTML = `<div class="status-message status-${type}">${message}</div>`;
+
+          // Auto-hide success messages
+          if (type === 'success') {
+            setTimeout(() => {
+              this.statusMessage.innerHTML = '';
+            }, 5000);
+          }
+        }
+
+        displayResult(bookmarkletCode, formData) {
+          // Update bookmarklet link
+          this.bookmarkletLink.href = bookmarkletCode;
+          this.bookmarkletLink.title = `PrismWeave → ${formData.githubRepo}`;
+
+          // Update code display
+          this.bookmarkletCodeDisplay.textContent = bookmarkletCode;
+
+          // Show result section with animation
+          this.resultSection.classList.add('show');
+          this.resultSection.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        async copyBookmarklet() {
+          try {
+            await navigator.clipboard.writeText(this.currentBookmarkletCode);
+            this.showStatus('📋 Bookmarklet copied to clipboard!', 'success');
+          } catch (error) {
+            // Fallback for older browsers
+            const textArea = document.createElement('textarea');
+            textArea.value = this.currentBookmarkletCode;
+            document.body.appendChild(textArea);
+            textArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textArea);
+
+            this.showStatus('📋 Bookmarklet copied to clipboard! (fallback method)', 'success');
+          }
+        }
+
+        downloadBookmarklet() {
+          const formData = this.getFormData();
+          const repoName = formData.githubRepo.split('/')[1] || 'repository';
+
+          const html = this.generateBookmarkletPage(formData);
+          const blob = new Blob([html], { type: 'text/html' });
+          const url = URL.createObjectURL(blob);
+
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `prismweave-bookmarklet-${repoName}.html`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+
+          this.showStatus('💾 Bookmarklet HTML page downloaded!', 'success');
+        }
+
+        testBookmarklet() {
+          if (!this.currentBookmarkletCode) {
+            this.showStatus('Please generate a bookmarklet first!', 'error');
+            return;
+          }
+
+          try {
+            // Extract the JavaScript code from the bookmarklet URL
+            const jsCode = this.currentBookmarkletCode.replace('javascript:', '');
+
+            // Execute the bookmarklet code
+            eval(jsCode);
+
+            this.showStatus('🧪 Bookmarklet executed! Check your GitHub repository.', 'info');
+          } catch (error) {
+            this.showStatus(`❌ Test failed: ${error.message}`, 'error');
+            console.error('Bookmarklet test failed:', error);
+          }
+        }
+
+        generateBookmarkletPage(formData) {
+          const repoName = formData.githubRepo.split('/')[1] || 'repository';
+          const currentDate = new Date().toLocaleDateString();
+
+          return `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PrismWeave Bookmarklet - ${repoName}</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; max-width: 800px; margin: 2rem auto; padding: 2rem; }
+        .header { text-align: center; margin-bottom: 3rem; }
+        .bookmarklet-box { background: #f8f9fa; border: 2px dashed #6c757d; border-radius: 8px; padding: 2rem; text-align: center; margin: 2rem 0; }
+        .bookmarklet-link { display: inline-block; padding: 1rem 2rem; background: #007bff; color: white; text-decoration: none; border-radius: 8px; font-weight: bold; margin: 1rem; }
+        .instructions { background: #fff; border: 1px solid #e9ecef; border-radius: 8px; padding: 1.5rem; margin: 2rem 0; }
+        .info { background: #d4edda; border: 1px solid #c3e6cb; border-radius: 6px; padding: 1rem; margin: 1rem 0; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🌟 PrismWeave Bookmarklet</h1>
+        <p>Personal bookmarklet for <strong>${formData.githubRepo}</strong></p>
+        <p><em>Generated on ${currentDate}</em></p>
+    </div>
+
+    <div class="bookmarklet-box">
+        <h3>Drag this to your bookmarks bar:</h3>
+        <a href="${this.currentBookmarkletCode}" class="bookmarklet-link">📄 PrismWeave → ${repoName}</a>
+        <p><small>Your GitHub settings are embedded - no setup required!</small></p>
+    </div>
+
+    <div class="instructions">
+        <h3>📋 Installation Instructions:</h3>
+        <ol>
+            <li><strong>Drag & Drop:</strong> Drag the bookmarklet button above to your browser's bookmarks bar</li>
+            <li><strong>Manual Method:</strong>
+                <ul>
+                    <li>Right-click the bookmarklet button and copy the link</li>
+                    <li>Add a new bookmark in your browser</li>
+                    <li>Set the name to "PrismWeave → ${repoName}" and paste the copied link as the URL</li>
+                </ul>
+            </li>
+            <li><strong>Usage:</strong> Visit any webpage and click your bookmarklet to capture content</li>
+        </ol>
+    </div>
+
+    <div class="info">
+        <h4>⚙️ Configuration Summary:</h4>
+        <ul>
+            <li><strong>Repository:</strong> ${formData.githubRepo}</li>
+            <li><strong>Default Folder:</strong> ${formData.defaultFolder}</li>
+            <li><strong>Commit Message:</strong> ${formData.commitMessage}</li>
+            <li><strong>File Naming:</strong> ${formData.fileNaming}</li>
+        </ul>
+    </div>
+
+    <div class="info">
+        <h4>🔒 Security Note:</h4>
+        <p>This bookmarklet contains your GitHub Personal Access Token. Keep this file private and only share the bookmarklet with trusted parties.</p>
+    </div>
+</body>
+</html>`;
+        }
+      }
+
+      // Tab switching functionality
+      function switchTab(tabName) {
+        // Hide all tab panels
+        document.querySelectorAll('.tab-panel').forEach(panel => {
+          panel.classList.remove('active');
+        });
+
+        // Remove active class from all tabs
+        document.querySelectorAll('.tab').forEach(tab => {
+          tab.classList.remove('active');
+        });
+
+        // Show selected tab panel
+        document.getElementById(tabName + '-tab').classList.add('active');
+
+        // Add active class to selected tab
+        event.target.classList.add('active');
+      }
+
+      // Debug tools functionality
+      function analyzeCurrentPage() {
+        const output = document.getElementById('debug-output');
+
+        try {
+          const title = document.title;
+          const url = window.location.href;
+          const content = document.querySelector('article, main, .content') || document.body;
+
+          const analysis = {
+            title: title,
+            url: url,
+            contentSelector:
+              content.tagName.toLowerCase() + (content.className ? '.' + content.className.split(' ').join('.') : ''),
+            paragraphs: content.querySelectorAll('p').length,
+            headers: {
+              h1: content.querySelectorAll('h1').length,
+              h2: content.querySelectorAll('h2').length,
+              h3: content.querySelectorAll('h3').length,
+            },
+            wordCount: content.innerText.split(/\s+/).length,
+            links: content.querySelectorAll('a').length,
+            images: content.querySelectorAll('img').length,
+            codeBlocks: content.querySelectorAll('pre, code').length,
+          };
+
+          output.textContent = '📊 Page Analysis:\n\n' + JSON.stringify(analysis, null, 2);
+        } catch (error) {
+          output.textContent = '❌ Analysis failed: ' + error.message;
+        }
+      }
+
+      function previewMarkdown() {
+        const output = document.getElementById('debug-output');
+
+        try {
+          const title = document.title || 'Untitled';
+          const url = window.location.href;
+          const content = document.querySelector('article, main, .content') || document.body;
+
+          // Simple markdown conversion (same as in bookmarklet)
+          const markdown =
+            '# ' +
+            title +
+            '\n\n' +
+            Array.from(content.querySelectorAll('p,h1,h2,h3'))
+              .map(e => e.innerText.trim())
+              .filter(x => x)
+              .join('\n\n');
+
+          const frontmatter = `---
+title: "${title}"
+url: "${url}"
+captured: "${new Date().toISOString()}"
+---
+
+`;
+
+          output.textContent = '👁️ Markdown Preview:\n\n' + frontmatter + markdown;
+        } catch (error) {
+          output.textContent = '❌ Preview failed: ' + error.message;
+        }
+      }
+
+      async function testGitHubAPI() {
+        const output = document.getElementById('debug-output');
+        const token = document.getElementById('github-token').value.trim();
+        const repo = document.getElementById('github-repo').value.trim();
+
+        if (!token || !repo) {
+          output.textContent = '❌ Please fill in GitHub token and repository first.';
+          return;
+        }
+
+        output.textContent = '🔗 Testing GitHub API connection...\n\n';
+
+        try {
+          // Test user info
+          const userResponse = await fetch('https://api.github.com/user', {
+            headers: {
+              Authorization: `token ${token}`,
+              Accept: 'application/vnd.github.v3+json',
+              'User-Agent': 'PrismWeave-Local-Generator/1.0',
+            },
+          });
+
+          if (!userResponse.ok) {
+            throw new Error(`User API failed: ${userResponse.status}`);
+          }
+
+          const userData = await userResponse.json();
+          output.textContent += `✅ User authenticated: ${userData.login}\n`;
+
+          // Test repository access
+          const repoResponse = await fetch(`https://api.github.com/repos/${repo}`, {
+            headers: {
+              Authorization: `token ${token}`,
+              Accept: 'application/vnd.github.v3+json',
+              'User-Agent': 'PrismWeave-Local-Generator/1.0',
+            },
+          });
+
+          if (!repoResponse.ok) {
+            throw new Error(`Repository API failed: ${repoResponse.status}`);
+          }
+
+          const repoData = await repoResponse.json();
+          output.textContent += `✅ Repository accessible: ${repoData.full_name}\n`;
+          output.textContent += `📊 Repository details:\n`;
+          output.textContent += `   - Private: ${repoData.private}\n`;
+          output.textContent += `   - Default branch: ${repoData.default_branch}\n`;
+          output.textContent += `   - Permissions: ${JSON.stringify(repoData.permissions)}\n`;
+
+          output.textContent += '\n🎉 GitHub API test successful!';
+        } catch (error) {
+          output.textContent += `❌ GitHub API test failed: ${error.message}`;
+        }
+      }
+
+      // Initialize the generator when DOM is ready
+      document.addEventListener('DOMContentLoaded', () => {
+        new LocalBookmarkletGenerator();
+      });
+    </script>
+  </body>
+</html>
