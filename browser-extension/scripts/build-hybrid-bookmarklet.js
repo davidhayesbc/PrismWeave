@@ -748,6 +748,10 @@ console.log("Content captured successfully!");</code></pre>
       { name: 'hybrid-loader.js', content: files.loaderBookmarklet },
       { name: `enhanced-v${this.config.version}.js`, content: files.hostedScript },
       { name: 'enhanced-runtime.js', content: files.hostedScript }, // Fallback name
+      {
+        name: 'install-hybrid.html',
+        content: this.createHybridInstallationPage(files.loaderBookmarklet),
+      },
       { name: 'README-hybrid.md', content: this.generateReadme(files.loaderBookmarklet) },
     ];
 
