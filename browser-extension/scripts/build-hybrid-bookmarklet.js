@@ -899,22 +899,22 @@ Build options can be configured in the script or via environment variables.
 
   async copyGeneratorFiles() {
     console.log('📄 Copying modern generator files...');
-    
+
     const sourceDir = path.join(__dirname, '../src/bookmarklet');
     const targetDir = this.config.outputDir;
-    
+
     // Files to copy
     const filesToCopy = [
       'generator.html',
       'generator.ts', // We'll also copy the TypeScript source for reference
       'help.html',
-      'index.html'
+      'index.html',
     ];
-    
+
     for (const fileName of filesToCopy) {
       const sourcePath = path.join(sourceDir, fileName);
       const targetPath = path.join(targetDir, fileName);
-      
+
       if (fs.existsSync(sourcePath)) {
         fs.copyFileSync(sourcePath, targetPath);
         console.log(`✅ Copied: ${fileName}`);
@@ -922,7 +922,7 @@ Build options can be configured in the script or via environment variables.
         console.log(`⚠️ File not found, skipping: ${fileName}`);
       }
     }
-    
+
     // Also compile generator.ts to generator.js for browser use
     await this.compileGeneratorScript();
   }
@@ -930,17 +930,20 @@ Build options can be configured in the script or via environment variables.
   async compileGeneratorScript() {
     try {
       console.log('🔧 Compiling generator.ts to generator.js...');
-      
+
       const sourceFile = path.join(__dirname, '../src/bookmarklet/generator.ts');
       const outputFile = path.join(this.config.outputDir, 'generator.js');
-      
+
       if (fs.existsSync(sourceFile)) {
         // Use TypeScript compiler if available, otherwise just copy
         try {
-          execSync(`npx tsc ${sourceFile} --outDir ${this.config.outputDir} --target ES2020 --module ES2020 --moduleResolution node`, {
-            cwd: path.join(__dirname, '..'),
-            stdio: 'pipe'
-          });
+          execSync(
+            `npx tsc ${sourceFile} --outDir ${this.config.outputDir} --target ES2020 --module ES2020 --moduleResolution node`,
+            {
+              cwd: path.join(__dirname, '..'),
+              stdio: 'pipe',
+            }
+          );
           console.log('✅ Compiled: generator.js');
         } catch (tscError) {
           // Fallback: copy the TypeScript file as .js (browsers can often handle simple TS)
