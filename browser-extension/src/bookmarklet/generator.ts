@@ -207,12 +207,12 @@ class BookmarkletGeneratorUI {
     // Build the bookmarklet JavaScript using script injection to load sophisticated extractor
     const jsCode = [
       '(function(){',
-      // Configuration for the extractor
+      // Configuration for the extractor (match the IGitHubConfig interface)
       'var config = {',
-      "  githubToken: '" + token + "',",
-      "  githubRepo: '" + repo + "',",
+      "  token: '" + token + "',",
+      "  repository: '" + repo + "',",
       "  folder: '" + folder + "',",
-      "  commitMessageTemplate: '" + msgTemplate + "'",
+      "  commitMessage: '" + msgTemplate + "'",
       '};',
 
       // Load the injectable content extractor
