@@ -73,9 +73,9 @@ class LocalTestingServer {
 
     // Build first if needed
     if (this.config.autoRebuild) {
-      console.log('🔧 Building hybrid bookmarklet for local development...');
+      console.log('🔧 Building personal bookmarklet for local development...');
       try {
-        execSync('npm run build:bookmarklet:local', {
+        execSync('npm run build:bookmarklet', {
           cwd: path.join(__dirname, '..'),
           stdio: 'inherit',
         });

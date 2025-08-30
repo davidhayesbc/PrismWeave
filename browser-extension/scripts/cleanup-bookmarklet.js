@@ -31,13 +31,13 @@ class BookmarkletCleaner {
       'utils',
     ];
     this.filesToKeep = [
-      // Keep the new hybrid system files
-      'hybrid-loader.js',
-      'enhanced-runtime.js',
-      'enhanced-v2.0.0.js',
-      'install-hybrid.html',
-      'README-hybrid.md',
-      'build-analytics.json',
+      // Keep the personal bookmarklet generator files
+      'generator.html',
+      'generator.js',
+      'index.html',
+      'help.html',
+      'install.html',
+      'README.md',
     ];
   }
 
@@ -82,7 +82,7 @@ class BookmarkletCleaner {
     }
 
     // List files that are kept
-    console.log('\n📋 Current hybrid bookmarklet files:');
+    console.log('\n📋 Current personal bookmarklet files:');
     for (const fileName of this.filesToKeep) {
       const filePath = path.join(this.distDir, fileName);
       if (fs.existsSync(filePath)) {
@@ -102,7 +102,7 @@ class BookmarkletCleaner {
 
     if (keptCount < this.filesToKeep.length) {
       console.log('\n💡 Some files are missing. Run the build to generate them:');
-      console.log('   npm run build:bookmarklet:hybrid');
+      console.log('   npm run build:bookmarklet');
     }
 
     console.log('\n✅ Cleanup completed!');
@@ -121,38 +121,39 @@ class BookmarkletCleaner {
 
     const checks = [
       {
-        name: 'Hybrid Loader',
-        file: 'hybrid-loader.js',
+        name: 'Personal Bookmarklet Generator',
+        file: 'generator.html',
         checks: [
-          { name: 'Size under 2KB', test: content => content.length < 2000 },
-          { name: 'Is JavaScript URL', test: content => content.startsWith('javascript:') },
-          { name: 'Contains loader logic', test: content => content.includes('createElement') },
+          { name: 'Is HTML', test: content => content.includes('<!DOCTYPE html>') },
+          { name: 'Has generator form', test: content => content.includes('generator-form') },
+          { name: 'Contains GitHub fields', test: content => content.includes('github-token') },
         ],
       },
       {
-        name: 'Enhanced Runtime',
-        file: 'enhanced-runtime.js',
+        name: 'Generator Script',
+        file: 'generator.js',
         checks: [
-          { name: 'Has PrismWeave class', test: content => content.includes('PrismWeave') },
-          { name: 'Has execute method', test: content => content.includes('execute') },
+          {
+            name: 'Has bookmarklet generation',
+            test: content =>
+              content.includes('generateCompactBookmarklet') ||
+              content.includes('BookmarkletGenerator'),
+          },
+          { name: 'Has GitHub integration', test: content => content.includes('github') },
           {
             name: 'Size reasonable',
-            test: content => content.length > 10000 && content.length < 200000,
+            test: content => content.length > 1000 && content.length < 100000,
           },
         ],
       },
       {
         name: 'Installation Page',
-        file: 'install-hybrid.html',
+        file: 'index.html',
         checks: [
           { name: 'Is HTML', test: content => content.includes('<!DOCTYPE html>') },
           {
-            name: 'Has bookmarklet button',
-            test: content => content.includes('bookmarklet-button'),
-          },
-          {
-            name: 'Contains instructions',
-            test: content => content.includes('Installation Steps'),
+            name: 'Has navigation',
+            test: content => content.includes('nav') || content.includes('menu'),
           },
         ],
       },
@@ -183,7 +184,7 @@ class BookmarkletCleaner {
       console.log('\n🎉 All integrity checks passed!');
     } else {
       console.log('\n⚠️  Some integrity checks failed. Consider rebuilding:');
-      console.log('   npm run build:bookmarklet:hybrid');
+      console.log('   npm run build:bookmarklet');
     }
 
     return allChecksPass;

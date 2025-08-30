@@ -1,28 +1,28 @@
-# PrismWeave Enhanced Bookmarklet System
+# PrismWeave Personal Bookmarklet Generator
 
-This directory contains the enhanced bookmarklet implementation for PrismWeave,
-providing universal browser support with sophisticated content extraction and
-GitHub integration.
+This directory contains the personal bookmarklet generator for PrismWeave,
+providing a simple way to create self-contained bookmarklets with embedded
+GitHub credentials for seamless content capture.
 
 ## Architecture Overview
 
 ### Core Components
 
-#### Hybrid System (Production-Ready)
+#### Personal Bookmarklet Generator (Recommended)
 
-- **`hybrid-loader.ts`** - Ultra-lightweight loader (~1KB) that fits within
-  browser limits
-- **`enhanced-runtime-host.ts`** - Hosted script interface for CDN deployment
-- **`build-hybrid-bookmarklet.js`** - Build system for hybrid bookmarklet
-  generation
-
-#### Enhanced Runtime
-
-- **`enhanced-runtime-compatible.ts`** - Main runtime with enhanced features and
-  existing interface compatibility
+- **`generator.ts`** - Bookmarklet generator interface that creates personalized
+  bookmarklets
+- **`generator.html`** - User-friendly interface for generating custom
+  bookmarklets
 - **`github-api-client.ts`** - GitHub API integration for repository operations
 - **`ui.ts`** - User interface components for configuration and progress display
-- **`help.html`** - Help documentation embedded in the bookmarklet interface
+- **`help.html`** - Help documentation for using the bookmarklet generator
+
+### Core Runtime
+
+- **`runtime.ts`** - Main runtime with content extraction and GitHub integration
+- **`main.ts`** - Entry point for bookmarklet execution
+- **`index.html`** - Landing page with navigation to generator and help
 
 ### Enhanced Features
 
@@ -37,70 +37,48 @@ GitHub integration.
 - **Metadata Enhancement**: Comprehensive extraction of structured data and
   social meta tags
 
+#### Self-Contained Design
+
+- **No External Dependencies**: Everything needed is embedded in the bookmarklet
+- **Instant Execution**: No loading delays or network requests during operation
+- **Privacy-Focused**: No external service calls or tracking
+- **Reliable Operation**: No external failure points or CDN dependencies
+
 #### Advanced User Experience
 
-- **Quick Mode**: Streamlined processing for repeat captures
+- **Custom Configuration**: Personalized settings embedded during generation
 - **Progress Tracking**: Real-time feedback with detailed processing steps
 - **Error Handling**: Contextual error messages with actionable troubleshooting
   steps
-- **Browser Notifications**: Desktop notifications for capture completion (with
-  permission)
-
-#### Performance Optimizations
-
-- **Adaptive Processing**: Adjusts timeout and processing based on page
-  complexity
-- **Memory Management**: Efficient handling of large pages with cleanup
-  mechanisms
-- **Analytics Tracking**: Privacy-conscious local usage analytics for
-  optimization
+- **Smart Filename Generation**: Intelligent file naming based on content
+  analysis
 
 ## Build System
 
-The bookmarklet system supports multiple build modes:
+The bookmarklet system supports personal bookmarklet generation:
 
-### Hybrid System (Recommended for Production)
-
-```bash
-# Build the hybrid bookmarklet system
-npm run build:bookmarklet:hybrid
-
-# Production build with minification
-npm run build:bookmarklet:hybrid:prod
-
-# Clean up old files and check integrity
-npm run cleanup:bookmarklet
-```
-
-### Hybrid System (Production)
+### Personal Bookmarklet Generation
 
 ```bash
-# Build hybrid bookmarklet system
-node scripts/build-hybrid-bookmarklet.js
+# Build the personal bookmarklet generator
+npm run build:bookmarklet
 
 # Development build with source maps
-node scripts/build-hybrid-bookmarklet.js --dev
+npm run build:bookmarklet --dev
+
+# Clean up old files
+npm run cleanup:bookmarklet
 ```
 
 ### Build Outputs
 
-#### Hybrid System Files (dist/bookmarklet/)
+#### Personal Bookmarklet Files (dist/bookmarklet/)
 
-- **`hybrid-loader.js`** - Ultra-light loader bookmarklet (~1KB)
-- **`enhanced-runtime.js`** - Hosted runtime script (75KB)
-- **`enhanced-v2.0.0.js`** - Versioned runtime script
-- **`install-hybrid.html`** - Interactive installation page
-- **`README-hybrid.md`** - Hybrid system documentation
-- **`build-analytics.json`** - Build statistics and performance metrics
-
-#### Legacy System Files (Deprecated)
-
-- **`bookmarklet.js`** - Standard version (60KB)
-- **`bookmarklet-enhanced.js`** - Enhanced version (60KB)
-- **`install.html`** - Full-featured installation page
-- **`install-simple.html`** - Simplified installation page
-- **`*-encoded.txt`** - URL-encoded bookmarklet strings
-- **`size-report.json`** - Size analysis and recommendations
+- **`generator.html`** - Interactive bookmarklet generator interface
+- **`generator.js`** - Compiled generator logic
+- **`index.html`** - Landing page with navigation
+- **`help.html`** - Help documentation
+- **`README.md`** - Documentation
 
 ## Local Testing & Development
 
@@ -168,172 +146,166 @@ When the server is running on `http://localhost:8080`:
 
 ### Development Configuration
 
-#### Modifying the Loader
+#### Modifying the Generator
 
-To modify the ultra-light loader, edit `src/bookmarklet/hybrid-loader.ts`:
+To modify the personal bookmarklet generator, edit
+`src/bookmarklet/generator.ts`:
 
 ```typescript
-// The loader configuration is in build-hybrid-bookmarklet.js
+// Configuration for the generator interface
 const config = {
-  cdnBaseUrl: 'http://localhost:8080', // For local testing
-  fallbackUrl: 'http://localhost:8080/enhanced-runtime.js',
-  version: '2.0.0',
-  timeout: 10000,
+  apiUrl: 'https://api.github.com',
+  defaultBranch: 'main',
+  maxContentSize: 1000000, // 1MB limit for content
+  timeout: 30000, // 30 second timeout
 };
 ```
 
-#### Runtime Development
+#### Generator Development
 
-The hosted runtime is automatically built from:
+The personal bookmarklet generator builds from:
 
-- `enhanced-runtime-compatible.ts` - Core functionality
-- `github-api-client.ts` - GitHub integration
-- `ui.ts` - User interface components
+- `generator.ts` - Main generator interface and logic
+- `capture-pipeline.ts` - Content extraction functionality
+- `github-api-client.ts` - GitHub integration utilities
 
-Changes to these files require rebuilding with
-`npm run build:bookmarklet:hybrid`.
+Changes to these files require rebuilding with `npm run build:bookmarklet`.
 
 ### File Organization
 
 ```
 browser-extension/
 ├── src/bookmarklet/           # Source files
-│   ├── hybrid-loader.ts       # Ultra-light loader source
-│   ├── enhanced-runtime-host.ts # Host interface
-│   ├── enhanced-runtime-compatible.ts # Core runtime
+│   ├── generator.ts           # Personal bookmarklet generator
+│   ├── capture-pipeline.ts    # Content extraction
+│   ├── github-api-client.ts   # GitHub API integration
 │   └── ...
 ├── scripts/                   # Build and utility scripts
-│   ├── build-hybrid-bookmarklet.js # Main build script
-│   ├── serve-local.js         # Local testing server
 │   ├── cleanup-bookmarklet.js # Cleanup utility
 │   └── ...
 └── dist/bookmarklet/          # Built files (auto-generated)
-    ├── hybrid-loader.js       # Ready-to-use bookmarklet
-    ├── enhanced-runtime.js    # Hosted runtime script
-    ├── install-hybrid.html    # Installation page
+    ├── generator.html         # Personal bookmarklet generator interface
+    ├── generator.js           # Compiled generator logic
+    ├── index.html             # Main landing page
     └── ...
 ```
 
-## Installation Options
+## Usage Guide
 
-### 1. Interactive Installation Page
+### 1. Generate Your Personal Bookmarklet
 
-Use the generated `install.html` for the best user experience:
+Use the bookmarklet generator interface:
 
-- Version selection (Standard vs Enhanced)
-- GitHub connection testing
-- Configuration validation
-- Size impact analysis
-- Troubleshooting guidance
+- Open `dist/bookmarklet/generator.html` in your browser
+- Enter your GitHub Personal Access Token
+- Enter your repository name (owner/repo format)
+- Click "Generate Personal Bookmarklet"
+- Save the generated code as a browser bookmark
 
-### 2. Direct Integration
+### 2. Using Your Bookmarklet
 
-For developers integrating the bookmarklet:
+Once generated, using your personal bookmarklet is simple:
+
+- Navigate to any web page you want to capture
+- Click your personal bookmarklet from your browser bookmarks
+- The content will be automatically extracted and saved to your GitHub
+  repository
+- Check your repository for the new markdown file
 
 ```typescript
-import { executeEnhancedBookmarklet } from './enhanced-runtime-compatible';
-
-// Execute with default configuration
-executeEnhancedBookmarklet();
-
-// Execute with custom config
-executeEnhancedBookmarklet({
-  quickMode: true,
-  notifications: false,
-  analytics: false,
-});
+// Example of what gets embedded in your personal bookmarklet
+const config = {
+  token: 'your_github_token_here',
+  repository: 'your_username/your_repo',
+  branch: 'main',
+};
 ```
 
-## Configuration Interface
+## Configuration
 
-The enhanced system uses a comprehensive configuration interface:
+The personal bookmarklet generator creates self-contained bookmarklets with
+embedded configuration:
 
 ```typescript
-interface IEnhancedBookmarkletConfig {
-  // GitHub Integration
-  githubToken: string;
-  githubRepo: string;
-  githubBranch: string;
-  folderPath: string;
-  autoCommit: boolean;
+interface IPersonalBookmarkletConfig {
+  // GitHub Integration (embedded at generation time)
+  githubToken: string; // Your Personal Access Token
+  githubRepo: string; // Repository name (owner/repo)
+  githubBranch: string; // Target branch (default: 'main')
+  folderPath: string; // Target folder (default: 'documents')
 
-  // Content Processing
-  includeImages: boolean;
-  includeLinks: boolean;
-  cleanHtml: boolean;
+  // Content Processing (embedded defaults)
+  includeImages: boolean; // Extract and reference images
+  includeLinks: boolean; // Preserve links in markdown
+  cleanHtml: boolean; // Remove unwanted elements
 
-  // Enhanced Features
-  quickMode: boolean; // Skip config if already set
+  // Runtime Behavior
   smartFilenames: boolean; // Generate intelligent filenames
-  notifications: boolean; // Desktop notifications
-  analytics: boolean; // Usage analytics
-  showPreview: boolean; // Content preview before save
+  showPreview: boolean; // Show content preview (when possible)
+  timeoutMs: number; // API timeout (default: 30000)
 }
 ```
 
+### Security Notes
+
+- **Token Storage**: Your GitHub token is embedded in the bookmarklet
+- **Repository Access**: Ensure your token has appropriate repository
+  permissions
+- **Safe Handling**: Treat generated bookmarklets as containing sensitive
+  credentials
+
 ## Size Considerations
 
-Both bookmarklet versions exceed typical browser limits:
+The personal bookmarklet approach generates compact, self-contained
+bookmarklets:
 
-- **Standard Version**: 60KB (85K encoded)
-- **Enhanced Version**: 60KB (84K encoded)
-- **Browser Limit**: ~2KB typical
+- **Personal Bookmarklet**: ~8-12KB (varies with configuration)
+- **Browser Limit**: Modern browsers support larger bookmarklets
+- **No External Dependencies**: Complete functionality embedded
 
-### Production Deployment Strategy
+### Self-Contained Approach Benefits
 
-For production use, the hybrid loader pattern is implemented:
+The personal bookmarklet is designed for modern browsers:
 
-#### Hybrid Loader System
+1. **All-in-One**: Complete functionality without external runtime loading
+2. **Reliable**: No dependency on external services or CDNs
+3. **Private**: No tracking or analytics, works entirely within your browser
+4. **Immediate**: No loading delays or network timeouts
 
-The system consists of two components:
+### Generated Components
 
-1. **Ultra-Light Loader** (~750 characters) - Fits within browser limits
-2. **Hosted Runtime** (60KB) - Full functionality served from CDN/GitHub
+When you build the personal bookmarklet system:
 
-Build and deploy using:
+- **`generator.html`** - Interactive bookmarklet generator interface
+- **`generator.js`** - Compiled generator with embedded capture functionality
+- **`index.html`** - Documentation and navigation page
+- **`help.html`** - Setup and troubleshooting guide
 
-```bash
-# Build the hybrid system
-npm run build:bookmarklet:hybrid
-
-# For production deployment
-npm run build:bookmarklet:hybrid:prod
-```
-
-#### Generated Components
-
-- **`hybrid-loader.ts`** - Ultra-lightweight loader source
-- **`enhanced-runtime-host.ts`** - Hosted script interface
-- **`ultra-light-loader.js`** - Minified loader (~750 chars)
-- **`enhanced-runtime-hosted.js`** - Hosted runtime script
-- **`install-hybrid.html`** - Installation page for hybrid system
-
-#### Deployment Architecture
+#### Personal Bookmarklet Architecture
 
 ```javascript
-// Ultra-lightweight loader (bookmarklet)
+// Personal bookmarklet (self-contained)
 javascript: (function () {
-  // ... ~750 character loader with fallback strategy
+  // ... Complete personal bookmarklet with embedded GitHub API access
 })();
 ```
 
-The loader:
+The personal bookmarklet:
 
-- ✅ Stays within all browser bookmarklet size limits (~750 chars)
-- ✅ Automatically tries CDN first, then GitHub Raw fallback
-- ✅ Shows loading progress and error feedback
-- ✅ Handles network failures gracefully
-- ✅ Caches runtime for performance
+- ✅ Self-contained with no external dependencies
+- ✅ Embeds GitHub Personal Access Token and repository configuration
+- ✅ Direct GitHub API integration for immediate content upload
+- ✅ Works offline once generated (no network dependencies for runtime)
+- ✅ Privacy-focused with no external service tracking
 
-#### Benefits of Hybrid Approach
+#### Benefits of Personal Bookmarklet Approach
 
-- **Size Compliance**: Loader fits within browser limits (750 chars vs 2KB
-  limit)
-- **Full Functionality**: Loads complete 60KB runtime dynamically
-- **Easy Updates**: Update hosted script without changing bookmarklet
-- **Performance**: CDN caching with GitHub fallback
-- **Analytics**: Track usage and performance metrics
-- **Version Management**: Serve different versions based on user preferences
+- **No External Dependencies**: Complete functionality embedded in bookmarklet
+- **Instant Execution**: No loading delays or network requests for runtime
+- **Privacy-Focused**: No tracking, analytics, or external service calls
+- **Reliable Operation**: Works regardless of CDN availability or network issues
+- **Simple Deployment**: Generate once, use anywhere
+- **Full GitHub Integration**: Direct API access with proper authentication
 
 ## Development Guidelines
 
@@ -364,27 +336,24 @@ When contributing to the bookmarklet system:
 
 ## Support and Troubleshooting
 
-### Local Testing Troubleshooting
+### Personal Bookmarklet Troubleshooting
 
-#### Server Won't Start
+#### Generator Issues
 
 ```bash
-# Check if port is in use
-netstat -ano | findstr :8080
+# Rebuild the generator
+npm run build:bookmarklet
 
-# Use different port
-node scripts/serve-local.js --port 3000
-
-# Check build integrity
-npm run cleanup:bookmarklet --check-only
+# Check build output
+ls dist/bookmarklet/
 ```
 
 #### Bookmarklet Not Working
 
 1. **Check Browser Console**: Look for JavaScript errors
-2. **Verify Server**: Ensure `http://localhost:8080/enhanced-runtime.js` loads
-3. **Clear Cache**: Hard refresh (Ctrl+F5) the installation page
-4. **Rebuild**: Run `npm run build:bookmarklet:hybrid` and restart server
+2. **Verify Configuration**: Ensure GitHub token and repository are valid
+3. **Test Permissions**: Check if your token has repository write access
+4. **Clear Cache**: Try generating a fresh bookmarklet
 
 #### GitHub Integration Issues
 
@@ -392,6 +361,7 @@ npm run cleanup:bookmarklet --check-only
   permissions
 - **Repository Access**: Ensure the repository exists and you have write access
 - **Network Issues**: Check if GitHub API is accessible from your network
+- **Rate Limits**: GitHub API has rate limits; wait and retry if needed
 
 ### Build System Troubleshooting
 
@@ -403,33 +373,32 @@ npx tsc --project tsconfig.bookmarklet.json --noEmit
 
 # Clean and rebuild
 npm run clean
-npm run build:bookmarklet:hybrid
+npm run build:bookmarklet
 ```
 
-#### Size Optimization
+#### Generator Interface Issues
 
-- Current loader size: ~1014 characters (target: <1000)
-- Runtime size: ~75KB (acceptable for hosted script)
-- If loader exceeds 2KB, check for compression opportunities in
-  `build-hybrid-bookmarklet.js`
+- Current generator includes embedded capture pipeline
+- Size typically 8-12KB for generated bookmarklets
+- If issues occur, verify generator.ts builds correctly
 
-### Production Deployment
+### Personal Bookmarklet Usage
 
-For production deployment of the hybrid system:
+For optimal use of personal bookmarklets:
 
-1. **Upload Runtime**: Deploy `enhanced-runtime.js` to your CDN
-2. **Update URLs**: Modify `cdnBaseUrl` in the build script
-3. **Test Fallback**: Ensure GitHub Raw URL works as backup
-4. **Monitor Performance**: Track loading times and success rates
+1. **Generate Fresh**: Create new bookmarklets when tokens change
+2. **Test Configuration**: Verify GitHub access before generating
+3. **Secure Storage**: Treat bookmarklets as containing sensitive credentials
+4. **Regular Updates**: Regenerate periodically for security
 
-### Enhanced Features Testing
+### Features Overview
 
-The enhanced bookmarklet includes diagnostic capabilities:
+The personal bookmarklet includes:
 
-- **Connection Testing**: Real-time GitHub API validation
-- **Content Analysis**: Quality assessment with feedback
-- **Performance Metrics**: Processing time and success rate tracking
-- **Error Reporting**: Detailed error contexts with suggested solutions
+- **Direct GitHub Integration**: No external services required
+- **Content Extraction**: Smart content detection and markdown conversion
+- **Error Handling**: Clear feedback for any issues encountered
+- **Security Focus**: All operations happen locally in your browser
 
 ### Browser Compatibility
 

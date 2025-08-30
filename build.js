@@ -20,7 +20,7 @@ class PrismWeaveBuildSystem {
       },
       'bookmarklet': {
         path: 'browser-extension',
-        buildScript: 'scripts/build-hybrid-bookmarklet.js',
+        buildScript: 'scripts/build-bookmarklet.js',
         distPath: 'browser-extension/dist/bookmarklet',
       },
       'ai-processing': {
@@ -101,7 +101,7 @@ class PrismWeaveBuildSystem {
     console.log('🔗 Building bookmarklet...');
     const componentPath = path.join(this.projectRoot, 'browser-extension');
     
-    execSync('node scripts/build-hybrid-bookmarklet.js', { 
+    execSync('node scripts/build-bookmarklet.js', { 
       cwd: componentPath, 
       stdio: 'inherit',
       env: { ...process.env, NODE_ENV: this.isProduction ? 'production' : 'development' }
