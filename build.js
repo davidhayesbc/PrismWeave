@@ -23,11 +23,6 @@ class PrismWeaveBuildSystem {
         buildScript: 'scripts/build-hybrid-bookmarklet.js',
         distPath: 'browser-extension/dist/bookmarklet',
       },
-      'vscode-extension': {
-        path: 'vscode-extension',
-        buildScript: 'npm run compile',
-        distPath: 'vscode-extension/out',
-      },
       'ai-processing': {
         path: 'ai-processing',
         buildScript: 'python -m pytest tests/ -v',
@@ -51,9 +46,6 @@ class PrismWeaveBuildSystem {
           break;
         case 'bookmarklet':
           await this.buildBookmarklet();
-          break;
-        case 'vscode-extension':
-          await this.buildVSCodeExtension();
           break;
         case 'ai-processing':
           await this.buildAIProcessing();
@@ -82,7 +74,6 @@ class PrismWeaveBuildSystem {
     await this.buildAIProcessing();
     await this.buildBrowserExtension();
     await this.buildBookmarklet();
-    await this.buildVSCodeExtension();
     await this.buildWebDeployment();
   }
 
@@ -117,28 +108,6 @@ class PrismWeaveBuildSystem {
     });
     
     console.log('✅ Bookmarklet built');
-  }
-
-  async buildVSCodeExtension() {
-    console.log('🔧 Building VS Code extension...');
-    const componentPath = path.join(this.projectRoot, 'vscode-extension');
-    
-    // Check if VS Code extension exists and has package.json
-    if (!fs.existsSync(path.join(componentPath, 'package.json'))) {
-      console.log('⏭️ VS Code extension not found, skipping...');
-      return;
-    }
-
-    // Install dependencies if needed
-    if (!fs.existsSync(path.join(componentPath, 'node_modules'))) {
-      console.log('📥 Installing VS Code extension dependencies...');
-      execSync('npm install', { cwd: componentPath, stdio: 'inherit' });
-    }
-
-    // Compile TypeScript
-    execSync('npm run compile', { cwd: componentPath, stdio: 'inherit' });
-    
-    console.log('✅ VS Code extension built');
   }
 
   async buildAIProcessing() {
@@ -404,7 +373,6 @@ class PrismWeaveBuildSystem {
     const cleanPaths = [
       'dist',
       'browser-extension/dist',
-      'vscode-extension/out',
       'ai-processing/dist',
       'ai-processing/__pycache__',
       'ai-processing/.pytest_cache',
