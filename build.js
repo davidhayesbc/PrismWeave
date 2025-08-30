@@ -155,18 +155,14 @@ class PrismWeaveBuildSystem {
       this.copyDirectory(browserExtensionDist, path.join(webDistPath, 'extension'));
     }
 
-    // Copy bookmarklet files and fix paths for web deployment
+    // Copy bookmarklet files and ensure CSS is accessible for web deployment
     const bookmarkletDist = path.join(this.projectRoot, 'browser-extension', 'dist', 'bookmarklet');
     if (fs.existsSync(bookmarkletDist)) {
       this.copyDirectory(bookmarkletDist, path.join(webDistPath, 'bookmarklet'));
       
-      // Fix CSS path in generator.html for web deployment structure
-      const webGeneratorHtml = path.join(webDistPath, 'bookmarklet', 'generator.html');
-      if (fs.existsSync(webGeneratorHtml)) {
-        let content = fs.readFileSync(webGeneratorHtml, 'utf8');
-        content = content.replace('../styles/shared-ui.css', '../extension/styles/shared-ui.css');
-        fs.writeFileSync(webGeneratorHtml, content);
-      }
+      // The bookmarklet generator.html already has the correct CSS path (shared-ui.css)
+      // No need to modify the CSS path as the shared-ui.css file is copied with the bookmarklet
+      console.log('   ✅ Bookmarklet files copied with correct CSS paths');
       
       // Remove export statements from generator.js for browser compatibility
       const webGeneratorJs = path.join(webDistPath, 'bookmarklet', 'generator.js');
