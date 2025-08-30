@@ -428,7 +428,7 @@ export class InjectableContentExtractor {
         extractionResult.title
       );
 
-      // Check if file exists first
+      // Check if file exists first (404 responses are expected for new files)
       let existingFileSha: string | undefined;
       try {
         const existingResponse = await fetch(
@@ -445,9 +445,17 @@ export class InjectableContentExtractor {
         if (existingResponse.ok) {
           const existingData = await existingResponse.json();
           existingFileSha = existingData.sha;
+        } else if (existingResponse.status === 404) {
+          // File doesn't exist yet - this is expected for new documents
+          // The 404 error in browser console is normal GitHub API behavior
+        } else {
+          // Unexpected error status
+          console.warn(
+            `Unexpected response when checking file existence: ${existingResponse.status}`
+          );
         }
       } catch (error) {
-        // File doesn't exist, which is fine
+        // Network error or other issue - file likely doesn't exist
       }
 
       // Create or update file
