@@ -7,6 +7,7 @@
     "build": "npm run test:ci && node ../build.js build browser-extension",
     "build:prod": "npm run test:ci && cross-env NODE_ENV=production node ../build.js build browser-extension",
     "build:bookmarklet": "node ../build.js build bookmarklet",
+    "build:injectable": "node scripts/build-injectable.js",
     "build:all": "npm run test:ci && node ../build.js build",
     "build:fast": "node ../build.js build browser-extension",
     "build:fast:prod": "cross-env NODE_ENV=production node ../build.js build browser-extension",
