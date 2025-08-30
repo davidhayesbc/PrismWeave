@@ -68,8 +68,8 @@ class BookmarkletGeneratorUI {
       return `${url.origin}${basePath}/injectable`;
     }
 
-    // Default fallback to GitHub Pages
-    return 'https://davidhayesbc.github.io/prismweave/injectable';
+    // Default fallback to GitHub Pages (note: capital P in PrismWeave)
+    return 'https://davidhayesbc.github.io/PrismWeave/injectable';
   }
 
   init(): void {
