@@ -2,7 +2,7 @@
 // PrismWeave Options/Settings Page Script - TypeScript version
 
 import { IMessageData, IMessageResponse, ISettings } from '../types/index.js';
-import { BookmarkletGenerator } from '../utils/bookmarklet-generator.js';
+import { EmbeddedBookmarkletGenerator } from '../utils/embedded-bookmarklet-generator.js';
 import { createLogger } from '../utils/logger.js';
 
 export class PrismWeaveOptions {
@@ -697,7 +697,7 @@ export class PrismWeaveOptions {
         removeNavigation: this.getCheckboxValue('removeNavigation'),
       };
 
-      this.currentBookmarklet = BookmarkletGenerator.generateBookmarklet(config);
+      this.currentBookmarklet = EmbeddedBookmarkletGenerator.generatePersonalBookmarklet(config);
 
       // Display the bookmarklet
       const previewDiv = document.getElementById('bookmarklet-code-preview');

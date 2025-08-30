@@ -272,18 +272,25 @@ The installation page features:
 
 #### Option 2: Build Your Own
 
-For developers or users who want to customize the bookmarklet:
+For developers or users who want to create personalized bookmarklets:
 
-```bash
-# Build the hybrid bookmarklet system
-cd browser-extension
-node scripts/build-hybrid-bookmarklet.js
+The PrismWeave system includes an embedded bookmarklet generator that creates
+personalized bookmarklets with your GitHub Personal Access Token (PAT) embedded
+directly in the code. This approach eliminates cross-domain storage issues and
+provides a self-contained solution.
 
-# Generated files will be in dist/bookmarklet/
-# - install.html (full-featured installation page)
-# - install-simple.html (simple installation page)
-# - Both standard and enhanced bookmarklet versions
-```
+**Access the generator through:**
+
+- Browser extension options page
+- Direct code usage:
+  `EmbeddedBookmarkletGenerator.generatePersonalBookmarklet(config)`
+
+**Benefits of PAT-based approach:**
+
+- No external script dependencies
+- Works across all domains
+- Embedded configuration
+- Secure token storage
 
 ### Current Size Considerations
 

@@ -18,11 +18,7 @@ class PrismWeaveBuildSystem {
         buildScript: 'scripts/build-simple.js',
         distPath: 'browser-extension/dist',
       },
-      'bookmarklet': {
-        path: 'browser-extension',
-        buildScript: 'scripts/build-hybrid-bookmarklet.js',
-        distPath: 'browser-extension/dist/bookmarklet',
-      },
+
       'ai-processing': {
         path: 'ai-processing',
         buildScript: 'python -m pytest tests/ -v',
@@ -43,9 +39,6 @@ class PrismWeaveBuildSystem {
           break;
         case 'browser-extension':
           await this.buildBrowserExtension();
-          break;
-        case 'bookmarklet':
-          await this.buildBookmarklet();
           break;
         case 'ai-processing':
           await this.buildAIProcessing();
@@ -73,7 +66,6 @@ class PrismWeaveBuildSystem {
     // Build in order of dependencies
     await this.buildAIProcessing();
     await this.buildBrowserExtension();
-    await this.buildBookmarklet();
     await this.buildWebDeployment();
   }
 
@@ -95,19 +87,6 @@ class PrismWeaveBuildSystem {
     });
     
     console.log('✅ Browser extension built');
-  }
-
-  async buildBookmarklet() {
-    console.log('🔗 Building bookmarklet...');
-    const componentPath = path.join(this.projectRoot, 'browser-extension');
-    
-    execSync('node scripts/build-hybrid-bookmarklet.js', { 
-      cwd: componentPath, 
-      stdio: 'inherit',
-      env: { ...process.env, NODE_ENV: this.isProduction ? 'production' : 'development' }
-    });
-    
-    console.log('✅ Bookmarklet built');
   }
 
   async buildAIProcessing() {
