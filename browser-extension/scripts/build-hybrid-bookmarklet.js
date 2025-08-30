@@ -106,43 +106,41 @@ class HybridBookmarkletBuilder {
   }
 
   async buildHostedScript() {
-    console.log('🔧 Compiling hosted runtime with standalone content extractor...');
+    console.log('🔧 Compiling hosted runtime with shared capture pipeline...');
 
     try {
-      // First, try to read the standalone content extractor
-      const standaloneExtractorPath = path.join(
+      // Ensure the compiled capture module exists (built by tsc via tsconfig.bookmarklet.json)
+      const compiledCapturePath = path.join(
         __dirname,
         '..',
-        'src',
+        'dist',
+        'bookmarklet',
         'utils',
-        'standalone-content-extractor.ts'
+        'bookmarklet-content-capture.js'
       );
-      let standaloneExtractorCode = '';
-
-      if (fs.existsSync(standaloneExtractorPath)) {
-        console.log('📄 Reading standalone content extractor...');
-        standaloneExtractorCode = fs.readFileSync(standaloneExtractorPath, 'utf8');
-        // Remove TypeScript import/export statements for inline usage
-        standaloneExtractorCode = standaloneExtractorCode
-          .replace(/import\s+.*?from\s+.*?;/g, '')
-          .replace(/export\s*\{[^}]*\}\s*;?/g, '')
-          .replace(/export\s+default\s+[^;]+;?/g, '')
-          .replace(/export\s+/g, '');
-      } else {
-        console.warn('⚠️ Standalone content extractor not found, using basic implementation');
-        standaloneExtractorCode = this.generateBasicExtractorFallback();
+      if (!fs.existsSync(compiledCapturePath)) {
+        throw new Error(
+          `Compiled capture module not found at ${compiledCapturePath}. Make sure TypeScript compilation succeeded.`
+        );
       }
 
-      // Use esbuild to properly bundle the enhanced runtime
+      // Use esbuild to properly bundle the enhanced runtime with shared capture
       const esbuild = require('esbuild');
 
-      // Create a temporary combined file for esbuild
+      // Create a temporary entry file for esbuild
       const tempInputContent = `
-        // Embedded standalone content extractor
-        ${standaloneExtractorCode}
-        
-        // Enhanced runtime functionality
-        ${this.generateEnhancedRuntimeCode()}
+        // Import compiled capture module (uses shared ContentExtractionCore + MarkdownConverter)
+        // NOTE: This path is relative to the temporary entry file created in the browser-extension folder
+        import { BookmarkletContentCapture, capturePageContent } from './dist/bookmarklet/utils/bookmarklet-content-capture.js';
+
+        // Expose a small global for optional direct access
+        const PrismWeaveCapture = {
+          capturePage: (options) => capturePageContent(options),
+          create: (options) => new BookmarkletContentCapture(options),
+        };
+
+        // Enhanced runtime functionality using shared capture API
+        ${this.generateEnhancedRuntimeCode(true)}
       `;
 
       const tempInputPath = path.join(__dirname, '..', 'temp-enhanced-runtime.js');
@@ -152,7 +150,7 @@ class HybridBookmarkletBuilder {
         // Build the combined enhanced runtime
         const result = await esbuild.build({
           entryPoints: [tempInputPath],
-          bundle: false, // Don't bundle since we're already combining manually
+          bundle: true, // Bundle to include Turndown and dependencies
           format: 'iife',
           platform: 'browser',
           target: 'es2020',
@@ -173,9 +171,9 @@ class HybridBookmarkletBuilder {
   if (typeof window !== 'undefined') {
     console.log('📋 PrismWeave: Initializing enhanced runtime...');
     
-    // Make sure all functions are available globally
-    if (typeof extractPageContentStandalone === 'function') {
-      window.extractPageContentStandalone = extractPageContentStandalone;
+    // Make capture API available globally
+    if (typeof PrismWeaveCapture === 'object') {
+      window.PrismWeaveCapture = PrismWeaveCapture;
     }
     
     if (typeof PrismWeaveEnhanced === 'object' && typeof PrismWeaveEnhanced.execute === 'function') {
@@ -215,7 +213,7 @@ class HybridBookmarkletBuilder {
     }
   }
 
-  generateEnhancedRuntimeCode() {
+  generateEnhancedRuntimeCode(usingSharedCapture = false) {
     return `
 // Enhanced runtime functionality
 const PrismWeaveEnhanced = {
@@ -225,24 +223,15 @@ const PrismWeaveEnhanced = {
     console.log('🚀 PrismWeave Enhanced Runtime v${this.config.version}');
     
     try {
-      // Use the embedded standalone content extractor
-      if (typeof extractPageContentStandalone !== 'function') {
-        throw new Error('Standalone content extractor not available');
+      // Extract content via shared capture pipeline
+      console.log('📄 Extracting page content via shared capture...');
+      const captureResult = ${usingSharedCapture ? 'await capturePageContent({})' : 'null'};
+      if (!captureResult || !captureResult.success || !captureResult.data) {
+        throw new Error('Failed to capture content');
       }
+      const extractedContent = captureResult.data;
       
-      // Extract content using the same logic as browser extension
-      console.log('📄 Extracting page content...');
-      const extractedContent = await extractPageContentStandalone({
-        removeAds: true,
-        removeNavigation: true,
-        excludeSelectors: ['.advertisement', '.ad', '.popup', '.modal', '.sidebar']
-      });
-      
-      if (!extractedContent || !extractedContent.content) {
-        throw new Error('Failed to extract content');
-      }
-      
-      console.log('✅ Content extracted successfully');
+      console.log('✅ Content captured successfully');
       console.log('📊 Content stats:', {
         title: extractedContent.title,
         contentLength: extractedContent.content.length,
@@ -258,7 +247,7 @@ const PrismWeaveEnhanced = {
       
     } catch (error) {
       console.error('❌ PrismWeave execution failed:', error);
-      alert('PrismWeave Error: ' + error.message);
+      alert('PrismWeave Error: ' + (error && error.message ? error.message : String(error)));
     }
   },
   
@@ -456,44 +445,41 @@ tags: []
   combineSourcesManually() {
     console.log('🔧 Manually combining source files...');
 
-    // Read standalone content extractor
-    const standaloneExtractorPath = path.join(
+    // Read compiled shared capture module if available
+    const compiledCapturePath = path.join(
       __dirname,
       '..',
-      'src',
+      'dist',
+      'bookmarklet',
       'utils',
-      'standalone-content-extractor.ts'
+      'bookmarklet-content-capture.js'
     );
-    let standaloneExtractorCode = '';
+    let captureModuleCode = '';
 
-    if (fs.existsSync(standaloneExtractorPath)) {
-      standaloneExtractorCode = fs.readFileSync(standaloneExtractorPath, 'utf8');
-      // Remove TypeScript syntax for browser compatibility
-      standaloneExtractorCode = standaloneExtractorCode
-        .replace(/import\s+.*?from\s+.*?;/g, '')
-        .replace(/export\s*\{[^}]*\}\s*;?/g, '')
-        .replace(/export\s+default\s+[^;]+;?/g, '')
-        .replace(/export\s+/g, '');
+    if (fs.existsSync(compiledCapturePath)) {
+      captureModuleCode = fs.readFileSync(compiledCapturePath, 'utf8');
     } else {
-      standaloneExtractorCode = this.generateBasicExtractorFallback();
+      console.warn('Shared capture module not found, using basic extractor fallback');
+      captureModuleCode = this.generateBasicExtractorFallback();
     }
 
     const combinedContent = `
 /* PrismWeave Enhanced Runtime v${this.config.version} - ${new Date().toISOString()} */
 
-// Standalone Content Extractor
-${standaloneExtractorCode}
+// Shared Capture Module (compiled or fallback)
+${captureModuleCode}
 
 // Enhanced Runtime
-${this.generateEnhancedRuntimeCode()}
+${this.generateEnhancedRuntimeCode(true)}
 
 // Global initialization
 (function() {
   if (typeof window !== 'undefined') {
     console.log('📋 PrismWeave: Manual initialization completed');
     
-    if (typeof extractPageContentStandalone === 'function') {
-      window.extractPageContentStandalone = extractPageContentStandalone;
+    // Expose capture API if available
+    if (typeof PrismWeaveCapture === 'object') {
+      window.PrismWeaveCapture = PrismWeaveCapture;
     }
     
     if (typeof PrismWeaveEnhanced === 'object') {
