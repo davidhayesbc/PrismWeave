@@ -178,61 +178,57 @@ export class StandaloneContentExtractor {
    */
   convertToMarkdown(html: string, options: IConversionOptions = {}): IConversionResult {
     const warnings: string[] = [];
-    
+
     let markdown = html;
 
     // Convert headers
     markdown = this.convertHeaders(markdown);
-    
+
     // Convert lists
     markdown = this.convertLists(markdown);
-    
+
     // Convert tables
     markdown = this.convertTables(markdown);
-    
+
     // Convert code blocks
     markdown = this.convertCodeBlocks(markdown);
-    
+
     // Convert blockquotes
     markdown = this.convertBlockquotes(markdown);
-    
+
     // Convert images
     if (options.includeImages !== false) {
       markdown = this.convertImages(markdown);
     }
-    
+
     // Convert links
     if (options.includeLinks !== false) {
       markdown = this.convertLinks(markdown);
     }
-    
+
     // Convert text formatting
     markdown = this.convertTextFormatting(markdown);
-    
+
     // Convert line breaks
     markdown = this.convertLineBreaks(markdown);
-    
+
     // Clean up HTML
     markdown = this.cleanupHtml(markdown);
-    
+
     // Normalize whitespace
     markdown = this.normalizeWhitespace(markdown);
 
     // Generate frontmatter
-    const frontmatter = options.generateFrontmatter 
-      ? this.generateFrontmatter()
-      : '';
+    const frontmatter = options.generateFrontmatter ? this.generateFrontmatter() : '';
 
     // Generate metadata
-    const metadata = options.includeMetadata 
-      ? this.extractMetadata()
-      : {};
+    const metadata = options.includeMetadata ? this.extractMetadata() : {};
 
     return {
       markdown,
       frontmatter,
       metadata,
-      warnings
+      warnings,
     };
   }
 
@@ -456,20 +452,26 @@ export class StandaloneContentExtractor {
   private convertLists(html: string): string {
     // Unordered lists
     html = html.replace(/<ul[^>]*>(.*?)<\/ul>/gis, (match, content) => {
-      const items = content.replace(/<li[^>]*>(.*?)<\/li>/gi, (liMatch: string, liContent: string) => {
-        const cleanContent = this.stripHtml(liContent).trim();
-        return `- ${cleanContent}\n`;
-      });
+      const items = content.replace(
+        /<li[^>]*>(.*?)<\/li>/gi,
+        (liMatch: string, liContent: string) => {
+          const cleanContent = this.stripHtml(liContent).trim();
+          return `- ${cleanContent}\n`;
+        }
+      );
       return `\n${items}\n`;
     });
 
     // Ordered lists
     html = html.replace(/<ol[^>]*>(.*?)<\/ol>/gis, (match, content) => {
       let counter = 1;
-      const items = content.replace(/<li[^>]*>(.*?)<\/li>/gi, (liMatch: string, liContent: string) => {
-        const cleanContent = this.stripHtml(liContent).trim();
-        return `${counter++}. ${cleanContent}\n`;
-      });
+      const items = content.replace(
+        /<li[^>]*>(.*?)<\/li>/gi,
+        (liMatch: string, liContent: string) => {
+          const cleanContent = this.stripHtml(liContent).trim();
+          return `${counter++}. ${cleanContent}\n`;
+        }
+      );
       return `\n${items}\n`;
     });
 
@@ -479,7 +481,7 @@ export class StandaloneContentExtractor {
   private convertTables(html: string): string {
     return html.replace(/<table[^>]*>(.*?)<\/table>/gis, (match, content) => {
       const rows: string[] = [];
-      
+
       // Process header
       const headerMatch = content.match(/<thead[^>]*>(.*?)<\/thead>/is);
       if (headerMatch) {
@@ -492,7 +494,7 @@ export class StandaloneContentExtractor {
           rows.push(separator);
         }
       }
-      
+
       // Process body rows
       const bodyMatch = content.match(/<tbody[^>]*>(.*?)<\/tbody>/is) || [null, content];
       if (bodyMatch[1]) {
@@ -504,14 +506,14 @@ export class StandaloneContentExtractor {
           });
         }
       }
-      
+
       // If no header was found but we have rows, add a separator after first row
       if (!headerMatch && rows.length > 0) {
         const separatorCells = rows[0].split('|').length - 2;
         const separator = '|' + '---|'.repeat(separatorCells);
         rows.splice(1, 0, separator);
       }
-      
+
       return rows.length > 0 ? `\n${rows.join('\n')}\n` : '';
     });
   }
@@ -519,12 +521,12 @@ export class StandaloneContentExtractor {
   private convertTableRow(rowHtml: string): string | null {
     const cells = rowHtml.match(/<t[hd][^>]*>(.*?)<\/t[hd]>/gis);
     if (!cells) return null;
-    
+
     const convertedCells = cells.map(cell => {
       const content = cell.replace(/<t[hd][^>]*>(.*?)<\/t[hd]>/i, '$1');
       return this.stripHtml(content).trim();
     });
-    
+
     return `|${convertedCells.join('|')}|`;
   }
 
@@ -554,9 +556,10 @@ export class StandaloneContentExtractor {
   }
 
   private convertImages(html: string): string {
-    return html.replace(/<img[^>]*src=["']([^"']*)["'][^>]*alt=["']([^"']*)["'][^>]*>/gi, '![$2]($1)')
-               .replace(/<img[^>]*alt=["']([^"']*)["'][^>]*src=["']([^"']*)["'][^>]*>/gi, '![$1]($2)')
-               .replace(/<img[^>]*src=["']([^"']*)["'][^>]*>/gi, '![]($1)');
+    return html
+      .replace(/<img[^>]*src=["']([^"']*)["'][^>]*alt=["']([^"']*)["'][^>]*>/gi, '![$2]($1)')
+      .replace(/<img[^>]*alt=["']([^"']*)["'][^>]*src=["']([^"']*)["'][^>]*>/gi, '![$1]($2)')
+      .replace(/<img[^>]*src=["']([^"']*)["'][^>]*>/gi, '![]($1)');
   }
 
   private convertLinks(html: string): string {
@@ -566,13 +569,13 @@ export class StandaloneContentExtractor {
   private convertTextFormatting(html: string): string {
     // Bold/Strong
     html = html.replace(/<(strong|b)[^>]*>(.*?)<\/(strong|b)>/gi, '**$2**');
-    
-    // Italic/Emphasis  
+
+    // Italic/Emphasis
     html = html.replace(/<(em|i)[^>]*>(.*?)<\/(em|i)>/gi, '*$2*');
-    
+
     // Strikethrough
     html = html.replace(/<(del|s|strike)[^>]*>(.*?)<\/(del|s|strike)>/gi, '~~$2~~');
-    
+
     return html;
   }
 
@@ -588,10 +591,10 @@ export class StandaloneContentExtractor {
   private normalizeWhitespace(markdown: string): string {
     // Remove excessive blank lines
     markdown = markdown.replace(/\n\s*\n\s*\n/g, '\n\n');
-    
+
     // Trim leading/trailing whitespace
     markdown = markdown.trim();
-    
+
     // Ensure single newline at end
     return markdown + '\n';
   }
@@ -607,10 +610,10 @@ export class StandaloneContentExtractor {
       '&amp;': '&',
       '&quot;': '"',
       '&#39;': "'",
-      '&nbsp;': ' '
+      '&nbsp;': ' ',
     };
 
-    return text.replace(/&(?:lt|gt|amp|quot|#39|nbsp);/g, (entity) => {
+    return text.replace(/&(?:lt|gt|amp|quot|#39|nbsp);/g, entity => {
       return entityMap[entity] || entity;
     });
   }
@@ -620,7 +623,7 @@ export class StandaloneContentExtractor {
     const url = window.location.href;
     const now = new Date();
     const dateStr = now.toISOString().split('T')[0];
-    
+
     return `---
 title: "${title.replace(/"/g, '\\"')}"
 url: "${url}"
@@ -702,10 +705,10 @@ export async function extractPageContentStandalone(options: IExtractorOptions = 
   images: string[];
 }> {
   const extractor = new StandaloneContentExtractor();
-  
+
   // Extract content
   const contentResult = await extractor.extractContent(options);
-  
+
   // Convert to markdown
   const markdownResult = extractor.convertToMarkdown(contentResult.content, {
     preserveFormatting: true,
@@ -714,11 +717,11 @@ export async function extractPageContentStandalone(options: IExtractorOptions = 
     includeImages: true,
     includeLinks: true,
   });
-  
+
   // Extract images
   const images = extractor.extractImages();
   const imageUrls = images.map(img => img.src);
-  
+
   return {
     html: contentResult.content,
     title: contentResult.metadata.title,

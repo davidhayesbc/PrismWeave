@@ -110,9 +110,15 @@ class HybridBookmarkletBuilder {
 
     try {
       // First, try to read the standalone content extractor
-      const standaloneExtractorPath = path.join(__dirname, '..', 'src', 'utils', 'standalone-content-extractor.ts');
+      const standaloneExtractorPath = path.join(
+        __dirname,
+        '..',
+        'src',
+        'utils',
+        'standalone-content-extractor.ts'
+      );
       let standaloneExtractorCode = '';
-      
+
       if (fs.existsSync(standaloneExtractorPath)) {
         console.log('📄 Reading standalone content extractor...');
         standaloneExtractorCode = fs.readFileSync(standaloneExtractorPath, 'utf8');
@@ -449,11 +455,17 @@ tags: []
 
   combineSourcesManually() {
     console.log('🔧 Manually combining source files...');
-    
+
     // Read standalone content extractor
-    const standaloneExtractorPath = path.join(__dirname, '..', 'src', 'utils', 'standalone-content-extractor.ts');
+    const standaloneExtractorPath = path.join(
+      __dirname,
+      '..',
+      'src',
+      'utils',
+      'standalone-content-extractor.ts'
+    );
     let standaloneExtractorCode = '';
-    
+
     if (fs.existsSync(standaloneExtractorPath)) {
       standaloneExtractorCode = fs.readFileSync(standaloneExtractorPath, 'utf8');
       // Remove TypeScript syntax for browser compatibility
@@ -465,7 +477,7 @@ tags: []
     } else {
       standaloneExtractorCode = this.generateBasicExtractorFallback();
     }
-    
+
     const combinedContent = `
 /* PrismWeave Enhanced Runtime v${this.config.version} - ${new Date().toISOString()} */
 
@@ -491,7 +503,7 @@ ${this.generateEnhancedRuntimeCode()}
   }
 })();
 `;
-    
+
     return combinedContent;
   }
 
