@@ -106,61 +106,393 @@ class HybridBookmarkletBuilder {
   }
 
   async buildHostedScript() {
-    console.log('🔧 Compiling hosted runtime with proper bundling...');
-
-    // Use esbuild to properly bundle the enhanced runtime
-    const esbuild = require('esbuild');
+    console.log('🔧 Compiling hosted runtime with standalone content extractor...');
 
     try {
-      // Build the enhanced runtime as a single bundled file
-      const result = await esbuild.build({
-        entryPoints: [
-          path.join(__dirname, '..', 'src', 'bookmarklet', 'enhanced-runtime-compatible.ts'),
-        ],
-        bundle: true,
-        format: 'iife',
-        platform: 'browser',
-        target: 'es2020',
-        minify: this.config.minify,
-        // Remove globalName to avoid IIFE wrapper issues
-        define: {
-          'process.env.NODE_ENV': this.config.minify ? '"production"' : '"development"',
-          BOOKMARKLET_MODE: '"hosted"',
-        },
-        write: false, // Don't write to file, return content
-        banner: {
-          js: `/* PrismWeave Enhanced Runtime v${this.config.version} - ${new Date().toISOString()} */`,
-        },
-        footer: {
-          js: `
-// Force global initialization regardless of module system
+      // First, try to read the standalone content extractor
+      const standaloneExtractorPath = path.join(__dirname, '..', 'src', 'utils', 'standalone-content-extractor.ts');
+      let standaloneExtractorCode = '';
+      
+      if (fs.existsSync(standaloneExtractorPath)) {
+        console.log('📄 Reading standalone content extractor...');
+        standaloneExtractorCode = fs.readFileSync(standaloneExtractorPath, 'utf8');
+        // Remove TypeScript import/export statements for inline usage
+        standaloneExtractorCode = standaloneExtractorCode
+          .replace(/import\s+.*?from\s+.*?;/g, '')
+          .replace(/export\s*\{[^}]*\}\s*;?/g, '')
+          .replace(/export\s+default\s+[^;]+;?/g, '')
+          .replace(/export\s+/g, '');
+      } else {
+        console.warn('⚠️ Standalone content extractor not found, using basic implementation');
+        standaloneExtractorCode = this.generateBasicExtractorFallback();
+      }
+
+      // Use esbuild to properly bundle the enhanced runtime
+      const esbuild = require('esbuild');
+
+      // Create a temporary combined file for esbuild
+      const tempInputContent = `
+        // Embedded standalone content extractor
+        ${standaloneExtractorCode}
+        
+        // Enhanced runtime functionality
+        ${this.generateEnhancedRuntimeCode()}
+      `;
+
+      const tempInputPath = path.join(__dirname, '..', 'temp-enhanced-runtime.js');
+      fs.writeFileSync(tempInputPath, tempInputContent, 'utf8');
+
+      try {
+        // Build the combined enhanced runtime
+        const result = await esbuild.build({
+          entryPoints: [tempInputPath],
+          bundle: false, // Don't bundle since we're already combining manually
+          format: 'iife',
+          platform: 'browser',
+          target: 'es2020',
+          minify: this.config.minify,
+          globalName: 'PrismWeaveRuntime',
+          define: {
+            'process.env.NODE_ENV': this.config.minify ? '"production"' : '"development"',
+            BOOKMARKLET_MODE: '"hosted"',
+          },
+          write: false, // Don't write to file, return content
+          banner: {
+            js: `/* PrismWeave Enhanced Runtime v${this.config.version} - ${new Date().toISOString()} */`,
+          },
+          footer: {
+            js: `
+// Force global initialization
 (function() {
-  // Ensure the APIs are available globally
   if (typeof window !== 'undefined') {
-    console.log('📋 PrismWeave: Force-initializing global APIs...');
-    // The functions should already be set by the module, but let's verify
-    if (typeof window.PrismWeaveEnhanced?.execute === 'function') {
-      console.log('✅ PrismWeave APIs already properly initialized');
+    console.log('📋 PrismWeave: Initializing enhanced runtime...');
+    
+    // Make sure all functions are available globally
+    if (typeof extractPageContentStandalone === 'function') {
+      window.extractPageContentStandalone = extractPageContentStandalone;
+    }
+    
+    if (typeof PrismWeaveEnhanced === 'object' && typeof PrismWeaveEnhanced.execute === 'function') {
+      window.PrismWeaveEnhanced = PrismWeaveEnhanced;
+      console.log('✅ PrismWeave Enhanced Runtime loaded successfully');
     } else {
-      console.warn('⚠️ PrismWeave APIs not found, attempting manual initialization');
+      console.warn('⚠️ PrismWeave Enhanced APIs not properly initialized');
     }
   }
 })();`,
-        },
-      });
+          },
+        });
 
-      if (result.outputFiles && result.outputFiles.length > 0) {
-        return result.outputFiles[0].text;
-      } else {
-        throw new Error('No output from esbuild');
+        // Clean up temp file
+        if (fs.existsSync(tempInputPath)) {
+          fs.unlinkSync(tempInputPath);
+        }
+
+        if (result.outputFiles && result.outputFiles.length > 0) {
+          return result.outputFiles[0].text;
+        } else {
+          throw new Error('No output from esbuild');
+        }
+      } catch (buildError) {
+        // Clean up temp file on error
+        if (fs.existsSync(tempInputPath)) {
+          fs.unlinkSync(tempInputPath);
+        }
+        throw buildError;
       }
     } catch (error) {
-      console.error('❌ ESBuild compilation failed:', error);
-      console.warn('📄 Falling back to source file combination...');
+      console.error('❌ Enhanced runtime build failed:', error);
+      console.warn('📄 Falling back to manual source combination...');
 
-      // Fallback: try to use existing compiled files or combine sources
-      return this.combineSourceFilesFallback();
+      // Fallback: manually combine sources
+      return this.combineSourcesManually();
     }
+  }
+
+  generateEnhancedRuntimeCode() {
+    return `
+// Enhanced runtime functionality
+const PrismWeaveEnhanced = {
+  version: '${this.config.version}',
+  
+  async execute() {
+    console.log('🚀 PrismWeave Enhanced Runtime v${this.config.version}');
+    
+    try {
+      // Use the embedded standalone content extractor
+      if (typeof extractPageContentStandalone !== 'function') {
+        throw new Error('Standalone content extractor not available');
+      }
+      
+      // Extract content using the same logic as browser extension
+      console.log('📄 Extracting page content...');
+      const extractedContent = await extractPageContentStandalone({
+        removeAds: true,
+        removeNavigation: true,
+        excludeSelectors: ['.advertisement', '.ad', '.popup', '.modal', '.sidebar']
+      });
+      
+      if (!extractedContent || !extractedContent.content) {
+        throw new Error('Failed to extract content');
+      }
+      
+      console.log('✅ Content extracted successfully');
+      console.log('📊 Content stats:', {
+        title: extractedContent.title,
+        contentLength: extractedContent.content.length,
+        markdownLength: extractedContent.markdown?.length || 0
+      });
+      
+      // Show capture UI or quick save based on shift key
+      if (event && event.shiftKey) {
+        await this.quickSave(extractedContent);
+      } else {
+        this.showCaptureDialog(extractedContent);
+      }
+      
+    } catch (error) {
+      console.error('❌ PrismWeave execution failed:', error);
+      alert('PrismWeave Error: ' + error.message);
+    }
+  },
+  
+  async quickSave(content) {
+    try {
+      // Get stored settings
+      const settings = JSON.parse(localStorage.getItem('prismweave_settings') || '{}');
+      
+      if (!settings.githubToken || !settings.githubRepo) {
+        throw new Error('GitHub configuration required. Please run without Shift key to configure.');
+      }
+      
+      // Save directly to GitHub
+      const result = await this.saveToGitHub(content, settings);
+      console.log('✅ Quick save completed:', result);
+      
+      // Show notification
+      this.showNotification('Content saved successfully!', 'success');
+      
+    } catch (error) {
+      console.error('❌ Quick save failed:', error);
+      alert('Quick save failed: ' + error.message);
+    }
+  },
+  
+  showCaptureDialog(content) {
+    // Create and show capture dialog
+    const dialog = this.createCaptureDialog(content);
+    document.body.appendChild(dialog);
+  },
+  
+  createCaptureDialog(content) {
+    // Create dialog UI
+    const dialog = document.createElement('div');
+    dialog.style.cssText = \`
+      position: fixed; top: 20px; right: 20px; width: 400px; max-height: 80vh;
+      background: white; border: 1px solid #ccc; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      z-index: 999999; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      overflow: hidden; color: #333;
+    \`;
+    
+    dialog.innerHTML = \`
+      <div style="padding: 20px; border-bottom: 1px solid #eee;">
+        <h3 style="margin: 0 0 10px 0; font-size: 16px;">📋 PrismWeave Content Capture</h3>
+        <p style="margin: 0; font-size: 14px; color: #666;">Title: \${content.title}</p>
+      </div>
+      <div style="padding: 15px 20px; max-height: 300px; overflow-y: auto;">
+        <label style="display: block; margin-bottom: 10px; font-size: 14px; font-weight: bold;">Preview:</label>
+        <textarea readonly style="width: 100%; height: 200px; border: 1px solid #ddd; border-radius: 4px; padding: 8px; font-size: 12px; font-family: monospace; resize: vertical;">\${content.content.substring(0, 1000)}...</textarea>
+      </div>
+      <div style="padding: 15px 20px; border-top: 1px solid #eee; display: flex; justify-content: space-between;">
+        <button onclick="this.parentElement.parentElement.remove()" style="padding: 8px 16px; border: 1px solid #ddd; background: white; border-radius: 4px; cursor: pointer;">Cancel</button>
+        <button onclick="PrismWeaveEnhanced.saveContent()" style="padding: 8px 16px; border: none; background: #007cba; color: white; border-radius: 4px; cursor: pointer;">Save to GitHub</button>
+      </div>
+    \`;
+    
+    return dialog;
+  },
+  
+  async saveContent() {
+    // Implementation will be added by the bookmarklet generator
+    console.log('Save content method called');
+  },
+  
+  async saveToGitHub(content, settings) {
+    // GitHub API implementation
+    const timestamp = new Date().toISOString().split('T')[0];
+    const titleSlug = content.title
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .substring(0, 50);
+    
+    const filename = \`\${timestamp}-\${titleSlug}.md\`;
+    const filePath = settings.defaultFolder ? 
+      \`\${settings.defaultFolder}/\${filename}\` : 
+      \`documents/\${filename}\`;
+    
+    const [owner, repo] = settings.githubRepo.split('/');
+    const apiUrl = \`https://api.github.com/repos/\${owner}/\${repo}/contents/\${filePath}\`;
+    
+    const commitData = {
+      message: \`Add captured content: \${content.title}\`,
+      content: btoa(unescape(encodeURIComponent(content.content))),
+      branch: 'main'
+    };
+    
+    const response = await fetch(apiUrl, {
+      method: 'PUT',
+      headers: {
+        'Authorization': \`token \${settings.githubToken}\`,
+        'Content-Type': 'application/json',
+        'User-Agent': 'PrismWeave-Enhanced-Bookmarklet'
+      },
+      body: JSON.stringify(commitData)
+    });
+    
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(\`GitHub API error: \${error.message || response.statusText}\`);
+    }
+    
+    const result = await response.json();
+    return {
+      success: true,
+      filename,
+      url: result.content.html_url
+    };
+  },
+  
+  showNotification(message, type = 'info') {
+    const notification = document.createElement('div');
+    notification.style.cssText = \`
+      position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+      background: \${type === 'success' ? '#10b981' : '#3b82f6'}; color: white;
+      padding: 12px 24px; border-radius: 6px; z-index: 1000000;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    \`;
+    notification.textContent = message;
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+      if (notification.parentNode) {
+        notification.parentNode.removeChild(notification);
+      }
+    }, 3000);
+  }
+};
+
+// Make available globally
+if (typeof window !== 'undefined') {
+  window.PrismWeaveEnhanced = PrismWeaveEnhanced;
+}
+    `;
+  }
+
+  generateBasicExtractorFallback() {
+    return `
+// Basic content extractor fallback
+function extractPageContentStandalone(options = {}) {
+  const title = document.title || 'Untitled';
+  const url = window.location.href;
+  
+  // Find main content
+  const contentSelectors = ['article', 'main', '[role="main"]', '.content', '.post', '#content'];
+  let contentElement = null;
+  
+  for (const selector of contentSelectors) {
+    contentElement = document.querySelector(selector);
+    if (contentElement && contentElement.textContent.trim().length > 100) {
+      break;
+    }
+  }
+  
+  if (!contentElement) {
+    contentElement = document.body;
+  }
+  
+  // Basic markdown conversion
+  const html = contentElement.innerHTML;
+  let markdown = html
+    .replace(/<h([1-6])[^>]*>(.*?)<\\/h[1-6]>/gi, (match, level, content) => {
+      return '\\n' + '#'.repeat(parseInt(level)) + ' ' + content.replace(/<[^>]*>/g, '').trim() + '\\n';
+    })
+    .replace(/<p[^>]*>(.*?)<\\/p>/gi, '\\n$1\\n')
+    .replace(/<(strong|b)[^>]*>(.*?)<\\/(strong|b)>/gi, '**$2**')
+    .replace(/<(em|i)[^>]*>(.*?)<\\/(em|i)>/gi, '*$2*')
+    .replace(/<a[^>]*href=["']([^"']*)["'][^>]*>(.*?)<\\/a>/gi, '[$2]($1)')
+    .replace(/<br[^>]*\\/?>/gi, '\\n')
+    .replace(/<[^>]*>/g, '')
+    .replace(/\\n\\s*\\n\\s*\\n/g, '\\n\\n')
+    .trim();
+  
+  // Generate frontmatter
+  const frontmatter = \`---
+title: "\${title.replace(/"/g, '\\\\"')}"
+url: "\${url}"
+date: "\${new Date().toISOString().split('T')[0]}"
+captured: "\${new Date().toISOString()}"
+tags: []
+---\`;
+  
+  return {
+    title,
+    url,
+    markdown,
+    frontmatter,
+    content: frontmatter + '\\n\\n' + markdown
+  };
+}
+    `;
+  }
+
+  combineSourcesManually() {
+    console.log('🔧 Manually combining source files...');
+    
+    // Read standalone content extractor
+    const standaloneExtractorPath = path.join(__dirname, '..', 'src', 'utils', 'standalone-content-extractor.ts');
+    let standaloneExtractorCode = '';
+    
+    if (fs.existsSync(standaloneExtractorPath)) {
+      standaloneExtractorCode = fs.readFileSync(standaloneExtractorPath, 'utf8');
+      // Remove TypeScript syntax for browser compatibility
+      standaloneExtractorCode = standaloneExtractorCode
+        .replace(/import\s+.*?from\s+.*?;/g, '')
+        .replace(/export\s*\{[^}]*\}\s*;?/g, '')
+        .replace(/export\s+default\s+[^;]+;?/g, '')
+        .replace(/export\s+/g, '');
+    } else {
+      standaloneExtractorCode = this.generateBasicExtractorFallback();
+    }
+    
+    const combinedContent = `
+/* PrismWeave Enhanced Runtime v${this.config.version} - ${new Date().toISOString()} */
+
+// Standalone Content Extractor
+${standaloneExtractorCode}
+
+// Enhanced Runtime
+${this.generateEnhancedRuntimeCode()}
+
+// Global initialization
+(function() {
+  if (typeof window !== 'undefined') {
+    console.log('📋 PrismWeave: Manual initialization completed');
+    
+    if (typeof extractPageContentStandalone === 'function') {
+      window.extractPageContentStandalone = extractPageContentStandalone;
+    }
+    
+    if (typeof PrismWeaveEnhanced === 'object') {
+      window.PrismWeaveEnhanced = PrismWeaveEnhanced;
+      console.log('✅ PrismWeave Enhanced Runtime loaded manually');
+    }
+  }
+})();
+`;
+    
+    return combinedContent;
   }
 
   combineSourceFilesFallback() {

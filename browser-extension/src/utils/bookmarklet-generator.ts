@@ -821,51 +821,46 @@ class PrismweaveBookmarkletRuntime {
   }
 
   extractPageContent() {
-    // Get page title
+    // Enhanced content extraction matching browser extension capabilities
     const title = document.title || 'Untitled';
     const url = window.location.href;
+    const domain = window.location.hostname;
     
-    // Find main content using semantic selectors
-    const contentSelectors = [
-      'article',
-      'main',
-      '[role="main"]',
-      '.content',
-      '.post',
-      '.entry',
-      '#content',
-      '#main',
-      '.main-content'
-    ];
-    
-    let contentElement = null;
-    for (const selector of contentSelectors) {
-      contentElement = document.querySelector(selector);
-      if (contentElement && contentElement.textContent.trim().length > 100) {
-        break;
-      }
-    }
-    
-    // Fallback to body if no specific content found
+    // Find main content using semantic analysis (same as browser extension)
+    const contentElement = this.findMainContentElement();
     if (!contentElement) {
-      contentElement = document.body;
+      throw new Error('No suitable content found');
     }
     
-    // Clean content
-    const cleanedContent = this.cleanContent(contentElement.cloneNode(true));
+    // Clean and process content with enhanced rules
+    const cleanedElement = this.cleanContentEnhanced(contentElement.cloneNode(true));
+    const htmlContent = cleanedElement.innerHTML;
     
-    // Convert to markdown
-    const markdown = this.htmlToMarkdown(cleanedContent.innerHTML);
+    // Convert to markdown using enhanced converter with table/image support
+    const markdown = this.htmlToMarkdownEnhanced(htmlContent);
     
     // Generate frontmatter
     const frontmatter = this.generateFrontmatter(title, url);
     
+    // Extract images for reference
+    const images = this.extractImages(cleanedElement);
+    
+    // Calculate metrics
+    const textContent = cleanedElement.textContent || '';
+    const wordCount = this.countWords(textContent);
+    const readingTime = Math.ceil(wordCount / 200); // 200 words per minute
+    
     return {
       title,
       url,
+      domain,
       markdown,
       frontmatter,
-      content: frontmatter + '\\n\\n' + markdown
+      content: frontmatter + '\\n\\n' + markdown,
+      images,
+      wordCount,
+      readingTime,
+      extractedAt: new Date().toISOString()
     };
   }
 
@@ -883,6 +878,195 @@ class PrismweaveBookmarkletRuntime {
     });
     
     return element;
+  }
+
+  // Enhanced content finding with semantic analysis (matches browser extension)
+  findMainContentElement() {
+    // Semantic content selectors (prioritized)
+    const semanticSelectors = [
+      'article[role="article"]',
+      'main[role="main"]',
+      '[role="article"]',
+      '[role="main"]',
+      'article',
+      'main'
+    ];
+    
+    // Try semantic selectors first
+    for (const selector of semanticSelectors) {
+      const element = document.querySelector(selector);
+      if (element && this.hasSubstantialContent(element)) {
+        return element;
+      }
+    }
+    
+    // Common content selectors
+    const contentSelectors = [
+      '.post-content',
+      '.entry-content',
+      '.article-content',
+      '.content-body',
+      '.post-body',
+      '.entry-body',
+      '.article-body',
+      '.main-content',
+      '.content-main',
+      '.primary-content',
+      '.content',
+      '.post',
+      '.entry',
+      '.article',
+      '#content',
+      '#main',
+      '#post',
+      '#entry',
+      '#article'
+    ];
+    
+    for (const selector of contentSelectors) {
+      const element = document.querySelector(selector);
+      if (element && this.hasSubstantialContent(element)) {
+        return element;
+      }
+    }
+    
+    // Fallback: analyze all containers and score them
+    const containers = Array.from(document.querySelectorAll('div, section, aside'));
+    let bestElement = null;
+    let bestScore = 0;
+    
+    for (const container of containers) {
+      const score = this.scoreContentElement(container);
+      if (score > bestScore && score > 50) { // Minimum quality threshold
+        bestScore = score;
+        bestElement = container;
+      }
+    }
+    
+    return bestElement || document.body;
+  }
+
+  hasSubstantialContent(element) {
+    const text = (element.textContent || '').trim();
+    const wordCount = text.split(/\\s+/).filter(word => word.length > 2).length;
+    return wordCount >= 50; // At least 50 meaningful words
+  }
+
+  scoreContentElement(element) {
+    let score = 0;
+    const text = element.textContent || '';
+    const html = element.innerHTML || '';
+    
+    // Word count scoring (primary factor)
+    const wordCount = this.countWords(text);
+    score += Math.min(wordCount / 10, 100); // Max 100 points for word count
+    
+    // Content density scoring
+    const textLength = text.length;
+    const htmlLength = html.length;
+    const density = htmlLength > 0 ? textLength / htmlLength : 0;
+    score += density * 50; // Max 50 points for good text/html ratio
+    
+    // Paragraph scoring
+    const paragraphs = element.querySelectorAll('p').length;
+    score += paragraphs * 3; // 3 points per paragraph
+    
+    // Structural elements bonus
+    const headers = element.querySelectorAll('h1, h2, h3, h4, h5, h6').length;
+    score += headers * 5; // 5 points per header
+    
+    // Lists bonus
+    const lists = element.querySelectorAll('ul, ol').length;
+    score += lists * 2; // 2 points per list
+    
+    // Link density penalty (too many links = likely navigation)
+    const links = element.querySelectorAll('a').length;
+    const linkDensity = wordCount > 0 ? links / wordCount : 0;
+    if (linkDensity > 0.1) {
+      score -= linkDensity * 100; // Penalty for high link density
+    }
+    
+    // Class name analysis
+    const className = (element.className || '').toLowerCase();
+    if (className.includes('content')) score += 15;
+    if (className.includes('post')) score += 10;
+    if (className.includes('article')) score += 10;
+    if (className.includes('entry')) score += 8;
+    if (className.includes('main')) score += 8;
+    
+    // Negative scoring for likely non-content areas
+    if (className.includes('sidebar')) score -= 20;
+    if (className.includes('footer')) score -= 25;
+    if (className.includes('header')) score -= 25;
+    if (className.includes('nav')) score -= 30;
+    if (className.includes('menu')) score -= 20;
+    if (className.includes('comment')) score -= 15;
+    if (className.includes('ad')) score -= 50;
+    
+    return Math.max(score, 0);
+  }
+
+  cleanContentEnhanced(element) {
+    // Enhanced cleaning with more comprehensive rules
+    const unwantedSelectors = [
+      'script', 'style', 'noscript', 'iframe', 'embed', 'object',
+      'svg', 'canvas', 'audio', 'video',
+      'nav', 'header', 'footer', 'aside',
+      '.advertisement', '.ad', '.ads', '.popup', '.modal',
+      '.social-share', '.share-buttons', '.comments', '.related-posts',
+      '.sidebar', '.navigation', '.nav', '.menu',
+      '[style*="display: none"]', '[style*="visibility: hidden"]',
+      '.print-only', '.screen-reader-text', '.visually-hidden'
+    ];
+    
+    // Remove unwanted elements
+    unwantedSelectors.forEach(selector => {
+      try {
+        const elements = element.querySelectorAll(selector);
+        elements.forEach(el => el.remove());
+      } catch (e) {
+        // Invalid selector, skip
+      }
+    });
+    
+    // Clean up empty elements
+    const emptyElements = element.querySelectorAll('div, span, p, section, article');
+    emptyElements.forEach(el => {
+      if (!el.textContent.trim() && !el.querySelector('img, table, ul, ol, blockquote')) {
+        el.remove();
+      }
+    });
+    
+    return element;
+  }
+
+  extractImages(element) {
+    const images = [];
+    const imgElements = element.querySelectorAll('img');
+    
+    imgElements.forEach(img => {
+      const src = img.src;
+      const alt = img.alt || '';
+      
+      if (src && !src.startsWith('data:') && src.length > 0) {
+        try {
+          const absoluteUrl = new URL(src, window.location.href).href;
+          images.push({
+            src: absoluteUrl,
+            alt: alt
+          });
+        } catch (e) {
+          // Invalid URL, skip
+        }
+      }
+    });
+    
+    return images;
+  }
+
+  countWords(text) {
+    if (!text) return 0;
+    return text.split(/\\s+/).filter(word => word.length > 0).length;
   }
 
   htmlToMarkdown(html) {
@@ -919,6 +1103,154 @@ class PrismweaveBookmarkletRuntime {
     markdown = markdown.replace(/\\n\\s*\\n\\s*\\n/g, '\\n\\n');
     
     return markdown.trim();
+  }
+
+  // Enhanced HTML to Markdown conversion with table and image support
+  htmlToMarkdownEnhanced(html) {
+    let markdown = html;
+    
+    // Convert headers (h1-h6)
+    markdown = markdown.replace(/<h([1-6])[^>]*>(.*?)<\\/h[1-6]>/gi, (match, level, content) => {
+      const headerLevel = '#'.repeat(parseInt(level));
+      const cleanContent = this.stripHtml(content).trim();
+      return \`\\n\${headerLevel} \${cleanContent}\\n\`;
+    });
+    
+    // Convert tables (enhanced table support)
+    markdown = this.convertTables(markdown);
+    
+    // Convert lists
+    markdown = this.convertLists(markdown);
+    
+    // Convert blockquotes
+    markdown = markdown.replace(/<blockquote[^>]*>(.*?)<\\/blockquote>/gis, (match, content) => {
+      const cleanContent = this.stripHtml(content).trim();
+      const lines = cleanContent.split('\\n');
+      const quotedLines = lines.map(line => \`> \${line.trim()}\`);
+      return \`\\n\${quotedLines.join('\\n')}\\n\`;
+    });
+    
+    // Convert code blocks
+    markdown = markdown.replace(/<pre[^>]*><code[^>]*>(.*?)<\\/code><\\/pre>/gis, (match, content) => {
+      const cleanContent = this.decodeHtmlEntities(content);
+      return \`\\n\\\`\\\`\\\`\\n\${cleanContent}\\n\\\`\\\`\\\`\\n\`;
+    });
+    
+    // Convert inline code
+    markdown = markdown.replace(/<code[^>]*>(.*?)<\\/code>/gi, (match, content) => {
+      const cleanContent = this.stripHtml(content);
+      return \`\\\`\${cleanContent}\\\`\`;
+    });
+    
+    // Convert images (enhanced image support)
+    markdown = markdown.replace(/<img[^>]*src=["']([^"']*)["'][^>]*alt=["']([^"']*)["'][^>]*>/gi, '![$2]($1)');
+    markdown = markdown.replace(/<img[^>]*alt=["']([^"']*)["'][^>]*src=["']([^"']*)["'][^>]*>/gi, '![$1]($2)');
+    markdown = markdown.replace(/<img[^>]*src=["']([^"']*)["'][^>]*>/gi, '![]($1)');
+    
+    // Convert links
+    markdown = markdown.replace(/<a[^>]*href=["']([^"']*)["'][^>]*>(.*?)<\\/a>/gi, '[$2]($1)');
+    
+    // Convert text formatting
+    markdown = markdown.replace(/<(strong|b)[^>]*>(.*?)<\\/(strong|b)>/gi, '**$2**');
+    markdown = markdown.replace(/<(em|i)[^>]*>(.*?)<\\/(em|i)>/gi, '*$2*');
+    markdown = markdown.replace(/<(del|s|strike)[^>]*>(.*?)<\\/(del|s|strike)>/gi, '~~$2~~');
+    
+    // Convert paragraphs
+    markdown = markdown.replace(/<p[^>]*>(.*?)<\\/p>/gi, '\\n$1\\n');
+    
+    // Convert line breaks
+    markdown = markdown.replace(/<br[^>]*\\/?>/gi, '\\n');
+    
+    // Convert horizontal rules
+    markdown = markdown.replace(/<hr[^>]*\\/?>/gi, '\\n---\\n');
+    
+    // Strip remaining HTML
+    markdown = this.stripHtml(markdown);
+    
+    // Clean up whitespace
+    markdown = markdown.replace(/\\n\\s*\\n\\s*\\n/g, '\\n\\n'); // Remove excessive line breaks
+    markdown = markdown.replace(/^\\s+|\\s+$/gm, ''); // Trim lines
+    markdown = markdown.trim();
+    
+    return markdown;
+  }
+
+  // Enhanced table conversion matching browser extension capabilities
+  convertTables(html) {
+    return html.replace(/<table[^>]*>(.*?)<\\/table>/gis, (match, content) => {
+      const rows = [];
+      
+      // Extract table rows
+      const rowMatches = content.match(/<tr[^>]*>(.*?)<\\/tr>/gis);
+      if (!rowMatches || rowMatches.length === 0) return match;
+      
+      let isFirstRow = true;
+      for (const rowMatch of rowMatches) {
+        const cells = [];
+        const cellMatches = rowMatch.match(/<t[hd][^>]*>(.*?)<\\/t[hd]>/gis);
+        
+        if (cellMatches) {
+          for (const cellMatch of cellMatches) {
+            const cellContent = cellMatch.replace(/<t[hd][^>]*>(.*?)<\\/t[hd]>/i, '$1');
+            const cleanContent = this.stripHtml(cellContent).trim();
+            cells.push(cleanContent);
+          }
+          
+          const row = \`| \${cells.join(' | ')} |\`;
+          rows.push(row);
+          
+          // Add separator after header row
+          if (isFirstRow && cells.length > 0) {
+            const separator = \`| \${cells.map(() => '---').join(' | ')} |\`;
+            rows.push(separator);
+            isFirstRow = false;
+          }
+        }
+      }
+      
+      return rows.length > 0 ? \`\\n\${rows.join('\\n')}\\n\` : '';
+    });
+  }
+
+  convertLists(html) {
+    // Convert unordered lists
+    html = html.replace(/<ul[^>]*>(.*?)<\\/ul>/gis, (match, content) => {
+      const items = content.replace(/<li[^>]*>(.*?)<\\/li>/gi, (liMatch, liContent) => {
+        const cleanContent = this.stripHtml(liContent).trim();
+        return \`- \${cleanContent}\\n\`;
+      });
+      return \`\\n\${items}\\n\`;
+    });
+    
+    // Convert ordered lists
+    html = html.replace(/<ol[^>]*>(.*?)<\\/ol>/gis, (match, content) => {
+      let counter = 1;
+      const items = content.replace(/<li[^>]*>(.*?)<\\/li>/gi, (liMatch, liContent) => {
+        const cleanContent = this.stripHtml(liContent).trim();
+        return \`\${counter++}. \${cleanContent}\\n\`;
+      });
+      return \`\\n\${items}\\n\`;
+    });
+    
+    return html;
+  }
+
+  decodeHtmlEntities(text) {
+    const entityMap = {
+      '&lt;': '<',
+      '&gt;': '>',
+      '&amp;': '&',
+      '&quot;': '"',
+      '&#39;': "'",
+      '&nbsp;': ' ',
+      '&copy;': '©',
+      '&reg;': '®',
+      '&trade;': '™'
+    };
+    
+    return text.replace(/&(?:lt|gt|amp|quot|#39|nbsp|copy|reg|trade);/g, (entity) => {
+      return entityMap[entity] || entity;
+    });
   }
 
   stripHtml(html) {
