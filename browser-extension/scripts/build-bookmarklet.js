@@ -112,9 +112,30 @@ class PersonalBookmarkletBuilder {
   async copyStaticFiles() {
     console.log('📄 Copying static files...');
 
-    // Create generator.html
-    const generatorHtml = this.createGeneratorHtml();
-    fs.writeFileSync(path.join(this.distDir, 'generator.html'), generatorHtml);
+    // Copy existing generator.html if it exists, otherwise create a basic one
+    const existingGeneratorPath = path.join(this.srcDir, 'generator.html');
+    if (fs.existsSync(existingGeneratorPath)) {
+      console.log('   📋 Copying existing generator.html (preserving user design)');
+
+      // Read and update the generator.html to fix CSS path
+      let generatorContent = fs.readFileSync(existingGeneratorPath, 'utf8');
+      generatorContent = generatorContent.replace(
+        'href="../styles/shared-ui.css"',
+        'href="shared-ui.css"'
+      );
+      fs.writeFileSync(path.join(this.distDir, 'generator.html'), generatorContent);
+    } else {
+      console.log('   🏗️  Creating basic generator.html');
+      const generatorHtml = this.createGeneratorHtml();
+      fs.writeFileSync(path.join(this.distDir, 'generator.html'), generatorHtml);
+    }
+
+    // Copy shared-ui.css if it exists
+    const sharedCssPath = path.join(this.projectRoot, 'src', 'styles', 'shared-ui.css');
+    if (fs.existsSync(sharedCssPath)) {
+      console.log('   🎨 Copying shared-ui.css');
+      fs.copyFileSync(sharedCssPath, path.join(this.distDir, 'shared-ui.css'));
+    }
 
     // Create index.html
     const indexHtml = this.createIndexHtml();
@@ -394,7 +415,7 @@ class PersonalBookmarkletBuilder {
   reportResults() {
     console.log('\n📊 Build Results:');
 
-    const files = ['generator.html', 'generator.js', 'index.html', 'help.html'];
+    const files = ['generator.html', 'generator.js', 'shared-ui.css', 'index.html', 'help.html'];
 
     files.forEach(file => {
       const filePath = path.join(this.distDir, file);
@@ -403,7 +424,7 @@ class PersonalBookmarkletBuilder {
         const size = this.formatFileSize(stats.size);
         console.log(`   ✅ ${file} ${size}`);
       } else {
-        console.log(`   ❌ Missing: ${file}`);
+        console.log(`   ⚠️  Optional: ${file}`);
       }
     });
   }
