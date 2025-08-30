@@ -46,7 +46,7 @@ class PrismWeaveWebServer {
       console.log(`🌐 PrismWeave Web Server started`);
       console.log(`📍 URL: http://${this.host}:${this.port}`);
       console.log(`📁 Serving: ${this.distPath}`);
-      console.log('� Use EmbeddedBookmarkletGenerator for personalized bookmarklets');
+      console.log(`🔗 Bookmarklet: http://${this.host}:${this.port}/bookmarklet/install-hybrid.html`);
       console.log('Press Ctrl+C to stop the server');
     });
 
