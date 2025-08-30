@@ -68,10 +68,13 @@ class BookmarkletGeneratorUI {
       const pathParts = url.pathname.split('/').filter(part => part);
       const prismweaveIndex = pathParts.findIndex(part => part.toLowerCase() === 'prismweave');
       if (prismweaveIndex >= 0) {
+        // Always use the exact repository root path for injectable files
         const basePath = '/' + pathParts.slice(0, prismweaveIndex + 1).join('/');
+        console.log(`PrismWeave detected at index ${prismweaveIndex}, basePath: ${basePath}`);
         return `${url.origin}${basePath}/injectable`;
       }
       // Fallback if PrismWeave not found in path
+      console.log('PrismWeave not found in path, using fallback');
       return `${url.origin}/PrismWeave/injectable`;
     }
 
