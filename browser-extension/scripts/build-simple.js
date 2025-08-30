@@ -26,6 +26,10 @@ async function buildExtension() {
     bundle: true, // Bundle all dependencies
     define: {
       'process.env.NODE_ENV': isProduction ? '"production"' : '"development"',
+      'process.env.PRISMWEAVE_INJECTABLE_URL': JSON.stringify(
+        process.env.PRISMWEAVE_INJECTABLE_URL || ''
+      ),
+      'process.env.npm_package_version': JSON.stringify(process.env.npm_package_version || '1.0.0'),
     },
   };
 

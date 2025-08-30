@@ -28,9 +28,8 @@ class BookmarkletGeneratorUI {
   private bookmarkletCodeDisplay: HTMLElement;
   private currentBookmarkletCode: string = '';
 
-  // Configure the base URL for injectable scripts
-  private readonly injectableBaseUrl: string =
-    'https://cdn.jsdelivr.net/gh/davidhayesbc/prismweave@main/dist/web/injectable';
+  // Auto-detect the base URL for injectable scripts
+  private readonly injectableBaseUrl: string = this.detectInjectableBaseUrl();
 
   constructor() {
     this.form = document.getElementById('generator-form') as HTMLFormElement;
@@ -42,6 +41,35 @@ class BookmarkletGeneratorUI {
     ) as HTMLElement;
 
     this.init();
+  }
+
+  /**
+   * Auto-detect the injectable base URL based on current page location
+   */
+  private detectInjectableBaseUrl(): string {
+    // First, check if URL is provided via HTML data attribute
+    const configElement = document.querySelector('[data-injectable-url]') as HTMLElement;
+    if (configElement && configElement.dataset.injectableUrl) {
+      return configElement.dataset.injectableUrl;
+    }
+
+    const currentUrl = window.location.href;
+
+    // If running locally (localhost or file://)
+    if (currentUrl.includes('localhost') || currentUrl.startsWith('file://')) {
+      return 'http://localhost:3000/injectable';
+    }
+
+    // If running on GitHub Pages
+    if (currentUrl.includes('github.io') || currentUrl.includes('davidhayesbc.github.io')) {
+      // Extract the base URL and append injectable path
+      const url = new URL(window.location.href);
+      const basePath = url.pathname.split('/').slice(0, -1).join('/'); // Remove filename
+      return `${url.origin}${basePath}/injectable`;
+    }
+
+    // Default fallback to GitHub Pages
+    return 'https://davidhayesbc.github.io/prismweave/injectable';
   }
 
   init(): void {
