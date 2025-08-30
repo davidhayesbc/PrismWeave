@@ -155,6 +155,12 @@ class PrismWeaveBuildSystem {
       this.copyDirectory(browserExtensionDist, path.join(webDistPath, 'extension'));
     }
 
+    // Copy injectable files to web deployment
+    const injectableDist = path.join(this.projectRoot, 'browser-extension', 'dist', 'injectable');
+    if (fs.existsSync(injectableDist)) {
+      this.copyDirectory(injectableDist, path.join(webDistPath, 'injectable'));
+    }
+
     // Copy bookmarklet files and ensure CSS is accessible for web deployment
     const bookmarkletDist = path.join(this.projectRoot, 'browser-extension', 'dist', 'bookmarklet');
     if (fs.existsSync(bookmarkletDist)) {

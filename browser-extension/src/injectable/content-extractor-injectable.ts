@@ -5,6 +5,7 @@
 
 import { ContentExtractor, IExtractorOptions } from '../utils/content-extractor.js';
 import { createLogger } from '../utils/logger.js';
+import { MarkdownConverter } from '../utils/markdown-converter.js';
 
 // Re-export types for standalone use
 export interface IInjectableExtractionOptions {
@@ -25,6 +26,8 @@ export interface IInjectableContentResult {
   url: string;
   domain: string;
   html: string;
+  markdown: string;
+  frontmatter: string;
   metadata: Record<string, unknown>;
   images: string[];
   wordCount: number;
@@ -34,12 +37,30 @@ export interface IInjectableContentResult {
   extractionMethod: 'injectable-advanced';
 }
 
+export interface IGitHubConfig {
+  token: string;
+  repository: string;
+  folder?: string;
+  commitMessage?: string;
+}
+
+export interface IGitHubCommitResult {
+  success: boolean;
+  data?: {
+    sha: string;
+    url: string;
+    html_url: string;
+  };
+  error?: string;
+}
+
 /**
  * Injectable Content Extractor
  * Uses the sophisticated browser extension ContentExtractor in an injectable context
  */
 export class InjectableContentExtractor {
   private _extractor: ContentExtractor | null = null;
+  private _markdownConverter: MarkdownConverter | null = null;
   private _logger: any;
   private _isInitialized: boolean = false;
 
@@ -54,6 +75,7 @@ export class InjectableContentExtractor {
     try {
       // Initialize the sophisticated ContentExtractor
       this._extractor = new ContentExtractor();
+      this._markdownConverter = new MarkdownConverter();
       this._isInitialized = true;
       this._logger.info('Injectable content extractor initialized');
     } catch (error) {
@@ -65,7 +87,7 @@ export class InjectableContentExtractor {
   async extractAdvancedContent(
     options: IInjectableExtractionOptions = {}
   ): Promise<IInjectableContentResult> {
-    if (!this._isInitialized || !this._extractor) {
+    if (!this._isInitialized || !this._extractor || !this._markdownConverter) {
       await this.initialize();
     }
 
@@ -100,6 +122,10 @@ export class InjectableContentExtractor {
       // Use the sophisticated browser extension content extractor
       const contentResult = await this._extractor!.extractContent(extractorOptions);
 
+      // Convert HTML to markdown using the sophisticated converter
+      const markdownResult = this._markdownConverter!.convertToMarkdown(contentResult.content);
+      const markdown = markdownResult.markdown;
+
       // Extract additional metadata using sophisticated methods
       const advancedMetadata = this._extractAdvancedMetadata();
 
@@ -109,12 +135,24 @@ export class InjectableContentExtractor {
       // Calculate quality score
       const qualityScore = this._calculateQualityScore(document.body, contentResult.wordCount);
 
+      // Generate frontmatter
+      const frontmatter = this._generateFrontmatter({
+        title: contentResult.metadata.title,
+        url: contentResult.metadata.url,
+        domain: window.location.hostname,
+        wordCount: contentResult.wordCount,
+        extractedAt: new Date().toISOString(),
+        metadata: advancedMetadata,
+      });
+
       return {
         content: contentResult.content,
         title: contentResult.metadata.title,
         url: contentResult.metadata.url,
         domain: window.location.hostname,
         html: contentResult.content,
+        markdown,
+        frontmatter,
         metadata: {
           ...contentResult.metadata,
           ...advancedMetadata,
@@ -326,12 +364,179 @@ export class InjectableContentExtractor {
     return Math.max(Math.min(score, 100), 0); // Clamp between 0-100
   }
 
-  // Static method for easy access
+  private _generateFrontmatter(params: {
+    title: string;
+    url: string;
+    domain: string;
+    wordCount: number;
+    extractedAt: string;
+    metadata: Record<string, unknown>;
+  }): string {
+    const frontmatterLines = [
+      '---',
+      `title: "${params.title.replace(/"/g, '\\"')}"`,
+      `url: "${params.url}"`,
+      `domain: "${params.domain}"`,
+      `extracted_at: "${params.extractedAt}"`,
+      `word_count: ${params.wordCount}`,
+      `extraction_method: "injectable-advanced"`,
+    ];
+
+    // Add author if available
+    if (params.metadata.author && typeof params.metadata.author === 'string') {
+      frontmatterLines.push(`author: "${params.metadata.author.replace(/"/g, '\\"')}"`);
+    }
+
+    // Add description if available
+    if (params.metadata.description && typeof params.metadata.description === 'string') {
+      frontmatterLines.push(`description: "${params.metadata.description.replace(/"/g, '\\"')}"`);
+    }
+
+    // Add keywords/tags if available
+    if (params.metadata.keywords && Array.isArray(params.metadata.keywords)) {
+      const tags = params.metadata.keywords
+        .map(k => `"${String(k).replace(/"/g, '\\"')}"`)
+        .join(', ');
+      frontmatterLines.push(`tags: [${tags}]`);
+    }
+
+    frontmatterLines.push('---', '');
+    return frontmatterLines.join('\n');
+  }
+
+  /**
+   * Commit content directly to GitHub repository
+   */
+  async commitToGitHub(
+    content: string,
+    config: IGitHubConfig,
+    filename?: string
+  ): Promise<IGitHubCommitResult> {
+    try {
+      const extractionResult = await this.extractAdvancedContent();
+
+      // Generate filename if not provided
+      const finalFilename = filename || this._generateFilename(extractionResult.title);
+      const folder = config.folder || 'documents';
+      const filePath = `${folder}/${finalFilename}`;
+
+      // Combine frontmatter and markdown
+      const fullContent = extractionResult.frontmatter + extractionResult.markdown;
+
+      const commitMessage = (config.commitMessage || 'PrismWeave: Add {title}').replace(
+        '{title}',
+        extractionResult.title
+      );
+
+      // Check if file exists first
+      let existingFileSha: string | undefined;
+      try {
+        const existingResponse = await fetch(
+          `https://api.github.com/repos/${config.repository}/contents/${filePath}`,
+          {
+            headers: {
+              Authorization: `token ${config.token}`,
+              Accept: 'application/vnd.github.v3+json',
+              'User-Agent': 'PrismWeave-Injectable/1.0',
+            },
+          }
+        );
+
+        if (existingResponse.ok) {
+          const existingData = await existingResponse.json();
+          existingFileSha = existingData.sha;
+        }
+      } catch (error) {
+        // File doesn't exist, which is fine
+      }
+
+      // Create or update file
+      const requestBody: any = {
+        message: commitMessage,
+        content: btoa(unescape(encodeURIComponent(fullContent))),
+        branch: 'main',
+      };
+
+      if (existingFileSha) {
+        requestBody.sha = existingFileSha;
+      }
+
+      const response = await fetch(
+        `https://api.github.com/repos/${config.repository}/contents/${filePath}`,
+        {
+          method: 'PUT',
+          headers: {
+            Authorization: `token ${config.token}`,
+            'Content-Type': 'application/json',
+            Accept: 'application/vnd.github.v3+json',
+            'User-Agent': 'PrismWeave-Injectable/1.0',
+          },
+          body: JSON.stringify(requestBody),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          `GitHub API error: ${response.status} - ${errorData.message || 'Unknown error'}`
+        );
+      }
+
+      const result = await response.json();
+      return {
+        success: true,
+        data: {
+          sha: result.content.sha,
+          url: result.content.url,
+          html_url: result.content.html_url,
+        },
+      };
+    } catch (error) {
+      this._logger.error('GitHub commit failed:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  }
+
+  private _generateFilename(title: string): string {
+    const safeName = title
+      .replace(/[^\w\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .toLowerCase()
+      .slice(0, 40);
+
+    const date = new Date().toISOString().slice(0, 10);
+    return `${date}-${safeName}.md`;
+  }
+
+  // Static methods for easy access
   static async extractContent(
     options: IInjectableExtractionOptions = {}
   ): Promise<IInjectableContentResult> {
     const extractor = new InjectableContentExtractor();
     return await extractor.extractAdvancedContent(options);
+  }
+
+  static async extractAndCommit(
+    config: IGitHubConfig,
+    options: IInjectableExtractionOptions = {},
+    filename?: string
+  ): Promise<IGitHubCommitResult> {
+    const extractor = new InjectableContentExtractor();
+    await extractor.initialize();
+    const extractionResult = await extractor.extractAdvancedContent(options);
+
+    // Generate filename if not provided
+    const finalFilename = filename || extractor._generateFilename(extractionResult.title);
+    const folder = config.folder || 'documents';
+    const filePath = `${folder}/${finalFilename}`;
+
+    // Combine frontmatter and markdown
+    const fullContent = extractionResult.frontmatter + extractionResult.markdown;
+
+    return await extractor.commitToGitHub(fullContent, config, finalFilename);
   }
 }
 
@@ -342,6 +547,11 @@ declare global {
     prismweaveExtractContent?: (
       options?: IInjectableExtractionOptions
     ) => Promise<IInjectableContentResult>;
+    prismweaveExtractAndCommit?: (
+      config: IGitHubConfig,
+      options?: IInjectableExtractionOptions,
+      filename?: string
+    ) => Promise<IGitHubCommitResult>;
   }
 }
 
@@ -349,6 +559,7 @@ declare global {
 if (typeof window !== 'undefined') {
   window.PrismWeaveInjectableExtractor = InjectableContentExtractor;
   window.prismweaveExtractContent = InjectableContentExtractor.extractContent;
+  window.prismweaveExtractAndCommit = InjectableContentExtractor.extractAndCommit;
 
   // Log successful injection
   console.log('🔗 PrismWeave Injectable Content Extractor loaded successfully');

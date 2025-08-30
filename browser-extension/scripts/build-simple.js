@@ -77,6 +77,16 @@ async function buildExtension() {
         globalName: 'PrismWeaveBookmarklet', // Global name for bookmarklet access
         ...baseOptions,
       },
+      {
+        name: 'Injectable Content Extractor',
+        entryPoints: ['src/injectable/content-extractor-injectable.ts'],
+        outfile: 'dist/injectable/content-extractor-injectable.js',
+        format: 'iife', // IIFE format for injectable scripts
+        minify: true, // Minify for optimal injection
+        sourcemap: false, // No sourcemaps for injectable (size optimization)
+        globalName: 'contentextractorinjectable', // Global name for injectable access
+        ...baseOptions,
+      },
     ];
 
     // Build all components in parallel
