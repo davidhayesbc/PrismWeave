@@ -489,5 +489,3 @@ if (document.readyState === 'loading') {
 } else {
   new BookmarkletGeneratorUI();
 }
-
-export { BookmarkletGeneratorUI };

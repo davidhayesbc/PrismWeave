@@ -115,6 +115,9 @@ async function copyStaticAssets() {
     // Icons directory
     { src: 'icons', dest: 'dist/icons', isDirectory: true },
 
+    // Styles directory (shared UI components)
+    { src: 'src/styles', dest: 'dist/styles', isDirectory: true },
+
     // Libraries directory (TurndownService, etc.)
     { src: 'src/libs', dest: 'dist/libs', isDirectory: true },
 
