@@ -155,10 +155,26 @@ class PrismWeaveBuildSystem {
       this.copyDirectory(browserExtensionDist, path.join(webDistPath, 'extension'));
     }
 
-    // Copy bookmarklet files
+    // Copy bookmarklet files and fix paths for web deployment
     const bookmarkletDist = path.join(this.projectRoot, 'browser-extension', 'dist', 'bookmarklet');
     if (fs.existsSync(bookmarkletDist)) {
       this.copyDirectory(bookmarkletDist, path.join(webDistPath, 'bookmarklet'));
+      
+      // Fix CSS path in generator.html for web deployment structure
+      const webGeneratorHtml = path.join(webDistPath, 'bookmarklet', 'generator.html');
+      if (fs.existsSync(webGeneratorHtml)) {
+        let content = fs.readFileSync(webGeneratorHtml, 'utf8');
+        content = content.replace('../styles/shared-ui.css', '../extension/styles/shared-ui.css');
+        fs.writeFileSync(webGeneratorHtml, content);
+      }
+      
+      // Remove export statements from generator.js for browser compatibility
+      const webGeneratorJs = path.join(webDistPath, 'bookmarklet', 'generator.js');
+      if (fs.existsSync(webGeneratorJs)) {
+        let content = fs.readFileSync(webGeneratorJs, 'utf8');
+        content = content.replace(/export\s*\{[^}]+\}\s*;?\s*$/gm, '');
+        fs.writeFileSync(webGeneratorJs, content);
+      }
     }
 
     // Create web index page
