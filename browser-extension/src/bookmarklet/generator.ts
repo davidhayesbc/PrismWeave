@@ -62,10 +62,17 @@ class BookmarkletGeneratorUI {
 
     // If running on GitHub Pages
     if (currentUrl.includes('github.io') || currentUrl.includes('davidhayesbc.github.io')) {
-      // Extract the base URL and append injectable path
+      // For GitHub Pages, always use the root of the PrismWeave repository
       const url = new URL(window.location.href);
-      const basePath = url.pathname.split('/').slice(0, -1).join('/'); // Remove filename
-      return `${url.origin}${basePath}/injectable`;
+      // Find the PrismWeave part in the path and use that as the base
+      const pathParts = url.pathname.split('/').filter(part => part);
+      const prismweaveIndex = pathParts.findIndex(part => part.toLowerCase() === 'prismweave');
+      if (prismweaveIndex >= 0) {
+        const basePath = '/' + pathParts.slice(0, prismweaveIndex + 1).join('/');
+        return `${url.origin}${basePath}/injectable`;
+      }
+      // Fallback if PrismWeave not found in path
+      return `${url.origin}/PrismWeave/injectable`;
     }
 
     // Default fallback to GitHub Pages (note: capital P in PrismWeave)
