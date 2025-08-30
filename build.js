@@ -275,7 +275,7 @@ class PrismWeaveBuildSystem {
                 <div class="card">
                     <h3>🔗 Bookmarklet</h3>
                     <p>Ultra-lightweight content capture tool that works in any browser.</p>
-                    <a href="./bookmarklet/install-hybrid.html" class="btn">Install Bookmarklet</a>
+                    <a href="./bookmarklet/generator.html" class="btn">Generate Bookmarklet</a>
                 </div>
                 
                 <div class="card">
