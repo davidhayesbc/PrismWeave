@@ -265,9 +265,13 @@ jobs:
           echo "Validating browser-extension/package.json..."
           node -e "JSON.parse(require('fs').readFileSync('browser-extension/package.json', 'utf8'))" || exit 1
           
-          # VS Code extension package.json
-          echo "Validating vscode-extension/package.json..."
-          node -e "JSON.parse(require('fs').readFileSync('vscode-extension/package.json', 'utf8'))" || exit 1
+          # VS Code extension package.json (optional - only if directory exists)
+          if [ -f "vscode-extension/package.json" ]; then
+            echo "Validating vscode-extension/package.json..."
+            node -e "JSON.parse(require('fs').readFileSync('vscode-extension/package.json', 'utf8'))" || exit 1
+          else
+            echo "⏭️ vscode-extension/package.json not found, skipping validation"
+          fi
           
           echo "✅ All package.json files are valid"
           
