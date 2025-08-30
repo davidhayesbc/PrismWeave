@@ -156,126 +156,98 @@ class BookmarkletGeneratorUI {
   }
 
   generateCompactBookmarklet(formData: IFormData): string {
-    // Generate a bookmarklet that uses the same content extraction logic as the browser extension
     const token = formData.githubToken;
     const repo = formData.githubRepo;
     const folder = formData.defaultFolder;
     const msgTemplate = formData.commitMessage || 'PrismWeave: Add {title}';
 
-    // Create extraction logic that mirrors ContentExtractor and MarkdownConverter behavior
-    const extractionScript = `(function(){
-// Enhanced content extraction matching browser extension logic
-function extractTitle(){
-  return (document.querySelector('[property="og:title"]')?.getAttribute('content')||
-          document.querySelector('[name="twitter:title"]')?.getAttribute('content')||
-          document.querySelector('h1')?.textContent||
-          document.title||'Untitled').trim();
-}
+    // Build the bookmarklet JavaScript as a simple string without template literals
+    const jsCode = [
+      '(function(){',
+      'function extractTitle(){',
+      '  var title = document.querySelector(\'[property="og:title"]\');',
+      '  if(title) return title.getAttribute(\'content\').trim();',
+      '  title = document.querySelector(\'h1\');',
+      '  if(title) return title.textContent.trim();',
+      '  return document.title || \'Untitled\';',
+      '}',
+      
+      'function findMainContent(){',
+      '  var selectors = [\'article\',\'main\',\'.content\',\'#content\'];',
+      '  for(var i=0; i<selectors.length; i++){',
+      '    var el = document.querySelector(selectors[i]);',
+      '    if(el && el.textContent && el.textContent.trim().length > 100) return el;',
+      '  }',
+      '  return document.body;',
+      '}',
+      
+      'function cleanContent(el){',
+      '  var clone = el.cloneNode(true);',
+      '  var removeSelectors = [\'script\',\'style\',\'nav\',\'header\',\'footer\',\'.ad\',\'.advertisement\'];',
+      '  removeSelectors.forEach(function(sel){',
+      '    var elements = clone.querySelectorAll(sel);',
+      '    for(var i=0; i<elements.length; i++) elements[i].remove();',
+      '  });',
+      '  return clone;',
+      '}',
+      
+      'function htmlToMarkdown(html){',
+      '  var md = html;',
+      '  md = md.replace(/<h([1-6])[^>]*>(.*?)<\\/h[1-6]>/gi, function(m,l,c){',
+      '    return \'\\n\' + \'#\'.repeat(parseInt(l)) + \' \' + c.replace(/<[^>]*>/g,\'\').trim() + \'\\n\';',
+      '  });',
+      '  md = md.replace(/<p[^>]*>(.*?)<\\/p>/gi, \'\\n$1\\n\');',
+      '  md = md.replace(/<(strong|b)[^>]*>(.*?)<\\/(strong|b)>/gi, \'**$2**\');',
+      '  md = md.replace(/<(em|i)[^>]*>(.*?)<\\/(em|i)>/gi, \'*$2*\');',
+      '  md = md.replace(/<a[^>]*href=["\\\']([^"\\\']*)["\\\'][^>]*>(.*?)<\\/a>/gi, \'[$2]($1)\');',
+      '  md = md.replace(/<[^>]*>/g, \'\');',
+      '  md = md.replace(/\\n\\s*\\n\\s*\\n/g, \'\\n\\n\').trim();',
+      '  return md;',
+      '}',
+      
+      'var title = extractTitle();',
+      'var contentEl = findMainContent();',
+      'var cleanedEl = cleanContent(contentEl);',
+      'var markdown = htmlToMarkdown(cleanedEl.innerHTML);',
+      'var wordCount = cleanedEl.textContent.split(/\\s+/).filter(function(w){return w.length>0;}).length;',
+      
+      'var frontmatter = \'---\\n\';',
+      'frontmatter += \'title: "\' + title.replace(/"/g, \'\\\\\"\') + \'"\\n\';',
+      'frontmatter += \'url: "\' + location.href + \'"\\n\';',
+      'frontmatter += \'domain: "\' + location.hostname + \'"\\n\';',
+      'frontmatter += \'extracted_at: "\' + new Date().toISOString() + \'"\\n\';',
+      'frontmatter += \'word_count: \' + wordCount + \'\\n\';',
+      'frontmatter += \'extraction_method: "bookmarklet"\\n\';',
+      'frontmatter += \'---\\n\\n\';',
+      
+      'var fullContent = frontmatter + markdown;',
+      'var filename = title.replace(/[^\\w\\s-]/g, \'\').replace(/\\s+/g, \'-\').toLowerCase().slice(0, 40) + \'-\' + new Date().toISOString().slice(0, 10) + \'.md\';',
+      
+      'fetch(\'https://api.github.com/repos/' + repo + '/contents/' + folder + '/\' + filename, {',
+      '  method: \'PUT\',',
+      '  headers: {',
+      '    \'Authorization\': \'token ' + token + '\',',
+      '    \'Content-Type\': \'application/json\'',
+      '  },',
+      '  body: JSON.stringify({',
+      '    message: \'' + msgTemplate + '\'.replace(\'{title}\', title),',
+      '    content: btoa(unescape(encodeURIComponent(fullContent)))',
+      '  })',
+      '}).then(function(r){',
+      '  if(r.ok){',
+      '    r.json().then(function(data){',
+      '      alert(\'✅ Page captured successfully!\');',
+      '    });',
+      '  } else {',
+      '    alert(\'❌ Capture failed (\' + r.status + \')\');',
+      '  }',
+      '}).catch(function(e){',
+      '  alert(\'❌ Network error: \' + e.message);',
+      '});',
+      '})();'
+    ].join('');
 
-function findMainContent(){
-  var selectors=['article','main','[role="main"]','.content','.post-content','.entry-content','.article-content','#content','#main','.post','.entry'];
-  for(var i=0;i<selectors.length;i++){
-    var el=document.querySelector(selectors[i]);
-    if(el&&el.textContent&&el.textContent.trim().length>100)return el;
-  }
-  return document.body;
-}
-
-function cleanContent(el){
-  var clone=el.cloneNode(true);
-  var removeSelectors=['script','style','noscript','iframe','.advertisement','.ad','.ads','.popup','.modal','.social-share','.comments','.related-posts','nav','header','footer','[role="navigation"]','[role="banner"]','[role="contentinfo"]','.navigation','.nav','.menu','.breadcrumb'];
-  removeSelectors.forEach(function(sel){
-    clone.querySelectorAll(sel).forEach(function(e){e.remove();});
-  });
-  return clone;
-}
-
-function htmlToMarkdown(html){
-  var md=html;
-  // Headers
-  md=md.replace(/<h([1-6])[^>]*>(.*?)<\\/h[1-6]>/gi,function(m,l,c){return '\\n'+'#'.repeat(+l)+' '+c.replace(/<[^>]*>/g,'').trim()+'\\n';});
-  // Paragraphs
-  md=md.replace(/<p[^>]*>(.*?)<\\/p>/gi,'\\n$1\\n');
-  // Bold/Strong
-  md=md.replace(/<(strong|b)[^>]*>(.*?)<\\/(strong|b)>/gi,'**$2**');
-  // Italic/Emphasis
-  md=md.replace(/<(em|i)[^>]*>(.*?)<\\/(em|i)>/gi,'*$2*');
-  // Links
-  md=md.replace(/<a[^>]*href=["']([^"']*)["'][^>]*>(.*?)<\\/a>/gi,'[$2]($1)');
-  // Lists
-  md=md.replace(/<ul[^>]*>(.*?)<\\/ul>/gis,function(m,c){return '\\n'+c.replace(/<li[^>]*>(.*?)<\\/li>/gi,'- $1\\n')+'\\n';});
-  md=md.replace(/<ol[^>]*>(.*?)<\\/ol>/gis,function(m,c){var n=1;return '\\n'+c.replace(/<li[^>]*>(.*?)<\\/li>/gi,function(){return (n++)+'. $1\\n';})+'\\n';});
-  // Code
-  md=md.replace(/<pre[^>]*><code[^>]*>(.*?)<\\/code><\\/pre>/gis,'\\n\`\`\`\\n$1\\n\`\`\`\\n');
-  md=md.replace(/<code[^>]*>(.*?)<\\/code>/gi,'\`$1\`');
-  // Blockquotes
-  md=md.replace(/<blockquote[^>]*>(.*?)<\\/blockquote>/gis,function(m,c){return '\\n'+c.replace(/<[^>]*>/g,'').split('\\n').map(function(l){return '> '+l.trim();}).join('\\n')+'\\n';});
-  // Remove remaining HTML
-  md=md.replace(/<[^>]*>/g,'');
-  // Clean whitespace
-  md=md.replace(/\\n\\s*\\n\\s*\\n/g,'\\n\\n').trim();
-  return md;
-}
-
-function extractMetadata(){
-  return {
-    author: document.querySelector('[property="article:author"]')?.getAttribute('content')||
-            document.querySelector('[name="author"]')?.getAttribute('content')||
-            document.querySelector('[rel="author"]')?.textContent||'',
-    publishDate: document.querySelector('[property="article:published_time"]')?.getAttribute('content')||
-                 document.querySelector('time[datetime]')?.getAttribute('datetime')||'',
-    description: document.querySelector('[property="og:description"]')?.getAttribute('content')||
-                 document.querySelector('[name="description"]')?.getAttribute('content')||'',
-    keywords: (document.querySelector('[name="keywords"]')?.getAttribute('content')||'').split(',').map(function(k){return k.trim();}).filter(function(k){return k.length>0;})
-  };
-}
-
-// Main extraction
-var title=extractTitle();
-var contentEl=findMainContent();
-var cleanedEl=cleanContent(contentEl);
-var markdown=htmlToMarkdown(cleanedEl.innerHTML);
-var meta=extractMetadata();
-var wordCount=cleanedEl.textContent.split(/\\s+/).filter(function(w){return w.length>0;}).length;
-
-// Generate frontmatter matching extension format
-var frontmatter='---\\n';
-frontmatter+='title: "'+title.replace(/"/g,'\\\\"')+'"\\n';
-frontmatter+='url: "'+location.href+'"\\n';
-frontmatter+='domain: "'+location.hostname+'"\\n';
-frontmatter+='extracted_at: "'+new Date().toISOString()+'"\\n';
-if(meta.author)frontmatter+='author: "'+meta.author.replace(/"/g,'\\\\"')+'"\\n';
-if(meta.publishDate)frontmatter+='published: "'+meta.publishDate+'"\\n';
-if(meta.description)frontmatter+='description: "'+meta.description.replace(/"/g,'\\\\"')+'"\\n';
-if(meta.keywords.length>0)frontmatter+='tags: ['+meta.keywords.map(function(k){return '"'+k.replace(/"/g,'\\\\"')+'"';}).join(', ')+']\\n';
-frontmatter+='word_count: '+wordCount+'\\n';
-frontmatter+='reading_time: '+Math.ceil(wordCount/200)+'\\n';
-frontmatter+='extraction_method: "bookmarklet"\\n';
-frontmatter+='---\\n\\n';
-
-var fullContent=frontmatter+markdown;
-var filename=title.replace(/[^\\w\\s-]/g,'').replace(/\\s+/g,'-').toLowerCase().slice(0,40)+'-'+new Date().toISOString().slice(0,10)+'.md';
-
-fetch('https://api.github.com/repos/${repo}/contents/${folder}/'+filename,{
-method:'PUT',
-headers:{'Authorization':'token ${token}','Content-Type':'application/json'},
-body:JSON.stringify({
-message:'${msgTemplate}'.replace('{title}',title),
-content:btoa(unescape(encodeURIComponent(fullContent)))
-})
-}).then(function(r){
-if(r.ok){
-r.json().then(function(data){
-var commitUrl=data.content&&data.content.html_url?data.content.html_url:'';
-alert('✅ Page captured successfully!'+(commitUrl?' View: '+commitUrl:''));
-});
-}else{
-alert('❌ Capture failed ('+r.status+')');
-}
-}).catch(function(e){alert('❌ Network error: '+e.message);});
-})();`;
-
-    return `javascript:${extractionScript}`;
+    return 'javascript:' + encodeURIComponent(jsCode);
   }
 
   validateForm(formData: IFormData): boolean {
