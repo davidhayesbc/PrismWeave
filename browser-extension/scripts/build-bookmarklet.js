@@ -30,8 +30,8 @@ class PersonalBookmarkletBuilder {
       console.log('\n✅ Personal bookmarklet generator built successfully!');
       console.log(`📁 Output: ${this.distDir}`);
       console.log('\n🚀 To test locally:');
-      console.log('   node scripts/serve-local.js');
-      console.log('   Open http://localhost:8080/generator.html');
+      console.log('   npm run dev');
+      console.log('   Open http://localhost:3000/generator.html');
     } catch (error) {
       console.error('❌ Build failed:', error.message);
       process.exit(1);
