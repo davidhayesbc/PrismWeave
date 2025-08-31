@@ -109,7 +109,7 @@ export class BookmarkletUI {
         <div class="pw-bookmarklet-body">
           <div class="pw-bookmarklet-message">${this.escapeHtml(message)}</div>
           <div class="pw-bookmarklet-progress-bar">
-            <div class="pw-bookmarklet-progress-fill" style="width: ${Math.max(0, Math.min(100, percentage))}%"></div>
+            <div class="pw-bookmarklet-progress-fill"></div>
           </div>
           <div class="pw-bookmarklet-percentage">${Math.round(percentage)}%</div>
         </div>
@@ -117,6 +117,14 @@ export class BookmarkletUI {
     `;
 
     this._container.innerHTML = content;
+    // Set width programmatically to avoid inline style in template
+    const fill = this._container.querySelector(
+      '.pw-bookmarklet-progress-fill'
+    ) as HTMLElement | null;
+    if (fill) {
+      const clamped = Math.max(0, Math.min(100, percentage));
+      fill.style.width = clamped + '%';
+    }
   }
 
   /**

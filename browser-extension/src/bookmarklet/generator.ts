@@ -390,34 +390,29 @@ class BookmarkletGeneratorUI {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PrismWeave Bookmarklet - ${repoName}</title>
-    <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; max-width: 800px; margin: 2rem auto; padding: 2rem; }
-        .header { text-align: center; margin-bottom: 3rem; }
-        .bookmarklet-box { background: #f8f9fa; border: 2px dashed #6c757d; border-radius: 8px; padding: 2rem; text-align: center; margin: 2rem 0; }
-        .bookmarklet-link { display: inline-block; padding: 1rem 2rem; background: #007bff; color: white; text-decoration: none; border-radius: 8px; font-weight: bold; margin: 1rem; }
-        .instructions { background: #fff; border: 1px solid #e9ecef; border-radius: 8px; padding: 1.5rem; margin: 2rem 0; }
-        .info { background: #d4edda; border: 1px solid #c3e6cb; border-radius: 6px; padding: 1rem; margin: 1rem 0; }
-    </style>
+  <!-- Use shared UI styles and a lightweight page stylesheet to avoid inline CSS -->
+  <link rel="stylesheet" href="../styles/shared-ui.css">
+  <link rel="stylesheet" href="../styles/bookmarklet-download.css">
 </head>
-<body>
-    <div class="header">
+<body class="pw-font-sans">
+  <div class="pw-page-header">
         <h1>🌟 PrismWeave Bookmarklet</h1>
         <p>Personal bookmarklet for <strong>${formData.githubRepo}</strong></p>
         <p><em>Generated on ${currentDate}</em></p>
     </div>
 
-    <div class="bookmarklet-box">
+  <div class="pw-card pw-bookmarklet-cta">
         <h3>Drag this to your bookmarks bar:</h3>
-        <a href="${this.currentBookmarkletCode}" class="bookmarklet-link">📄 PrismWeave → ${repoName}</a>
-        <p><small>Your GitHub settings are embedded - no setup required!</small></p>
+    <a href="${this.currentBookmarkletCode}" class="pw-btn pw-btn-primary">📄 PrismWeave → ${repoName}</a>
+    <p class="pw-note"><small>Your GitHub settings are embedded - no setup required!</small></p>
     </div>
 
-    <div class="instructions">
+  <div class="pw-card pw-section">
         <h3>📋 Installation Instructions:</h3>
         <ol>
             <li><strong>Drag & Drop:</strong> Drag the bookmarklet button above to your browser's bookmarks bar</li>
             <li><strong>Manual Method:</strong>
-                <ul>
+        <ul class="pw-list">
                     <li>Right-click the bookmarklet button and copy the link</li>
                     <li>Add a new bookmark in your browser</li>
                     <li>Set the name to "PrismWeave → ${repoName}" and paste the copied link as the URL</li>
@@ -427,7 +422,7 @@ class BookmarkletGeneratorUI {
         </ol>
     </div>
 
-    <div class="info">
+  <div class="pw-info pw-section">
         <h4>⚙️ Configuration Summary:</h4>
         <ul>
             <li><strong>Repository:</strong> ${formData.githubRepo}</li>
@@ -437,7 +432,7 @@ class BookmarkletGeneratorUI {
         </ul>
     </div>
 
-    <div class="info">
+  <div class="pw-info pw-section">
         <h4>🔒 Security Note:</h4>
         <p>This bookmarklet contains your GitHub Personal Access Token. Keep this file private and only share the bookmarklet with trusted parties.</p>
     </div>

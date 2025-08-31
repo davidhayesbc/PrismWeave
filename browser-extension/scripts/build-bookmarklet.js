@@ -112,38 +112,39 @@ class PersonalBookmarkletBuilder {
   async copyStaticFiles() {
     console.log('📄 Copying static files...');
 
-    // Copy existing generator.html if it exists, otherwise create a basic one
-    const existingGeneratorPath = path.join(this.srcDir, 'generator.html');
-    if (fs.existsSync(existingGeneratorPath)) {
-      console.log('   📋 Copying existing generator.html (preserving user design)');
+    // Copy and fix CSS paths for all HTML files in the bookmarklet directory
+    const htmlFiles = ['generator.html', 'help.html', 'index.html', 'install.html'];
 
-      // Read and update the generator.html to fix CSS path
-      let generatorContent = fs.readFileSync(existingGeneratorPath, 'utf8');
-      generatorContent = generatorContent.replace(
-        'href="../styles/shared-ui.css"',
-        'href="shared-ui.css"'
-      );
-      fs.writeFileSync(path.join(this.distDir, 'generator.html'), generatorContent);
-    } else {
-      console.log('   🏗️  Creating basic generator.html');
-      const generatorHtml = this.createGeneratorHtml();
-      fs.writeFileSync(path.join(this.distDir, 'generator.html'), generatorHtml);
+    htmlFiles.forEach(htmlFile => {
+      const srcPath = path.join(this.srcDir, htmlFile);
+      if (fs.existsSync(srcPath)) {
+        console.log(`   📋 Copying and fixing CSS paths in ${htmlFile}`);
+
+        // Read and update the HTML to fix CSS paths
+        let htmlContent = fs.readFileSync(srcPath, 'utf8');
+
+        // Fix paths for all CSS files - convert ../styles/*.css to *.css
+        htmlContent = htmlContent.replace(/href="\.\.\/styles\/([\w-]+\.css)"/g, 'href="$1"');
+
+        fs.writeFileSync(path.join(this.distDir, htmlFile), htmlContent);
+      } else {
+        console.log(`   ⚠️  ${htmlFile} not found, skipping`);
+      }
+    });
+
+    // Copy all CSS files from styles directory
+    const stylesDir = path.join(this.projectRoot, 'src', 'styles');
+    if (fs.existsSync(stylesDir)) {
+      console.log('   🎨 Copying CSS files...');
+      const cssFiles = fs.readdirSync(stylesDir).filter(file => file.endsWith('.css'));
+
+      cssFiles.forEach(cssFile => {
+        const srcPath = path.join(stylesDir, cssFile);
+        const destPath = path.join(this.distDir, cssFile);
+        fs.copyFileSync(srcPath, destPath);
+        console.log(`      ✅ ${cssFile}`);
+      });
     }
-
-    // Copy shared-ui.css if it exists
-    const sharedCssPath = path.join(this.projectRoot, 'src', 'styles', 'shared-ui.css');
-    if (fs.existsSync(sharedCssPath)) {
-      console.log('   🎨 Copying shared-ui.css');
-      fs.copyFileSync(sharedCssPath, path.join(this.distDir, 'shared-ui.css'));
-    }
-
-    // Create index.html
-    const indexHtml = this.createIndexHtml();
-    fs.writeFileSync(path.join(this.distDir, 'index.html'), indexHtml);
-
-    // Create help.html
-    const helpHtml = this.createHelpHtml();
-    fs.writeFileSync(path.join(this.distDir, 'help.html'), helpHtml);
 
     // Copy README if it exists
     const readmePath = path.join(this.srcDir, 'README.md');
@@ -415,18 +416,34 @@ class PersonalBookmarkletBuilder {
   reportResults() {
     console.log('\n📊 Build Results:');
 
-    const files = ['generator.html', 'generator.js', 'shared-ui.css', 'index.html', 'help.html'];
+    // Core files
+    const coreFiles = ['generator.html', 'generator.js', 'help.html', 'index.html', 'install.html'];
 
-    files.forEach(file => {
+    coreFiles.forEach(file => {
       const filePath = path.join(this.distDir, file);
       if (fs.existsSync(filePath)) {
         const stats = fs.statSync(filePath);
         const size = this.formatFileSize(stats.size);
         console.log(`   ✅ ${file} ${size}`);
       } else {
-        console.log(`   ⚠️  Optional: ${file}`);
+        console.log(`   ⚠️  Missing: ${file}`);
       }
     });
+
+    // CSS files
+    const stylesDir = path.join(this.projectRoot, 'src', 'styles');
+    if (fs.existsSync(stylesDir)) {
+      const cssFiles = fs.readdirSync(stylesDir).filter(file => file.endsWith('.css'));
+
+      cssFiles.forEach(cssFile => {
+        const filePath = path.join(this.distDir, cssFile);
+        if (fs.existsSync(filePath)) {
+          const stats = fs.statSync(filePath);
+          const size = this.formatFileSize(stats.size);
+          console.log(`   ✅ ${cssFile} ${size}`);
+        }
+      });
+    }
   }
 
   formatFileSize(bytes) {
