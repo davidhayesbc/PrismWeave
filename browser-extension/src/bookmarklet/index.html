@@ -8,242 +8,16 @@
     />
     <title>PrismWeave Bookmarklet - Files</title>
     <link rel="stylesheet" href="../styles/shared-ui.css" />
-    <style>
-      body {
-        font-family: var(--pw-font-family);
-        line-height: 1.6;
-        max-width: 1000px;
-        margin: 2rem auto;
-        padding: 2rem;
-        color: var(--pw-text-primary);
-        background: var(--pw-bg-secondary);
-      }
-
-      .header {
-        text-align: center;
-        margin-bottom: 3rem;
-        padding: 2rem 0;
-        background: var(--pw-gradient-primary);
-        color: white;
-        border-radius: var(--pw-radius-xl);
-        margin: 0 -2rem 3rem -2rem;
-      }
-
-      .files-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-        gap: 2rem;
-        margin: 3rem 0;
-      }
-
-      .file-card {
-        background: var(--pw-bg-primary);
-        border: 1px solid var(--pw-border-color);
-        border-radius: var(--pw-radius-xl);
-        padding: 2rem;
-        box-shadow: var(--pw-shadow);
-        transition: all 0.2s ease;
-      }
-
-      .file-card:hover {
-        transform: translateY(-4px);
-        box-shadow: var(--pw-shadow-lg);
-      }
-
-      .file-title {
-        color: var(--pw-primary-600);
-        margin-bottom: 1rem;
-        font-size: 1.25rem;
-        font-weight: 600;
-      }
-
-      .file-description {
-        color: var(--pw-text-secondary);
-        margin-bottom: 1.5rem;
-        line-height: 1.5;
-      }
-
-      .file-actions {
-        display: flex;
-        gap: 1rem;
-        margin-top: 1rem;
-      }
-
-      .file-link {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-        padding: 0.75rem 1.25rem;
-        background: var(--pw-gradient-primary);
-        color: white;
-        text-decoration: none;
-        border-radius: var(--pw-radius-lg);
-        font-weight: 500;
-        transition: all 0.2s ease;
-        box-shadow: var(--pw-shadow);
-      }
-
-      .file-link:hover {
-        transform: translateY(-1px);
-        box-shadow: var(--pw-shadow-md);
-        text-decoration: none;
-        color: white;
-      }
-
-      .file-link.secondary {
-        background: var(--pw-bg-primary);
-        color: var(--pw-primary-600);
-        border: 1px solid var(--pw-border-color);
-      }
-
-      .file-link.secondary:hover {
-        color: var(--pw-primary-700);
-        background: var(--pw-bg-secondary);
-      }
-
-      .footer {
-        text-align: center;
-        margin-top: 4rem;
-        padding: 2rem;
-        background: var(--pw-bg-primary);
-        border-radius: var(--pw-radius-xl);
-        border: 1px solid var(--pw-border-color);
-      }
-
-      .footer p {
-        color: var(--pw-text-secondary);
-        margin-bottom: 1rem;
-      }
-
-      .footer a {
-        color: var(--pw-primary-600);
-        text-decoration: none;
-        font-weight: 500;
-      }
-
-      .footer a:hover {
-        text-decoration: underline;
-      }
-
-      .quick-start {
-        background: var(--pw-warning-50);
-        border: 1px solid var(--pw-warning-500);
-        border-radius: var(--pw-radius-lg);
-        padding: 1.5rem;
-        margin: 2rem 0;
-      }
-
-      .quick-start h3 {
-        color: var(--pw-warning-600);
-        margin-bottom: 1rem;
-      }
-
-      .quick-start ul {
-        color: var(--pw-warning-700);
-        margin: 1rem 0 1rem 2rem;
-      }
-
-      .navigation {
-        text-align: center;
-        margin-top: 3rem;
-      }
-
-      .nav-link {
-        color: var(--pw-primary-600);
-        text-decoration: none;
-        font-weight: 500;
-      }
-
-      .nav-link:hover {
-        text-decoration: underline;
-      }
-    </style>
+    <link rel="stylesheet" href="../styles/bookmarklet-index.css" />
   </head>
-        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
-        border-color: #3b82f6;
-      }
-
-      .file-card h3 {
-        color: #1e40af;
-        margin-bottom: 1rem;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-      }
-
-      .file-icon {
-        font-size: 1.5rem;
-      }
-
-      .file-card p {
-        color: #6b7280;
-        margin-bottom: 1.5rem;
-      }
-
-      .file-link {
-        display: inline-block;
-        padding: 0.75rem 1.5rem;
-        background: #3b82f6;
-        color: white;
-        text-decoration: none;
-        border-radius: 8px;
-        font-weight: 500;
-        transition: background-color 0.2s;
-      }
-
-      .file-link:hover {
-        background: #1d4ed8;
-      }
-
-      .file-link.secondary {
-        background: #6b7280;
-      }
-
-      .file-link.secondary:hover {
-        background: #4b5563;
-      }
-
-      .quick-start {
-        background: #f0f9ff;
-        border: 1px solid #0ea5e9;
-        border-radius: 12px;
-        padding: 2rem;
-        margin: 3rem 0;
-      }
-
-      .quick-start h3 {
-        color: #0c4a6e;
-        margin-bottom: 1rem;
-      }
-
-      .navigation {
-        text-align: center;
-        margin: 3rem 0;
-      }
-
-      .nav-link {
-        display: inline-block;
-        padding: 0.75rem 1.5rem;
-        background: #6b7280;
-        color: white;
-        text-decoration: none;
-        border-radius: 8px;
-        font-weight: 500;
-        margin: 0.5rem;
-      }
-
-      .nav-link:hover {
-        background: #4b5563;
-      }
-    </style>
   </head>
-  <body>
-    <div class="header">
+  <body class="pw-font-sans">
+    <div class="bm-header">
       <h1>🔖 PrismWeave Bookmarklet Files</h1>
       <p>Browse all available bookmarklet files and tools</p>
     </div>
 
-    <div class="quick-start">
+    <div class="bm-quick-start">
       <h3>🚀 Quick Start</h3>
       <p>
         <strong>New users:</strong>
@@ -252,10 +26,7 @@
         to create a personalized bookmarklet with your GitHub settings embedded. This is the easiest and most reliable
         method.
       </p>
-      <a
-        href="generator.html"
-        class="file-link"
-      >
+      <a href="generator.html" class="pw-btn pw-btn-primary">
         Generate Personal Bookmarklet
       </a>
     </div>
@@ -271,10 +42,7 @@
           Interactive tool to generate a personalized bookmarklet with your GitHub settings embedded. No cross-domain
           storage issues, works everywhere.
         </p>
-        <a
-          href="generator.html"
-          class="file-link"
-        >
+        <a href="generator.html" class="pw-btn pw-btn-primary">
           Open Generator
         </a>
       </div>
@@ -288,10 +56,7 @@
           Complete guide on how to install and use PrismWeave bookmarklets, including troubleshooting and advanced
           configuration.
         </p>
-        <a
-          href="help.html"
-          class="file-link"
-        >
+        <a href="help.html" class="pw-btn pw-btn-primary">
           View Help
         </a>
       </div>
@@ -302,10 +67,7 @@
           Installation Guide
         </h3>
         <p>Step-by-step installation instructions for different browsers and troubleshooting common issues.</p>
-        <a
-          href="install.html"
-          class="file-link"
-        >
+        <a href="install.html" class="pw-btn pw-btn-primary">
           View Install Guide
         </a>
       </div>
@@ -318,22 +80,13 @@
         <p>
           Advanced users: Direct access to the bookmarklet runtime JavaScript files for custom integration or debugging.
         </p>
-        <a
-          href="runtime.js"
-          class="file-link secondary"
-        >
+        <a href="runtime.js" class="pw-btn pw-btn-secondary">
           runtime.js
         </a>
-        <a
-          href="loader.js"
-          class="file-link secondary"
-        >
+        <a href="loader.js" class="pw-btn pw-btn-secondary">
           loader.js
         </a>
-        <a
-          href="standalone.js"
-          class="file-link secondary"
-        >
+        <a href="standalone.js" class="pw-btn pw-btn-secondary">
           standalone.js
         </a>
       </div>
@@ -347,16 +100,13 @@
           Technical documentation and API reference for developers who want to integrate or extend the bookmarklet
           functionality.
         </p>
-        <a
-          href="README.md"
-          class="file-link secondary"
-        >
+        <a href="README.md" class="pw-btn pw-btn-secondary">
           View README
         </a>
       </div>
     </div>
 
-    <div class="quick-start">
+    <div class="bm-quick-start">
       <h3>🔒 Security Note</h3>
       <p>
         The
@@ -372,26 +122,11 @@
       </ul>
     </div>
 
-    <div class="navigation">
+    <div class="bm-navigation">
       <h4>Navigation</h4>
-      <a
-        href="../"
-        class="nav-link"
-      >
-        ← Back to Main Page
-      </a>
-      <a
-        href="../extension/"
-        class="nav-link"
-      >
-        Browser Extension
-      </a>
-      <a
-        href="https://github.com/davidhayesbc/PrismWeave"
-        class="nav-link"
-      >
-        GitHub Repository
-      </a>
+      <a href="../" class="pw-link pw-mr-3">← Back to Main Page</a>
+      <a href="../extension/" class="pw-link pw-mr-3">Browser Extension</a>
+      <a href="https://github.com/davidhayesbc/PrismWeave" class="pw-link">GitHub Repository</a>
     </div>
   </body>
 </html>

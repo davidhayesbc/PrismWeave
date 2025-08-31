@@ -1,0 +1,120 @@
+/* PrismWeave Bookmarklet Generator Page Styles */
+/* Uses CSS variables and shared classes from shared-ui.css. No inline CSS. */
+
+/* Page baseline */
+html,
+body {
+  height: 100%;
+}
+
+body.pw-font-sans {
+  line-height: 1.6;
+  color: var(--pw-text-primary);
+  background: var(--pw-bg-secondary);
+  margin: 0;
+}
+
+/* Layout */
+.generator-container {
+  max-width: 960px;
+  margin: var(--pw-space-8) auto;
+  padding: var(--pw-space-8) var(--pw-space-5);
+}
+
+.generator-header {
+  text-align: center;
+  margin-bottom: var(--pw-space-8);
+}
+
+.generator-header h1 {
+  color: var(--pw-primary-600);
+  margin-bottom: var(--pw-space-3);
+}
+
+/* Informational sections */
+.generator-description,
+.generator-install {
+  background: var(--pw-primary-50);
+  border: 1px solid var(--pw-primary-200);
+  border-radius: var(--pw-radius-lg);
+  padding: var(--pw-space-5);
+  margin-bottom: var(--pw-space-5);
+}
+
+.generator-install h4 {
+  color: var(--pw-primary-700);
+  margin-bottom: var(--pw-space-3);
+}
+
+.generator-install ol {
+  margin-left: var(--pw-space-6);
+}
+
+.generator-install li {
+  margin-bottom: var(--pw-space-2);
+}
+
+/* Cards/sections */
+.generator-form-section,
+.generator-result,
+.generator-output {
+  background: var(--pw-bg-primary);
+  border: 1px solid var(--pw-border-color);
+  border-radius: var(--pw-radius-xl);
+  padding: var(--pw-space-6);
+  margin-bottom: var(--pw-space-6);
+  box-shadow: var(--pw-shadow);
+}
+
+.generator-form-section h3,
+.generator-result h3 {
+  color: var(--pw-text-primary);
+  margin-bottom: var(--pw-space-3);
+  display: flex;
+  align-items: center;
+  gap: var(--pw-space-2);
+}
+
+.validation-error {
+  color: var(--pw-error-500);
+  font-size: 0.8rem;
+  margin-top: var(--pw-space-1);
+}
+
+/* Code output */
+.bookmarklet-code {
+  background: var(--pw-gray-900);
+  color: var(--pw-gray-100);
+  border-radius: var(--pw-radius);
+  padding: var(--pw-space-4);
+  font-family: var(--pw-font-mono);
+  font-size: 0.85rem;
+  line-height: 1.5;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+  margin: var(--pw-space-4) 0;
+}
+
+/* Actions */
+.generator-actions {
+  display: flex;
+  gap: var(--pw-space-3);
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.generator-nav {
+  display: flex;
+  gap: var(--pw-space-3);
+  justify-content: center;
+  margin-top: var(--pw-space-8);
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .generator-container {
+    padding: var(--pw-space-5) var(--pw-space-4);
+    margin: var(--pw-space-5) auto;
+  }
+}

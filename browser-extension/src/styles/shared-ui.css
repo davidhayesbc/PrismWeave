@@ -718,6 +718,11 @@
   margin-top: var(--pw-space-4);
 }
 
+/* Additional spacing utilities */
+.pw-mr-3 {
+  margin-right: var(--pw-space-3);
+}
+
 /* Responsive design */
 @media (max-width: 480px) {
   .pw-container {

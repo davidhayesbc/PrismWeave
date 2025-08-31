@@ -15,197 +15,11 @@
       rel="stylesheet"
       href="../styles/shared-ui.css"
     />
-    <style>
-      body {
-        font-family: var(--pw-font-family);
-        line-height: 1.6;
-        color: var(--pw-text-primary);
-        background: var(--pw-bg-secondary);
-        margin: 0;
-        padding: 0;
-      }
-
-      .generator-container {
-        max-width: 800px;
-        margin: 2rem auto;
-        padding: 2rem;
-      }
-
-      .header {
-        text-align: center;
-        margin-bottom: 3rem;
-      }
-
-      .header h1 {
-        color: var(--pw-primary-600);
-        margin-bottom: 1rem;
-      }
-
-      .description {
-        background: var(--pw-primary-50);
-        border: 1px solid var(--pw-primary-200);
-        border-radius: var(--pw-radius-lg);
-        padding: 1.5rem;
-        margin-bottom: 2rem;
-      }
-
-      .form-section {
-        background: var(--pw-bg-primary);
-        border: 1px solid var(--pw-border-color);
-        border-radius: var(--pw-radius-xl);
-        padding: 2rem;
-        margin-bottom: 2rem;
-        box-shadow: var(--pw-shadow);
-      }
-
-      .form-section h3 {
-        color: var(--pw-text-primary);
-        margin-bottom: 1rem;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-      }
-
-      .validation-error {
-        color: var(--pw-error-500);
-        font-size: 0.8rem;
-        margin-top: 0.25rem;
-      }
-
-      .generate-btn {
-        background: var(--pw-gradient-primary);
-        color: white;
-        border: none;
-        padding: 1rem 2rem;
-        border-radius: var(--pw-radius-lg);
-        font-size: 1rem;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.2s;
-        display: block;
-        margin: 2rem auto;
-        box-shadow: var(--pw-shadow);
-      }
-
-      .generate-btn:hover {
-        transform: translateY(-2px);
-        box-shadow: var(--pw-shadow-lg);
-      }
-
-      .generate-btn:disabled {
-        background: var(--pw-gray-400);
-        cursor: not-allowed;
-        transform: none;
-        box-shadow: none;
-      }
-
-      .bookmarklet-output {
-        background: var(--pw-bg-primary);
-        border: 1px solid var(--pw-border-color);
-        border-radius: var(--pw-radius-xl);
-        padding: 2rem;
-        margin-top: 2rem;
-        box-shadow: var(--pw-shadow);
-      }
-
-      .bookmarklet-code {
-        background: var(--pw-gray-900);
-        color: var(--pw-gray-100);
-        border-radius: var(--pw-radius);
-        padding: 1rem;
-        font-family: var(--pw-font-mono);
-        font-size: 0.8rem;
-        line-height: 1.4;
-        overflow-x: auto;
-        white-space: pre-wrap;
-        word-break: break-all;
-        margin: 1rem 0;
-      }
-
-      .copy-btn {
-        background: var(--pw-success-500);
-        color: white;
-        border: none;
-        padding: 0.5rem 1rem;
-        border-radius: var(--pw-radius);
-        font-size: 0.9rem;
-        cursor: pointer;
-        transition: all 0.2s;
-        margin-top: 0.5rem;
-      }
-
-      .copy-btn:hover {
-        background: var(--pw-success-600);
-      }
-
-      .copy-btn.copied {
-        background: var(--pw-primary-500);
-      }
-
-      .install-instructions {
-        background: var(--pw-primary-50);
-        border: 1px solid var(--pw-primary-200);
-        border-radius: var(--pw-radius-lg);
-        padding: 1.5rem;
-        margin-top: 1rem;
-      }
-
-      .install-instructions h4 {
-        color: var(--pw-primary-700);
-        margin-bottom: 1rem;
-      }
-
-      .install-instructions ol {
-        margin-left: 1.5rem;
-      }
-
-      .install-instructions li {
-        margin-bottom: 0.5rem;
-      }
-
-      .navigation-links {
-        display: flex;
-        gap: 1rem;
-        justify-content: center;
-        margin-top: 3rem;
-      }
-
-      .nav-link {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-        padding: 0.75rem 1.5rem;
-        background: var(--pw-gradient-primary);
-        color: white;
-        text-decoration: none;
-        border-radius: var(--pw-radius-lg);
-        font-weight: 500;
-        transition: all 0.2s ease;
-        box-shadow: var(--pw-shadow);
-      }
-
-      .nav-link:hover {
-        transform: translateY(-2px);
-        box-shadow: var(--pw-shadow-md);
-        text-decoration: none;
-        color: white;
-      }
-
-      .nav-link.secondary {
-        background: var(--pw-bg-primary);
-        color: var(--pw-primary-600);
-        border: 1px solid var(--pw-border-color);
-      }
-
-      .nav-link.secondary:hover {
-        background: var(--pw-bg-secondary);
-        color: var(--pw-primary-700);
-      }
-    </style>
+    <link rel="stylesheet" href="../styles/bookmarklet-generator.css" />
   </head>
-  <body>
+  <body class="pw-font-sans">
     <div class="generator-container">
-      <div class="header">
+      <div class="generator-header">
         <h1>🌟 PrismWeave Bookmarklet Generator</h1>
         <p>
           Create a personalized bookmarklet with your GitHub settings embedded for universal content capture across all
@@ -213,7 +27,7 @@
         </p>
       </div>
 
-      <div class="description">
+      <div class="generator-description pw-card">
         <h3>✨ What is this?</h3>
         <p>
           This tool generates a custom bookmarklet that includes your GitHub Personal Access Token and repository
@@ -231,7 +45,7 @@
       </div>
 
       <form id="generator-form">
-        <div class="form-section">
+        <div class="generator-form-section">
           <h3>🔧 GitHub Configuration</h3>
 
           <div class="form-group">
@@ -292,7 +106,7 @@
           </div>
         </div>
 
-        <div class="form-section">
+        <div class="generator-form-section">
           <h3>⚙️ Capture Settings</h3>
 
           <div class="form-group">
@@ -322,11 +136,7 @@
           </div>
         </div>
 
-        <button
-          type="submit"
-          class="generate-btn"
-          id="generate-btn"
-        >
+        <button type="submit" class="pw-btn pw-btn-primary pw-btn-lg pw-btn-full" id="generate-btn">
           🚀 Generate My Personal Bookmarklet
         </button>
       </form>
@@ -334,31 +144,31 @@
       <div id="status-message"></div>
 
       <div
-        class="result-section"
+        class="generator-result"
         id="result-section"
       >
         <h3>✅ Your Personal Bookmarklet is Ready!</h3>
 
         <div class="bookmarklet-preview">
           <h4>Drag this to your bookmarks bar:</h4>
-          <div class="action-buttons">
+          <div class="generator-actions">
             <a
               href="javascript:void(0)"
-              class="action-btn primary"
+              class="pw-btn pw-btn-primary"
               id="bookmarklet-link"
             >
               📄 PrismWeave Capture
             </a>
             <button
               type="button"
-              class="action-btn secondary"
+              class="pw-btn pw-btn-secondary"
               id="copy-btn"
             >
               📋 Copy Bookmarklet
             </button>
             <button
               type="button"
-              class="action-btn secondary"
+              class="pw-btn pw-btn-secondary"
               id="download-btn"
             >
               💾 Download HTML Page
@@ -366,8 +176,8 @@
           </div>
         </div>
 
-        <div class="instructions">
-          <h4>📋 Installation Instructions:</h4>
+        <div class="generator-install">
+          <h4 class="pw-mb-2">📋 Installation Instructions:</h4>
           <ol>
             <li>
               <strong>Method 1 (Drag & Drop):</strong>
