@@ -185,7 +185,7 @@ export class PrismWeaveOptions {
       );
     } else {
       // Clear validation if valid
-      validationElement.style.display = 'none';
+      validationElement.classList.add('pw-hidden');
       inputElement.classList.remove('error');
     }
   }
@@ -211,7 +211,7 @@ export class PrismWeaveOptions {
       );
     } else {
       // Clear validation if valid
-      validationElement.style.display = 'none';
+      validationElement.classList.add('pw-hidden');
       inputElement.classList.remove('error');
     }
   }
@@ -222,7 +222,11 @@ export class PrismWeaveOptions {
 
     if (defaultFolderSelect && customFolderField) {
       const toggleCustomFolder = () => {
-        customFolderField.style.display = defaultFolderSelect.value === 'custom' ? 'block' : 'none';
+        if (defaultFolderSelect.value === 'custom') {
+          customFolderField.classList.remove('pw-hidden');
+        } else {
+          customFolderField.classList.add('pw-hidden');
+        }
       };
 
       defaultFolderSelect.addEventListener('change', toggleCustomFolder);
@@ -456,8 +460,8 @@ export class PrismWeaveOptions {
     const validationElement = document.getElementById(`${fieldId}-validation`);
     if (validationElement) {
       validationElement.textContent = message;
-      validationElement.className = `validation-message ${type}`;
-      validationElement.style.display = 'block';
+      validationElement.className = `validation-message pw-validation-error ${type}`;
+      validationElement.classList.remove('pw-hidden');
     }
 
     // Also highlight the input field
@@ -470,7 +474,7 @@ export class PrismWeaveOptions {
   private clearValidationMessages(): void {
     const validationElements = document.querySelectorAll('.validation-message');
     validationElements.forEach(el => {
-      (el as HTMLElement).style.display = 'none';
+      (el as HTMLElement).classList.add('pw-hidden');
     });
 
     // Remove error classes from inputs
@@ -484,12 +488,12 @@ export class PrismWeaveOptions {
     const resultElement = document.getElementById('connection-test-result');
     if (resultElement) {
       resultElement.textContent = message;
-      resultElement.className = `test-result ${type}`;
-      resultElement.style.display = 'block';
+      resultElement.className = `test-result pw-test-result ${type}`;
+      resultElement.classList.remove('pw-hidden');
 
       // Auto-hide after 10 seconds
       setTimeout(() => {
-        resultElement.style.display = 'none';
+        resultElement.classList.add('pw-hidden');
       }, 10000);
     }
   }
@@ -545,12 +549,12 @@ export class PrismWeaveOptions {
     const messageElement = document.getElementById('message');
     if (messageElement) {
       messageElement.textContent = message;
-      messageElement.className = `message ${type}`;
-      messageElement.style.display = 'block';
+      messageElement.className = `message pw-alert ${type}`;
+      messageElement.classList.remove('pw-hidden');
 
       // Auto-hide after 5 seconds
       setTimeout(() => {
-        messageElement.style.display = 'none';
+        messageElement.classList.add('pw-hidden');
       }, 5000);
     }
   }
