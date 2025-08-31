@@ -41,6 +41,27 @@ body.pw-font-sans {
   margin-bottom: var(--pw-space-5);
 }
 
+.security-note {
+  background: var(--pw-warning-50);
+  border: 1px solid var(--pw-warning-200);
+  border-radius: var(--pw-radius);
+  padding: var(--pw-space-4);
+  margin-top: var(--pw-space-4);
+}
+
+.security-note h5 {
+  color: var(--pw-warning-700);
+  margin: 0 0 var(--pw-space-2) 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.security-note p {
+  color: var(--pw-warning-600);
+  margin: 0;
+  font-size: 0.85rem;
+}
+
 .generator-install h4 {
   color: var(--pw-primary-700);
   margin-bottom: var(--pw-space-3);
@@ -66,6 +87,20 @@ body.pw-font-sans {
   box-shadow: var(--pw-shadow);
 }
 
+/* Result section - hidden by default */
+.generator-result {
+  display: none;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: all 0.3s ease;
+}
+
+.generator-result.show {
+  display: block;
+  opacity: 1;
+  transform: translateY(0);
+}
+
 .generator-form-section h3,
 .generator-result h3 {
   color: var(--pw-text-primary);
@@ -79,6 +114,25 @@ body.pw-font-sans {
   color: var(--pw-error-500);
   font-size: 0.8rem;
   margin-top: var(--pw-space-1);
+  display: block;
+  min-height: 1rem;
+}
+
+/* Form styling improvements */
+.pw-form-group small {
+  color: var(--pw-text-secondary);
+  font-size: 0.8rem;
+  margin-top: var(--pw-space-1);
+  display: block;
+}
+
+.pw-form-group small a {
+  color: var(--pw-primary-600);
+  text-decoration: none;
+}
+
+.pw-form-group small a:hover {
+  text-decoration: underline;
 }
 
 /* Code output */

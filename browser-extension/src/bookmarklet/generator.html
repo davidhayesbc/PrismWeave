@@ -51,12 +51,18 @@
         <div class="generator-form-section">
           <h3>🔧 GitHub Configuration</h3>
 
-          <div class="form-group">
-            <label for="github-token">GitHub Personal Access Token *</label>
+          <div class="pw-form-group">
+            <label
+              for="github-token"
+              class="pw-label"
+            >
+              GitHub Personal Access Token *
+            </label>
             <input
               type="password"
               id="github-token"
               name="githubToken"
+              class="pw-input"
               placeholder="ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
               required
             />
@@ -76,12 +82,18 @@
             ></div>
           </div>
 
-          <div class="form-group">
-            <label for="github-repo">GitHub Repository *</label>
+          <div class="pw-form-group">
+            <label
+              for="github-repo"
+              class="pw-label"
+            >
+              GitHub Repository *
+            </label>
             <input
               type="text"
               id="github-repo"
               name="githubRepo"
+              class="pw-input"
               placeholder="username/repository-name"
               required
             />
@@ -92,11 +104,17 @@
             ></div>
           </div>
 
-          <div class="form-group">
-            <label for="default-folder">Default Folder</label>
+          <div class="pw-form-group">
+            <label
+              for="default-folder"
+              class="pw-label"
+            >
+              Default Folder
+            </label>
             <select
               id="default-folder"
               name="defaultFolder"
+              class="pw-input"
             >
               <option value="documents">documents</option>
               <option value="captured">captured</option>
@@ -112,23 +130,35 @@
         <div class="generator-form-section">
           <h3>⚙️ Capture Settings</h3>
 
-          <div class="form-group">
-            <label for="commit-message">Commit Message Template</label>
+          <div class="pw-form-group">
+            <label
+              for="commit-message"
+              class="pw-label"
+            >
+              Commit Message Template
+            </label>
             <input
               type="text"
               id="commit-message"
               name="commitMessage"
+              class="pw-input"
               placeholder="PrismWeave: Add captured content"
               value="PrismWeave: Add {title}"
             />
             <small>Use {title} and {domain} as placeholders</small>
           </div>
 
-          <div class="form-group">
-            <label for="file-naming">File Naming Pattern</label>
+          <div class="pw-form-group">
+            <label
+              for="file-naming"
+              class="pw-label"
+            >
+              File Naming Pattern
+            </label>
             <select
               id="file-naming"
               name="fileNaming"
+              class="pw-input"
             >
               <option value="date-title">YYYY-MM-DD-title-slug.md</option>
               <option value="timestamp-title">YYYYMMDD-HHMMSS-title-slug.md</option>
