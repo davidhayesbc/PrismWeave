@@ -44,8 +44,8 @@ class PrismWeaveWebServer {
 
     server.listen(this.port, this.host, () => {
       console.log(`🌐 PrismWeave Web Server started`);
-      console.log(`📍 URL: http://${this.host}:${this.port}`);
-      console.log(`📁 Serving: ${this.distPath}`);
+      console.log(`📍 Website root: http://${this.host}:${this.port}/`);
+      console.log(`📁 Serving directory: ${this.distPath}`);
       console.log(`🔗 Bookmarklet Generator: http://${this.host}:${this.port}/`);
       console.log('Press Ctrl+C to stop the server');
     });
@@ -63,6 +63,12 @@ class PrismWeaveWebServer {
   handleRequest(req, res) {
     const parsedUrl = url.parse(req.url);
     let pathname = parsedUrl.pathname;
+
+    // Quiet noisy dev tooling: ignore socket.io/ws polling paths (no HMR server here)
+    if (pathname && (pathname.startsWith('/ws/') || pathname.startsWith('/socket.io'))) {
+      this.sendNoop(res);
+      return;
+    }
 
     // Default to index.html for root requests
     if (pathname === '/') {
@@ -302,6 +308,20 @@ class PrismWeaveWebServer {
     res.end(html);
 
     console.error(`💥 ${new Date().toISOString()} - 500: ${error.message}`);
+  }
+
+  // Return 204 No Content for known dev-tool polling endpoints
+  sendNoop(res) {
+    try {
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.writeHead(204);
+      res.end();
+    } catch (e) {
+      // Best-effort noop
+      try {
+        res.end();
+      } catch (_) {}
+    }
   }
 
   formatFileSize(bytes) {

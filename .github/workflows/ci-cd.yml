@@ -196,7 +196,7 @@ jobs:
       - name: Test serve functionality
         run: |
           echo "🔍 Testing web server..."
-          timeout 10s npm run serve:web &
+          timeout 10s npm run serve:web -- --port 3000 &
           SERVER_PID=$!
           sleep 3
           

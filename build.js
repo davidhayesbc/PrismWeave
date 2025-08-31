@@ -149,6 +149,29 @@ class PrismWeaveBuildSystem {
     const webDistPath = path.join(this.projectRoot, 'dist', 'web');
     this.ensureDirectory(webDistPath);
 
+    // Copy static website assets first (so later copies can reference them)
+    const websiteSrcPath = path.join(this.projectRoot, 'website');
+    if (fs.existsSync(websiteSrcPath)) {
+      // Copy everything under website/assets to dist/web/assets
+      const websiteAssets = path.join(websiteSrcPath, 'assets');
+      if (fs.existsSync(websiteAssets)) {
+        this.copyDirectory(websiteAssets, path.join(webDistPath, 'assets'));
+      }
+
+      // Copy any additional website files/folders (excluding index.html which is templated)
+      const entries = fs.readdirSync(websiteSrcPath, { withFileTypes: true });
+      for (const entry of entries) {
+        if (entry.name === 'assets' || entry.name === 'index.html') continue;
+        const src = path.join(websiteSrcPath, entry.name);
+        const dest = path.join(webDistPath, entry.name);
+        if (entry.isDirectory()) {
+          this.copyDirectory(src, dest);
+        } else if (entry.isFile()) {
+          fs.copyFileSync(src, dest);
+        }
+      }
+    }
+
     // Copy browser extension files for web deployment
     const browserExtensionDist = path.join(this.projectRoot, 'browser-extension', 'dist');
     if (fs.existsSync(browserExtensionDist)) {
@@ -179,8 +202,11 @@ class PrismWeaveBuildSystem {
       }
     }
 
-    // Create web index page
-    await this.createWebIndexPage(webDistPath);
+  // Create web index page from template if available
+  await this.createWebIndexPage(webDistPath);
+
+  // Generate favicon.ico into web dist (from logo.png or logo.svg)
+  await this.createFavicon(webDistPath);
 
     // Create deployment manifest
     await this.createDeploymentManifest(webDistPath);
@@ -190,12 +216,45 @@ class PrismWeaveBuildSystem {
   }
 
   async createWebIndexPage(webDistPath) {
-    const indexHtml = `<!DOCTYPE html>
+    // Prefer website/index.html template when present; fall back to built-in template
+    const websiteIndexTemplate = path.join(this.projectRoot, 'website', 'index.html');
+    if (fs.existsSync(websiteIndexTemplate)) {
+      let raw = fs.readFileSync(websiteIndexTemplate, 'utf8');
+      // Ensure favicon links exist; inject any missing before </head>
+      const ensureFavicons = (html) => {
+        const needsIco = !/href=["']\.\/?favicon\.ico["']/i.test(html);
+        const needsPng = !/href=["']\.\/?favicon\.png["']/i.test(html);
+        const needsSvg = !/type=["']image\/svg\+xml["'][^>]*href=["']\.\/?logo\.svg["']|href=["']\.\/?logo\.svg["'][^>]*type=["']image\/svg\+xml["']/i.test(html);
+
+        if (!needsIco && !needsPng && !needsSvg) return html;
+
+        const links = [];
+        if (needsIco) links.push('    <link rel="icon" href="./favicon.ico" type="image/x-icon" />');
+        if (needsPng) links.push('    <link rel="icon" href="./favicon.png" type="image/png" />');
+        if (needsSvg) links.push('    <link rel="icon" href="./logo.svg" type="image/svg+xml" />');
+
+        // Insert before closing head tag
+        return html.replace(/<\/head>/i, `${links.join('\n')}\n</head>`);
+      };
+
+      const withFavicons = ensureFavicons(raw);
+      const rendered = withFavicons
+        .replace(/\{\{VERSION\}\}/g, require('./package.json').version)
+        .replace(/\{\{BUILD_DATE\}\}/g, new Date().toISOString())
+        .replace(/\{\{ENVIRONMENT\}\}/g, this.isProduction ? 'Production' : 'Development');
+      fs.writeFileSync(path.join(webDistPath, 'index.html'), rendered);
+      return;
+    }
+
+  const indexHtml = `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PrismWeave - Web Deployment</title>
+  <link rel=\"icon\" href=\"./favicon.ico\" type=\"image/x-icon\" />
+  <link rel=\"icon\" href=\"./favicon.png\" type=\"image/png\" />
+  <link rel=\"icon\" href=\"./logo.svg\" type=\"image/svg+xml\" />
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -327,13 +386,70 @@ class PrismWeaveBuildSystem {
         </div>
         
         <div class="footer">
-            <p>PrismWeave v${require('./package.json').version} - Built with ❤️ by the PrismWeave Team</p>
+      <p>PrismWeave v${require('./package.json').version} - Built with ❤️ by the PrismWeave Team</p>
         </div>
     </div>
 </body>
 </html>`;
 
     fs.writeFileSync(path.join(webDistPath, 'index.html'), indexHtml);
+  }
+
+  async createFavicon(webDistPath) {
+    try {
+      // Always copy SVG logo to dist if present (used as optional SVG favicon)
+      const logoSvg = path.join(this.projectRoot, 'logo.svg');
+      if (fs.existsSync(logoSvg)) {
+        const svgOutPath = path.join(webDistPath, 'logo.svg');
+        try {
+          fs.copyFileSync(logoSvg, svgOutPath);
+        } catch (_) {
+          // Non-fatal
+        }
+      }
+
+      const icoPath = path.join(webDistPath, 'favicon.ico');
+      const pngOutPath = path.join(webDistPath, 'favicon.png');
+      // If already exists, keep it
+      if (fs.existsSync(icoPath)) return;
+
+      const logoPng = path.join(this.projectRoot, 'logo.png');
+      const hasPng = fs.existsSync(logoPng);
+      const hasSvg = fs.existsSync(logoSvg);
+
+      if (!hasPng && !hasSvg) {
+        console.warn('⚠️  No logo.png or logo.svg found; skipping favicon generation');
+        return;
+      }
+
+      // Prefer PNG->ICO conversion; also output a PNG as fallback
+      if (hasPng) {
+        try {
+          const { default: pngToIco } = await import('png-to-ico');
+          const icoBuffer = await pngToIco([logoPng]);
+          fs.writeFileSync(icoPath, icoBuffer);
+          // Copy png fallback
+          fs.copyFileSync(logoPng, pngOutPath);
+          console.log('✅ Favicon generated from logo.png');
+          return;
+        } catch (e) {
+          console.warn('⚠️  png-to-ico conversion failed, copying PNG fallback:', e.message);
+          fs.copyFileSync(logoPng, pngOutPath);
+          return;
+        }
+      }
+
+      // If only SVG exists, try a minimal conversion by embedding a simple favicon placeholder (without extra deps)
+      // For best quality, provide logo.png; otherwise we ship a tiny generic fallback.
+      const fallbackIco = Buffer.from(
+        '00000100010010100000010020006804000016000000280000001000000020000000010020000000000040040000000000000000000000000000000000000000',
+        'hex'
+      );
+      fs.writeFileSync(icoPath, fallbackIco);
+      console.log('⚠️  Generated a minimal placeholder favicon (provide logo.png for better quality)');
+    } catch (e) {
+      console.warn('⚠️  Favicon generation failed:', e.message);
+    }
   }
 
   async createDeploymentManifest(webDistPath) {
