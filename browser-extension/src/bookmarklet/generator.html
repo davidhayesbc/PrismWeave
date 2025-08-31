@@ -16,6 +16,15 @@
       href="../styles/shared-ui.css"
     />
     <style>
+      body {
+        font-family: var(--pw-font-family);
+        line-height: 1.6;
+        color: var(--pw-text-primary);
+        background: var(--pw-bg-secondary);
+        margin: 0;
+        padding: 0;
+      }
+
       .generator-container {
         max-width: 800px;
         margin: 2rem auto;
@@ -28,116 +37,172 @@
       }
 
       .header h1 {
-        color: #1e40af;
+        color: var(--pw-primary-600);
         margin-bottom: 1rem;
       }
 
       .description {
-        background: #f0f9ff;
-        border: 1px solid #0ea5e9;
-        border-radius: 8px;
+        background: var(--pw-primary-50);
+        border: 1px solid var(--pw-primary-200);
+        border-radius: var(--pw-radius-lg);
         padding: 1.5rem;
         margin-bottom: 2rem;
       }
 
       .form-section {
-        background: white;
-        border: 1px solid #e5e7eb;
-        border-radius: 12px;
+        background: var(--pw-bg-primary);
+        border: 1px solid var(--pw-border-color);
+        border-radius: var(--pw-radius-xl);
         padding: 2rem;
         margin-bottom: 2rem;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        box-shadow: var(--pw-shadow);
       }
 
       .form-section h3 {
-        color: #374151;
+        color: var(--pw-text-primary);
         margin-bottom: 1rem;
         display: flex;
         align-items: center;
         gap: 0.5rem;
       }
 
-      .form-group {
-        margin-bottom: 1.5rem;
-      }
-
-      .form-group label {
-        display: block;
-        font-weight: 500;
-        color: #374151;
-        margin-bottom: 0.5rem;
-      }
-
-      .form-group input,
-      .form-group select,
-      .form-group textarea {
-        width: 100%;
-        padding: 0.75rem;
-        border: 1px solid #d1d5db;
-        border-radius: 6px;
-        font-size: 0.9rem;
-        transition:
-          border-color 0.2s,
-          box-shadow 0.2s;
-      }
-
-      .form-group input:focus,
-      .form-group select:focus,
-      .form-group textarea:focus {
-        outline: none;
-        border-color: #3b82f6;
-        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-      }
-
-      .form-group small {
-        color: #6b7280;
-        font-size: 0.8rem;
-      }
-
       .validation-error {
-        color: #dc2626;
+        color: var(--pw-error-500);
         font-size: 0.8rem;
         margin-top: 0.25rem;
       }
 
       .generate-btn {
-        background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+        background: var(--pw-gradient-primary);
         color: white;
         border: none;
         padding: 1rem 2rem;
-        border-radius: 8px;
+        border-radius: var(--pw-radius-lg);
         font-size: 1rem;
         font-weight: 600;
         cursor: pointer;
         transition: all 0.2s;
         display: block;
         margin: 2rem auto;
+        box-shadow: var(--pw-shadow);
       }
 
       .generate-btn:hover {
         transform: translateY(-2px);
-        box-shadow: 0 8px 25px rgba(59, 130, 246, 0.3);
+        box-shadow: var(--pw-shadow-lg);
       }
 
       .generate-btn:disabled {
-        background: #9ca3af;
+        background: var(--pw-gray-400);
         cursor: not-allowed;
         transform: none;
         box-shadow: none;
       }
 
-      .status-message {
-        padding: 1rem;
-        border-radius: 6px;
-        margin: 1rem 0;
-        font-weight: 500;
+      .bookmarklet-output {
+        background: var(--pw-bg-primary);
+        border: 1px solid var(--pw-border-color);
+        border-radius: var(--pw-radius-xl);
+        padding: 2rem;
+        margin-top: 2rem;
+        box-shadow: var(--pw-shadow);
       }
 
-      .status-success {
-        background: #f0fdf4;
-        border: 1px solid #22c55e;
-        color: #16a34a;
+      .bookmarklet-code {
+        background: var(--pw-gray-900);
+        color: var(--pw-gray-100);
+        border-radius: var(--pw-radius);
+        padding: 1rem;
+        font-family: var(--pw-font-mono);
+        font-size: 0.8rem;
+        line-height: 1.4;
+        overflow-x: auto;
+        white-space: pre-wrap;
+        word-break: break-all;
+        margin: 1rem 0;
       }
+
+      .copy-btn {
+        background: var(--pw-success-500);
+        color: white;
+        border: none;
+        padding: 0.5rem 1rem;
+        border-radius: var(--pw-radius);
+        font-size: 0.9rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        margin-top: 0.5rem;
+      }
+
+      .copy-btn:hover {
+        background: var(--pw-success-600);
+      }
+
+      .copy-btn.copied {
+        background: var(--pw-primary-500);
+      }
+
+      .install-instructions {
+        background: var(--pw-primary-50);
+        border: 1px solid var(--pw-primary-200);
+        border-radius: var(--pw-radius-lg);
+        padding: 1.5rem;
+        margin-top: 1rem;
+      }
+
+      .install-instructions h4 {
+        color: var(--pw-primary-700);
+        margin-bottom: 1rem;
+      }
+
+      .install-instructions ol {
+        margin-left: 1.5rem;
+      }
+
+      .install-instructions li {
+        margin-bottom: 0.5rem;
+      }
+
+      .navigation-links {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+        margin-top: 3rem;
+      }
+
+      .nav-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1.5rem;
+        background: var(--pw-gradient-primary);
+        color: white;
+        text-decoration: none;
+        border-radius: var(--pw-radius-lg);
+        font-weight: 500;
+        transition: all 0.2s ease;
+        box-shadow: var(--pw-shadow);
+      }
+
+      .nav-link:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--pw-shadow-md);
+        text-decoration: none;
+        color: white;
+      }
+
+      .nav-link.secondary {
+        background: var(--pw-bg-primary);
+        color: var(--pw-primary-600);
+        border: 1px solid var(--pw-border-color);
+      }
+
+      .nav-link.secondary:hover {
+        background: var(--pw-bg-secondary);
+        color: var(--pw-primary-700);
+      }
+    </style>
+  </head>
 
       .status-error {
         background: #fef2f2;

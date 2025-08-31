@@ -7,11 +7,17 @@
       content="width=device-width, initial-scale=1.0"
     />
     <title>PrismWeave Bookmarklet Help</title>
-    <link
-      rel="stylesheet"
-      href="../options/options.css"
-    />
+    <link rel="stylesheet" href="../styles/shared-ui.css" />
     <style>
+      body {
+        font-family: var(--pw-font-family);
+        line-height: 1.6;
+        color: var(--pw-text-primary);
+        background: var(--pw-bg-secondary);
+        margin: 0;
+        padding: 0;
+      }
+
       .help-container {
         max-width: 900px;
         margin: 0 auto;
@@ -19,15 +25,16 @@
       }
 
       .help-section {
-        background: var(--bg-secondary);
-        border-radius: 8px;
+        background: var(--pw-bg-primary);
+        border-radius: var(--pw-radius-lg);
         padding: 20px;
         margin: 20px 0;
-        border-left: 4px solid var(--primary);
+        border-left: 4px solid var(--pw-primary-500);
+        box-shadow: var(--pw-shadow);
       }
 
       .help-title {
-        color: var(--primary);
+        color: var(--pw-primary-600);
         margin-bottom: 15px;
         display: flex;
         align-items: center;
@@ -40,14 +47,110 @@
       }
 
       .step-list li {
-        background: var(--bg-primary);
+        background: var(--pw-bg-secondary);
         margin: 10px 0;
         padding: 15px;
-        border-radius: 6px;
-        border-left: 3px solid var(--success);
+        border-radius: var(--pw-radius);
+        border-left: 3px solid var(--pw-success-500);
         position: relative;
         padding-left: 45px;
       }
+
+      .step-list li::before {
+        content: counter(step-counter);
+        counter-increment: step-counter;
+        position: absolute;
+        left: 15px;
+        top: 15px;
+        background: var(--pw-success-500);
+        color: white;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        font-weight: bold;
+      }
+
+      .step-list {
+        counter-reset: step-counter;
+      }
+
+      .code-snippet {
+        background: var(--pw-gray-900);
+        color: var(--pw-gray-100);
+        padding: 15px;
+        border-radius: var(--pw-radius);
+        font-family: var(--pw-font-mono);
+        font-size: 14px;
+        overflow-x: auto;
+        margin: 10px 0;
+      }
+
+      .tip {
+        background: var(--pw-primary-50);
+        border: 1px solid var(--pw-primary-200);
+        border-radius: var(--pw-radius);
+        padding: 15px;
+        margin: 15px 0;
+      }
+
+      .tip-warning {
+        background: var(--pw-warning-50);
+        border-color: var(--pw-warning-200);
+      }
+
+      .tip h4 {
+        color: var(--pw-primary-700);
+        margin-bottom: 8px;
+      }
+
+      .tip-warning h4 {
+        color: var(--pw-warning-700);
+      }
+
+      .nav-links {
+        display: flex;
+        gap: 15px;
+        margin-top: 30px;
+        justify-content: center;
+      }
+
+      .nav-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 20px;
+        background: var(--pw-gradient-primary);
+        color: white;
+        text-decoration: none;
+        border-radius: var(--pw-radius-lg);
+        font-weight: 500;
+        transition: all 0.2s ease;
+        box-shadow: var(--pw-shadow);
+      }
+
+      .nav-link:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--pw-shadow-md);
+        text-decoration: none;
+        color: white;
+      }
+
+      .nav-link.secondary {
+        background: var(--pw-bg-primary);
+        color: var(--pw-primary-600);
+        border: 1px solid var(--pw-border-color);
+      }
+
+      .nav-link.secondary:hover {
+        background: var(--pw-bg-secondary);
+        color: var(--pw-primary-700);
+      }
+    </style>
+  </head>
 
       .step-list li::before {
         content: counter(step-counter);

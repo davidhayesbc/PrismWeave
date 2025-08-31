@@ -7,18 +7,15 @@
       content="width=device-width, initial-scale=1.0"
     />
     <title>PrismWeave Bookmarklet - Install</title>
+    <link rel="stylesheet" href="../styles/shared-ui.css" />
     <style>
-      * {
+      body {
+        font-family: var(--pw-font-family);
+        line-height: 1.6;
+        color: var(--pw-text-primary);
+        background: var(--pw-bg-secondary);
         margin: 0;
         padding: 0;
-        box-sizing: border-box;
-      }
-
-      body {
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        line-height: 1.6;
-        color: #333;
-        background: #f8fafc;
       }
 
       .container {
@@ -30,10 +27,10 @@
       .header {
         text-align: center;
         margin-bottom: 3rem;
-        background: linear-gradient(135deg, #2563eb, #1d4ed8);
+        background: var(--pw-gradient-primary);
         color: white;
         padding: 3rem 2rem;
-        border-radius: 12px;
+        border-radius: var(--pw-radius-xl);
       }
 
       .header h1 {
@@ -47,8 +44,151 @@
       }
 
       .install-section {
-        background: white;
-        border-radius: 12px;
+        background: var(--pw-bg-primary);
+        border-radius: var(--pw-radius-xl);
+        padding: 2rem;
+        margin-bottom: 2rem;
+        border: 1px solid var(--pw-border-color);
+        box-shadow: var(--pw-shadow);
+      }
+
+      .install-section h2 {
+        color: var(--pw-primary-600);
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+      }
+
+      .step {
+        display: flex;
+        align-items: flex-start;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+        padding: 1rem;
+        background: var(--pw-bg-secondary);
+        border-radius: var(--pw-radius-lg);
+      }
+
+      .step-number {
+        background: var(--pw-gradient-primary);
+        color: white;
+        border-radius: 50%;
+        width: 30px;
+        height: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        font-size: 0.875rem;
+        flex-shrink: 0;
+      }
+
+      .step-content {
+        flex: 1;
+      }
+
+      .step-content h3 {
+        color: var(--pw-text-primary);
+        margin-bottom: 0.5rem;
+        font-size: 1.1rem;
+      }
+
+      .step-content p {
+        color: var(--pw-text-secondary);
+        margin-bottom: 0.5rem;
+      }
+
+      .bookmarklet-container {
+        background: var(--pw-gray-50);
+        border: 2px dashed var(--pw-border-color);
+        border-radius: var(--pw-radius-lg);
+        padding: 1.5rem;
+        text-align: center;
+        margin: 1rem 0;
+      }
+
+      .bookmarklet {
+        display: inline-block;
+        background: var(--pw-gradient-primary);
+        color: white;
+        padding: 0.75rem 1.5rem;
+        border-radius: var(--pw-radius-lg);
+        text-decoration: none;
+        font-weight: 600;
+        transition: all 0.2s ease;
+        box-shadow: var(--pw-shadow);
+      }
+
+      .bookmarklet:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--pw-shadow-md);
+        text-decoration: none;
+        color: white;
+      }
+
+      .code-block {
+        background: var(--pw-gray-900);
+        color: var(--pw-gray-100);
+        padding: 1rem;
+        border-radius: var(--pw-radius);
+        font-family: var(--pw-font-mono);
+        font-size: 0.875rem;
+        overflow-x: auto;
+        margin: 1rem 0;
+      }
+
+      .note {
+        background: var(--pw-primary-50);
+        border: 1px solid var(--pw-primary-200);
+        border-radius: var(--pw-radius-lg);
+        padding: 1rem;
+        margin: 1rem 0;
+      }
+
+      .note-info {
+        background: var(--pw-primary-50);
+        border-color: var(--pw-primary-200);
+      }
+
+      .note-warning {
+        background: var(--pw-warning-50);
+        border-color: var(--pw-warning-200);
+      }
+
+      .note-success {
+        background: var(--pw-success-50);
+        border-color: var(--pw-success-200);
+      }
+
+      .note h4 {
+        margin-bottom: 0.5rem;
+        color: var(--pw-primary-700);
+      }
+
+      .note-warning h4 {
+        color: var(--pw-warning-700);
+      }
+
+      .note-success h4 {
+        color: var(--pw-success-700);
+      }
+
+      .back-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: var(--pw-primary-600);
+        text-decoration: none;
+        font-weight: 500;
+        margin-top: 2rem;
+      }
+
+      .back-link:hover {
+        text-decoration: underline;
+      }
+    </style>
+  </head>
         padding: 3rem;
         margin-bottom: 2rem;
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);

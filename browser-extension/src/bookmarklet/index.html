@@ -7,28 +7,26 @@
       content="width=device-width, initial-scale=1.0"
     />
     <title>PrismWeave Bookmarklet - Files</title>
+    <link rel="stylesheet" href="../styles/shared-ui.css" />
     <style>
       body {
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        font-family: var(--pw-font-family);
         line-height: 1.6;
         max-width: 1000px;
         margin: 2rem auto;
         padding: 2rem;
-        color: #333;
+        color: var(--pw-text-primary);
+        background: var(--pw-bg-secondary);
       }
 
       .header {
         text-align: center;
         margin-bottom: 3rem;
         padding: 2rem 0;
-        background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+        background: var(--pw-gradient-primary);
         color: white;
-        border-radius: 12px;
+        border-radius: var(--pw-radius-xl);
         margin: 0 -2rem 3rem -2rem;
-      }
-
-      .header h1 {
-        margin-bottom: 1rem;
       }
 
       .files-grid {
@@ -39,16 +37,128 @@
       }
 
       .file-card {
-        background: white;
-        border: 1px solid #e5e7eb;
-        border-radius: 12px;
+        background: var(--pw-bg-primary);
+        border: 1px solid var(--pw-border-color);
+        border-radius: var(--pw-radius-xl);
         padding: 2rem;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        box-shadow: var(--pw-shadow);
         transition: all 0.2s ease;
       }
 
       .file-card:hover {
         transform: translateY(-4px);
+        box-shadow: var(--pw-shadow-lg);
+      }
+
+      .file-title {
+        color: var(--pw-primary-600);
+        margin-bottom: 1rem;
+        font-size: 1.25rem;
+        font-weight: 600;
+      }
+
+      .file-description {
+        color: var(--pw-text-secondary);
+        margin-bottom: 1.5rem;
+        line-height: 1.5;
+      }
+
+      .file-actions {
+        display: flex;
+        gap: 1rem;
+        margin-top: 1rem;
+      }
+
+      .file-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1.25rem;
+        background: var(--pw-gradient-primary);
+        color: white;
+        text-decoration: none;
+        border-radius: var(--pw-radius-lg);
+        font-weight: 500;
+        transition: all 0.2s ease;
+        box-shadow: var(--pw-shadow);
+      }
+
+      .file-link:hover {
+        transform: translateY(-1px);
+        box-shadow: var(--pw-shadow-md);
+        text-decoration: none;
+        color: white;
+      }
+
+      .file-link.secondary {
+        background: var(--pw-bg-primary);
+        color: var(--pw-primary-600);
+        border: 1px solid var(--pw-border-color);
+      }
+
+      .file-link.secondary:hover {
+        color: var(--pw-primary-700);
+        background: var(--pw-bg-secondary);
+      }
+
+      .footer {
+        text-align: center;
+        margin-top: 4rem;
+        padding: 2rem;
+        background: var(--pw-bg-primary);
+        border-radius: var(--pw-radius-xl);
+        border: 1px solid var(--pw-border-color);
+      }
+
+      .footer p {
+        color: var(--pw-text-secondary);
+        margin-bottom: 1rem;
+      }
+
+      .footer a {
+        color: var(--pw-primary-600);
+        text-decoration: none;
+        font-weight: 500;
+      }
+
+      .footer a:hover {
+        text-decoration: underline;
+      }
+
+      .quick-start {
+        background: var(--pw-warning-50);
+        border: 1px solid var(--pw-warning-500);
+        border-radius: var(--pw-radius-lg);
+        padding: 1.5rem;
+        margin: 2rem 0;
+      }
+
+      .quick-start h3 {
+        color: var(--pw-warning-600);
+        margin-bottom: 1rem;
+      }
+
+      .quick-start ul {
+        color: var(--pw-warning-700);
+        margin: 1rem 0 1rem 2rem;
+      }
+
+      .navigation {
+        text-align: center;
+        margin-top: 3rem;
+      }
+
+      .nav-link {
+        color: var(--pw-primary-600);
+        text-decoration: none;
+        font-weight: 500;
+      }
+
+      .nav-link:hover {
+        text-decoration: underline;
+      }
+    </style>
+  </head>
         box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
         border-color: #3b82f6;
       }
@@ -246,18 +356,15 @@
       </div>
     </div>
 
-    <div
-      class="quick-start"
-      style="background: #fff7ed; border-color: #fb923c"
-    >
-      <h3 style="color: #ea580c">🔒 Security Note</h3>
+    <div class="quick-start">
+      <h3>🔒 Security Note</h3>
       <p>
         The
         <strong>Personal Bookmarklet Generator</strong>
         embeds your GitHub Personal Access Token directly in the bookmarklet code. This eliminates cross-domain storage
         issues but means you should:
       </p>
-      <ul style="color: #9a3412; margin: 1rem 0 1rem 2rem">
+      <ul>
         <li>Only use tokens with minimal required permissions (Contents: Write, Metadata: Read)</li>
         <li>Keep your generated bookmarklet private</li>
         <li>Consider regenerating tokens periodically for security</li>
