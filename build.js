@@ -16,17 +16,17 @@ class PrismWeaveBuildSystem {
       'browser-extension': {
         path: 'browser-extension',
         buildScript: 'scripts/build-simple.js',
-        distPath: 'browser-extension/dist',
+        distPath: 'dist/browser-extension',
       },
       'bookmarklet': {
         path: 'browser-extension',
         buildScript: 'scripts/build-bookmarklet.js',
-        distPath: 'browser-extension/dist/bookmarklet',
+        distPath: 'dist/bookmarklet',
       },
       'ai-processing': {
         path: 'ai-processing',
         buildScript: 'python -m pytest tests/ -v',
-        distPath: 'ai-processing/dist',
+        distPath: 'dist/ai-processing',
       }
     };
   }
@@ -173,19 +173,19 @@ class PrismWeaveBuildSystem {
     }
 
     // Copy browser extension files for web deployment
-    const browserExtensionDist = path.join(this.projectRoot, 'browser-extension', 'dist');
+    const browserExtensionDist = path.join(this.projectRoot, 'dist', 'browser-extension');
     if (fs.existsSync(browserExtensionDist)) {
       this.copyDirectory(browserExtensionDist, path.join(webDistPath, 'extension'));
     }
 
     // Copy injectable files to web deployment
-    const injectableDist = path.join(this.projectRoot, 'browser-extension', 'dist', 'injectable');
+    const injectableDist = path.join(this.projectRoot, 'dist', 'browser-extension', 'injectable');
     if (fs.existsSync(injectableDist)) {
       this.copyDirectory(injectableDist, path.join(webDistPath, 'injectable'));
     }
 
     // Copy bookmarklet files and ensure CSS is accessible for web deployment
-    const bookmarkletDist = path.join(this.projectRoot, 'browser-extension', 'dist', 'bookmarklet');
+    const bookmarkletDist = path.join(this.projectRoot, 'dist', 'bookmarklet');
     if (fs.existsSync(bookmarkletDist)) {
       this.copyDirectory(bookmarkletDist, path.join(webDistPath, 'bookmarklet'));
       
@@ -506,8 +506,6 @@ class PrismWeaveBuildSystem {
     
     const cleanPaths = [
       'dist',
-      'browser-extension/dist',
-      'ai-processing/dist',
       'ai-processing/__pycache__',
       'ai-processing/.pytest_cache',
     ];

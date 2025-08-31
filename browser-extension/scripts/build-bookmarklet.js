@@ -13,7 +13,7 @@ class PersonalBookmarkletBuilder {
     this.scriptDir = __dirname;
     this.projectRoot = path.resolve(this.scriptDir, '..');
     this.srcDir = path.join(this.projectRoot, 'src', 'bookmarklet');
-    this.distDir = path.join(this.projectRoot, 'dist', 'bookmarklet');
+    this.distDir = path.resolve(this.scriptDir, '..', '..', 'dist', 'bookmarklet');
     this.isProduction = process.env.NODE_ENV === 'production';
   }
 

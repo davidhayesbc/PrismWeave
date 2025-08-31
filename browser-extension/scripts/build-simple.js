@@ -12,11 +12,12 @@ async function buildExtension() {
   const isProduction = process.env.NODE_ENV === 'production';
   console.log(`📦 Build mode: ${isProduction ? 'Production' : 'Development'}`);
 
-  // Clean dist directory
-  if (fs.existsSync('./dist')) {
-    fs.rmSync('./dist', { recursive: true });
+  // Clean dist directory - use root-level dist
+  const distPath = path.resolve('../dist/browser-extension');
+  if (fs.existsSync(distPath)) {
+    fs.rmSync(distPath, { recursive: true });
   }
-  fs.mkdirSync('./dist', { recursive: true });
+  fs.mkdirSync(distPath, { recursive: true });
 
   const baseOptions = {
     target: 'es2020',
@@ -39,35 +40,35 @@ async function buildExtension() {
       {
         name: 'Service Worker',
         entryPoints: ['src/background/service-worker.ts'],
-        outfile: 'dist/background/service-worker.js',
+        outfile: path.join(distPath, 'background/service-worker.js'),
         format: 'esm', // ES modules for service worker (manifest has "type": "module")
         ...baseOptions,
       },
       {
         name: 'Content Script',
         entryPoints: ['src/content/content-script.ts'],
-        outfile: 'dist/content/content-script.js',
+        outfile: path.join(distPath, 'content/content-script.js'),
         format: 'iife', // IIFE format for content script
         ...baseOptions,
       },
       {
         name: 'Popup',
         entryPoints: ['src/popup/popup.ts'],
-        outfile: 'dist/popup/popup.js',
+        outfile: path.join(distPath, 'popup/popup.js'),
         format: 'iife', // IIFE format for popup scripts
         ...baseOptions,
       },
       {
         name: 'Options',
         entryPoints: ['src/options/options.ts'],
-        outfile: 'dist/options/options.js',
+        outfile: path.join(distPath, 'options/options.js'),
         format: 'iife', // IIFE format for options scripts
         ...baseOptions,
       },
       {
         name: 'Bookmarklet Runtime',
         entryPoints: ['src/bookmarklet/runtime.ts'],
-        outfile: 'dist/bookmarklet/runtime.js',
+        outfile: path.join(distPath, 'bookmarklet/runtime.js'),
         format: 'iife', // IIFE format for standalone bookmarklet
         minify: true, // Always minify bookmarklet for size
         sourcemap: false, // No sourcemaps for bookmarklet (size optimization)
@@ -77,7 +78,7 @@ async function buildExtension() {
       {
         name: 'Injectable Content Extractor',
         entryPoints: ['src/injectable/content-extractor-injectable.ts'],
-        outfile: 'dist/injectable/content-extractor-injectable.js',
+        outfile: path.join(distPath, 'injectable/content-extractor-injectable.js'),
         format: 'iife', // IIFE format for injectable scripts
         minify: true, // Minify for optimal injection
         sourcemap: false, // No sourcemaps for injectable (size optimization)
@@ -108,27 +109,32 @@ async function buildExtension() {
 
 async function copyStaticAssets() {
   console.log('  📁 Copying static assets...');
+  const distPath = path.resolve('../dist/browser-extension');
   const assets = [
     // Manifest
-    { src: 'manifest.json', dest: 'dist/manifest.json' },
+    { src: 'manifest.json', dest: path.join(distPath, 'manifest.json') },
 
     // HTML and CSS files
-    { src: 'src/popup/popup.html', dest: 'dist/popup/popup.html' },
-    { src: 'src/popup/popup.css', dest: 'dist/popup/popup.css' },
-    { src: 'src/options/options.html', dest: 'dist/options/options.html' },
-    { src: 'src/options/options.css', dest: 'dist/options/options.css' },
+    { src: 'src/popup/popup.html', dest: path.join(distPath, 'popup/popup.html') },
+    { src: 'src/popup/popup.css', dest: path.join(distPath, 'popup/popup.css') },
+    { src: 'src/options/options.html', dest: path.join(distPath, 'options/options.html') },
+    { src: 'src/options/options.css', dest: path.join(distPath, 'options/options.css') },
 
     // Icons directory
-    { src: 'icons', dest: 'dist/icons', isDirectory: true },
+    { src: 'icons', dest: path.join(distPath, 'icons'), isDirectory: true },
 
     // Styles directory (shared UI components)
-    { src: 'src/styles', dest: 'dist/styles', isDirectory: true },
+    { src: 'src/styles', dest: path.join(distPath, 'styles'), isDirectory: true },
 
     // Libraries directory (TurndownService, etc.)
-    { src: 'src/libs', dest: 'dist/libs', isDirectory: true },
+    { src: 'src/libs', dest: path.join(distPath, 'libs'), isDirectory: true },
 
     // Bookmarklet templates directory
-    { src: 'src/bookmarklet/templates', dest: 'dist/bookmarklet/templates', isDirectory: true },
+    {
+      src: 'src/bookmarklet/templates',
+      dest: path.join(distPath, 'bookmarklet/templates'),
+      isDirectory: true,
+    },
   ];
 
   for (const asset of assets) {
@@ -161,6 +167,8 @@ async function copyStaticAssets() {
 async function buildDev() {
   console.log('🔄 Starting development build with watch mode...');
 
+  const distPath = path.resolve('../dist/browser-extension');
+
   const baseOptions = {
     target: 'es2020',
     platform: 'browser',
@@ -172,31 +180,31 @@ async function buildDev() {
   const contexts = await Promise.all([
     esbuild.context({
       entryPoints: ['src/background/service-worker.ts'],
-      outfile: 'dist/background/service-worker.js',
+      outfile: path.join(distPath, 'background/service-worker.js'),
       format: 'esm', // ES modules for service worker
       ...baseOptions,
     }),
     esbuild.context({
       entryPoints: ['src/content/content-script.ts'],
-      outfile: 'dist/content/content-script.js',
+      outfile: path.join(distPath, 'content/content-script.js'),
       format: 'iife', // IIFE for content script
       ...baseOptions,
     }),
     esbuild.context({
       entryPoints: ['src/popup/popup.ts'],
-      outfile: 'dist/popup/popup.js',
+      outfile: path.join(distPath, 'popup/popup.js'),
       format: 'iife', // IIFE for popup
       ...baseOptions,
     }),
     esbuild.context({
       entryPoints: ['src/options/options.ts'],
-      outfile: 'dist/options/options.js',
+      outfile: path.join(distPath, 'options/options.js'),
       format: 'iife', // IIFE for options
       ...baseOptions,
     }),
     esbuild.context({
       entryPoints: ['src/bookmarklet/runtime.ts'],
-      outfile: 'dist/bookmarklet/runtime.js',
+      outfile: path.join(distPath, 'bookmarklet/runtime.js'),
       format: 'iife', // IIFE for standalone bookmarklet
       globalName: 'PrismWeaveBookmarklet',
       ...baseOptions,
@@ -210,6 +218,7 @@ async function buildDev() {
   await copyStaticAssets();
 
   console.log('👀 Watching for changes... Press Ctrl+C to stop');
+  console.log('📦 Output directory:', distPath);
 
   // Keep the process alive
   process.on('SIGINT', async () => {
