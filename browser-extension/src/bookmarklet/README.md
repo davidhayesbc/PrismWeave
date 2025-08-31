@@ -113,7 +113,8 @@ node scripts/serve-local.js --no-rebuild
 
 When the server is running on `http://localhost:8080`:
 
-- **🏠 Bookmarklet Generator**: `http://localhost:8080/bookmarklet/generator.html`
+- **🏠 Bookmarklet Generator**:
+  `http://localhost:8080/bookmarklet/generator.html`
 
   - Interactive bookmarklet generator with GitHub settings
   - Personal bookmarklet creation with embedded configuration
@@ -139,11 +140,12 @@ When the server is running on `http://localhost:8080`:
 1. **Start Local Server**: Run `npm run serve:web` from project root
 2. **Open Generator Page**: Navigate to
    `http://localhost:8080/bookmarklet/generator.html`
-3. **Generate Personal Bookmarklet**: Configure your GitHub settings and generate
+3. **Generate Personal Bookmarklet**: Configure your GitHub settings and
+   generate
 4. **Install Bookmarklet**: Drag the generated button to your bookmarks bar
-4. **Test on Web Pages**: Click the bookmark on various websites
-5. **Configure GitHub**: Set up your GitHub token and repository on first use
-6. **Verify Capture**: Check that content is properly extracted and committed
+5. **Test on Web Pages**: Click the bookmark on various websites
+6. **Configure GitHub**: Set up your GitHub token and repository on first use
+7. **Verify Capture**: Check that content is properly extracted and committed
 
 ### Development Configuration
 
