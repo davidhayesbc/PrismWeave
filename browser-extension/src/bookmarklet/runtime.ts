@@ -6,7 +6,6 @@ import {
   BookmarkletContentCapture,
   IBookmarkletCaptureResult,
 } from '../utils/bookmarklet-content-capture';
-import { GitHubAPIClient, IGitHubAPIConfig } from './github-api-client';
 import { BookmarkletUI } from './ui';
 
 interface IBookmarkletConfig {
@@ -46,7 +45,6 @@ export class BookmarkletRuntime {
   private _initialized: boolean = false;
   private _config: IBookmarkletConfig | null = null;
   private _ui: BookmarkletUI | null = null;
-  private _githubClient: GitHubAPIClient | null = null;
   private _contentCapture: BookmarkletContentCapture | null = null;
   private _processing: boolean = false;
   private _errorCount: number = 0;
@@ -105,14 +103,6 @@ export class BookmarkletRuntime {
 
     // Initialize components
     this._ui = new BookmarkletUI();
-
-    const githubConfig: IGitHubAPIConfig = {
-      token: this._config.githubToken,
-      repository: this._config.githubRepo,
-      branch: this._config.githubBranch || 'main',
-    };
-
-    this._githubClient = new GitHubAPIClient(githubConfig);
     this._contentCapture = new BookmarkletContentCapture();
 
     // Generate session ID when initialized
@@ -165,24 +155,8 @@ export class BookmarkletRuntime {
 
         await this._ui.showProgress('Processing content...', 50);
 
-        // Auto-save if enabled (note: using autoSave, not autoCommit)
-        if (this._config!.autoSave && this._githubClient) {
-          await this._ui.showProgress('Saving to GitHub...', 75);
-          try {
-            await this._commitToGitHub(captureResult);
-            await this._ui.showProgress('Complete!', 100);
-          } catch (commitError) {
-            // GitHub commit failed, but content capture succeeded
-            // Show error but don't fail the entire operation
-            const errorMessage =
-              commitError instanceof Error ? commitError.message : 'GitHub commit failed';
-            await this._ui.showError(`Failed to save to GitHub: ${errorMessage}`);
-            // Still show some progress to indicate content was captured
-            await this._ui.showProgress('Content captured (save failed)', 90);
-          }
-        } else {
-          await this._ui.showProgress('Complete!', 100);
-        }
+        // Note: Auto-save functionality removed - GitHub API client not available
+        await this._ui.showProgress('Complete!', 100);
       } else {
         this._errorCount++;
         const errorMessage = captureResult.error || 'Content capture failed';
@@ -248,17 +222,6 @@ export class BookmarkletRuntime {
 
     // Save updated configuration (this should be the most recent save)
     this._saveConfig(this._config);
-
-    // Update GitHub client if token or repo changed
-    if (updates.githubToken || updates.githubRepo || updates.githubBranch) {
-      const githubConfig: IGitHubAPIConfig = {
-        token: this._config.githubToken,
-        repository: this._config.githubRepo,
-        branch: this._config.githubBranch || 'main',
-      };
-
-      this._githubClient = new GitHubAPIClient(githubConfig);
-    }
   }
 
   private _generateSessionId(): string {
@@ -280,7 +243,6 @@ export class BookmarkletRuntime {
     }
 
     this._ui = null;
-    this._githubClient = null;
     this._contentCapture = null;
     this._config = null;
     this._sessionId = null;
@@ -305,33 +267,6 @@ export class BookmarkletRuntime {
       localStorage.setItem(BookmarkletRuntime.CONFIG_KEY, JSON.stringify(configToSave));
     } catch (error) {
       console.warn('Failed to save config:', error);
-    }
-  }
-
-  private async _commitToGitHub(captureResult: IBookmarkletCaptureResult): Promise<void> {
-    if (!this._githubClient || !captureResult.success || !captureResult.data) {
-      return;
-    }
-
-    try {
-      const filename = this._generateFilename(captureResult.data);
-      const content = this._formatMarkdownContent(captureResult.data);
-      const message = `Add captured content: ${captureResult.data.title}`;
-
-      const commitResult = await this._githubClient.commitFile(
-        `${this._config!.folderPath}/${filename}`,
-        content,
-        message
-      );
-
-      // Check if the commit was successful
-      if (!commitResult.success) {
-        const errorMessage = (commitResult as any).error || 'GitHub commit failed';
-        throw new Error(errorMessage);
-      }
-    } catch (error) {
-      console.error('Failed to commit to GitHub:', error);
-      throw error;
     }
   }
 

@@ -20,16 +20,13 @@ import { BookmarkletGenerator } from '../../utils/bookmarklet-generator';
 
 // Mock the dependencies
 jest.mock('../../bookmarklet/ui');
-jest.mock('../../bookmarklet/github-api-client');
 jest.mock('../../utils/bookmarklet-content-capture');
 
 // Import mocks
-import { GitHubAPIClient } from '../../bookmarklet/github-api-client';
 import { BookmarkletUI } from '../../bookmarklet/ui';
 import { BookmarkletContentCapture } from '../../utils/bookmarklet-content-capture';
 
 const MockBookmarkletUI = BookmarkletUI as jest.MockedClass<typeof BookmarkletUI>;
-const MockGitHubAPI = GitHubAPIClient as jest.MockedClass<typeof GitHubAPIClient>;
 const MockContentCapture = BookmarkletContentCapture as jest.MockedClass<
   typeof BookmarkletContentCapture
 >;
@@ -49,22 +46,6 @@ describe('End-to-End Bookmarklet Workflow', () => {
     MockBookmarkletUI.prototype.showSuccess = jest.fn().mockResolvedValue(undefined);
     MockBookmarkletUI.prototype.showError = jest.fn().mockResolvedValue(undefined);
     MockBookmarkletUI.prototype.cleanup = jest.fn().mockResolvedValue(undefined);
-
-    MockGitHubAPI.prototype.commitFile = jest.fn().mockResolvedValue({
-      success: true,
-      data: {
-        sha: 'abc123',
-        html_url: 'https://github.com/test/repo/blob/main/test.md',
-        commit: {
-          message: 'Add captured content: Test Article',
-          author: {
-            name: 'Test User',
-            email: 'test@example.com',
-            date: new Date().toISOString(),
-          },
-        },
-      },
-    });
 
     MockContentCapture.prototype.captureCurrentPage = jest.fn().mockResolvedValue({
       success: true,

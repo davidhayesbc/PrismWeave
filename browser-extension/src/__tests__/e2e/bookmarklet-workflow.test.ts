@@ -20,16 +20,13 @@ import { BookmarkletGenerator } from '../../utils/bookmarklet-generator';
 
 // Mock the dependencies
 jest.mock('../../bookmarklet/ui');
-jest.mock('../../bookmarklet/github-api-client');
 jest.mock('../../utils/bookmarklet-content-capture');
 
 // Import mocks
-import { GitHubAPIClient } from '../../bookmarklet/github-api-client';
 import { BookmarkletUI } from '../../bookmarklet/ui';
 import { BookmarkletContentCapture } from '../../utils/bookmarklet-content-capture';
 
 const MockBookmarkletUI = BookmarkletUI as jest.MockedClass<typeof BookmarkletUI>;
-const MockGitHubAPI = GitHubAPIClient as jest.MockedClass<typeof GitHubAPIClient>;
 const MockContentCapture = BookmarkletContentCapture as jest.MockedClass<
   typeof BookmarkletContentCapture
 >;
@@ -50,11 +47,6 @@ describe('End-to-End Bookmarklet Workflow', () => {
     MockBookmarkletUI.prototype.showError = jest.fn();
     MockBookmarkletUI.prototype.showPreview = jest.fn().mockResolvedValue(true);
     MockBookmarkletUI.prototype.cleanup = jest.fn();
-
-    MockGitHubAPI.prototype.commitFile = jest.fn().mockResolvedValue({
-      success: true,
-      data: { html_url: 'https://github.com/test/repo/blob/main/test.md' },
-    });
 
     MockContentCapture.prototype.captureCurrentPage = jest.fn().mockResolvedValue({
       success: true,
@@ -134,12 +126,7 @@ describe('End-to-End Bookmarklet Workflow', () => {
       // Verify content capture (correct method name)
       expect(MockContentCapture.prototype.captureCurrentPage).toHaveBeenCalled();
 
-      // Verify GitHub commit (when autoSave is true)
-      expect(MockGitHubAPI.prototype.commitFile).toHaveBeenCalledWith(
-        expect.stringMatching(/\.md$/),
-        expect.stringContaining('# Test Article'),
-        'Add captured content: Test Article'
-      );
+      // Note: GitHub functionality has been removed, so no GitHub commit occurs
     });
 
     test('should handle content capture failure gracefully', async () => {
@@ -165,30 +152,25 @@ describe('End-to-End Bookmarklet Workflow', () => {
       // Should show error UI
       expect(MockBookmarkletUI.prototype.showError).toHaveBeenCalled();
 
-      // Should NOT attempt GitHub commit on failure
-      expect(MockGitHubAPI.prototype.commitFile).not.toHaveBeenCalled();
+      // Note: GitHub functionality has been removed, so no GitHub commit occurs
     });
 
-    test('should handle GitHub commit failure gracefully', async () => {
-      // Mock GitHub API failure
-      MockGitHubAPI.prototype.commitFile = jest.fn().mockResolvedValue({
-        success: false,
-        error: 'GitHub API rate limit exceeded',
-      });
-
+    test('should complete capture workflow without external dependencies', async () => {
+      // Test that bookmarklet can complete capture workflow without GitHub
       const config = {
         githubToken: 'test-token',
         githubRepo: 'test/repo',
-        autoSave: true,
+        autoSave: false, // Explicitly disable auto-save since GitHub is removed
       };
 
       await runtime.initialize(config);
 
-      // Execute should not throw, even on GitHub failure
-      await runtime.execute();
+      // Execute should complete successfully without external dependencies
+      const result = await runtime.execute();
 
-      // Should show error UI
-      expect(MockBookmarkletUI.prototype.showError).toHaveBeenCalled();
+      // Should complete capture successfully
+      expect(result.success).toBe(true);
+      expect(MockBookmarkletUI.prototype.showProgress).toHaveBeenCalledWith('Complete!', 100);
     });
   });
 

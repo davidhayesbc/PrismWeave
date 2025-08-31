@@ -14,7 +14,6 @@ GitHub credentials for seamless content capture.
   bookmarklets
 - **`generator.html`** - User-friendly interface for generating custom
   bookmarklets
-- **`github-api-client.ts`** - GitHub API integration for repository operations
 - **`ui.ts`** - User interface components for configuration and progress display
 - **`help.html`** - Help documentation for using the bookmarklet generator
 
@@ -170,7 +169,6 @@ The personal bookmarklet generator builds from:
 
 - `generator.ts` - Main generator interface and logic
 - `capture-pipeline.ts` - Content extraction functionality
-- `github-api-client.ts` - GitHub integration utilities
 
 Changes to these files require rebuilding with `npm run build:bookmarklet`.
 
@@ -181,7 +179,6 @@ browser-extension/
 ├── src/bookmarklet/           # Source files
 │   ├── generator.ts           # Personal bookmarklet generator
 │   ├── capture-pipeline.ts    # Content extraction
-│   ├── github-api-client.ts   # GitHub API integration
 │   └── ...
 ├── scripts/                   # Build and utility scripts
 │   ├── cleanup-bookmarklet.js # Cleanup utility

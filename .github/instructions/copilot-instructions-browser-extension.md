@@ -880,7 +880,7 @@ class MemoryManager {
 
 ## File Naming Conventions
 - Use kebab-case for file names: `content-extractor.ts`
-- Use descriptive module names: `github-api-client.ts`
+- Use descriptive module names: `settings-popup.ts`, `capture-content-script.ts`
 - Group related files in logical directories
 - Include component type in names: `settings-popup.ts`, `capture-content-script.ts`
 

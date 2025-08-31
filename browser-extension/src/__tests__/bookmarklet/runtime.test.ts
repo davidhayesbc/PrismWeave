@@ -19,16 +19,13 @@ import { BookmarkletRuntime } from '../../bookmarklet/runtime';
 
 // Mock the dependencies
 jest.mock('../../bookmarklet/ui');
-jest.mock('../../bookmarklet/github-api-client');
 jest.mock('../../utils/bookmarklet-content-capture');
 
 // Import mocked classes
-import { GitHubAPIClient } from '../../bookmarklet/github-api-client';
 import { BookmarkletUI } from '../../bookmarklet/ui';
 import { BookmarkletContentCapture } from '../../utils/bookmarklet-content-capture';
 
 const MockBookmarkletUI = BookmarkletUI as jest.MockedClass<typeof BookmarkletUI>;
-const MockGitHubAPI = GitHubAPIClient as jest.MockedClass<typeof GitHubAPIClient>;
 const MockContentCapture = BookmarkletContentCapture as jest.MockedClass<
   typeof BookmarkletContentCapture
 >;
@@ -50,12 +47,6 @@ describe('BookmarkletRuntime', () => {
       markdown: '# Test Page\n\nTest content',
       metadata: {},
       images: [],
-    });
-
-    MockGitHubAPI.prototype.commitFile = jest.fn().mockResolvedValue({
-      success: true,
-      commitHash: 'abc123',
-      url: 'https://github.com/test/repo/commit/abc123',
     });
 
     MockBookmarkletUI.prototype.show = jest.fn();
