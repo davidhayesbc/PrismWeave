@@ -44,13 +44,18 @@ class PersonalBookmarkletBuilder {
     if (!fs.existsSync(this.distDir)) {
       fs.mkdirSync(this.distDir, { recursive: true });
     }
+
+    // Clean up any existing config.js from previous builds
+    const configPath = path.join(this.distDir, 'config.js');
+    if (fs.existsSync(configPath)) {
+      fs.unlinkSync(configPath);
+      console.log('🧹 Cleaned up existing config.js');
+    }
   }
 
   async buildGenerator() {
     console.log('🔧 Compiling generator TypeScript...');
 
-    // Use TypeScript compiler to compile the generator
-    const tsconfigPath = path.join(this.projectRoot, 'tsconfig.bookmarklet.json');
     const generatorSource = path.join(this.srcDir, 'generator.ts');
     const generatorOutput = path.join(this.distDir, 'generator.js');
 
@@ -59,38 +64,46 @@ class PersonalBookmarkletBuilder {
       throw new Error(`Generator source not found: ${generatorSource}`);
     }
 
-    // Compile TypeScript
+    // Use esbuild for bundled compilation (preferred approach)
     try {
-      execSync(`npx tsc --project ${tsconfigPath} --outDir ${this.distDir}`, {
-        cwd: this.projectRoot,
-        stdio: 'inherit',
-      });
+      console.log('🔧 Using esbuild to create bundled generator...');
+      execSync(
+        `npx esbuild ${generatorSource} --bundle --outfile=${generatorOutput} --format=iife --target=es2020 --minify=${this.isProduction}`,
+        {
+          cwd: this.projectRoot,
+          stdio: 'inherit',
+        }
+      );
+      console.log('✅ Generator compiled successfully with esbuild (bundled)');
+    } catch (esbuildError) {
+      console.warn('⚠️ esbuild compilation failed, trying TypeScript...');
 
-      // Move the compiled generator.js from subdirectory to dist root
-      const compiledGeneratorPath = path.join(this.distDir, 'bookmarklet', 'generator.js');
-      if (fs.existsSync(compiledGeneratorPath)) {
-        fs.copyFileSync(compiledGeneratorPath, generatorOutput);
-        // Clean up the subdirectory structure
-        this.cleanupCompiledSubdirs();
-      }
-    } catch (error) {
-      console.warn('⚠️ TypeScript compilation via tsc failed, trying esbuild...');
-
-      // Fallback to esbuild for simpler compilation
+      // Fallback to TypeScript compilation
       try {
-        execSync(
-          `npx esbuild ${generatorSource} --bundle --outfile=${generatorOutput} --format=iife --target=es2020`,
-          {
-            cwd: this.projectRoot,
-            stdio: 'inherit',
-          }
-        );
-      } catch (esbuildError) {
-        throw new Error(`Both tsc and esbuild compilation failed: ${esbuildError.message}`);
+        const tsconfigPath = path.join(this.projectRoot, 'tsconfig.bookmarklet.json');
+        execSync(`npx tsc --project ${tsconfigPath} --outDir ${this.distDir}`, {
+          cwd: this.projectRoot,
+          stdio: 'inherit',
+        });
+
+        // Move the compiled generator.js from subdirectory to dist root
+        const compiledGeneratorPath = path.join(this.distDir, 'bookmarklet', 'generator.js');
+        if (fs.existsSync(compiledGeneratorPath)) {
+          fs.copyFileSync(compiledGeneratorPath, generatorOutput);
+          // Clean up the subdirectory structure
+          this.cleanupCompiledSubdirs();
+
+          // Since TypeScript creates ES6 modules, create config.js file
+          this.createConfigFile();
+
+          // Fix import paths for ES6 modules
+          this.fixModuleImports();
+        }
+        console.log('✅ Generator compiled successfully with TypeScript (modules)');
+      } catch (tscError) {
+        throw new Error(`Both esbuild and TypeScript compilation failed: ${tscError.message}`);
       }
     }
-
-    console.log('✅ Generator compiled successfully');
   }
 
   cleanupCompiledSubdirs() {
@@ -109,8 +122,55 @@ class PersonalBookmarkletBuilder {
     });
   }
 
+  createConfigFile() {
+    console.log('📄 Creating config.js for ES6 module support...');
+
+    const configContent = `// Bookmarklet Configuration Constants
+// Consolidated configuration for bookmarklet components
+
+export const BOOKMARKLET_CONFIG = {
+  DEFAULT_INJECTABLE_BASE: 'https://davidhayesbc.github.io/PrismWeave/injectable',
+  LOCAL_INJECTABLE_BASE: 'http://localhost:3000/injectable',
+  DEFAULT_BRANCH: 'main',
+  DEFAULT_FOLDER: 'documents',
+  DEFAULT_COMMIT_TEMPLATE: 'PrismWeave: Add {title}',
+  UI_Z_INDEX: 999999,
+  MAX_CONTENT_LENGTH: 1000000,
+  API_TIMEOUT: 30000,
+};`;
+
+    const configPath = path.join(this.distDir, 'config.js');
+    fs.writeFileSync(configPath, configContent);
+    console.log('✅ config.js created');
+  }
+
+  fixModuleImports() {
+    console.log('🔧 Fixing ES6 module import paths...');
+
+    const generatorPath = path.join(this.distDir, 'generator.js');
+    if (fs.existsSync(generatorPath)) {
+      let content = fs.readFileSync(generatorPath, 'utf8');
+
+      // Fix import paths to include .js extension
+      content = content.replace(
+        /import\s+{([^}]+)}\s+from\s+['"]\.\/config['"]/g,
+        "import { $1 } from './config.js'"
+      );
+
+      fs.writeFileSync(generatorPath, content);
+      console.log('✅ Import paths fixed');
+    }
+  }
+
   async copyStaticFiles() {
     console.log('📄 Copying static files...');
+
+    // Check if we have a bundled generator.js (no imports) or ES6 modules
+    // If config.js exists, we're using ES6 modules
+    const configPath = path.join(this.distDir, 'config.js');
+    const isUsingModules = fs.existsSync(configPath);
+
+    console.log(`   🔍 Module detection: ${isUsingModules ? 'ES6 modules' : 'bundled'}`);
 
     // Copy and fix CSS paths for all HTML files in the bookmarklet directory
     const htmlFiles = ['generator.html', 'help.html', 'index.html', 'install.html'];
@@ -118,13 +178,29 @@ class PersonalBookmarkletBuilder {
     htmlFiles.forEach(htmlFile => {
       const srcPath = path.join(this.srcDir, htmlFile);
       if (fs.existsSync(srcPath)) {
-        console.log(`   📋 Copying and fixing CSS paths in ${htmlFile}`);
+        console.log(`   📋 Copying and fixing paths in ${htmlFile}`);
 
         // Read and update the HTML to fix CSS paths
         let htmlContent = fs.readFileSync(srcPath, 'utf8');
 
         // Fix paths for all CSS files - convert ../styles/*.css to *.css
         htmlContent = htmlContent.replace(/href="\.\.\/styles\/([\w-]+\.css)"/g, 'href="$1"');
+
+        // Fix script loading for ES6 modules if needed
+        if (isUsingModules && htmlFile === 'generator.html') {
+          console.log('   🔧 Adding module support to generator.html');
+          htmlContent = htmlContent.replace(
+            /<script src="generator\.js"><\/script>/g,
+            '<script type="module" src="generator.js"></script>'
+          );
+        } else if (!isUsingModules && htmlFile === 'generator.html') {
+          console.log('   🔧 Using regular script loading for bundled generator.html');
+          // Ensure regular script loading (no type="module")
+          htmlContent = htmlContent.replace(
+            /<script type="module" src="generator\.js"><\/script>/g,
+            '<script src="generator.js"></script>'
+          );
+        }
 
         fs.writeFileSync(path.join(this.distDir, htmlFile), htmlContent);
       } else {
