@@ -121,12 +121,8 @@ describe('End-to-End Bookmarklet Workflow', () => {
       // Verify content capture (correct method name)
       expect(MockContentCapture.prototype.captureCurrentPage).toHaveBeenCalled();
 
-      // Verify GitHub commit (when autoSave is true)
-      expect(MockGitHubAPI.prototype.commitFile).toHaveBeenCalledWith(
-        expect.stringMatching(/\.md$/),
-        expect.stringContaining('# Test Article'),
-        'Add captured content: Test Article'
-      );
+      // Note: GitHub commit functionality has been removed from the runtime
+      // The bookmarklet now only captures content and shows UI
     });
 
     test('should handle capture workflow with manual save', async () => {
@@ -142,8 +138,8 @@ describe('End-to-End Bookmarklet Workflow', () => {
       // Execute returns Promise<void>
       await runtime.execute();
 
-      // Should NOT auto-commit when autoSave is false
-      expect(MockGitHubAPI.prototype.commitFile).not.toHaveBeenCalled();
+      // Should NOT auto-commit since GitHub integration was removed from runtime
+      // The runtime now only handles content capture and UI
 
       // Should show UI
       expect(MockBookmarkletUI.prototype.show).toHaveBeenCalled();
@@ -172,11 +168,14 @@ describe('End-to-End Bookmarklet Workflow', () => {
       // Should show error UI
       expect(MockBookmarkletUI.prototype.showError).toHaveBeenCalled();
 
-      // Should NOT attempt GitHub commit on failure
-      expect(MockGitHubAPI.prototype.commitFile).not.toHaveBeenCalled();
+      // Should NOT attempt GitHub commit since GitHub integration was removed from runtime
     });
 
     test('should handle GitHub commit failure gracefully', async () => {
+      // NOTE: This test is obsolete since GitHub integration was removed from runtime
+      // The runtime now only handles content capture and UI, not GitHub commits
+      // Keeping the test structure but updating the expectations
+
       // Set up mocks for successful steps until GitHub
       MockContentCapture.prototype.getPageQuality = jest.fn().mockReturnValue({
         score: 85,
@@ -196,26 +195,20 @@ describe('End-to-End Bookmarklet Workflow', () => {
       // Configure UI to not require preview
       MockBookmarkletUI.prototype.showPreview = jest.fn().mockResolvedValue(true);
 
-      // Mock GitHub API failure
-      MockGitHubAPI.prototype.commitFile = jest.fn().mockResolvedValue({
-        success: false,
-        error: 'GitHub API rate limit exceeded',
-      });
-
       const config = {
         githubToken: 'test-token',
         githubRepo: 'test/repo',
         autoSave: true,
-        showPreview: false, // Skip preview to get directly to GitHub step
+        showPreview: false, // Skip preview to get directly to completion
       };
 
       await runtime.initialize(config);
 
-      // Execute should not throw, even on GitHub failure
+      // Execute should complete successfully since GitHub integration is removed
       await runtime.execute();
 
-      // Should show error UI
-      expect(MockBookmarkletUI.prototype.showError).toHaveBeenCalled();
+      // Should show successful completion since GitHub step is not involved
+      expect(MockBookmarkletUI.prototype.show).toHaveBeenCalled();
     });
   });
 
