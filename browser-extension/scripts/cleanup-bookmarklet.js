@@ -22,6 +22,7 @@ class BookmarkletCleaner {
       'runtime.js.map',
       'install.html',
       'install-simple.html',
+      'install-hybrid.html', // Legacy hybrid installer - use generator.html instead
       'size-report.json',
 
       // Old directories (will be removed if empty)

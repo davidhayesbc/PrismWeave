@@ -113,11 +113,11 @@ node scripts/serve-local.js --no-rebuild
 
 When the server is running on `http://localhost:8080`:
 
-- **🏠 Installation Page**: `http://localhost:8080/install-hybrid.html`
+- **🏠 Bookmarklet Generator**: `http://localhost:8080/bookmarklet/generator.html`
 
-  - Interactive bookmarklet installation
-  - Size comparison and benefits
-  - Step-by-step instructions
+  - Interactive bookmarklet generator with GitHub settings
+  - Personal bookmarklet creation with embedded configuration
+  - Step-by-step installation instructions
   - Mobile-friendly interface
 
 - **⚡ Loader Script**: `http://localhost:8080/hybrid-loader.js`
@@ -136,10 +136,11 @@ When the server is running on `http://localhost:8080`:
 
 ### Testing Workflow
 
-1. **Start Local Server**: Run `node scripts/serve-local.js`
-2. **Open Installation Page**: Navigate to
-   `http://localhost:8080/install-hybrid.html`
-3. **Install Bookmarklet**: Drag the button to your bookmarks bar
+1. **Start Local Server**: Run `npm run serve:web` from project root
+2. **Open Generator Page**: Navigate to
+   `http://localhost:8080/bookmarklet/generator.html`
+3. **Generate Personal Bookmarklet**: Configure your GitHub settings and generate
+4. **Install Bookmarklet**: Drag the generated button to your bookmarks bar
 4. **Test on Web Pages**: Click the bookmark on various websites
 5. **Configure GitHub**: Set up your GitHub token and repository on first use
 6. **Verify Capture**: Check that content is properly extracted and committed
