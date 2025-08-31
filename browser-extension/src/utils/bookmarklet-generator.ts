@@ -780,7 +780,8 @@ class PrismweaveBookmarkletRuntime {
       const result = await this.saveToGitHub(content);
       
       if (result.success) {
-        this.updateStatus('✅', \`Content saved successfully! \${result.filename || ''}\`, false);
+        const urlPart = result.url ? \` View: \${result.url}\` : '';
+        this.updateStatus('✅', \`Content saved successfully! \${result.filename || ''}\${urlPart}\`, false);
         setTimeout(() => this.hide(), 3000);
       } else {
         this.updateStatus('❌', \`Save failed: \${result.error}\`, false);
