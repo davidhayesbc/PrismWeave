@@ -52,7 +52,6 @@ export class PrismWeaveOptions {
       // UI Preferences
       showNotifications: true,
       enableKeyboardShortcuts: true,
-
     };
   }
 
@@ -110,7 +109,6 @@ export class PrismWeaveOptions {
     // UI Preferences
     this.setCheckboxValue('showNotifications', this.settings.showNotifications ?? true);
     this.setCheckboxValue('enableKeyboardShortcuts', this.settings.enableKeyboardShortcuts ?? true);
-
   }
   private setupEventListeners(): void {
     // Save button
