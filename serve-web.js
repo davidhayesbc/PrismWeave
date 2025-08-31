@@ -46,7 +46,7 @@ class PrismWeaveWebServer {
       console.log(`🌐 PrismWeave Web Server started`);
       console.log(`📍 URL: http://${this.host}:${this.port}`);
       console.log(`📁 Serving: ${this.distPath}`);
-      console.log(`🔗 Bookmarklet Generator: http://${this.host}:${this.port}/bookmarklet/generator.html`);
+      console.log(`🔗 Bookmarklet Generator: http://${this.host}:${this.port}/`);
       console.log('Press Ctrl+C to stop the server');
     });
 
