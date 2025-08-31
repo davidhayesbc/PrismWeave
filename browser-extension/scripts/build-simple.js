@@ -65,13 +65,6 @@ async function buildExtension() {
         ...baseOptions,
       },
       {
-        name: 'Options Bookmarklet',
-        entryPoints: ['src/options/bookmarklet.ts'],
-        outfile: 'dist/options/bookmarklet.js',
-        format: 'iife', // IIFE format for bookmarklet options scripts
-        ...baseOptions,
-      },
-      {
         name: 'Bookmarklet Runtime',
         entryPoints: ['src/bookmarklet/runtime.ts'],
         outfile: 'dist/bookmarklet/runtime.js',
@@ -124,7 +117,6 @@ async function copyStaticAssets() {
     { src: 'src/popup/popup.css', dest: 'dist/popup/popup.css' },
     { src: 'src/options/options.html', dest: 'dist/options/options.html' },
     { src: 'src/options/options.css', dest: 'dist/options/options.css' },
-    { src: 'src/options/bookmarklet.html', dest: 'dist/options/bookmarklet.html' },
 
     // Icons directory
     { src: 'icons', dest: 'dist/icons', isDirectory: true },
@@ -200,12 +192,6 @@ async function buildDev() {
       entryPoints: ['src/options/options.ts'],
       outfile: 'dist/options/options.js',
       format: 'iife', // IIFE for options
-      ...baseOptions,
-    }),
-    esbuild.context({
-      entryPoints: ['src/options/bookmarklet.ts'],
-      outfile: 'dist/options/bookmarklet.js',
-      format: 'iife', // IIFE for bookmarklet options
       ...baseOptions,
     }),
     esbuild.context({
