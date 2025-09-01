@@ -29,6 +29,17 @@ function createNotification(
     iconUrl: string;
   }
 ): Promise<string> {
+  /**
+   * Create a Chrome notification.
+   *
+   * This is a small wrapper around the Chrome Notifications API to provide a
+   * Promise-based interface. It ensures the iconUrl is converted to an
+   * extension URL when necessary and surfaces runtime errors as rejected
+   * Promises.
+   *
+   * @param options - Chrome notification options with required title, message and iconUrl
+   * @returns Promise that resolves with the notification id on success
+   */
   return new Promise((resolve, reject) => {
     if (!chrome.notifications) {
       reject(new Error('Notifications API not available'));
@@ -53,6 +64,46 @@ function createNotification(
       }
     });
   });
+}
+
+/**
+ * Safely show a notification and handle any errors internally.
+ *
+ * Many places in the service worker want to show a notification but must not
+ * fail if the notifications API is unavailable or the call errors. This helper
+ * centralizes that behavior and logs only sensible events.
+ *
+ * @param options - Chrome notification options with required title, message and iconUrl
+ */
+async function showNotificationSafe(
+  options: chrome.notifications.NotificationOptions & {
+    title: string;
+    message: string;
+    iconUrl: string;
+  }
+): Promise<void> {
+  try {
+    if (!chrome.notifications) {
+      logger.debug('Notifications API not available; skipping notification:', options.title);
+      return;
+    }
+
+    // Ensure a notification type is present (createNotification requires it)
+    const fullOptions = {
+      type: (options as any).type || 'basic',
+      ...options,
+    } as chrome.notifications.NotificationOptions & {
+      type: 'basic' | 'image' | 'list' | 'progress';
+      title: string;
+      message: string;
+      iconUrl: string;
+    };
+
+    await createNotification(fullOptions);
+  } catch (error) {
+    // Only log a warning: notifications are non-critical.
+    logger.warn('Failed to show notification:', options.title, (error as Error).message);
+  }
 }
 
 // Enhanced response interface with commit URL support
@@ -88,12 +139,52 @@ let serviceWorkerState: IServiceWorkerState = {
   initializationError: null,
 };
 
+/**
+ * Extract a commit / save URL from various capture service result shapes.
+ *
+ * Different capture services return commit URLs in different fields. This
+ * helper tries a list of likely locations and returns the first string it
+ * finds, or undefined when none are present.
+ *
+ * @param result - The capture result object to inspect
+ * @returns The extracted URL string or undefined
+ */
+function extractCommitUrl(result: any): string | undefined {
+  if (!result) return undefined;
+  return (
+    result?.data?.commitUrl ||
+    result?.commitUrl ||
+    result?.data?.url ||
+    result?.data?.saveResult?.url ||
+    result?.data?.saveResult?.commitUrl ||
+    result?.data?.githubResult?.url ||
+    result?.data?.githubResult?.html_url ||
+    result?.data?.content?.html_url ||
+    result?.saveResult?.url ||
+    result?.saveResult?.commitUrl ||
+    result?.url
+  );
+}
+
 // Initialize managers with dependency injection support for testing
 export async function initializeServiceWorkers(
   customSettingsManager?: SettingsManager,
   customCaptureService?: ContentCaptureService,
   customPDFCaptureService?: PDFCaptureService
 ): Promise<IServiceWorkerState> {
+  /**
+   * Initialize service worker managers and services.
+   *
+   * This sets up the SettingsManager, ContentCaptureService, PDFCaptureService
+   * and UnifiedCaptureService instances used by the service worker. The
+   * function accepts optional custom implementations for testing/injection.
+   *
+   * @param customSettingsManager - Optional SettingsManager instance to use
+   * @param customCaptureService - Optional ContentCaptureService instance to use
+   * @param customPDFCaptureService - Optional PDFCaptureService instance to use
+   * @returns The populated IServiceWorkerState
+   * @throws When initialization fails
+   */
   try {
     logger.info('Initializing service worker managers...');
 
@@ -138,6 +229,16 @@ initializeServiceWorkers()
 
 // Chrome extension event handlers
 export async function handleInstallation(details: chrome.runtime.InstalledDetails): Promise<void> {
+  /**
+   * Handle extension installation or update events.
+   *
+   * On a fresh install this will initialize default settings and recreate
+   * context menus. Runs during extension lifecycle events dispatched by
+   * chrome.runtime.onInstalled.
+   *
+   * @param details - Installation details provided by Chrome
+   * @throws On unexpected errors while handling installation
+   */
   try {
     logger.info('Extension installed/updated:', details.reason);
 
@@ -159,6 +260,15 @@ export async function handleInstallation(details: chrome.runtime.InstalledDetail
 
 // Context menu creation
 async function createContextMenus(): Promise<void> {
+  /**
+   * Create extension context menu entries used to trigger captures.
+   *
+   * This function validates permissions and recreates the "capture-link"
+   * and "capture-page" menu items. It is safe to call multiple times.
+   *
+   * @returns Promise<void> that resolves when menus are created or when the
+   * creation cannot proceed due to missing APIs/permissions.
+   */
   try {
     logger.info('Starting context menu creation process');
 
@@ -243,6 +353,16 @@ async function createContextMenus(): Promise<void> {
 
 // Content Script Injection and Management
 async function ensureContentScriptInjected(tabId: number): Promise<void> {
+  /**
+   * Ensure the content script is injected in the given tab.
+   *
+   * Validates that the tab is a normal web page, attempts a lightweight ping
+   * to detect an existing content script, and injects the script using the
+   * scripting.executeScript API if necessary. Throws on failure.
+   *
+   * @param tabId - The tab id where the script should be present
+   * @throws If the tab is a special page or injection/verification fails
+   */
   try {
     logger.debug('Ensuring content script is injected in tab:', tabId);
 
@@ -330,6 +450,18 @@ export async function handleMessage(
   message: IMessageData,
   sender: chrome.runtime.MessageSender
 ): Promise<IEnhancedMessageResponse> {
+  /**
+   * Centralized message handler for incoming runtime messages.
+   *
+   * Validates incoming messages and routes them to the appropriate service
+   * handlers (settings manager, capture services, PDF service, etc.). Returns
+   * a standardized IEnhancedMessageResponse with success/data/error fields.
+   *
+   * @param message - IMessageData object containing a `type` and optional data
+   * @param sender - Message sender provided by Chrome runtime
+   * @returns IEnhancedMessageResponse indicating the operation result
+   * @throws When message validation fails or required services are not ready
+   */
   // Validate message structure
   if (!message || typeof message.type !== 'string') {
     throw new Error('Invalid message format');
@@ -571,23 +703,7 @@ export async function handleMessage(
         hasSaveResult: !!(unifiedCaptureResult as any).saveResult,
       });
 
-      // Enhanced commit URL extraction from various possible locations in the response
-      const extractCommitUrl = (result: any): string | undefined => {
-        return (
-          result.data?.commitUrl ||
-          result.commitUrl ||
-          result.data?.url ||
-          result.data?.saveResult?.url ||
-          result.data?.saveResult?.commitUrl ||
-          result.data?.githubResult?.url ||
-          result.data?.githubResult?.html_url ||
-          result.data?.content?.html_url ||
-          result.saveResult?.url ||
-          result.saveResult?.commitUrl ||
-          result.url
-        );
-      };
-
+      // Extract commit URL using shared helper
       const commitUrl = extractCommitUrl(unifiedCaptureResult);
 
       if (commitUrl) {
@@ -750,6 +866,14 @@ export async function handleMessage(
 
 // Helper function to get service worker status - exported for testing
 export function getServiceWorkerStatus(): Record<string, unknown> {
+  /**
+   * Return a lightweight status snapshot for the service worker.
+   *
+   * This is used by the GET_STATUS message type and tests to inspect the
+   * current initialized state and any initialization errors.
+   *
+   * @returns An object containing status information
+   */
   return {
     initialized: serviceWorkerState.isInitialized,
     hasSettingsManager: !!serviceWorkerState.settingsManager,
@@ -828,13 +952,10 @@ chrome.commands.onCommand.addListener(async (command: string) => {
         logger.error('Failed to send capture shortcut message:', error);
         // Show browser notification if content script communication fails
         if (chrome.notifications) {
-          createNotification({
-            type: 'basic',
+          await showNotificationSafe({
             iconUrl: 'icons/icon48.png',
             title: 'PrismWeave',
             message: 'Please reload the page and try again',
-          }).catch(error => {
-            logger.error('Failed to show reload notification:', error);
           });
         }
       }
@@ -880,13 +1001,10 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
         serviceWorkerState
       );
       if (chrome.notifications) {
-        createNotification({
-          type: 'basic',
+        await showNotificationSafe({
           iconUrl: 'icons/icon48.png',
           title: 'PrismWeave - Not Ready',
           message: 'Extension is still starting up. Please try again in a moment.',
-        }).catch(error => {
-          logger.error('Failed to show not ready notification:', error);
         });
       }
       return;
@@ -902,17 +1020,12 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
 
           // Show notification that capture is starting
           if (chrome.notifications) {
-            try {
-              await createNotification({
-                type: 'basic',
-                iconUrl: 'icons/icon48.png',
-                title: 'PrismWeave',
-                message: `Capturing content from: ${new URL(info.linkUrl).hostname}`,
-              });
-              logger.debug('Start capture notification sent');
-            } catch (notificationError) {
-              logger.warn('Failed to show start notification:', notificationError);
-            }
+            await showNotificationSafe({
+              iconUrl: 'icons/icon48.png',
+              title: 'PrismWeave',
+              message: `Capturing content from: ${new URL(info.linkUrl).hostname}`,
+            });
+            logger.debug('Start capture notification sent');
           }
 
           try {
@@ -935,16 +1048,14 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
             if (chrome.notifications) {
               if (result.success) {
                 const domain = new URL(info.linkUrl).hostname;
-                await createNotification({
-                  type: 'basic',
+                await showNotificationSafe({
                   iconUrl: 'icons/icon48.png',
                   title: 'PrismWeave - Link Captured',
                   message: `Successfully captured content from ${domain}`,
                 });
                 logger.info('Success notification sent for link capture');
               } else {
-                await createNotification({
-                  type: 'basic',
+                await showNotificationSafe({
                   iconUrl: 'icons/icon48.png',
                   title: 'PrismWeave - Capture Failed',
                   message: `Failed to capture link: ${result.error || 'Unknown error'}`,
@@ -955,28 +1066,20 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
           } catch (error) {
             logger.error('Failed to capture link:', error);
             if (chrome.notifications) {
-              try {
-                await createNotification({
-                  type: 'basic',
-                  iconUrl: 'icons/icon48.png',
-                  title: 'PrismWeave - Error',
-                  message: `Error capturing link: ${error instanceof Error ? error.message : 'Unknown error'}`,
-                });
-              } catch (notificationError) {
-                logger.error('Failed to show error notification:', notificationError);
-              }
+              await showNotificationSafe({
+                iconUrl: 'icons/icon48.png',
+                title: 'PrismWeave - Error',
+                message: `Error capturing link: ${error instanceof Error ? error.message : 'Unknown error'}`,
+              });
             }
           }
         } else {
           logger.error('No link URL provided for link capture - info object:', info);
           if (chrome.notifications) {
-            createNotification({
-              type: 'basic',
+            await showNotificationSafe({
               iconUrl: 'icons/icon48.png',
               title: 'PrismWeave - Error',
               message: 'No link URL found. Please right-click directly on a link.',
-            }).catch(error => {
-              logger.error('Failed to show no link notification:', error);
             });
           }
         }
@@ -989,13 +1092,10 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
 
           // Show notification that capture is starting
           if (chrome.notifications) {
-            createNotification({
-              type: 'basic',
+            await showNotificationSafe({
               iconUrl: 'icons/icon48.png',
               title: 'PrismWeave',
               message: `Capturing current page: ${tab.title || 'Untitled'}`,
-            }).catch(error => {
-              logger.error('Failed to show page capture notification:', error);
             });
           }
 
@@ -1012,13 +1112,10 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
           } catch (error) {
             logger.error('Failed to send context menu capture message:', error);
             if (chrome.notifications) {
-              createNotification({
-                type: 'basic',
+              await showNotificationSafe({
                 iconUrl: 'icons/icon48.png',
                 title: 'PrismWeave',
                 message: 'Please reload the page and try again',
-              }).catch(error => {
-                logger.error('Failed to show reload notification:', error);
               });
             }
           }
@@ -1037,6 +1134,14 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
 
 // Get current service worker state - exported for testing
 export function getServiceWorkerState(): IServiceWorkerState {
+  /**
+   * Return the full internal service worker state for testing.
+   *
+   * WARNING: This exposes internal instances and should only be used in
+   * test contexts.
+   *
+   * @returns A shallow copy of the current IServiceWorkerState
+   */
   return { ...serviceWorkerState };
 }
 
