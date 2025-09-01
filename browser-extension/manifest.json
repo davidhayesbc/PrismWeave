@@ -59,7 +59,6 @@
     {
       "resources": [
         "libs/turndown.min.js",
-        "bookmarklet/runtime.js",
         "bookmarklet/bookmarklet.js",
         "bookmarklet/template.html",
         "bookmarklet/templates/*"

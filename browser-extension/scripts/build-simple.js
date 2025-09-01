@@ -66,16 +66,6 @@ async function buildExtension() {
         ...baseOptions,
       },
       {
-        name: 'Bookmarklet Runtime',
-        entryPoints: ['src/bookmarklet/runtime.ts'],
-        outfile: path.join(distPath, 'bookmarklet/runtime.js'),
-        format: 'iife', // IIFE format for standalone bookmarklet
-        minify: true, // Always minify bookmarklet for size
-        sourcemap: false, // No sourcemaps for bookmarklet (size optimization)
-        globalName: 'PrismWeaveBookmarklet', // Global name for bookmarklet access
-        ...baseOptions,
-      },
-      {
         name: 'Injectable Content Extractor',
         entryPoints: ['src/injectable/content-extractor-injectable.ts'],
         outfile: path.join(distPath, 'injectable/content-extractor-injectable.js'),
@@ -200,13 +190,6 @@ async function buildDev() {
       entryPoints: ['src/options/options.ts'],
       outfile: path.join(distPath, 'options/options.js'),
       format: 'iife', // IIFE for options
-      ...baseOptions,
-    }),
-    esbuild.context({
-      entryPoints: ['src/bookmarklet/runtime.ts'],
-      outfile: path.join(distPath, 'bookmarklet/runtime.js'),
-      format: 'iife', // IIFE for standalone bookmarklet
-      globalName: 'PrismWeaveBookmarklet',
       ...baseOptions,
     }),
   ]);

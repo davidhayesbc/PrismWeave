@@ -8,18 +8,14 @@ GitHub credentials for seamless content capture.
 
 ### Core Components
 
-#### Personal Bookmarklet Generator (Recommended)
+#### Personal Bookmarklet Generator
 
-- **`generator.ts`** - Bookmarklet generator interface that creates personalized
-  bookmarklets
+- **`generator.ts`** - Complete bookmarklet generator interface that creates
+  personalized bookmarklets with embedded content extraction and GitHub
+  integration
 - **`generator.html`** - User-friendly interface for generating custom
   bookmarklets
-- **`ui.ts`** - User interface components for configuration and progress display
-
-### Core Runtime
-
-- **`runtime.ts`** - Main runtime with content extraction and GitHub integration
-- **`main.ts`** - Entry point for bookmarklet execution
+- **`config.ts`** - Shared configuration constants and settings
 
 ### Enhanced Features
 
@@ -52,7 +48,8 @@ GitHub credentials for seamless content capture.
 
 ## Build System
 
-The bookmarklet system supports personal bookmarklet generation:
+The bookmarklet system provides a streamlined build process for the personal
+bookmarklet generator:
 
 ### Personal Bookmarklet Generation
 
@@ -72,7 +69,8 @@ npm run cleanup:bookmarklet
 #### Personal Bookmarklet Files (dist/bookmarklet/)
 
 - **`generator.html`** - Interactive bookmarklet generator interface
-- **`generator.js`** - Compiled generator logic
+- **`generator.js`** - Compiled generator with embedded content extraction and
+  GitHub integration
 - **`README.md`** - Documentation
 
 ## Local Testing & Development
@@ -85,7 +83,7 @@ npm run test:bookmarklet
 
 # Or step by step:
 npm run cleanup:bookmarklet          # Clean old files
-npm run build:bookmarklet:hybrid     # Build hybrid system
+npm run build:bookmarklet            # Build generator
 node scripts/serve-local.js          # Start local server
 ```
 
@@ -115,16 +113,6 @@ When the server is running on `http://localhost:8080`:
   - Personal bookmarklet creation with embedded configuration
   - Step-by-step installation instructions
   - Mobile-friendly interface
-
-- **⚡ Loader Script**: `http://localhost:8080/hybrid-loader.js`
-
-  - Raw bookmarklet JavaScript for manual copying
-  - ~1KB ultra-lightweight loader
-
-- **🚀 Runtime Script**: `http://localhost:8080/enhanced-runtime.js`
-
-  - Full 75KB runtime that gets loaded dynamically
-  - Contains all enhanced bookmarklet functionality
 
 - **📊 Build Analytics**: `http://localhost:8080/build-analytics.json`
   - Build statistics and performance metrics
@@ -161,10 +149,11 @@ const config = {
 
 #### Generator Development
 
-The personal bookmarklet generator builds from:
+The personal bookmarklet generator is built from:
 
-- `generator.ts` - Main generator interface and logic
-- `capture-pipeline.ts` - Content extraction functionality
+- `generator.ts` - Complete generator interface with embedded content extraction
+  and GitHub integration
+- `config.ts` - Shared configuration constants
 
 Changes to these files require rebuilding with `npm run build:bookmarklet`.
 
@@ -173,16 +162,17 @@ Changes to these files require rebuilding with `npm run build:bookmarklet`.
 ```
 browser-extension/
 ├── src/bookmarklet/           # Source files
-│   ├── generator.ts           # Personal bookmarklet generator
-│   ├── capture-pipeline.ts    # Content extraction
-│   └── ...
+│   ├── generator.ts           # Complete bookmarklet generator with embedded functionality
+│   ├── generator.html         # Generator interface template
+│   ├── config.ts              # Shared configuration constants
+│   └── README.md              # This documentation
 ├── scripts/                   # Build and utility scripts
 │   ├── cleanup-bookmarklet.js # Cleanup utility
 │   └── ...
 └── dist/bookmarklet/          # Built files (auto-generated)
-    ├── generator.html         # Personal bookmarklet generator interface
-    ├── generator.js           # Compiled generator logic
-    └── ...
+    ├── generator.html         # Interactive bookmarklet generator interface
+    ├── generator.js           # Compiled generator with all functionality
+    └── README.md              # Documentation
 ```
 
 ## Usage Guide
@@ -272,7 +262,8 @@ The personal bookmarklet is designed for modern browsers:
 When you build the personal bookmarklet system:
 
 - **`generator.html`** - Interactive bookmarklet generator interface
-- **`generator.js`** - Compiled generator with embedded capture functionality
+- **`generator.js`** - Complete compiled generator with embedded content
+  extraction and GitHub integration
 
 #### Personal Bookmarklet Architecture
 
@@ -371,7 +362,7 @@ npm run build:bookmarklet
 
 #### Generator Interface Issues
 
-- Current generator includes embedded capture pipeline
+- Current generator includes complete embedded functionality
 - Size typically 8-12KB for generated bookmarklets
 - If issues occur, verify generator.ts builds correctly
 
@@ -389,7 +380,8 @@ For optimal use of personal bookmarklets:
 The personal bookmarklet includes:
 
 - **Direct GitHub Integration**: No external services required
-- **Content Extraction**: Smart content detection and markdown conversion
+- **Complete Content Extraction**: Smart content detection and markdown
+  conversion embedded
 - **Error Handling**: Clear feedback for any issues encountered
 - **Security Focus**: All operations happen locally in your browser
 
