@@ -36,7 +36,6 @@ class BookmarkletCleaner {
       'generator.html',
       'generator.js',
       'index.html',
-      'help.html',
       'install.html',
       'README.md',
     ];

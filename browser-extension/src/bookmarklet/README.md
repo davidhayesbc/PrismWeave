@@ -15,7 +15,6 @@ GitHub credentials for seamless content capture.
 - **`generator.html`** - User-friendly interface for generating custom
   bookmarklets
 - **`ui.ts`** - User interface components for configuration and progress display
-- **`help.html`** - Help documentation for using the bookmarklet generator
 
 ### Core Runtime
 
@@ -76,7 +75,6 @@ npm run cleanup:bookmarklet
 - **`generator.html`** - Interactive bookmarklet generator interface
 - **`generator.js`** - Compiled generator logic
 - **`index.html`** - Landing page with navigation
-- **`help.html`** - Help documentation
 - **`README.md`** - Documentation
 
 ## Local Testing & Development
@@ -279,7 +277,6 @@ When you build the personal bookmarklet system:
 - **`generator.html`** - Interactive bookmarklet generator interface
 - **`generator.js`** - Compiled generator with embedded capture functionality
 - **`index.html`** - Documentation and navigation page
-- **`help.html`** - Setup and troubleshooting guide
 
 #### Personal Bookmarklet Architecture
 
