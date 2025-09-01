@@ -9,18 +9,89 @@ import { PDFCaptureService } from '../utils/pdf-capture-service';
 import { SettingsManager } from '../utils/settings-manager';
 import { UnifiedCaptureService } from '../utils/unified-capture-service';
 
-// Create logger and log service worker startup
+// =============================================================================
+// TYPE DEFINITIONS AND INTERFACES
+// =============================================================================
+
+/**
+ * Enhanced response interface with commit URL support
+ */
+interface IEnhancedMessageResponse extends IMessageResponse {
+  commitUrl?: string;
+  saveResult?: {
+    url?: string;
+    commitUrl?: string;
+    [key: string]: unknown;
+  };
+  timestamp?: number;
+}
+
+/**
+ * Service worker state management interface
+ */
+interface IServiceWorkerState {
+  settingsManager: SettingsManager | null;
+  captureService: ContentCaptureService | null;
+  pdfCaptureService: PDFCaptureService | null;
+  unifiedCaptureService: UnifiedCaptureService | null;
+  isInitialized: boolean;
+  initializationError: Error | null;
+}
+
+// =============================================================================
+// GLOBAL STATE MANAGEMENT
+// =============================================================================
+
+/**
+ * Global service worker state
+ */
+let serviceWorkerState: IServiceWorkerState = {
+  settingsManager: null,
+  captureService: null,
+  pdfCaptureService: null,
+  unifiedCaptureService: null,
+  isInitialized: false,
+  initializationError: null,
+};
+
+// =============================================================================
+// UTILITY FUNCTIONS
+// =============================================================================
+
+/**
+ * Create logger and log service worker startup
+ */
 const logger = createLogger('ServiceWorker');
+
 logger.info('=== SERVICE WORKER STARTING ===');
 logger.info('Service worker file loaded at:', new Date().toISOString());
-logger.info('Chrome extension API available:', !!globalThis.chrome);
-logger.info('Context menus API available:', !!globalThis.chrome?.contextMenus);
-logger.info(
-  'Content script injection capability available:',
-  !!globalThis.chrome?.scripting?.executeScript
-);
 
-// Utility function to create notifications with proper callback handling
+// Log API availability (only warn if critical APIs are missing)
+const chromeAPIs = {
+  runtime: !!globalThis.chrome?.runtime,
+  contextMenus: !!globalThis.chrome?.contextMenus,
+  scripting: !!globalThis.chrome?.scripting?.executeScript,
+  notifications: !!globalThis.chrome?.notifications,
+  storage: !!globalThis.chrome?.storage,
+  tabs: !!globalThis.chrome?.tabs,
+  commands: !!globalThis.chrome?.commands
+};
+
+logger.debug('Chrome APIs available:', chromeAPIs);
+
+if (!chromeAPIs.runtime) {
+  logger.error('CRITICAL: Chrome runtime API not available');
+}
+if (!chromeAPIs.scripting) {
+  logger.warn('Content script injection may not work - scripting API unavailable');
+}
+
+/**
+ * Create a Chrome notification with proper callback handling.
+ * @param options - Notification options including type, title, message, and icon
+ * @returns Promise that resolves with the notification ID
+ * @throws Error if notifications API is not available or creation fails
+ */
 function createNotification(
   options: chrome.notifications.NotificationOptions & {
     type: 'basic' | 'image' | 'list' | 'progress';
@@ -29,17 +100,6 @@ function createNotification(
     iconUrl: string;
   }
 ): Promise<string> {
-  /**
-   * Create a Chrome notification.
-   *
-   * This is a small wrapper around the Chrome Notifications API to provide a
-   * Promise-based interface. It ensures the iconUrl is converted to an
-   * extension URL when necessary and surfaces runtime errors as rejected
-   * Promises.
-   *
-   * @param options - Chrome notification options with required title, message and iconUrl
-   * @returns Promise that resolves with the notification id on success
-   */
   return new Promise((resolve, reject) => {
     if (!chrome.notifications) {
       reject(new Error('Notifications API not available'));
@@ -68,12 +128,8 @@ function createNotification(
 
 /**
  * Safely show a notification and handle any errors internally.
- *
- * Many places in the service worker want to show a notification but must not
- * fail if the notifications API is unavailable or the call errors. This helper
- * centralizes that behavior and logs only sensible events.
- *
- * @param options - Chrome notification options with required title, message and iconUrl
+ * This function will not throw errors - it logs them instead since notifications are non-critical.
+ * @param options - Notification options including title, message, and icon
  */
 async function showNotificationSafe(
   options: chrome.notifications.NotificationOptions & {
@@ -106,48 +162,11 @@ async function showNotificationSafe(
   }
 }
 
-// Enhanced response interface with commit URL support
-interface IEnhancedMessageResponse extends IMessageResponse {
-  commitUrl?: string;
-  saveResult?: {
-    url?: string;
-    commitUrl?: string;
-    [key: string]: unknown;
-  };
-  timestamp?: number;
-}
-
-logger.info('Service Worker starting...');
-
-// Service worker state management
-interface IServiceWorkerState {
-  settingsManager: SettingsManager | null;
-  captureService: ContentCaptureService | null;
-  pdfCaptureService: PDFCaptureService | null;
-  unifiedCaptureService: UnifiedCaptureService | null;
-  isInitialized: boolean;
-  initializationError: Error | null;
-}
-
-// Global state
-let serviceWorkerState: IServiceWorkerState = {
-  settingsManager: null,
-  captureService: null,
-  pdfCaptureService: null,
-  unifiedCaptureService: null,
-  isInitialized: false,
-  initializationError: null,
-};
-
 /**
  * Extract a commit / save URL from various capture service result shapes.
- *
- * Different capture services return commit URLs in different fields. This
- * helper tries a list of likely locations and returns the first string it
- * finds, or undefined when none are present.
- *
- * @param result - The capture result object to inspect
- * @returns The extracted URL string or undefined
+ * Handles different response formats from capture services to find the most relevant URL.
+ * @param result - The result object from a capture service operation
+ * @returns The commit URL if found, undefined otherwise
  */
 function extractCommitUrl(result: any): string | undefined {
   if (!result) return undefined;
@@ -166,25 +185,296 @@ function extractCommitUrl(result: any): string | undefined {
   );
 }
 
-// Initialize managers with dependency injection support for testing
+// =============================================================================
+// CAPTURE RESULT PROCESSING HELPERS
+// =============================================================================
+
+/**
+ * Process capture result and extract commit URL for enhanced response.
+ * @param captureResult - The result from a capture operation
+ * @param operation - Description of the operation for logging
+ * @returns Enhanced response with commit URL information
+ */
+function processCaptureResult(
+  captureResult: any,
+  operation: string
+): { success: boolean; data: any; commitUrl?: string; saveResult?: any } {
+  logger.debug(`${operation} result:`, {
+    success: captureResult.success,
+    message: captureResult.message,
+    hasData: !!captureResult.data,
+  });
+
+  // Extract commit URL from capture result
+  const commitUrl = extractCommitUrl(captureResult);
+
+  if (commitUrl) {
+    logger.info(`${operation} commit URL found:`, commitUrl);
+  } else {
+    logger.warn(`No commit URL found in ${operation} result`);
+  }
+
+  return {
+    success: captureResult.success,
+    data: {
+      ...captureResult.data,
+      commitUrl: commitUrl || undefined,
+    },
+    ...(commitUrl && { commitUrl }),
+    saveResult: {
+      ...(commitUrl && { url: commitUrl, commitUrl }),
+    },
+  };
+}
+
+/**
+ * Process unified capture result with enhanced saveResult handling.
+ * @param unifiedCaptureResult - The result from unified capture operation
+ * @returns Enhanced response with merged saveResult
+ */
+function processUnifiedCaptureResult(unifiedCaptureResult: any): IEnhancedMessageResponse {
+  logger.debug('CAPTURE_CONTENT result:', {
+    success: unifiedCaptureResult.success,
+    contentType: unifiedCaptureResult.contentType,
+    captureMethod: unifiedCaptureResult.data?.captureMethod,
+    hasData: !!unifiedCaptureResult.data,
+    hasSaveResult: !!(unifiedCaptureResult as any).saveResult,
+  });
+
+  // Extract commit URL using shared helper
+  const commitUrl = extractCommitUrl(unifiedCaptureResult);
+
+  if (commitUrl) {
+    logger.info('Commit URL found:', commitUrl);
+  } else {
+    logger.warn('No commit URL found in capture result');
+  }
+
+  // Extract saveResult from unified service response
+  const unifiedSaveResult = (unifiedCaptureResult as any).saveResult;
+  logger.debug('Unified service saveResult:', unifiedSaveResult);
+
+  // Create enhanced saveResult merging unified service result with extracted commit URL
+  const enhancedSaveResult = {
+    ...(unifiedSaveResult || {}),
+    ...(commitUrl && { url: commitUrl, commitUrl }),
+  };
+
+  // Return enhanced response with proper saveResult forwarding
+  return {
+    success: unifiedCaptureResult.success,
+    data: {
+      ...unifiedCaptureResult.data,
+      commitUrl: commitUrl || undefined,
+      contentType: unifiedCaptureResult.contentType,
+      filename: (unifiedCaptureResult as any).filename || unifiedCaptureResult.data?.filename,
+    },
+    ...(commitUrl && { commitUrl }),
+    saveResult: enhancedSaveResult,
+    timestamp: Date.now(),
+  };
+}
+
+// =============================================================================
+// BOOKMARKLET CONFIGURATION HELPERS
+// =============================================================================
+
+/**
+ * Store bookmarklet configuration in Chrome storage.
+ * @param config - The bookmarklet configuration to store
+ * @returns Promise that resolves when configuration is stored
+ * @throws Error if storage operation fails
+ */
+async function storeBookmarkletConfig(config: any): Promise<void> {
+  try {
+    await new Promise<void>((resolve, reject) => {
+      chrome.storage.sync.set(
+        {
+          prismweave_bookmarklet_config: config,
+        },
+        () => {
+          if (chrome.runtime.lastError) {
+            reject(new Error(chrome.runtime.lastError.message));
+          } else {
+            resolve();
+          }
+        }
+      );
+    });
+    logger.debug('Bookmarklet config stored successfully');
+  } catch (error) {
+    logger.error('Failed to store bookmarklet config:', error);
+    throw new Error('Failed to store bookmarklet configuration');
+  }
+}
+
+/**
+ * Retrieve bookmarklet configuration from Chrome storage.
+ * @returns Promise that resolves with the stored configuration or null if not found
+ * @throws Error if storage operation fails
+ */
+async function getBookmarkletConfig(): Promise<any> {
+  try {
+    const stored = await new Promise<any>((resolve, reject) => {
+      chrome.storage.sync.get('prismweave_bookmarklet_config', result => {
+        if (chrome.runtime.lastError) {
+          reject(new Error(chrome.runtime.lastError.message));
+        } else {
+          resolve(result);
+        }
+      });
+    });
+    const config = stored.prismweave_bookmarklet_config || null;
+    logger.debug('Bookmarklet config retrieved:', !!config);
+    return config;
+  } catch (error) {
+    logger.error('Failed to retrieve bookmarklet config:', error);
+    throw new Error('Failed to retrieve bookmarklet configuration');
+  }
+}
+
+/**
+ * Clear bookmarklet configuration from Chrome storage.
+ * @returns Promise that resolves when configuration is cleared
+ * @throws Error if storage operation fails
+ */
+async function clearBookmarkletConfig(): Promise<void> {
+  try {
+    await new Promise<void>((resolve, reject) => {
+      chrome.storage.sync.remove('prismweave_bookmarklet_config', () => {
+        if (chrome.runtime.lastError) {
+          reject(new Error(chrome.runtime.lastError.message));
+        } else {
+          resolve();
+        }
+      });
+    });
+    logger.debug('Bookmarklet config cleared successfully');
+  } catch (error) {
+    logger.error('Failed to clear bookmarklet config:', error);
+    throw new Error('Failed to clear bookmarklet configuration');
+  }
+}
+
+// =============================================================================
+// POPUP CAPTURE HELPERS
+// =============================================================================
+
+/**
+ * Handle capture trigger from popup with comprehensive error handling.
+ * Ensures content script is injected and sends capture message to the specified tab.
+ * @param tabId - The ID of the tab to capture content from
+ * @returns Promise that resolves with capture result
+ * @throws Error if capture trigger fails
+ */
+async function handlePopupCaptureTrigger(tabId: number): Promise<IEnhancedMessageResponse> {
+  logger.info('Popup capture trigger - ensuring content script is available');
+
+  // Ensure content script is injected and ready
+  await ensureContentScriptInjected(tabId);
+
+  // Send TRIGGER_CAPTURE_SHORTCUT message to content script (same as keyboard shortcut)
+  try {
+    const response = await chrome.tabs.sendMessage(tabId, {
+      type: 'TRIGGER_CAPTURE_SHORTCUT',
+      timestamp: Date.now(),
+    });
+
+    logger.info('Popup capture shortcut message sent to content script successfully');
+
+    // Return success - the content script handles the actual capture and shows notifications
+    return {
+      success: true,
+      timestamp: Date.now(),
+    };
+  } catch (error) {
+    logger.error('Failed to send popup capture message to content script:', error);
+
+    // Provide more specific error messages based on the error type
+    const errorMessage = (error as Error).message;
+    if (
+      errorMessage.includes('Could not establish connection') ||
+      errorMessage.includes('Receiving end does not exist')
+    ) {
+      throw new Error('Content script not ready. Please refresh the page and try again.');
+    } else if (errorMessage.includes('Extension context invalidated')) {
+      throw new Error(
+        'Extension needs to be reloaded. Please refresh the browser extension.'
+      );
+    } else {
+      throw new Error(`Failed to communicate with page content script: ${errorMessage}`);
+    }
+  }
+}
+
+// =============================================================================
+// KEYBOARD SHORTCUT HELPERS
+// =============================================================================
+
+/**
+ * Handle keyboard shortcut commands for page capture.
+ * Gets the active tab, ensures content script is injected, and triggers capture.
+ * @param command - The keyboard command received
+ * @throws Error if keyboard shortcut handling fails
+ */
+async function handleKeyboardShortcut(command: string): Promise<void> {
+  if (command === 'capture-page') {
+    // Get the active tab
+    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+
+    if (tabs.length === 0) {
+      logger.error('No active tab found for keyboard shortcut');
+      return;
+    }
+
+    const activeTab = tabs[0];
+    if (!activeTab.id) {
+      logger.error('Active tab has no ID');
+      return;
+    }
+
+    // Ensure content script is injected before sending message
+    try {
+      await ensureContentScriptInjected(activeTab.id);
+
+      // Send message to content script to trigger capture
+      await chrome.tabs.sendMessage(activeTab.id, {
+        type: 'TRIGGER_CAPTURE_SHORTCUT',
+        timestamp: Date.now(),
+      });
+      logger.info('Capture shortcut message sent to content script');
+    } catch (error) {
+      logger.error('Failed to send capture shortcut message:', error);
+      // Show browser notification if content script communication fails
+      if (chrome.notifications) {
+        await showNotificationSafe({
+          iconUrl: 'icons/icon48.png',
+          title: 'PrismWeave',
+          message: 'Please reload the page and try again',
+        });
+      }
+    }
+  }
+}
+
+// =============================================================================
+// SERVICE INITIALIZATION
+// =============================================================================
+
+/**
+ * Initialize service worker managers and services.
+ * Sets up all required services for the extension to function properly.
+ * @param customSettingsManager - Optional custom settings manager instance
+ * @param customCaptureService - Optional custom content capture service instance
+ * @param customPDFCaptureService - Optional custom PDF capture service instance
+ * @returns Promise that resolves with the initialized service worker state
+ * @throws Error if initialization fails
+ */
 export async function initializeServiceWorkers(
   customSettingsManager?: SettingsManager,
   customCaptureService?: ContentCaptureService,
   customPDFCaptureService?: PDFCaptureService
 ): Promise<IServiceWorkerState> {
-  /**
-   * Initialize service worker managers and services.
-   *
-   * This sets up the SettingsManager, ContentCaptureService, PDFCaptureService
-   * and UnifiedCaptureService instances used by the service worker. The
-   * function accepts optional custom implementations for testing/injection.
-   *
-   * @param customSettingsManager - Optional SettingsManager instance to use
-   * @param customCaptureService - Optional ContentCaptureService instance to use
-   * @param customPDFCaptureService - Optional PDFCaptureService instance to use
-   * @returns The populated IServiceWorkerState
-   * @throws When initialization fails
-   */
   try {
     logger.info('Initializing service worker managers...');
 
@@ -210,65 +500,17 @@ export async function initializeServiceWorkers(
   }
 }
 
-// Initialize on startup
-logger.info('Starting service worker initialization process');
-initializeServiceWorkers()
-  .then(async () => {
-    logger.info('Service workers initialized successfully, creating context menus');
-    // Create context menus after initialization
-    try {
-      await createContextMenus();
-      logger.info('Context menus creation completed during startup');
-    } catch (contextMenuError) {
-      logger.error('Failed to create context menus during startup:', contextMenuError);
-    }
-  })
-  .catch(error => {
-    logger.error('Service worker startup failed:', error);
-  });
+// =============================================================================
+// CHROME API WRAPPERS AND UTILITIES
+// =============================================================================
 
-// Chrome extension event handlers
-export async function handleInstallation(details: chrome.runtime.InstalledDetails): Promise<void> {
-  /**
-   * Handle extension installation or update events.
-   *
-   * On a fresh install this will initialize default settings and recreate
-   * context menus. Runs during extension lifecycle events dispatched by
-   * chrome.runtime.onInstalled.
-   *
-   * @param details - Installation details provided by Chrome
-   * @throws On unexpected errors while handling installation
-   */
-  try {
-    logger.info('Extension installed/updated:', details.reason);
-
-    if (details.reason === 'install') {
-      // Initialize default settings on first install
-      if (serviceWorkerState.settingsManager) {
-        await serviceWorkerState.settingsManager.resetSettings();
-        logger.info('Default settings initialized');
-      }
-    }
-
-    // Create context menus on install/startup
-    await createContextMenus();
-  } catch (error) {
-    logger.error('Error handling installation:', error);
-    throw error;
-  }
-}
-
-// Context menu creation
+/**
+ * Create extension context menu entries used to trigger captures.
+ * Sets up right-click context menus for capturing links and pages.
+ * Handles permission checks and error recovery gracefully.
+ * @throws Error if context menu creation fails critically
+ */
 async function createContextMenus(): Promise<void> {
-  /**
-   * Create extension context menu entries used to trigger captures.
-   *
-   * This function validates permissions and recreates the "capture-link"
-   * and "capture-page" menu items. It is safe to call multiple times.
-   *
-   * @returns Promise<void> that resolves when menus are created or when the
-   * creation cannot proceed due to missing APIs/permissions.
-   */
   try {
     logger.info('Starting context menu creation process');
 
@@ -282,28 +524,23 @@ async function createContextMenus(): Promise<void> {
     // Check permissions
     try {
       const permissions = await chrome.permissions.getAll();
-      logger.debug('Current permissions:', permissions.permissions);
       if (!permissions.permissions?.includes('contextMenus')) {
-        logger.error('contextMenus permission is not granted');
+        logger.warn('Context menus permission not granted - menus will not be available');
         return;
       }
-      logger.debug('contextMenus permission is granted');
     } catch (permError) {
-      logger.warn('Could not check permissions:', permError);
+      logger.debug('Could not check permissions:', permError);
     }
 
     // Remove existing context menus first
     try {
-      logger.debug('Removing existing context menus');
       await chrome.contextMenus.removeAll();
-      logger.debug('Existing context menus removed successfully');
     } catch (removeError) {
-      logger.warn('Error removing existing context menus:', removeError);
+      logger.debug('Error removing existing context menus (may be normal):', removeError);
     }
 
     // Create context menu for links
     try {
-      logger.debug('Creating capture-link context menu item');
       chrome.contextMenus.create(
         {
           id: 'capture-link',
@@ -313,9 +550,7 @@ async function createContextMenus(): Promise<void> {
         },
         () => {
           if (chrome.runtime.lastError) {
-            logger.error('Error creating capture-link menu:', chrome.runtime.lastError.message);
-          } else {
-            logger.info('capture-link context menu created successfully');
+            logger.error('Failed to create capture-link context menu:', chrome.runtime.lastError.message);
           }
         }
       );
@@ -325,7 +560,6 @@ async function createContextMenus(): Promise<void> {
 
     // Create context menu for pages
     try {
-      logger.debug('Creating capture-page context menu item');
       chrome.contextMenus.create(
         {
           id: 'capture-page',
@@ -335,9 +569,7 @@ async function createContextMenus(): Promise<void> {
         },
         () => {
           if (chrome.runtime.lastError) {
-            logger.error('Error creating capture-page menu:', chrome.runtime.lastError.message);
-          } else {
-            logger.info('capture-page context menu created successfully');
+            logger.error('Failed to create capture-page context menu:', chrome.runtime.lastError.message);
           }
         }
       );
@@ -345,24 +577,19 @@ async function createContextMenus(): Promise<void> {
       logger.error('Exception creating capture-page menu:', pageMenuError);
     }
 
-    logger.info('Context menu creation process completed');
+    logger.info('Context menus created successfully');
   } catch (error) {
     logger.error('Fatal error in createContextMenus:', error);
   }
 }
 
-// Content Script Injection and Management
+/**
+ * Ensure the content script is injected in the given tab.
+ * Checks if content script is already available, injects it if needed, and verifies injection.
+ * @param tabId - The ID of the tab to inject content script into
+ * @throws Error if injection fails or tab is not valid for injection
+ */
 async function ensureContentScriptInjected(tabId: number): Promise<void> {
-  /**
-   * Ensure the content script is injected in the given tab.
-   *
-   * Validates that the tab is a normal web page, attempts a lightweight ping
-   * to detect an existing content script, and injects the script using the
-   * scripting.executeScript API if necessary. Throws on failure.
-   *
-   * @param tabId - The tab id where the script should be present
-   * @throws If the tab is a special page or injection/verification fails
-   */
   try {
     logger.debug('Ensuring content script is injected in tab:', tabId);
 
@@ -381,15 +608,13 @@ async function ensureContentScriptInjected(tabId: number): Promise<void> {
 
     // Check if content script is already available by sending a ping
     const pingResult = await new Promise<boolean>(resolve => {
-      const timeout = setTimeout(() => resolve(false), 1000); // 1 second timeout for ping
+      const timeout = setTimeout(() => resolve(false), 1000);
 
       chrome.tabs.sendMessage(tabId, { type: 'PING' }, response => {
         clearTimeout(timeout);
         if (chrome.runtime.lastError) {
-          logger.debug(
-            'Ping failed (expected if script not injected):',
-            chrome.runtime.lastError.message
-          );
+          // This is expected if script is not injected, so only debug log
+          logger.debug('Content script ping failed (expected if not injected)');
           resolve(false);
         } else {
           resolve(!!response);
@@ -398,31 +623,29 @@ async function ensureContentScriptInjected(tabId: number): Promise<void> {
     });
 
     if (pingResult) {
-      logger.debug('Content script already active');
+      logger.debug('Content script already active in tab:', tabId);
       return;
     }
 
     // Inject content script if not available
-    logger.debug('Injecting content script...');
+    logger.debug('Injecting content script into tab:', tabId);
     try {
       await chrome.scripting.executeScript({
         target: { tabId },
         files: ['content/content-script.js'],
       });
 
-      logger.debug('Content script injected successfully');
-
-      // Wait a bit for the script to initialize
+      // Wait for initialization
       await new Promise(resolve => setTimeout(resolve, 500));
 
-      // Verify injection worked by sending another ping
+      // Verify injection worked
       const verifyResult = await new Promise<boolean>(resolve => {
         const timeout = setTimeout(() => resolve(false), 2000);
 
         chrome.tabs.sendMessage(tabId, { type: 'PING' }, response => {
           clearTimeout(timeout);
           if (chrome.runtime.lastError) {
-            logger.debug('Verification ping failed:', chrome.runtime.lastError.message);
+            logger.debug('Content script verification failed');
             resolve(false);
           } else {
             resolve(!!response);
@@ -434,9 +657,9 @@ async function ensureContentScriptInjected(tabId: number): Promise<void> {
         throw new Error('Content script injection verification failed');
       }
 
-      logger.debug('Content script injection verified successfully');
+      logger.debug('Content script successfully injected and verified in tab:', tabId);
     } catch (scriptError) {
-      logger.error('Failed to inject content script:', scriptError);
+      logger.error('Failed to inject content script into tab:', tabId, scriptError);
       throw new Error('Content script injection failed - page may need to be refreshed');
     }
   } catch (error) {
@@ -445,23 +668,22 @@ async function ensureContentScriptInjected(tabId: number): Promise<void> {
   }
 }
 
-// Message handler - implement actual functionality - exported for testing
+// =============================================================================
+// MESSAGE HANDLING
+// =============================================================================
+
+/**
+ * Centralized message handler for incoming runtime messages.
+ * Routes messages to appropriate handlers based on message type and validates prerequisites.
+ * @param message - The incoming message with type and data
+ * @param sender - Information about the message sender
+ * @returns Promise that resolves with enhanced response containing success status and data
+ * @throws Error if message validation fails or required services are not initialized
+ */
 export async function handleMessage(
   message: IMessageData,
   sender: chrome.runtime.MessageSender
 ): Promise<IEnhancedMessageResponse> {
-  /**
-   * Centralized message handler for incoming runtime messages.
-   *
-   * Validates incoming messages and routes them to the appropriate service
-   * handlers (settings manager, capture services, PDF service, etc.). Returns
-   * a standardized IEnhancedMessageResponse with success/data/error fields.
-   *
-   * @param message - IMessageData object containing a `type` and optional data
-   * @param sender - Message sender provided by Chrome runtime
-   * @returns IEnhancedMessageResponse indicating the operation result
-   * @throws When message validation fails or required services are not ready
-   */
   // Validate message structure
   if (!message || typeof message.type !== 'string') {
     throw new Error('Invalid message format');
@@ -561,32 +783,15 @@ export async function handleMessage(
         validateSettings: true,
         includeMarkdown: true,
       });
-      logger.debug('CAPTURE_PAGE result:', {
-        success: captureResult.success,
-        message: captureResult.message,
-        hasData: !!captureResult.data,
-      });
 
-      // Extract commit URL from capture result
-      const pageCommitUrl = captureResult.data?.commitUrl || captureResult.data?.url;
-
-      if (pageCommitUrl) {
-        logger.info('Page capture commit URL found:', pageCommitUrl);
-      } else {
-        logger.warn('No commit URL found in page capture result');
-      }
+      const pageResult = processCaptureResult(captureResult, 'Page capture');
 
       // Return enhanced response with commit URL
       return {
-        success: captureResult.success,
-        data: {
-          ...captureResult.data,
-          commitUrl: pageCommitUrl || undefined,
-        },
-        ...(pageCommitUrl && { commitUrl: pageCommitUrl }),
-        saveResult: {
-          ...(pageCommitUrl && { url: pageCommitUrl, commitUrl: pageCommitUrl }),
-        },
+        success: pageResult.success,
+        data: pageResult.data,
+        ...(pageResult.commitUrl && { commitUrl: pageResult.commitUrl }),
+        saveResult: pageResult.saveResult,
         timestamp: Date.now(),
       };
 
@@ -609,32 +814,14 @@ export async function handleMessage(
         }
       );
 
-      logger.debug('CAPTURE_LINK result:', {
-        success: linkCaptureResult.success,
-        message: linkCaptureResult.message,
-        hasData: !!linkCaptureResult.data,
-      });
-
-      // Extract commit URL from link capture result
-      const linkCommitUrl = linkCaptureResult.data?.commitUrl || linkCaptureResult.data?.url;
-
-      if (linkCommitUrl) {
-        logger.info('Link capture commit URL found:', linkCommitUrl);
-      } else {
-        logger.warn('No commit URL found in link capture result');
-      }
+      const linkResult = processCaptureResult(linkCaptureResult, 'Link capture');
 
       // Return enhanced response with commit URL
       return {
-        success: linkCaptureResult.success,
-        data: {
-          ...linkCaptureResult.data,
-          commitUrl: linkCommitUrl || undefined,
-        },
-        ...(linkCommitUrl && { commitUrl: linkCommitUrl }),
-        saveResult: {
-          ...(linkCommitUrl && { url: linkCommitUrl, commitUrl: linkCommitUrl }),
-        },
+        success: linkResult.success,
+        data: linkResult.data,
+        ...(linkResult.commitUrl && { commitUrl: linkResult.commitUrl }),
+        saveResult: linkResult.saveResult,
         timestamp: Date.now(),
       };
 
@@ -648,32 +835,15 @@ export async function handleMessage(
           forceGitHubCommit: true,
         }
       );
-      logger.debug('CAPTURE_PDF result:', {
-        success: pdfCaptureResult.success,
-        message: pdfCaptureResult.message,
-        hasData: !!pdfCaptureResult.data,
-      });
 
-      // Extract commit URL from PDF capture result
-      const pdfCommitUrl = pdfCaptureResult.data?.commitUrl || pdfCaptureResult.data?.url;
-
-      if (pdfCommitUrl) {
-        logger.info('PDF capture commit URL found:', pdfCommitUrl);
-      } else {
-        logger.warn('No commit URL found in PDF capture result');
-      }
+      const pdfResult = processCaptureResult(pdfCaptureResult, 'PDF capture');
 
       // Return enhanced response with commit URL
       return {
-        success: pdfCaptureResult.success,
-        data: {
-          ...pdfCaptureResult.data,
-          commitUrl: pdfCommitUrl || undefined,
-        },
-        ...(pdfCommitUrl && { commitUrl: pdfCommitUrl }),
-        saveResult: {
-          ...(pdfCommitUrl && { url: pdfCommitUrl, commitUrl: pdfCommitUrl }),
-        },
+        success: pdfResult.success,
+        data: pdfResult.data,
+        ...(pdfResult.commitUrl && { commitUrl: pdfResult.commitUrl }),
+        saveResult: pdfResult.saveResult,
         timestamp: Date.now(),
       };
 
@@ -695,46 +865,7 @@ export async function handleMessage(
         }
       );
 
-      logger.debug('CAPTURE_CONTENT result:', {
-        success: unifiedCaptureResult.success,
-        contentType: unifiedCaptureResult.contentType,
-        captureMethod: unifiedCaptureResult.data?.captureMethod,
-        hasData: !!unifiedCaptureResult.data,
-        hasSaveResult: !!(unifiedCaptureResult as any).saveResult,
-      });
-
-      // Extract commit URL using shared helper
-      const commitUrl = extractCommitUrl(unifiedCaptureResult);
-
-      if (commitUrl) {
-        logger.info('Commit URL found:', commitUrl);
-      } else {
-        logger.warn('No commit URL found in capture result');
-      }
-
-      // Extract saveResult from unified service response
-      const unifiedSaveResult = (unifiedCaptureResult as any).saveResult;
-      logger.debug('Unified service saveResult:', unifiedSaveResult);
-
-      // Create enhanced saveResult merging unified service result with extracted commit URL
-      const enhancedSaveResult = {
-        ...(unifiedSaveResult || {}),
-        ...(commitUrl && { url: commitUrl, commitUrl }),
-      };
-
-      // Return enhanced response with proper saveResult forwarding
-      return {
-        success: unifiedCaptureResult.success,
-        data: {
-          ...unifiedCaptureResult.data,
-          commitUrl: commitUrl || undefined, // Add commit URL to data
-          contentType: unifiedCaptureResult.contentType, // Ensure contentType is in data
-          filename: (unifiedCaptureResult as any).filename || unifiedCaptureResult.data?.filename,
-        },
-        ...(commitUrl && { commitUrl }), // Add commit URL to top level only if it exists
-        saveResult: enhancedSaveResult,
-        timestamp: Date.now(),
-      };
+      return processUnifiedCaptureResult(unifiedCaptureResult);
 
     case MESSAGE_TYPES.GET_STATUS:
       const statusData = getServiceWorkerStatus();
@@ -747,21 +878,7 @@ export async function handleMessage(
       }
 
       try {
-        await new Promise<void>((resolve, reject) => {
-          chrome.storage.sync.set(
-            {
-              prismweave_bookmarklet_config: message.data!.config,
-            },
-            () => {
-              if (chrome.runtime.lastError) {
-                reject(new Error(chrome.runtime.lastError.message));
-              } else {
-                resolve();
-              }
-            }
-          );
-        });
-        logger.debug('Bookmarklet config stored successfully');
+        await storeBookmarkletConfig(message.data.config);
         return { success: true, timestamp: Date.now() };
       } catch (error) {
         logger.error('Failed to store bookmarklet config:', error);
@@ -771,17 +888,7 @@ export async function handleMessage(
     case 'GET_BOOKMARKLET_CONFIG':
       // Handle bookmarklet configuration retrieval for cross-domain persistence
       try {
-        const stored = await new Promise<any>((resolve, reject) => {
-          chrome.storage.sync.get('prismweave_bookmarklet_config', result => {
-            if (chrome.runtime.lastError) {
-              reject(new Error(chrome.runtime.lastError.message));
-            } else {
-              resolve(result);
-            }
-          });
-        });
-        const config = stored.prismweave_bookmarklet_config || null;
-        logger.debug('Bookmarklet config retrieved:', !!config);
+        const config = await getBookmarkletConfig();
         return { success: true, data: { config }, timestamp: Date.now() };
       } catch (error) {
         logger.error('Failed to retrieve bookmarklet config:', error);
@@ -791,16 +898,7 @@ export async function handleMessage(
     case 'CLEAR_BOOKMARKLET_CONFIG':
       // Handle bookmarklet configuration clearing for cross-domain persistence
       try {
-        await new Promise<void>((resolve, reject) => {
-          chrome.storage.sync.remove('prismweave_bookmarklet_config', () => {
-            if (chrome.runtime.lastError) {
-              reject(new Error(chrome.runtime.lastError.message));
-            } else {
-              resolve();
-            }
-          });
-        });
-        logger.debug('Bookmarklet config cleared successfully');
+        await clearBookmarkletConfig();
         return { success: true, timestamp: Date.now() };
       } catch (error) {
         logger.error('Failed to clear bookmarklet config:', error);
@@ -815,43 +913,7 @@ export async function handleMessage(
           throw new Error('No tab ID provided for popup capture trigger');
         }
 
-        logger.info('Popup capture trigger - ensuring content script is available');
-
-        // Ensure content script is injected and ready
-        await ensureContentScriptInjected(tabId);
-
-        // Send TRIGGER_CAPTURE_SHORTCUT message to content script (same as keyboard shortcut)
-        try {
-          const response = await chrome.tabs.sendMessage(tabId, {
-            type: 'TRIGGER_CAPTURE_SHORTCUT',
-            timestamp: Date.now(),
-          });
-
-          logger.info('Popup capture shortcut message sent to content script successfully');
-
-          // Return success - the content script handles the actual capture and shows notifications
-          return {
-            success: true,
-            timestamp: Date.now(),
-          };
-        } catch (error) {
-          logger.error('Failed to send popup capture message to content script:', error);
-
-          // Provide more specific error messages based on the error type
-          const errorMessage = (error as Error).message;
-          if (
-            errorMessage.includes('Could not establish connection') ||
-            errorMessage.includes('Receiving end does not exist')
-          ) {
-            throw new Error('Content script not ready. Please refresh the page and try again.');
-          } else if (errorMessage.includes('Extension context invalidated')) {
-            throw new Error(
-              'Extension needs to be reloaded. Please refresh the browser extension.'
-            );
-          } else {
-            throw new Error(`Failed to communicate with page content script: ${errorMessage}`);
-          }
-        }
+        return await handlePopupCaptureTrigger(tabId);
       } catch (error) {
         logger.error('Error handling popup capture trigger:', error);
         throw error;
@@ -864,16 +926,16 @@ export async function handleMessage(
   }
 }
 
-// Helper function to get service worker status - exported for testing
+// =============================================================================
+// STATUS AND DIAGNOSTIC FUNCTIONS
+// =============================================================================
+
+/**
+ * Return a lightweight status snapshot for the service worker.
+ * Provides essential information about the service worker's current state for monitoring and debugging.
+ * @returns Object containing initialization status, service availability, and version information
+ */
 export function getServiceWorkerStatus(): Record<string, unknown> {
-  /**
-   * Return a lightweight status snapshot for the service worker.
-   *
-   * This is used by the GET_STATUS message type and tests to inspect the
-   * current initialized state and any initialization errors.
-   *
-   * @returns An object containing status information
-   */
   return {
     initialized: serviceWorkerState.isInitialized,
     hasSettingsManager: !!serviceWorkerState.settingsManager,
@@ -885,6 +947,68 @@ export function getServiceWorkerStatus(): Record<string, unknown> {
     timestamp: new Date().toISOString(),
   };
 }
+
+/**
+ * Return the full internal service worker state for testing.
+ * Provides complete state information including service instances for comprehensive testing.
+ * @returns Complete service worker state object with all internal references
+ */
+export function getServiceWorkerState(): IServiceWorkerState {
+  return { ...serviceWorkerState };
+}
+
+// =============================================================================
+// CHROME EXTENSION EVENT HANDLERS
+// =============================================================================
+
+/**
+ * Handle extension installation or update events.
+ * Performs necessary setup tasks when the extension is first installed or updated.
+ * @param details - Installation details including reason (install/update/chrome_update)
+ * @throws Error if installation handling fails
+ */
+export async function handleInstallation(details: chrome.runtime.InstalledDetails): Promise<void> {
+  try {
+    logger.info('Extension installed/updated:', details.reason);
+
+    if (details.reason === 'install') {
+      // Initialize default settings on first install
+      if (serviceWorkerState.settingsManager) {
+        await serviceWorkerState.settingsManager.resetSettings();
+        logger.info('Default settings initialized');
+      }
+    }
+
+    // Create context menus on install/startup
+    await createContextMenus();
+  } catch (error) {
+    logger.error('Error handling installation:', error);
+    throw error;
+  }
+}
+
+// =============================================================================
+// CHROME EXTENSION EVENT LISTENERS
+// =============================================================================
+
+logger.info('Service Worker starting...');
+
+// Initialize on startup
+logger.info('Starting service worker initialization process');
+initializeServiceWorkers()
+  .then(async () => {
+    logger.info('Service workers initialized successfully, creating context menus');
+    // Create context menus after initialization
+    try {
+      await createContextMenus();
+      logger.info('Context menus creation completed during startup');
+    } catch (contextMenuError) {
+      logger.error('Failed to create context menus during startup:', contextMenuError);
+    }
+  })
+  .catch(error => {
+    logger.error('Service worker startup failed:', error);
+  });
 
 // Chrome extension event listeners
 chrome.runtime.onInstalled.addListener(async (details: chrome.runtime.InstalledDetails) => {
@@ -923,43 +1047,7 @@ chrome.commands.onCommand.addListener(async (command: string) => {
   logger.info('Keyboard command received:', command);
 
   try {
-    if (command === 'capture-page') {
-      // Get the active tab
-      const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-
-      if (tabs.length === 0) {
-        logger.error('No active tab found for keyboard shortcut');
-        return;
-      }
-
-      const activeTab = tabs[0];
-      if (!activeTab.id) {
-        logger.error('Active tab has no ID');
-        return;
-      }
-
-      // Ensure content script is injected before sending message
-      try {
-        await ensureContentScriptInjected(activeTab.id);
-
-        // Send message to content script to trigger capture
-        await chrome.tabs.sendMessage(activeTab.id, {
-          type: 'TRIGGER_CAPTURE_SHORTCUT',
-          timestamp: Date.now(),
-        });
-        logger.info('Capture shortcut message sent to content script');
-      } catch (error) {
-        logger.error('Failed to send capture shortcut message:', error);
-        // Show browser notification if content script communication fails
-        if (chrome.notifications) {
-          await showNotificationSafe({
-            iconUrl: 'icons/icon48.png',
-            title: 'PrismWeave',
-            message: 'Please reload the page and try again',
-          });
-        }
-      }
-    }
+    await handleKeyboardShortcut(command);
   } catch (error) {
     logger.error('Error handling keyboard command:', error);
   }
@@ -1131,18 +1219,5 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
     logger.error('Error handling context menu click:', error);
   }
 });
-
-// Get current service worker state - exported for testing
-export function getServiceWorkerState(): IServiceWorkerState {
-  /**
-   * Return the full internal service worker state for testing.
-   *
-   * WARNING: This exposes internal instances and should only be used in
-   * test contexts.
-   *
-   * @returns A shallow copy of the current IServiceWorkerState
-   */
-  return { ...serviceWorkerState };
-}
 
 logger.info('Service Worker initialized successfully');
