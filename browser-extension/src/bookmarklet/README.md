@@ -20,7 +20,6 @@ GitHub credentials for seamless content capture.
 
 - **`runtime.ts`** - Main runtime with content extraction and GitHub integration
 - **`main.ts`** - Entry point for bookmarklet execution
-- **`index.html`** - Landing page with navigation to generator and help
 
 ### Enhanced Features
 
@@ -74,7 +73,6 @@ npm run cleanup:bookmarklet
 
 - **`generator.html`** - Interactive bookmarklet generator interface
 - **`generator.js`** - Compiled generator logic
-- **`index.html`** - Landing page with navigation
 - **`README.md`** - Documentation
 
 ## Local Testing & Development
@@ -184,7 +182,6 @@ browser-extension/
 └── dist/bookmarklet/          # Built files (auto-generated)
     ├── generator.html         # Personal bookmarklet generator interface
     ├── generator.js           # Compiled generator logic
-    ├── index.html             # Main landing page
     └── ...
 ```
 
@@ -276,7 +273,6 @@ When you build the personal bookmarklet system:
 
 - **`generator.html`** - Interactive bookmarklet generator interface
 - **`generator.js`** - Compiled generator with embedded capture functionality
-- **`index.html`** - Documentation and navigation page
 
 #### Personal Bookmarklet Architecture
 

@@ -173,7 +173,7 @@ export const BOOKMARKLET_CONFIG = {
     console.log(`   🔍 Module detection: ${isUsingModules ? 'ES6 modules' : 'bundled'}`);
 
     // Copy and fix CSS paths for all HTML files in the bookmarklet directory
-    const htmlFiles = ['generator.html', 'index.html', 'install.html'];
+    const htmlFiles = ['generator.html', 'install.html'];
 
     htmlFiles.forEach(htmlFile => {
       const srcPath = path.join(this.srcDir, htmlFile);
@@ -406,8 +406,6 @@ export const BOOKMARKLET_CONFIG = {
     </style>
 </head>
 <body>
-    <a href="index.html" class="back-link">← Back to Main</a>
-    
     <div class="header">
         <h1>📚 PrismWeave Bookmarklet Help</h1>
     </div>
@@ -492,7 +490,7 @@ export const BOOKMARKLET_CONFIG = {
     console.log('\n📊 Build Results:');
 
     // Core files
-    const coreFiles = ['generator.html', 'generator.js', 'index.html', 'install.html'];
+    const coreFiles = ['generator.html', 'generator.js', 'install.html'];
 
     coreFiles.forEach(file => {
       const filePath = path.join(this.distDir, file);

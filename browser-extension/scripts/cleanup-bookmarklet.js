@@ -35,7 +35,6 @@ class BookmarkletCleaner {
       // Keep the personal bookmarklet generator files
       'generator.html',
       'generator.js',
-      'index.html',
       'install.html',
       'README.md',
     ];
@@ -148,7 +147,7 @@ class BookmarkletCleaner {
       },
       {
         name: 'Installation Page',
-        file: 'index.html',
+        file: 'install.html',
         checks: [
           { name: 'Is HTML', test: content => content.includes('<!DOCTYPE html>') },
           {

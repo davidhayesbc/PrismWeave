@@ -80,7 +80,6 @@ class PrismWeaveDevelopmentServer {
       console.log(
         `   🔧 http://${this.config.host}:${this.config.port}/generator.html - Bookmarklet Generator`
       );
-      console.log(`   📋 http://${this.config.host}:${this.config.port}/index.html - File Index`);
       console.log(
         `   🔌 http://${this.config.host}:${this.config.port}/install.html - Installation Guide`
       );
