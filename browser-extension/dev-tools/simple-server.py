@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Simple Enhanced PrismWeave Bookmarklet Development Server
+Simple PrismWeave Development Server
 """
 
 import http.server
@@ -13,7 +13,7 @@ def main():
     port = 8081
     server_dir = Path(__file__).parent
     
-    print("🌟 Enhanced PrismWeave Bookmarklet Generator")
+    print("🌟 PrismWeave Development Server")
     print("=" * 50)
     print(f"📁 Serving from: {server_dir}")
     print(f"🌐 Starting server on port {port}...")
@@ -23,20 +23,17 @@ def main():
     try:
         with socketserver.TCPServer(("", port), http.server.SimpleHTTPRequestHandler) as httpd:
             print(f"✅ Server running on http://localhost:{port}")
-            print(f"🎯 Enhanced generator: http://localhost:{port}/enhanced-local-generator.html")
-            print("\n🚀 Features:")
-            print("   • Enhanced with browser extension extraction logic")
-            print("   • Advanced content detection and scoring")
-            print("   • Professional HTML-to-Markdown conversion")
-            print("   • Comprehensive metadata extraction")
-            print("   • Content cleaning and validation")
+            print("\n🚀 Available files:")
+            print("   • Development tools and utilities")
+            print("   • Bookmarklet generators")
+            print("   • Testing and debugging tools")
             print("\n⏹️  Press Ctrl+C to stop")
             
-            # Auto-open browser
+            # Auto-open browser to main directory
             try:
-                webbrowser.open(f'http://localhost:{port}/enhanced-local-generator.html')
+                webbrowser.open(f'http://localhost:{port}')
                 print("🌟 Browser opened automatically")
-            except Exception:
+            except (webbrowser.Error, OSError):
                 print("💡 Please open the URL above in your browser")
             
             httpd.serve_forever()

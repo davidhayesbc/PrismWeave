@@ -1,5 +1,9 @@
 import { BOOKMARKLET_CONFIG } from './config';
 
+/**
+ * Form data interface for bookmarklet generator input fields.
+ * Contains all the user-provided configuration values needed to generate a personalized bookmarklet.
+ */
 interface IFormData {
   githubToken: string;
   githubRepo: string;
@@ -8,6 +12,10 @@ interface IFormData {
   fileNaming: string;
 }
 
+/**
+ * Configuration interface for bookmarklet functionality.
+ * Defines the complete set of options that can be embedded in a generated bookmarklet.
+ */
 interface IBookmarkletConfig {
   githubToken: string;
   githubRepo: string;
@@ -19,6 +27,26 @@ interface IBookmarkletConfig {
   removeNavigation?: boolean;
 }
 
+/**
+ * Bookmarklet Generator UI Class
+ *
+ * This class provides a complete web-based interface for generating personalized bookmarklets
+ * for the PrismWeave browser extension. It handles form validation, bookmarklet generation,
+ * and provides download/copy functionality for the generated bookmarklets.
+ *
+ * Key Features:
+ * - Real-time form validation with user-friendly error messages
+ * - Automatic detection of injectable script URLs (local vs production)
+ * - Secure handling of GitHub tokens (not saved in localStorage)
+ * - Generation of compact, self-contained bookmarklets
+ * - Download functionality for bookmarklet HTML pages
+ * - Clipboard copy functionality with fallback for older browsers
+ *
+ * Security Considerations:
+ * - GitHub tokens are embedded in bookmarklets but never saved to localStorage
+ * - Form validation prevents common input errors
+ * - Generated bookmarklets include security warnings in download pages
+ */
 class BookmarkletGeneratorUI {
   private form: HTMLFormElement;
   private statusMessage: HTMLElement;
@@ -29,6 +57,11 @@ class BookmarkletGeneratorUI {
 
   private readonly injectableBaseUrl: string = this.detectInjectableBaseUrl();
 
+  /**
+   * Creates a new BookmarkletGeneratorUI instance.
+   * Initializes DOM element references and sets up the injectable base URL for bookmarklet generation.
+   * @throws Error if required DOM elements are not found
+   */
   constructor() {
     this.form = document.getElementById('generator-form') as HTMLFormElement;
     this.statusMessage = document.getElementById('status-message') as HTMLElement;
@@ -41,6 +74,14 @@ class BookmarkletGeneratorUI {
     this.init();
   }
 
+  /**
+   * Detects the appropriate base URL for the injectable content extractor script.
+   * Automatically determines whether to use local development URLs or production URLs
+   * based on the current page location.
+   *
+   * @returns The base URL for the injectable script
+   * @private
+   */
   private detectInjectableBaseUrl(): string {
     const configElement = document.querySelector('[data-injectable-url]') as HTMLElement;
     if (configElement?.dataset.injectableUrl) {
@@ -56,11 +97,21 @@ class BookmarkletGeneratorUI {
     return BOOKMARKLET_CONFIG.DEFAULT_INJECTABLE_BASE;
   }
 
+  /**
+   * Initializes the bookmarklet generator interface.
+   * Sets up event listeners and loads any previously saved settings from localStorage.
+   * This method is called automatically by the constructor.
+   */
   init(): void {
     this.bindEvents();
     this.loadSavedSettings();
   }
 
+  /**
+   * Binds all event listeners for the bookmarklet generator interface.
+   * Sets up form submission, real-time validation, and result section interactions.
+   * This method establishes the complete event-driven behavior of the UI.
+   */
   bindEvents(): void {
     this.form.addEventListener('submit', e => this.handleSubmit(e));
 
@@ -70,14 +121,13 @@ class BookmarkletGeneratorUI {
 
     tokenInput.addEventListener('blur', () => this.validateToken());
     repoInput.addEventListener('blur', () => this.validateRepo());
-
-    // Result section buttons
-    document.getElementById('copy-btn')?.addEventListener('click', () => this.copyBookmarklet());
-    document
-      .getElementById('download-btn')
-      ?.addEventListener('click', () => this.downloadBookmarklet());
   }
 
+  /**
+   * Loads previously saved settings from localStorage.
+   * Restores user preferences while maintaining security by not restoring the GitHub token.
+   * Gracefully handles any localStorage errors to prevent initialization failures.
+   */
   loadSavedSettings(): void {
     try {
       const saved = localStorage.getItem('prismweave_generator_settings');
@@ -105,6 +155,13 @@ class BookmarkletGeneratorUI {
     }
   }
 
+  /**
+   * Saves user settings to localStorage for future sessions.
+   * Excludes the GitHub token from storage for security reasons.
+   * Gracefully handles localStorage errors without disrupting the user experience.
+   *
+   * @param formData - The form data containing user settings to save
+   */
   saveSettings(formData: IFormData): void {
     try {
       const settingsToSave = {
@@ -121,6 +178,13 @@ class BookmarkletGeneratorUI {
     }
   }
 
+  /**
+   * Handles form submission for bookmarklet generation.
+   * Validates form data, generates the bookmarklet, displays results, and saves settings.
+   * Provides user feedback through status messages and handles errors gracefully.
+   *
+   * @param e - The form submission event
+   */
   handleSubmit(e: Event): void {
     e.preventDefault();
 
@@ -148,6 +212,12 @@ class BookmarkletGeneratorUI {
     }
   }
 
+  /**
+   * Extracts and validates form data from the HTML form elements.
+   * Collects all user input values and trims whitespace for consistent processing.
+   *
+   * @returns The validated form data object
+   */
   getFormData(): IFormData {
     return {
       githubToken: (document.getElementById('github-token') as HTMLInputElement).value.trim(),
@@ -158,6 +228,14 @@ class BookmarkletGeneratorUI {
     };
   }
 
+  /**
+   * Converts form data to the bookmarklet configuration format.
+   * Maps form field values to the configuration structure expected by the bookmarklet.
+   * Sets sensible defaults for optional configuration values.
+   *
+   * @param formData - The form data to convert
+   * @returns The bookmarklet configuration object
+   */
   convertToBookmarkletConfig(formData: IFormData): IBookmarkletConfig {
     return {
       githubToken: formData.githubToken,
@@ -171,6 +249,21 @@ class BookmarkletGeneratorUI {
     };
   }
 
+  /**
+   * Generates a compact, self-contained bookmarklet with embedded configuration.
+   * Creates a bookmarklet that loads the sophisticated content extractor and processes
+   * the current page using the user's GitHub configuration.
+   *
+   * The generated bookmarklet:
+   * - Embeds user configuration directly in the code
+   * - Dynamically loads the content extractor script
+   * - Processes the page with advanced extraction options
+   * - Provides user feedback through browser alerts
+   * - Handles errors gracefully with informative messages
+   *
+   * @param formData - The form data containing user configuration
+   * @returns The complete bookmarklet code as a javascript: URL
+   */
   generateCompactBookmarklet(formData: IFormData): string {
     const token = formData.githubToken;
     const repo = formData.githubRepo;
@@ -281,6 +374,11 @@ class BookmarkletGeneratorUI {
     return isValid;
   }
 
+  /**
+   * Validates the GitHub token field in real-time.
+   * Checks for presence, length, and proper token format.
+   * Updates the validation error message display accordingly.
+   */
   validateToken(): void {
     const token = (document.getElementById('github-token') as HTMLInputElement).value.trim();
     const errorEl = document.getElementById('token-error') as HTMLElement;
@@ -296,6 +394,11 @@ class BookmarkletGeneratorUI {
     }
   }
 
+  /**
+   * Validates the GitHub repository field in real-time.
+   * Checks for presence and proper repository format (owner/repo).
+   * Updates the validation error message display accordingly.
+   */
   validateRepo(): void {
     const repo = (document.getElementById('github-repo') as HTMLInputElement).value.trim();
     const errorEl = document.getElementById('repo-error') as HTMLElement;
@@ -309,6 +412,13 @@ class BookmarkletGeneratorUI {
     }
   }
 
+  /**
+   * Displays a validation error message for a specific form field.
+   * Updates the error message element with the provided error text.
+   *
+   * @param fieldId - The ID of the error message element to update
+   * @param message - The error message to display
+   */
   showFieldError(fieldId: string, message: string): void {
     const errorEl = document.getElementById(fieldId);
     if (errorEl) {
@@ -316,6 +426,14 @@ class BookmarkletGeneratorUI {
     }
   }
 
+  /**
+   * Displays a status message to the user with appropriate styling.
+   * Automatically hides success messages after 5 seconds.
+   * Used for providing feedback during bookmarklet generation and other operations.
+   *
+   * @param message - The status message to display
+   * @param type - The type of status message (info, success, or error)
+   */
   showStatus(message: string, type: 'info' | 'success' | 'error'): void {
     this.statusMessage.innerHTML = `<div class="status-message status-${type}">${message}</div>`;
 
@@ -327,6 +445,14 @@ class BookmarkletGeneratorUI {
     }
   }
 
+  /**
+   * Displays the generated bookmarklet results to the user.
+   * Updates the bookmarklet link, shows the truncated code, and reveals the result section.
+   * Provides visual feedback that the bookmarklet has been successfully generated.
+   *
+   * @param bookmarkletCode - The generated bookmarklet code
+   * @param formData - The form data used to generate the bookmarklet
+   */
   displayResult(bookmarkletCode: string, formData: IFormData): void {
     // Update bookmarklet link
     this.bookmarkletLink.href = bookmarkletCode;
@@ -343,105 +469,18 @@ class BookmarkletGeneratorUI {
     this.resultSection.classList.add('show');
     this.resultSection.scrollIntoView({ behavior: 'smooth' });
   }
-
-  async copyBookmarklet(): Promise<void> {
-    try {
-      await navigator.clipboard.writeText(this.currentBookmarkletCode);
-      this.showStatus('📋 Bookmarklet copied to clipboard!', 'success');
-    } catch (error) {
-      // Fallback for older browsers
-      const textArea = document.createElement('textarea');
-      textArea.value = this.currentBookmarkletCode;
-      document.body.appendChild(textArea);
-      textArea.select();
-      document.execCommand('copy');
-      document.body.removeChild(textArea);
-
-      this.showStatus('📋 Bookmarklet copied to clipboard! (fallback method)', 'success');
-    }
-  }
-
-  downloadBookmarklet(): void {
-    const formData = this.getFormData();
-    const repoName = formData.githubRepo.split('/')[1] || 'repository';
-
-    const html = this.generateBookmarkletPage(formData);
-    const blob = new Blob([html], { type: 'text/html' });
-    const url = URL.createObjectURL(blob);
-
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `prismweave-bookmarklet-${repoName}.html`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-
-    this.showStatus('💾 Bookmarklet HTML page downloaded!', 'success');
-  }
-
-  generateBookmarkletPage(formData: IFormData): string {
-    const repoName = formData.githubRepo.split('/')[1] || 'repository';
-    const currentDate = new Date().toLocaleDateString();
-
-    return `<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PrismWeave Bookmarklet - ${repoName}</title>
-  <!-- Use shared UI styles and a lightweight page stylesheet to avoid inline CSS -->
-  <link rel="stylesheet" href="../styles/shared-ui.css">
-  <link rel="stylesheet" href="../styles/bookmarklet-download.css">
-</head>
-<body class="pw-font-sans">
-  <div class="pw-page-header">
-        <h1>🌟 PrismWeave Bookmarklet</h1>
-        <p>Personal bookmarklet for <strong>${formData.githubRepo}</strong></p>
-        <p><em>Generated on ${currentDate}</em></p>
-    </div>
-
-  <div class="pw-card pw-bookmarklet-cta">
-        <h3>Drag this to your bookmarks bar:</h3>
-    <a href="${this.currentBookmarkletCode}" class="pw-btn pw-btn-primary">📄 PrismWeave → ${repoName}</a>
-    <p class="pw-note"><small>Your GitHub settings are embedded - no setup required!</small></p>
-    </div>
-
-  <div class="pw-card pw-section">
-        <h3>📋 Installation Instructions:</h3>
-        <ol>
-            <li><strong>Drag & Drop:</strong> Drag the bookmarklet button above to your browser's bookmarks bar</li>
-            <li><strong>Manual Method:</strong>
-        <ul class="pw-list">
-                    <li>Right-click the bookmarklet button and copy the link</li>
-                    <li>Add a new bookmark in your browser</li>
-                    <li>Set the name to "PrismWeave → ${repoName}" and paste the copied link as the URL</li>
-                </ul>
-            </li>
-            <li><strong>Usage:</strong> Visit any webpage and click your bookmarklet to capture content</li>
-        </ol>
-    </div>
-
-  <div class="pw-info pw-section">
-        <h4>⚙️ Configuration Summary:</h4>
-        <ul>
-            <li><strong>Repository:</strong> ${formData.githubRepo}</li>
-            <li><strong>Default Folder:</strong> ${formData.defaultFolder}</li>
-            <li><strong>Commit Message:</strong> ${formData.commitMessage}</li>
-            <li><strong>File Naming:</strong> ${formData.fileNaming}</li>
-        </ul>
-    </div>
-
-  <div class="pw-info pw-section">
-        <h4>🔒 Security Note:</h4>
-        <p>This bookmarklet contains your GitHub Personal Access Token. Keep this file private and only share the bookmarklet with trusted parties.</p>
-    </div>
-</body>
-</html>`;
-  }
 }
 
-// Initialize the generator when the DOM is ready
+// =============================================================================
+// INITIALIZATION
+// =============================================================================
+
+/**
+ * Initializes the BookmarkletGeneratorUI when the DOM is ready.
+ * Ensures the generator is only created after all DOM elements are available.
+ * Uses both immediate initialization (if DOM is already loaded) and event listener
+ * (if DOM is still loading) to handle all scenarios.
+ */
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => {
     new BookmarkletGeneratorUI();

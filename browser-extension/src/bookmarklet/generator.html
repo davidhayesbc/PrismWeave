@@ -34,15 +34,19 @@
         <h3>What is this?</h3>
         <p>
           This tool generates a custom bookmarklet that includes your GitHub Personal Access Token and repository
-          settings directly in the code. This eliminates the need for cross-domain storage and ensures your bookmarklet
-          works on any website without asking for credentials repeatedly.
+          settings directly in the code.
         </p>
 
         <div class="security-note">
           <h5>🔒 Security Note</h5>
           <p>
             Your GitHub token will be embedded in the bookmarklet code. Only share the generated bookmarklet with
-            trusted parties, and consider using a token with limited repository access.
+            trusted parties, and consider using a fine-grained token with limited repository access.<br />
+            Required permissions:
+            <ul>
+              <li>Read access to metadata</li>
+              <li>Read and Write access to code</li>
+            </ul>
           </p>
         </div>
       </div>
@@ -69,7 +73,7 @@
             <small>
               Required permissions: Contents (write), Metadata (read).
               <a
-                href="https://github.com/settings/tokens"
+                href="https://github.com/settings/personal-access-tokens"
                 target="_blank"
                 rel="noopener noreferrer"
               >
@@ -196,20 +200,6 @@
             >
               📄 PrismWeave Capture
             </a>
-            <button
-              type="button"
-              class="pw-btn pw-btn-secondary"
-              id="copy-btn"
-            >
-              📋 Copy Bookmarklet
-            </button>
-            <button
-              type="button"
-              class="pw-btn pw-btn-secondary"
-              id="download-btn"
-            >
-              💾 Download HTML Page
-            </button>
           </div>
         </div>
 
@@ -217,24 +207,12 @@
           <h4 class="pw-mb-2">📋 Installation Instructions:</h4>
           <ol>
             <li>
-              <strong>Method 1 (Drag & Drop):</strong>
+              <strong>Installation (Drag & Drop):</strong>
               Drag the "PrismWeave Capture" button above to your browser's bookmarks bar
-            </li>
-            <li>
-              <strong>Method 2 (Manual):</strong>
-              <ul>
-                <li>Copy the bookmarklet code using the "Copy Bookmarklet" button</li>
-                <li>Right-click your bookmarks bar and select "Add bookmark"</li>
-                <li>Set the name to "PrismWeave Capture" and paste the code as the URL</li>
-              </ul>
             </li>
             <li>
               <strong>Usage:</strong>
               Visit any webpage and click your "PrismWeave Capture" bookmark
-            </li>
-            <li>
-              <strong>Settings:</strong>
-              Your GitHub settings are embedded - no setup required!
             </li>
           </ol>
         </div>

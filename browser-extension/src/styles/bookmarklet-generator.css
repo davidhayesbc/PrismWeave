@@ -61,6 +61,11 @@ body.pw-font-sans {
   margin: 0;
   font-size: 0.85rem;
 }
+.security-note ul {
+  color: var(--pw-warning-600);
+  margin: 0;
+  font-size: 0.85rem;
+}
 
 .generator-install h4 {
   color: var(--pw-primary-700);
