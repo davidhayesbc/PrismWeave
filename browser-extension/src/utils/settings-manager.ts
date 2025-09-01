@@ -3,7 +3,7 @@
 import { createLogger } from './logger';
 const logger = createLogger('SettingsManager');
 
-import { ISettings } from '../types/index';
+import { ISettings } from '../types/types';
 
 // Type definitions for service worker compatibility
 interface ISettingsManagerSettings {

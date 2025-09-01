@@ -2,7 +2,7 @@
 // Unified Popup Test Suite - PrismWeave Browser Extension
 
 import { PrismWeavePopup } from '../popup/popup';
-import { ISettings } from '../types/index';
+import { ISettings } from '../types/types';
 
 // Mock Chrome APIs
 const mockChrome = {

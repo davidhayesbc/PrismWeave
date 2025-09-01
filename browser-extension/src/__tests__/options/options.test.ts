@@ -3,7 +3,7 @@
 // Tests settings form validation, GitHub integration, UI interactions, and error handling
 
 import { PrismWeaveOptions } from '../../options/options';
-import { ISettings } from '../../types/index';
+import { ISettings } from '../../types/types';
 import { cleanupTest, mockChromeAPIs } from '../test-helpers';
 
 // Mock the logger module

@@ -1,6 +1,6 @@
 // Handles the extension popup interface and user interactions
 
-import { IMessageData, IMessageResponse, ISettings, MESSAGE_TYPES } from '../types/index';
+import { IMessageData, IMessageResponse, ISettings, MESSAGE_TYPES } from '../types/types';
 import { createLogger } from '../utils/logger';
 
 // Initialize logger

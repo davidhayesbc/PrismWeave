@@ -2,7 +2,7 @@
 // Simplified Content Extractor - Streamlined version with essential functionality
 // Reduces complexity by combining related operations and removing unnecessary abstractions
 
-import { IDocumentMetadata } from '../types/index.js';
+import { IDocumentMetadata } from '../types/types.js';
 import { createLogger } from './logger.js';
 
 export interface IContentResult {

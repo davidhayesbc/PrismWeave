@@ -1,7 +1,7 @@
 // Tests for PDF capture functionality
 
 import { PrismWeavePopup } from '../popup/popup';
-import { MESSAGE_TYPES } from '../types/index';
+import { MESSAGE_TYPES } from '../types/types';
 import { mockChromeAPIs } from './test-helpers';
 
 describe('PDF Capture Functionality', () => {

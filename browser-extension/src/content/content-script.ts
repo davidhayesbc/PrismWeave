@@ -26,7 +26,7 @@ import {
   IMessageData,
   IMessageResponse,
   MESSAGE_TYPES,
-} from '../types/index.js';
+} from '../types/types.js';
 import { ContentExtractor } from '../utils/content-extractor.js';
 import { createLogger } from '../utils/logger.js';
 import { MarkdownConverter } from '../utils/markdown-converter.js';

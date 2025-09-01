@@ -2,7 +2,7 @@
 // Service worker for PrismWeave browser extension with ES module support
 // Refactored to use consolidated ContentCaptureService for better architecture
 
-import { IMessageData, IMessageResponse, MESSAGE_TYPES } from '../types/index';
+import { IMessageData, IMessageResponse, MESSAGE_TYPES } from '../types/types';
 import { ContentCaptureService } from '../utils/content-capture-service';
 import { createLogger } from '../utils/logger';
 import { PDFCaptureService } from '../utils/pdf-capture-service';
@@ -74,7 +74,7 @@ const chromeAPIs = {
   notifications: !!globalThis.chrome?.notifications,
   storage: !!globalThis.chrome?.storage,
   tabs: !!globalThis.chrome?.tabs,
-  commands: !!globalThis.chrome?.commands
+  commands: !!globalThis.chrome?.commands,
 };
 
 logger.debug('Chrome APIs available:', chromeAPIs);
@@ -398,9 +398,7 @@ async function handlePopupCaptureTrigger(tabId: number): Promise<IEnhancedMessag
     ) {
       throw new Error('Content script not ready. Please refresh the page and try again.');
     } else if (errorMessage.includes('Extension context invalidated')) {
-      throw new Error(
-        'Extension needs to be reloaded. Please refresh the browser extension.'
-      );
+      throw new Error('Extension needs to be reloaded. Please refresh the browser extension.');
     } else {
       throw new Error(`Failed to communicate with page content script: ${errorMessage}`);
     }
@@ -550,7 +548,10 @@ async function createContextMenus(): Promise<void> {
         },
         () => {
           if (chrome.runtime.lastError) {
-            logger.error('Failed to create capture-link context menu:', chrome.runtime.lastError.message);
+            logger.error(
+              'Failed to create capture-link context menu:',
+              chrome.runtime.lastError.message
+            );
           }
         }
       );
@@ -569,7 +570,10 @@ async function createContextMenus(): Promise<void> {
         },
         () => {
           if (chrome.runtime.lastError) {
-            logger.error('Failed to create capture-page context menu:', chrome.runtime.lastError.message);
+            logger.error(
+              'Failed to create capture-page context menu:',
+              chrome.runtime.lastError.message
+            );
           }
         }
       );

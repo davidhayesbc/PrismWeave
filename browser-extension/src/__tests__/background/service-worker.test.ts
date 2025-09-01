@@ -102,7 +102,7 @@ import {
   handleMessage,
   initializeServiceWorkers,
 } from '../../background/service-worker';
-import { IMessageData, ISettings } from '../../types/index';
+import { IMessageData, ISettings } from '../../types/types';
 import { ContentCaptureService } from '../../utils/content-capture-service';
 import { SettingsManager } from '../../utils/settings-manager';
 

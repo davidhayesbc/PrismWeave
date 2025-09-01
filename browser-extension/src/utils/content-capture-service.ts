@@ -8,7 +8,7 @@ import {
   IContentExtractionResult,
   IDocumentMetadata,
   ISettings,
-} from '../types/index.js';
+} from '../types/types.js';
 import { FileManager, IGitHubSettings } from './file-manager.js';
 import { createLogger } from './logger.js';
 import { SettingsManager } from './settings-manager.js';

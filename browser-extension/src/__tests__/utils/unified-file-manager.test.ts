@@ -2,7 +2,7 @@
 // Unified File Manager Tests - Comprehensive test suite for file naming and folder detection
 // Tests the metadata extraction and categorization logic
 
-import { IDocumentMetadata } from '../../types/index.js';
+import { IDocumentMetadata } from '../../types/types.js';
 import { FileManager } from '../../utils/file-manager.js';
 
 describe('FileManager - Folder Detection and File Organization', () => {

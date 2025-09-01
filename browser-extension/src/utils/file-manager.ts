@@ -2,7 +2,7 @@
 // Unified File Manager - Consolidates file naming, organization, and GitHub operations
 // Combines FileManager and GitHubFileManager into a single, comprehensive service
 
-import { IDocumentMetadata, IFileOperationResult } from '../types/index.js';
+import { IDocumentMetadata, IFileOperationResult } from '../types/types.js';
 import { createLogger } from './logger.js';
 
 const logger = createLogger('FileManager');

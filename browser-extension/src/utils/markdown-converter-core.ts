@@ -14,7 +14,7 @@
 //
 // Note: Do not use this class directly in browser contexts - use MarkdownConverter instead.
 
-import { IDocumentMetadata, IImageAsset } from '../types/index';
+import { IDocumentMetadata, IImageAsset } from '../types/types';
 import { createLogger } from './logger';
 
 const logger = createLogger('MarkdownConverter');
