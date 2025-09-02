@@ -30,7 +30,6 @@ import {
 import { ContentExtractor } from '../utils/content-extractor.js';
 import { createLogger } from '../utils/logger.js';
 import { MarkdownConverter } from '../utils/markdown-converter.js';
-import { StackOverflowBlogExtractor } from '../utils/stackoverflow-blog-extractor.js';
 
 console.log('🚀 PrismWeave content script loading...');
 
@@ -629,72 +628,6 @@ async function extractPageContentWithUtilities(options?: any): Promise<IContentE
   try {
     logger.info('Extracting page content using ContentExtractor...');
 
-    // Check if this is a Stack Overflow blog and use dedicated extractor
-    const soExtractor = new StackOverflowBlogExtractor();
-    if (soExtractor.isStackOverflowBlog()) {
-      logger.info('Detected Stack Overflow blog, using specialized extractor...');
-
-      const soResult = soExtractor.extractBlogContent();
-      if (soResult && soResult.content.length > 500) {
-        logger.info('Successfully extracted SO blog content', {
-          contentLength: soResult.content.length,
-          title: soResult.title,
-          author: soResult.author,
-        });
-
-        // Convert to markdown using our converter
-        const markdownConverter = new MarkdownConverter();
-        const markdownResult = markdownConverter.convertToMarkdown(soResult.content, {
-          preserveFormatting: true,
-          generateFrontmatter: true,
-        });
-
-        // Prepare frontmatter with SO-specific metadata
-        const frontmatter = [
-          '---',
-          `title: "${soResult.title.replace(/"/g, '\\"')}"`,
-          `url: "${window.location.href}"`,
-          `domain: "${window.location.hostname}"`,
-          `extracted_at: "${new Date().toISOString()}"`,
-          soResult.author ? `author: "${soResult.author.replace(/"/g, '\\"')}"` : '',
-          soResult.publishDate ? `published: "${soResult.publishDate}"` : '',
-          soResult.readingTime ? `reading_time: ${soResult.readingTime}` : '',
-          soResult.tags.length > 0
-            ? `tags: [${soResult.tags.map(tag => `"${tag.replace(/"/g, '\\"')}"`).join(', ')}]`
-            : '',
-          'source: "stackoverflow.blog"',
-          '---',
-        ]
-          .filter(line => line.length > 0)
-          .join('\n');
-
-        return {
-          html: soResult.content,
-          title: soResult.title,
-          url: window.location.href,
-          metadata: {
-            title: soResult.title,
-            url: window.location.href,
-            domain: window.location.hostname,
-            extractedAt: new Date().toISOString(),
-            author: soResult.author,
-            publishDate: soResult.publishDate,
-            tags: soResult.tags,
-            readingTime: soResult.readingTime,
-            wordCount: soResult.content.split(/\s+/).length,
-            source: 'stackoverflow.blog',
-          },
-          markdown: markdownResult.markdown,
-          frontmatter: frontmatter,
-          images: [], // SO extractor doesn't extract images yet, but could be added
-        };
-      } else {
-        logger.warn(
-          'SO extractor failed or returned insufficient content, falling back to generic extractor'
-        );
-      }
-    }
-
     // Initialize utilities with error handling for extension context invalidation
     let contentExtractor: ContentExtractor;
     let markdownConverter: MarkdownConverter;
@@ -716,11 +649,11 @@ async function extractPageContentWithUtilities(options?: any): Promise<IContentE
       cleanHtml: options?.cleanHtml !== false,
       preserveFormatting: options?.preserveFormatting === true,
       waitForDynamicContent: options?.waitForDynamicContent !== false,
-      // Enhanced cleaning for Stack Overflow blog
+      // Enhanced cleaning for blog sites and promotional content
       removeAds: true,
       removeNavigation: true,
       excludeSelectors: [
-        // Specific elements to exclude from Stack Overflow blog
+        // Blog-specific elements to exclude
         '.s-navigation',
         '.s-topbar',
         '.js-header',
@@ -778,7 +711,7 @@ async function extractPageContentWithUtilities(options?: any): Promise<IContentE
     cleanedMarkdown = cleanedMarkdown.replace(/Capturing page\.\.\./gi, '');
     cleanedMarkdown = cleanedMarkdown.replace(/PrismWeave[^.\n]*\./gi, '');
 
-    // Remove Stack Overflow promotional content patterns
+    // Remove promotional content patterns from various blog platforms
     const removePatterns = [
       /Products\s*\n+\s*\*\*Stack Overflow for Teams\*\*[^]*?technologists\./gi,
       /\[Blog\]\(\/\)/gi,

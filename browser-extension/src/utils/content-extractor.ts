@@ -94,19 +94,27 @@ export class ContentExtractor {
   }
 
   /**
-   * Extract page metadata
+   * Extract page metadata with enhanced blog support
    */
   extractMetadata(): IDocumentMetadata {
     const wordCount = this.countWords(document.body.textContent || '');
-    return {
+    const metadata: IDocumentMetadata = {
       title: this.extractTitle(),
       url: window.location.href,
       captureDate: new Date().toISOString(),
-      tags: this.extractKeywords(), // Using keywords as tags for now
+      tags: this.extractKeywords(),
       author: this.extractAuthor(),
       wordCount: wordCount,
       estimatedReadingTime: this.estimateReadingTime(wordCount),
     };
+
+    // Add blog-specific metadata if this looks like a blog
+    if (this.isBlogPage()) {
+      const blogMetadata = this.extractBlogMetadata();
+      Object.assign(metadata, blogMetadata);
+    }
+
+    return metadata;
   }
 
   /**
@@ -452,6 +460,9 @@ export class ContentExtractor {
       () => document.querySelector('[rel="author"]')?.textContent,
       () => document.querySelector('.author')?.textContent,
       () => document.querySelector('.byline')?.textContent,
+      // Blog-specific author selectors
+      () => document.querySelector('.post-author')?.textContent,
+      () => document.querySelector('[class*="author"]')?.textContent,
     ];
 
     for (const source of authorSources) {
@@ -471,6 +482,9 @@ export class ContentExtractor {
       () => document.querySelector('time[datetime]')?.getAttribute('datetime'),
       () => document.querySelector('.publish-date')?.textContent,
       () => document.querySelector('.date')?.textContent,
+      // Blog-specific date selectors
+      () => document.querySelector('.published')?.textContent,
+      () => document.querySelector('[class*="date"]')?.textContent,
     ];
 
     for (const source of dateSources) {
@@ -489,6 +503,117 @@ export class ContentExtractor {
       document.querySelector('[property="og:locale"]')?.getAttribute('content') ||
       'en'
     );
+  }
+
+  /**
+   * Check if current page appears to be a blog post
+   */
+  private isBlogPage(): boolean {
+    const url = window.location.href.toLowerCase();
+    const hostname = window.location.hostname.toLowerCase();
+
+    // Check for blog indicators in URL
+    const blogUrlPatterns = [
+      /\/blog\//,
+      /\/posts?\//,
+      /\/\d{4}\/\d{2}\/\d{2}\//, // Date-based URLs like /2024/01/15/
+      /\/article\//,
+      /\/news\//,
+    ];
+
+    if (blogUrlPatterns.some(pattern => pattern.test(url))) {
+      return true;
+    }
+
+    // Check for blog hostnames
+    const blogHostnames = [
+      'blog.',
+      '.blog',
+      'medium.com',
+      'dev.to',
+      'hashnode.dev',
+      'substack.com',
+      'ghost.io',
+    ];
+
+    if (blogHostnames.some(host => hostname.includes(host))) {
+      return true;
+    }
+
+    // Check for blog-specific elements
+    const blogSelectors = [
+      '.post',
+      '.entry',
+      '.article',
+      '[class*="post"]',
+      '[class*="entry"]',
+      '[class*="article"]',
+      '.blog-post',
+      '.news-article',
+    ];
+
+    const hasBlogElements = blogSelectors.some(selector => {
+      try {
+        return document.querySelector(selector) !== null;
+      } catch {
+        return false;
+      }
+    });
+
+    return hasBlogElements;
+  }
+
+  /**
+   * Extract blog-specific metadata
+   */
+  private extractBlogMetadata(): Partial<IDocumentMetadata> {
+    const blogMetadata: Partial<IDocumentMetadata> = {};
+
+    // Extract tags/categories
+    const tags = this.extractTags();
+    if (tags.length > 0) {
+      blogMetadata.tags = tags;
+    }
+
+    // Extract reading time estimate
+    const wordCount = this.countWords(document.body.textContent || '');
+    blogMetadata.estimatedReadingTime = this.estimateReadingTime(wordCount);
+
+    return blogMetadata;
+  }
+
+  /**
+   * Extract tags from blog pages
+   */
+  private extractTags(): string[] {
+    const tags: string[] = [];
+
+    const tagSelectors = [
+      '.tags a',
+      '.tag',
+      '.post-tags a',
+      '[class*="tag"] a',
+      '.categories a',
+      '.category',
+      '[rel="tag"]',
+    ];
+
+    tagSelectors.forEach(selector => {
+      try {
+        const elements = document.querySelectorAll(selector);
+        elements.forEach(element => {
+          const tagText = element.textContent?.trim();
+          if (tagText && tagText.length > 0 && tagText.length < 50) {
+            tags.push(tagText);
+          }
+        });
+      } catch (error) {
+        // Ignore selector errors
+      }
+    });
+
+    // Remove duplicates and return
+    return [...new Set(tags)];
   }
 
   private countWords(text: string): number {
