@@ -6,10 +6,6 @@ const logger = createLogger('SettingsManager');
 import { ISettings } from '../types/types';
 
 // Type definitions for service worker compatibility
-interface ISettingsManagerSettings {
-  [key: string]: unknown;
-}
-
 interface ISettingsManagerStorageData {
   [key: string]: unknown;
 }
