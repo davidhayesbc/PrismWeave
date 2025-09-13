@@ -174,49 +174,6 @@ export class InjectableContentExtractor {
     }
   }
 
-  private async _waitForContent(): Promise<void> {
-    // Enhanced content waiting strategy
-    await new Promise(resolve => setTimeout(resolve, 500));
-
-    // Wait for images to load
-    const images = Array.from(document.images).filter(img => !img.complete);
-    if (images.length > 0) {
-      await Promise.allSettled(
-        images.map(
-          img =>
-            new Promise(resolve => {
-              const timeout = setTimeout(() => resolve(null), 3000);
-              img.onload = img.onerror = () => {
-                clearTimeout(timeout);
-                resolve(null);
-              };
-            })
-        )
-      );
-    }
-
-    // Wait for any lazy-loaded content
-    if ('IntersectionObserver' in window) {
-      await new Promise<void>(resolve => {
-        const observer = new IntersectionObserver((entries, obs) => {
-          obs.disconnect();
-          resolve();
-        });
-
-        const elements = document.querySelectorAll('[data-src], [loading="lazy"]');
-        if (elements.length === 0) {
-          resolve();
-        } else {
-          elements.forEach(el => observer.observe(el));
-          setTimeout(() => {
-            observer.disconnect();
-            resolve();
-          }, 2000);
-        }
-      });
-    }
-  }
-
   private _extractAdvancedMetadata(): Record<string, unknown> {
     const metadata: Record<string, unknown> = {};
 
@@ -297,36 +254,6 @@ export class InjectableContentExtractor {
     });
 
     return images;
-  }
-
-  private _extractTitle(): string {
-    // Enhanced title extraction with multiple fallbacks
-    const titleSources = [
-      () => document.querySelector('[property="og:title"]')?.getAttribute('content'),
-      () => document.querySelector('[name="twitter:title"]')?.getAttribute('content'),
-      () => document.querySelector('h1')?.textContent,
-      () => document.querySelector('.entry-title, .post-title, .article-title')?.textContent,
-      () => document.title,
-      () => document.querySelector('title')?.textContent,
-    ];
-
-    for (const source of titleSources) {
-      try {
-        const title = source();
-        if (title && title.trim().length > 0) {
-          return title.trim();
-        }
-      } catch (error) {
-        // Source failed, try next
-      }
-    }
-
-    return 'Untitled Page';
-  }
-
-  private _countWords(text: string): number {
-    if (!text) return 0;
-    return text.split(/\s+/).filter(word => word.length > 0).length;
   }
 
   private _calculateQualityScore(element: Element, wordCount: number): number {
