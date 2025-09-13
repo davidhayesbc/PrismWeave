@@ -134,34 +134,6 @@ export class MarkdownConverterCore {
     this.addMinimalCustomRules();
   }
 
-  private makeAbsoluteUrl(url: string): string {
-    if (!url) return '';
-
-    try {
-      // If already absolute, return as-is
-      if (url.startsWith('http://') || url.startsWith('https://')) {
-        return url;
-      }
-
-      // If protocol-relative, add current protocol
-      if (url.startsWith('//')) {
-        return `${window.location.protocol}${url}`;
-      }
-
-      // If root-relative, use current origin
-      if (url.startsWith('/')) {
-        return `${window.location.origin}${url}`;
-      }
-
-      // If relative, resolve against current page
-      const base = window.location.href;
-      return new URL(url, base).href;
-    } catch (error) {
-      logger.warn('Failed to make URL absolute:', { url, error });
-      return url;
-    }
-  }
-
   private addMinimalCustomRules(): void {
     if (!this.turndownService) return;
 
