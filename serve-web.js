@@ -14,6 +14,11 @@ class PrismWeaveWebServer {
     this.port = options.port || 8080;
     this.host = options.host || 'localhost';
     this.distPath = path.join(__dirname, 'dist', 'web');
+    this.watch = options.watch || false;
+    this.debounceMs = options.debounceMs || 500;
+    this._watcher = null;
+    this._rebuildTimer = null;
+    this._isBuilding = false;
     this.mimeTypes = {
       '.html': 'text/html',
       '.js': 'application/javascript',
@@ -47,6 +52,10 @@ class PrismWeaveWebServer {
       console.log(`📍 Website root: http://${this.host}:${this.port}/`);
       console.log(`📁 Serving directory: ${this.distPath}`);
       console.log(`🔗 Bookmarklet Generator: http://${this.host}:${this.port}/`);
+      if (this.watch) {
+        console.log('👀 Watch mode enabled (will rebuild on changes)');
+        this.startWatching();
+      }
       console.log('Press Ctrl+C to stop the server');
     });
 
@@ -58,6 +67,47 @@ class PrismWeaveWebServer {
         process.exit(0);
       });
     });
+  }
+
+  startWatching() {
+    const websiteSrc = path.join(__dirname, 'website');
+    const extensionDist = path.join(__dirname, 'dist', 'browser-extension');
+    const bookmarkletDist = path.join(__dirname, 'dist', 'bookmarklet');
+
+    const watchTargets = [websiteSrc];
+    // Only watch extension/bookmarklet outputs if they exist, so quick iterations on website are fast
+    if (fs.existsSync(extensionDist)) watchTargets.push(extensionDist);
+    if (fs.existsSync(bookmarkletDist)) watchTargets.push(bookmarkletDist);
+
+    console.log('🔍 Watching paths for changes:', watchTargets.map(p => path.relative(__dirname, p)).join(', '));
+
+    const rebuild = () => {
+      if (this._isBuilding) return; // skip if build in progress
+      this._isBuilding = true;
+      const started = Date.now();
+      process.stdout.write('♻️  Rebuilding web assets... ');
+      try {
+        // Synchronously invoke build.js web
+        const { execSync } = require('child_process');
+        execSync('node build.js web', { cwd: __dirname, stdio: 'ignore' });
+        const duration = Date.now() - started;
+        console.log(`done (${duration}ms)`);
+      } catch (err) {
+        console.error('\n❌ Rebuild failed:', err.message);
+      } finally {
+        this._isBuilding = false;
+      }
+    };
+
+    this._watcher = watchTargets.map(target =>
+      fs.watch(target, { recursive: true }, (eventType, filename) => {
+        if (!filename) return;
+        // Ignore temp files or coverage artifacts
+        if (/\.swp$|~$|\.tmp$/i.test(filename)) return;
+        if (this._rebuildTimer) clearTimeout(this._rebuildTimer);
+        this._rebuildTimer = setTimeout(rebuild, this.debounceMs);
+      })
+    );
   }
 
   handleRequest(req, res) {
@@ -344,6 +394,10 @@ function parseArgs() {
       options.port = parseInt(args[++i]) || 8080;
     } else if (arg === '--host' || arg === '-h') {
       options.host = args[++i] || 'localhost';
+    } else if (arg === '--watch' || arg === '-w') {
+      options.watch = true;
+    } else if (arg === '--debounce') {
+      options.debounceMs = parseInt(args[++i]) || 500;
     } else if (arg === '--help') {
       console.log(`
 PrismWeave Web Server
@@ -353,12 +407,15 @@ Usage: node serve-web.js [options]
 Options:
   -p, --port <port>    Port to listen on (default: 8080)
   -h, --host <host>    Host to bind to (default: localhost)
+  -w, --watch          Rebuild web bundle on changes (website/, dist/browser-extension, dist/bookmarklet)
+  --debounce <ms>      Debounce interval for rebuilds (default: 500)
   --help               Show this help message
 
 Examples:
   node serve-web.js
   node serve-web.js --port 3000
   node serve-web.js --host 0.0.0.0 --port 8080
+  node serve-web.js --watch --debounce 300
       `);
       process.exit(0);
     }

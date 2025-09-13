@@ -15,9 +15,34 @@ Notes:
   - `{{BUILD_DATE}}` current ISO datetime
   - `{{ENVIRONMENT}}` production/development
 
-To serve locally:
+## Local Development / Preview
+
+Fastest full cycle (build everything + serve with auto-rebuild of the web bundle):
+```
+npm run dev:web
+```
+This will:
+1. Build the browser extension, bookmarklet, and web bundle (same as `npm run build:web`)
+2. Start the local server at http://localhost:8080/
+3. Watch `website/` (and existing built `dist/bookmarklet`, `dist/browser-extension`) for changes, automatically rebuilding the web distribution with a short debounce.
+
+If you have already built assets and only want to serve & watch website changes (skipping a fresh build):
+```
+npm run watch:web
+```
+
+One‑shot build + serve (no watching):
 ```
 npm run build:web
 npm run serve:web
 ```
-Then open http://localhost:8080/.
+
+Open: http://localhost:8080/
+
+### Changing Only Website Assets
+Edits to files under `website/` (HTML/CSS) trigger a quick rebuild of the web output. Extension or bookmarklet code is **not** rebuilt unless you explicitly run their build scripts.
+
+### Rebuild Performance Tips
+* For iterative website styling/content work: use `watch:web`.
+* For end-to-end validation after extension or bookmarklet changes: use `dev:web`.
+* If favicon/logo changes, re-run a full `npm run build:web` to regenerate favicons.

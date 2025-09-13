@@ -36,6 +36,9 @@ class PrismWeaveBuildSystem {
     console.log(`📦 Environment: ${this.isProduction ? 'Production' : 'Development'}`);
 
     try {
+      // Support optional flags after target (e.g. web --fast)
+      const extraArgs = process.argv.slice(3);
+      const fastMode = extraArgs.includes('--fast');
       switch (target) {
         case 'all':
         case 'build':
@@ -51,7 +54,7 @@ class PrismWeaveBuildSystem {
           await this.buildAIProcessing();
           break;
         case 'web':
-          await this.buildWebOnly();
+          await this.buildWebOnly({ fast: fastMode });
           break;
         case 'clean':
           await this.clean();
@@ -133,21 +136,87 @@ class PrismWeaveBuildSystem {
     }
   }
 
-  async buildWebOnly() {
-    console.log('🌐 Building web deployment only...');
-    
-    // Build only the components needed for web deployment
-    await this.buildBrowserExtension();
-    await this.buildBookmarklet();
-    await this.buildWebDeployment();
+  async buildWebOnly(options = {}) {
+    const fast = options.fast;
+    console.log(`🌐 Building web deployment only${fast ? ' (fast mode)' : ''}...`);
+
+    if (!fast) {
+      // Full rebuild path: rebuild upstream artifacts first
+      await this.buildBrowserExtension();
+      await this.buildBookmarklet();
+    } else {
+      // Fast path: verify extension/bookmarklet dists exist; warn if missing
+      const extDist = path.join(this.projectRoot, 'dist', 'browser-extension');
+      const bmDist = path.join(this.projectRoot, 'dist', 'bookmarklet');
+      if (!fs.existsSync(extDist) || !fs.existsSync(bmDist)) {
+        console.log('⚠️  Fast mode requested but required dist outputs missing; performing full build');
+        await this.buildBrowserExtension();
+        await this.buildBookmarklet();
+      }
+    }
+
+    await this.buildWebDeployment({ fast });
   }
 
-  async buildWebDeployment() {
-    console.log('🌐 Building web deployment...');
+  async buildWebDeployment(options = {}) {
+    const fast = options.fast;
+    console.log(`🌐 Building web deployment${fast ? ' (fast mode: incremental copy)' : ''}...`);
+    const buildStart = Date.now();
     
     // Create web distribution directory
     const webDistPath = path.join(this.projectRoot, 'dist', 'web');
     this.ensureDirectory(webDistPath);
+
+    // Initialize incremental copy cache
+    const cacheDir = path.join(this.projectRoot, '.build-cache');
+    this.ensureDirectory(cacheDir);
+    const manifestPath = path.join(cacheDir, 'web-copy-manifest.json');
+    let manifest = { files: {}, destToSrc: {} };
+    try {
+      if (fs.existsSync(manifestPath)) {
+        manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+      }
+    } catch (e) {
+      console.warn('⚠️  Failed to read web copy manifest, starting fresh:', e.message);
+    }
+
+    const copyStats = { copied: 0, skipped: 0, removed: 0, bytesCopied: 0 };
+
+    const incrementalCopy = (src, destRoot, filterFn) => {
+      if (!fs.existsSync(src)) return;
+      const traverse = (currentSrc, relative = '') => {
+        const entries = fs.readdirSync(currentSrc, { withFileTypes: true });
+        for (const entry of entries) {
+          const relPath = path.join(relative, entry.name);
+          const absPath = path.join(currentSrc, entry.name);
+            if (filterFn && !filterFn(absPath, relPath, entry)) continue;
+          const destPath = path.join(destRoot, relPath);
+          const key = absPath; // source path key
+          if (entry.isDirectory()) {
+            traverse(absPath, relPath);
+          } else if (entry.isFile()) {
+            try {
+              const stats = fs.statSync(absPath);
+              const prev = manifest.files[key];
+              const sig = `${stats.mtimeMs}:${stats.size}`;
+              const needsCopy = !fast || !prev || prev.sig !== sig || !fs.existsSync(destPath);
+              if (needsCopy) {
+                this.ensureDirectory(path.dirname(destPath));
+                fs.copyFileSync(absPath, destPath);
+                manifest.files[key] = { sig, dest: destPath };
+                manifest.destToSrc[destPath] = key;
+                copyStats.copied++; copyStats.bytesCopied += stats.size;
+              } else {
+                copyStats.skipped++;
+              }
+            } catch (e) {
+              console.warn('Copy failed for', absPath, e.message);
+            }
+          }
+        }
+      };
+      traverse(src, '');
+    };
 
     // Copy static website assets first (so later copies can reference them)
     const websiteSrcPath = path.join(this.projectRoot, 'website');
@@ -155,7 +224,7 @@ class PrismWeaveBuildSystem {
       // Copy everything under website/assets to dist/web/assets
       const websiteAssets = path.join(websiteSrcPath, 'assets');
       if (fs.existsSync(websiteAssets)) {
-        this.copyDirectory(websiteAssets, path.join(webDistPath, 'assets'));
+        incrementalCopy(websiteAssets, path.join(webDistPath, 'assets'));
       }
 
       // Copy any additional website files/folders (excluding index.html which is templated)
@@ -165,9 +234,20 @@ class PrismWeaveBuildSystem {
         const src = path.join(websiteSrcPath, entry.name);
         const dest = path.join(webDistPath, entry.name);
         if (entry.isDirectory()) {
-          this.copyDirectory(src, dest);
+          incrementalCopy(src, dest);
         } else if (entry.isFile()) {
-          fs.copyFileSync(src, dest);
+          const stats = fs.statSync(src);
+          const prev = manifest.files[src];
+          const sig = `${stats.mtimeMs}:${stats.size}`;
+          if (!fast || !prev || prev.sig !== sig || !fs.existsSync(dest)) {
+            this.ensureDirectory(path.dirname(dest));
+            fs.copyFileSync(src, dest);
+            manifest.files[src] = { sig, dest };
+            manifest.destToSrc[dest] = src;
+            copyStats.copied++; copyStats.bytesCopied += stats.size;
+          } else {
+            copyStats.skipped++;
+          }
         }
       }
     }
@@ -175,19 +255,19 @@ class PrismWeaveBuildSystem {
     // Copy browser extension files for web deployment
     const browserExtensionDist = path.join(this.projectRoot, 'dist', 'browser-extension');
     if (fs.existsSync(browserExtensionDist)) {
-      this.copyDirectory(browserExtensionDist, path.join(webDistPath, 'extension'));
+      incrementalCopy(browserExtensionDist, path.join(webDistPath, 'extension'));
     }
 
     // Copy injectable files to web deployment
     const injectableDist = path.join(this.projectRoot, 'dist', 'browser-extension', 'injectable');
     if (fs.existsSync(injectableDist)) {
-      this.copyDirectory(injectableDist, path.join(webDistPath, 'injectable'));
+      incrementalCopy(injectableDist, path.join(webDistPath, 'injectable'));
     }
 
     // Copy bookmarklet files and ensure CSS is accessible for web deployment
     const bookmarkletDist = path.join(this.projectRoot, 'dist', 'bookmarklet');
     if (fs.existsSync(bookmarkletDist)) {
-      this.copyDirectory(bookmarkletDist, path.join(webDistPath, 'bookmarklet'));
+      incrementalCopy(bookmarkletDist, path.join(webDistPath, 'bookmarklet'));
       
       // The bookmarklet generator.html already has the correct CSS path (shared-ui.css)
       // No need to modify the CSS path as the shared-ui.css file is copied with the bookmarklet
@@ -211,8 +291,38 @@ class PrismWeaveBuildSystem {
     // Create deployment manifest
     await this.createDeploymentManifest(webDistPath);
 
+    // Remove orphaned dest files (only in fast mode to save time on full builds)
+    if (fast) {
+      const allDestFiles = this.getDirectoryListing(webDistPath).map(f => path.join(webDistPath, f.path));
+      for (const destFile of allDestFiles) {
+        const srcRef = manifest.destToSrc[destFile];
+        if (srcRef && !fs.existsSync(srcRef)) {
+          try {
+            fs.rmSync(destFile);
+            delete manifest.destToSrc[destFile];
+            // Find and remove manifest entry pointing to this dest
+            for (const [k, v] of Object.entries(manifest.files)) {
+              if (v.dest === destFile) delete manifest.files[k];
+            }
+            copyStats.removed++;
+          } catch (e) {
+            // Non-fatal
+          }
+        }
+      }
+    }
+
+    // Persist manifest
+    try {
+      fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
+    } catch (e) {
+      console.warn('⚠️  Unable to persist web copy manifest:', e.message);
+    }
+
+    const duration = Date.now() - buildStart;
     console.log('✅ Web deployment built');
     console.log(`📁 Web files available at: ${webDistPath}`);
+    console.log(`📊 Web Build Summary: copied=${copyStats.copied} skipped=${copyStats.skipped} removed=${copyStats.removed} bytes=${copyStats.bytesCopied} duration=${duration}ms${fast ? ' (fast)' : ''}`);
   }
 
   async createWebIndexPage(webDistPath) {

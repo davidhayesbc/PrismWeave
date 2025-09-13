@@ -12,8 +12,9 @@ async function buildExtension() {
   const isProduction = process.env.NODE_ENV === 'production';
   console.log(`📦 Build mode: ${isProduction ? 'Production' : 'Development'}`);
 
-  // Clean dist directory - use root-level dist
-  const distPath = path.resolve('../dist/browser-extension');
+  // Clean dist directory - use root-level dist (projectRoot/dist/browser-extension)
+  // path.resolve('../dist/...') from scripts/ already points one level up (project root)
+  const distPath = path.resolve(__dirname, '..', '..', 'dist', 'browser-extension');
   if (fs.existsSync(distPath)) {
     fs.rmSync(distPath, { recursive: true });
   }
@@ -97,9 +98,10 @@ async function buildExtension() {
   }
 }
 
-async function copyStaticAssets() {
+async function copyStaticAssets(distPathOverride) {
   console.log('  📁 Copying static assets...');
-  const distPath = path.resolve('../dist/browser-extension');
+  const distPath =
+    distPathOverride || path.resolve(__dirname, '..', '..', 'dist', 'browser-extension');
   const assets = [
     // Manifest
     { src: 'manifest.json', dest: path.join(distPath, 'manifest.json') },
@@ -157,7 +159,7 @@ async function copyStaticAssets() {
 async function buildDev() {
   console.log('🔄 Starting development build with watch mode...');
 
-  const distPath = path.resolve('../dist/browser-extension');
+  const distPath = path.resolve(__dirname, '..', '..', 'dist', 'browser-extension');
 
   const baseOptions = {
     target: 'es2020',
@@ -197,8 +199,8 @@ async function buildDev() {
   // Watch for changes
   await Promise.all(contexts.map(ctx => ctx.watch()));
 
-  // Copy static assets initially
-  await copyStaticAssets();
+  // Copy static assets initially (pass distPath so we don't recompute)
+  await copyStaticAssets(distPath);
 
   console.log('👀 Watching for changes... Press Ctrl+C to stop');
   console.log('📦 Output directory:', distPath);
