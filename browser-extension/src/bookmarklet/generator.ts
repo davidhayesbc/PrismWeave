@@ -256,9 +256,9 @@ class BookmarkletGeneratorUI {
    *
    * The generated bookmarklet:
    * - Embeds user configuration directly in the code
-   * - Dynamically loads the content extractor script
+   * - Dynamically loads the content extractor script first
    * - Processes the page with advanced extraction options
-   * - Provides user feedback through browser alerts
+   * - Provides user feedback through toast notifications or alert fallback
    * - Handles errors gracefully with informative messages
    *
    * @param formData - The form data containing user configuration
@@ -271,14 +271,9 @@ class BookmarkletGeneratorUI {
     const msgTemplate = formData.commitMessage || 'PrismWeave: Add {title}';
     const injectableUrl = this.injectableBaseUrl + '/content-extractor-injectable.js';
 
-    // Build the bookmarklet JavaScript using script injection to load sophisticated extractor
+    // Build the bookmarklet JavaScript - load injectable script first, then proceed
     const jsCode = [
       '(function(){',
-      // Check if toast utility is loaded from injectable bundle
-      'if(!window.prismweaveShowToast){',
-      '  alert("❌ PrismWeave utilities not loaded. Please ensure the injectable script is available.");',
-      '  return;',
-      '}',
 
       // Configuration for the extractor (match the IGitHubConfig interface)
       'var config = {',
@@ -288,31 +283,42 @@ class BookmarkletGeneratorUI {
       "  commitMessage: '" + msgTemplate + "'",
       '};',
 
+      // Simple inline toast function for immediate availability
+      'function showNotification(message, options) {',
+      '  options = options || {};',
+      '  if (window.prismweaveShowToast) {',
+      '    window.prismweaveShowToast(message, options);',
+      '  } else {',
+      '    // Fallback to alert if toast not available',
+      '    alert(message);',
+      '  }',
+      '}',
+
       // Load the injectable content extractor
-      'function loadExtractor(){',
+      'function loadPrismWeaveScript(){',
       '  return new Promise(function(resolve, reject){',
-      '    if(window.prismweaveExtractAndCommit){',
+      '    if(window.prismweaveShowToast && window.prismweaveExtractAndCommit){',
       '      resolve();',
       '      return;',
       '    }',
       '    var script = document.createElement("script");',
       '    script.src = "' + injectableUrl + '";',
       '    script.onload = function(){',
-      '      if(window.prismweaveExtractAndCommit){',
+      '      if(window.prismweaveShowToast && window.prismweaveExtractAndCommit){',
       '        resolve();',
       '      } else {',
-      '        reject(new Error("Failed to load extractor API"));',
+      '        reject(new Error("Failed to load PrismWeave API"));',
       '      }',
       '    };',
       '    script.onerror = function(){',
-      '      reject(new Error("Failed to load extractor script"));',
+      '      reject(new Error("Failed to load PrismWeave script"));',
       '    };',
       '    document.head.appendChild(script);',
       '  });',
       '}',
 
-      // Process the page using the sophisticated extractor
-      'function processPage(){',
+      // Main execution flow - load script first, then process
+      'loadPrismWeaveScript().then(function(){',
       '  var extractionOptions = {',
       '    includeImages: true,',
       '    includeLinks: true,',
@@ -320,22 +326,16 @@ class BookmarkletGeneratorUI {
       '    generateFrontmatter: true,',
       '    includeMetadata: true',
       '  };',
-
       '  return window.prismweaveExtractAndCommit(config, extractionOptions);',
-      '}',
-
-      // Main execution flow
-      'loadExtractor().then(function(){',
-      '  return processPage();',
       '}).then(function(result){',
       '  if(result.success){',
       '    var commitUrl = result.data && result.data.html_url ? result.data.html_url : null;',
-      "    window.prismweaveShowToast('✅ Page captured successfully!', {type: 'success', clickUrl: commitUrl, linkLabel: 'View on GitHub'});",
+      "    showNotification('✅ Page captured successfully!', {type: 'success', clickUrl: commitUrl, linkLabel: 'View on GitHub'});",
       '  } else {',
-      "    var errMsg='❌ Capture failed: ' + (result.error || 'Unknown error');window.prismweaveShowToast(errMsg, {type: 'error'});",
+      "    showNotification('❌ Capture failed: ' + (result.error || 'Unknown error'), {type: 'error'});",
       '  }',
       '}).catch(function(error){',
-      "  var bmErr='❌ Bookmarklet error: ' + error.message;window.prismweaveShowToast(bmErr, {type: 'error'});",
+      "  showNotification('❌ PrismWeave error: ' + error.message, {type: 'error'});",
       '});',
       '})();',
     ].join('');
