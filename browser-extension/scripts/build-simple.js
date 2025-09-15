@@ -76,6 +76,16 @@ async function buildExtension() {
         globalName: 'contentextractorinjectable', // Global name for injectable access
         ...baseOptions,
       },
+      {
+        name: 'Injectable PrismWeave Bundle',
+        entryPoints: ['src/injectable/prismweave-bundle.ts'],
+        outfile: path.join(distPath, 'injectable/prismweave-bundle.js'),
+        format: 'iife', // IIFE format for injectable scripts
+        minify: true, // Minify for optimal injection
+        sourcemap: false, // No sourcemaps for injectable (size optimization)
+        globalName: 'prismweavebundle', // Global name for injectable access
+        ...baseOptions,
+      },
     ];
 
     // Build all components in parallel

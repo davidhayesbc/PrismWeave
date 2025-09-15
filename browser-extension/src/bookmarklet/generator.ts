@@ -274,6 +274,12 @@ class BookmarkletGeneratorUI {
     // Build the bookmarklet JavaScript using script injection to load sophisticated extractor
     const jsCode = [
       '(function(){',
+      // Check if toast utility is loaded from injectable bundle
+      'if(!window.prismweaveShowToast){',
+      '  alert("❌ PrismWeave utilities not loaded. Please ensure the injectable script is available.");',
+      '  return;',
+      '}',
+
       // Configuration for the extractor (match the IGitHubConfig interface)
       'var config = {',
       "  token: '" + token + "',",
@@ -323,12 +329,13 @@ class BookmarkletGeneratorUI {
       '  return processPage();',
       '}).then(function(result){',
       '  if(result.success){',
-      "    alert('✅ Page captured successfully with advanced extraction!');",
+      '    var commitUrl = result.data && result.data.html_url ? result.data.html_url : null;',
+      "    window.prismweaveShowToast('✅ Page captured successfully!', {type: 'success', clickUrl: commitUrl, linkLabel: 'View on GitHub'});",
       '  } else {',
-      "    alert('❌ Capture failed: ' + (result.error || 'Unknown error'));",
+      "    var errMsg='❌ Capture failed: ' + (result.error || 'Unknown error');window.prismweaveShowToast(errMsg, {type: 'error'});",
       '  }',
       '}).catch(function(error){',
-      "  alert('❌ Bookmarklet error: ' + error.message);",
+      "  var bmErr='❌ Bookmarklet error: ' + error.message;window.prismweaveShowToast(bmErr, {type: 'error'});",
       '});',
       '})();',
     ].join('');

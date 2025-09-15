@@ -344,6 +344,52 @@ export class InjectableContentExtractor {
   }
 }
 
+// Simple inline toast function for bookmarklet use
+function showToast(message: string, options: any = {}): void {
+  const { type = 'info', clickUrl, linkLabel = 'Open', duration = 5000 } = options;
+
+  // Create toast element
+  const toast = document.createElement('div');
+  toast.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 999999;
+    background: ${type === 'success' ? '#4CAF50' : type === 'error' ? '#f44336' : '#2196F3'};
+    color: white;
+    padding: 12px 16px;
+    border-radius: 4px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 14px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    max-width: 400px;
+    word-wrap: break-word;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  `;
+
+  if (clickUrl) {
+    toast.innerHTML = `${message} <strong style="text-decoration: underline;">${linkLabel}</strong>`;
+    toast.onclick = () => {
+      window.open(clickUrl, '_blank');
+      toast.remove();
+    };
+  } else {
+    toast.textContent = message;
+    toast.onclick = () => toast.remove();
+  }
+
+  document.body.appendChild(toast);
+
+  // Auto-remove after duration
+  setTimeout(() => {
+    if (toast.parentNode) {
+      toast.style.opacity = '0';
+      setTimeout(() => toast.remove(), 300);
+    }
+  }, duration);
+}
+
 // Global registration for bookmarklet access
 declare global {
   interface Window {
@@ -356,6 +402,7 @@ declare global {
       options?: IInjectableExtractionOptions,
       filename?: string
     ) => Promise<IGitHubCommitResult>;
+    prismweaveShowToast?: (message: string, options?: any) => void;
   }
 }
 
@@ -364,6 +411,12 @@ if (typeof window !== 'undefined') {
   window.PrismWeaveInjectableExtractor = InjectableContentExtractor;
   window.prismweaveExtractContent = InjectableContentExtractor.extractContent;
   window.prismweaveExtractAndCommit = InjectableContentExtractor.extractAndCommit;
+  window.prismweaveShowToast = showToast;
+
+  // Ensure showToast function is included in bundle by referencing it
+  if (typeof showToast !== 'function') {
+    console.error('showToast function not available');
+  }
 
   // Log successful injection
   console.log('🔗 PrismWeave Injectable Content Extractor loaded successfully');

@@ -4,6 +4,7 @@
 // in an injectable format that can be loaded dynamically into web pages
 
 import { createLogger } from '../utils/logger.js';
+import { showToast, type ToastType } from '../utils/toast.js';
 import {
   IInjectableContentResult,
   IInjectableExtractionOptions,
@@ -192,6 +193,7 @@ declare global {
       html: string,
       options?: IInjectableMarkdownOptions
     ) => Promise<IInjectableMarkdownResult>;
+    prismweaveShowToast?: (message: string, type?: ToastType, clickUrl?: string) => void;
   }
 }
 
@@ -202,10 +204,18 @@ if (typeof window !== 'undefined') {
   window.prismweaveExtractPageContent = PrismWeaveInjectableBundle.extractPageContent;
   window.prismweaveConvertHtmlToMarkdown = PrismWeaveInjectableBundle.convertHtmlToMarkdown;
 
+  // Register the shared toast utility
+  window.prismweaveShowToast = (message: string, type?: ToastType, clickUrl?: string) => {
+    const options: { type?: ToastType; clickUrl?: string } = {};
+    if (type) options.type = type;
+    if (clickUrl) options.clickUrl = clickUrl;
+    showToast(message, options);
+  };
+
   // Log successful injection
   console.log('🚀 PrismWeave Injectable Bundle loaded successfully');
   console.log(
-    'Available methods: prismweaveProcessPage, prismweaveExtractPageContent, prismweaveConvertHtmlToMarkdown'
+    'Available methods: prismweaveProcessPage, prismweaveExtractPageContent, prismweaveConvertHtmlToMarkdown, prismweaveShowToast'
   );
 }
 

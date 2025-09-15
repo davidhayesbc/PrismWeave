@@ -1,104 +1,65 @@
 /**
  * @fileoverview PrismWeave Content Script
  *
- * This content script runs in the context of web pages and provides the following functionality:
+ * Responsibilities:
  * - Keyboard shortcut handling for page capture (Alt+S by default)
- * - Content extraction from web pages with intelligent content detection
- * - PDF detection and handling
- * - User notifications with GitHub commit links
- * - Message passing with the service worker
- * - Fallback content extraction when utilities fail
- *
- * The script is designed to be robust and handle various edge cases including:
- * - Extension context invalidation
- * - Different content types (HTML, PDF)
- * - Network failures and API timeouts
- * - User input validation and security
- *
- * @author PrismWeave Team
- * @version 1.0.0
- * @since 2024
+ * - Content extraction with heuristics & fallbacks
+ * - PDF detection and specialized capture path
+ * - Delegated messaging with background/service worker
+ * - Unified toast notifications (via shared `showToast` utility)
+ * - Graceful degradation when extension context invalidated
  */
-
 import {
   IContentExtractionData,
   IContentExtractionResult,
   IMessageData,
   IMessageResponse,
   MESSAGE_TYPES,
-} from '../types/types.js';
-import { ContentExtractor } from '../utils/content-extractor.js';
-import { createLogger } from '../utils/logger.js';
-import { MarkdownConverter } from '../utils/markdown-converter.js';
+} from '../types/types';
+import { ContentExtractor, IImageInfo } from '../utils/content-extractor';
+import { createLogger } from '../utils/logger';
+import { MarkdownConverter } from '../utils/markdown-converter';
+import { showToast } from '../utils/toast';
 
-console.log('🚀 PrismWeave content script loading...');
+// NOTE: We intentionally import the shared toast utility to guarantee visual parity
+// with the extension UI & bookmarklet. This replaces the prior bespoke notification block.
+// -----------------------------------------------------------------------------
+// Type & Interface Definitions (restored after refactor)
+// -----------------------------------------------------------------------------
 
-/**
- * Enhanced message response interface for better commit URL handling
- */
 interface IEnhancedMessageResponse extends IMessageResponse {
-  /** Direct commit URL from response */
   commitUrl?: string;
-  /** Alternative URL field */
   url?: string;
-  /** Save result containing URLs */
-  saveResult?: {
-    url?: string;
-    commitUrl?: string;
-    [key: string]: unknown;
-  };
-  /** Warning messages from processing */
+  saveResult?: { url?: string; commitUrl?: string; [k: string]: unknown };
   warnings?: string[];
 }
 
-/**
- * Content script state interface
- */
 interface IContentScriptState {
-  /** Whether the content script has been initialized */
   isInitialized: boolean;
-  /** Whether keyboard shortcuts are enabled */
   keyboardShortcutsEnabled: boolean;
-  /** Whether a capture operation is currently in progress */
   isCapturing: boolean;
 }
 
-/**
- * Keyboard shortcut configuration interface
- */
 interface IKeyboardShortcut {
-  /** Whether Ctrl key is required */
   ctrlKey: boolean;
-  /** Whether Shift key is required */
   shiftKey: boolean;
-  /** Whether Alt key is required */
   altKey: boolean;
-  /** Whether Meta/Cmd key is required */
   metaKey: boolean;
-  /** The key to press */
   key: string;
-  /** The action to perform when shortcut is triggered */
   action: string;
 }
 
-/**
- * Content script state management
- */
+// State
 let contentScriptState: IContentScriptState = {
   isInitialized: false,
   keyboardShortcutsEnabled: true,
   isCapturing: false,
 };
 
-/**
- * Logger instance for content script operations
- */
+// Logger
 const logger = createLogger('ContentScript');
 
-/**
- * Keyboard shortcuts configuration
- * Currently supports Alt+S for page capture
- */
+// Keyboard shortcuts (Alt+S for capture)
 const KEYBOARD_SHORTCUTS: IKeyboardShortcut[] = [
   {
     ctrlKey: false,
@@ -108,9 +69,7 @@ const KEYBOARD_SHORTCUTS: IKeyboardShortcut[] = [
     key: 'S',
     action: 'capture-page',
   },
-  // Add more shortcuts here as needed
 ];
-
 // =============================================================================
 // INITIALIZATION FUNCTIONS
 // =============================================================================
@@ -285,7 +244,7 @@ async function handleShortcutAction(action: string): Promise<void> {
     }
   } catch (error) {
     logger.error('Error handling shortcut action:', error);
-    showNotification('Failed to execute shortcut: ' + (error as Error).message, 'error');
+    showToast('Failed to execute shortcut: ' + (error as Error).message, { type: 'error' });
   }
 }
 
@@ -340,7 +299,7 @@ async function handleCapturePageShortcut(): Promise<void> {
     contentScriptState.isCapturing = true;
 
     // Show "capturing" notification that stays until capture completes (no auto-hide)
-    showNotification('Capturing content...', 'info', 0); // 0 duration = no auto-hide
+    showToast('Capturing content...', { type: 'info', duration: 0 }); // 0 duration = no auto-hide
 
     // Check if current page is a PDF
     const isPDFPage = checkIfCurrentPageIsPDF();
@@ -363,22 +322,19 @@ async function handleCapturePageShortcut(): Promise<void> {
         const commitUrl = extractCommitUrlFromResponse(response);
 
         if (commitUrl) {
-          // Hide the "capturing" notification and show success with longer duration
-          hideNotification(document.getElementById('prismweave-notification'));
-          showNotification(
-            'PDF captured successfully! Click to view on GitHub.',
-            'success',
-            8000,
-            commitUrl
-          );
+          // Show success notification with GitHub link
+          showToast('PDF captured successfully! Click to view on GitHub.', {
+            type: 'success',
+            duration: 8000,
+            clickUrl: commitUrl,
+          });
           logger.info('PDF capture completed successfully via keyboard shortcut', {
             commitUrl,
             hasCommitUrl: true,
           });
         } else {
-          // Hide the "capturing" notification and show success with longer duration
-          hideNotification(document.getElementById('prismweave-notification'));
-          showNotification('PDF captured successfully!', 'success', 8000);
+          // Show success notification without GitHub link
+          showToast('PDF captured successfully!', { type: 'success', duration: 8000 });
           logger.warn('PDF capture completed but no commit URL found');
         }
       } else {
@@ -413,22 +369,19 @@ async function handleCapturePageShortcut(): Promise<void> {
         const commitUrl = extractCommitUrlFromResponse(response);
 
         if (commitUrl) {
-          // Hide the "capturing" notification and show success with longer duration
-          hideNotification(document.getElementById('prismweave-notification'));
-          showNotification(
-            'Page captured successfully! Click to view on GitHub.',
-            'success',
-            8000,
-            commitUrl
-          );
+          // Show success notification with GitHub link
+          showToast('Page captured successfully! Click to view on GitHub.', {
+            type: 'success',
+            duration: 8000,
+            clickUrl: commitUrl,
+          });
           logger.info('Page capture completed successfully via keyboard shortcut', {
             commitUrl,
             hasCommitUrl: true,
           });
         } else {
-          // Hide the "capturing" notification and show success with longer duration
-          hideNotification(document.getElementById('prismweave-notification'));
-          showNotification('Page captured successfully!', 'success', 8000);
+          // Show success notification without GitHub link
+          showToast('Page captured successfully!', { type: 'success', duration: 8000 });
           logger.warn('Page capture completed but no commit URL found');
         }
       } else {
@@ -438,8 +391,7 @@ async function handleCapturePageShortcut(): Promise<void> {
   } catch (error) {
     logger.error('Keyboard shortcut capture failed:', error);
     // Hide the "capturing" notification and show error
-    hideNotification(document.getElementById('prismweave-notification'));
-    showNotification('Capture failed: ' + (error as Error).message, 'error', 8000);
+    showToast('Capture failed: ' + (error as Error).message, { type: 'error', duration: 8000 });
   } finally {
     contentScriptState.isCapturing = false;
   }
@@ -593,7 +545,11 @@ async function handleMessage(
         const notificationType = (message.data.type as 'success' | 'error' | 'info') || 'info';
         const duration = (message.data.duration as number) || 8000; // Increased default duration
         const clickUrl = (message.data.clickUrl || message.data.url) as string | undefined;
-        showNotification(message.data.message, notificationType, duration, clickUrl);
+
+        const options: any = { type: notificationType, duration };
+        if (clickUrl) options.clickUrl = clickUrl;
+
+        showToast(message.data.message, options);
         logger.info('Notification shown:', message.data.message);
       }
       return { success: true };
@@ -639,7 +595,7 @@ async function extractPageContentWithUtilities(options?: any): Promise<IContentE
       // If utilities fail to initialize (e.g., extension context invalidated or other issues),
       // fall back to basic content extraction
       logger.warn('Utility initialization failed, falling back to basic extraction:', error);
-      showNotification('Using basic capture mode', 'info', 3000);
+      showToast('Using basic capture mode', { type: 'info', duration: 3000 });
       return await basicContentExtraction();
     }
 
@@ -732,7 +688,7 @@ async function extractPageContentWithUtilities(options?: any): Promise<IContentE
 
     // Extract images using the utility
     const images = contentExtractor.extractImages();
-    const imageUrls = images.map(img => img.src);
+    const imageUrls = images.map((img: IImageInfo) => img.src);
 
     // Get page structure for additional metadata
     const pageStructure = contentExtractor.getPageStructure();
@@ -772,7 +728,7 @@ async function extractPageContentWithUtilities(options?: any): Promise<IContentE
     // If the main extraction failed, try basic fallback
     if (error instanceof Error && error.message.includes('Extension context invalidated')) {
       logger.warn('Falling back to basic content extraction due to extension context invalidation');
-      showNotification('Extension reloaded - using basic capture mode', 'info', 3000);
+      showToast('Extension reloaded - using basic capture mode', { type: 'info', duration: 3000 });
       return await basicContentExtraction();
     }
 
@@ -912,150 +868,6 @@ function sendMessageToBackground(type: string, data?: any): Promise<IEnhancedMes
 }
 
 // =============================================================================
-// NOTIFICATION SYSTEM
-// =============================================================================
-
-/**
- * Show user notification
- * Displays animated notification with optional click URL
- * @param message - The notification message
- * @param type - The notification type (success/error/info)
- * @param duration - Duration in milliseconds (0 = no auto-hide)
- * @param clickUrl - Optional URL to open when notification is clicked
- */
-function showNotification(
-  message: string,
-  type: 'success' | 'error' | 'info' = 'info',
-  duration: number = 4000,
-  clickUrl?: string
-): void {
-  logger.info('showNotification called:', { message, type, duration, clickUrl });
-
-  // Simple guard clause
-  if (!document.body) return;
-
-  // Remove existing notification
-  const existingNotification = document.getElementById('prismweave-notification');
-  if (existingNotification) {
-    existingNotification.remove();
-  }
-
-  // Create notification element
-  const notification = document.createElement('div');
-  notification.id = 'prismweave-notification';
-
-  // Set base styles
-  const colors = {
-    success: '#10b981',
-    error: '#ef4444',
-    info: '#3b82f6',
-  };
-
-  notification.style.cssText = `
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    z-index: 2147483647;
-    padding: 16px 20px;
-    border-radius: 6px;
-    color: white;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    font-size: 14px;
-    font-weight: 500;
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
-    max-width: 320px;
-    word-wrap: break-word;
-    background-color: ${colors[type]};
-    opacity: 0;
-    transform: translateX(100%);
-    transition: all 0.3s ease;
-    user-select: none;
-    pointer-events: auto;
-    cursor: ${clickUrl ? 'pointer' : 'default'};
-  `;
-
-  // Create notification content
-  if (clickUrl) {
-    const documentTitle = document.title || 'this page';
-    const urlDomain = new URL(clickUrl).hostname;
-    const displayText =
-      documentTitle.length > 50 ? documentTitle.substring(0, 47) + '...' : documentTitle;
-
-    notification.innerHTML = `
-      <div style="display: flex; flex-direction: column; gap: 8px;">
-        <div style="font-size: 13px; opacity: 0.9;">${message}</div>
-        <div style="
-          padding: 8px 12px;
-          background: rgba(255, 255, 255, 0.15);
-          border-radius: 4px;
-          border: 1px solid rgba(255, 255, 255, 0.2);
-          font-weight: 600;
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          cursor: pointer;
-        " onclick="window.open('${clickUrl}', '_blank')">
-          <span style="font-size: 16px;">🔗</span>
-          <span style="flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${displayText}</span>
-        </div>
-        <div style="font-size: 11px; opacity: 0.7; text-align: center;">
-          Click to open • 
-          <a href="${clickUrl}" 
-             target="_blank" 
-             rel="noopener noreferrer" 
-             style="color: rgba(255, 255, 255, 0.9); text-decoration: underline; cursor: pointer;">
-            ${urlDomain}
-          </a>
-        </div>
-      </div>
-    `;
-  } else {
-    notification.textContent = message;
-  }
-
-  // Add to DOM
-  document.body.appendChild(notification);
-
-  // Show notification with animation
-  requestAnimationFrame(() => {
-    notification.style.opacity = '1';
-    notification.style.transform = 'translateX(0)';
-  });
-
-  // Auto-hide notification after specified duration
-  if (duration > 0) {
-    setTimeout(() => {
-      hideNotification(notification);
-    }, duration);
-  }
-}
-
-/**
- * Helper function to hide notification
- * Smoothly fades out and removes notification from DOM
- * @param notification - The notification element to hide
- */
-function hideNotification(notification: HTMLElement | null): void {
-  if (notification && notification.parentNode) {
-    logger.debug('Hiding notification');
-    // Smoothly fade out the notification
-    notification.style.opacity = '0';
-    notification.style.transform = 'translateX(100%)';
-    notification.style.pointerEvents = 'none'; // Prevent interaction during fade out
-
-    // Remove the element after animation completes
-    setTimeout(() => {
-      if (notification && notification.parentNode) {
-        notification.parentNode.removeChild(notification);
-        logger.debug('Notification element removed from DOM');
-      }
-    }, 300);
-  } else {
-    logger.debug('No notification to hide or no parent node');
-  }
-}
-
-// =============================================================================
 // INITIALIZATION AND EXPORTS
 // =============================================================================
 
@@ -1072,16 +884,13 @@ if (typeof window !== 'undefined') {
     state: contentScriptState,
     handleCapturePageShortcut,
     loadKeyboardShortcutSettings,
-    showNotification,
-    hideNotification,
     testNotification: () => {
       // Test function to debug notification clicks
-      showNotification(
-        'Test notification - Click me!',
-        'success',
-        10000,
-        'https://github.com/davidhayesbc/PrismWeaveDocs'
-      );
+      showToast('Test notification - Click me!', {
+        type: 'success',
+        duration: 10000,
+        clickUrl: 'https://github.com/davidhayesbc/PrismWeaveDocs',
+      });
     },
     version: '1.0.0',
   };
