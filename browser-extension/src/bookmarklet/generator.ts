@@ -265,82 +265,109 @@ class BookmarkletGeneratorUI {
    * @returns The complete bookmarklet code as a javascript: URL
    */
   generateCompactBookmarklet(formData: IFormData): string {
-    const token = formData.githubToken;
-    const repo = formData.githubRepo;
-    const folder = formData.defaultFolder;
-    const msgTemplate = formData.commitMessage || 'PrismWeave: Add {title}';
-    const injectableUrl = this.injectableBaseUrl + '/content-extractor-injectable.js';
+    const token = this.escapeJavaScriptString(formData.githubToken);
+    const repo = this.escapeJavaScriptString(formData.githubRepo);
+    const folder = this.escapeJavaScriptString(formData.defaultFolder);
+    const msgTemplate = this.escapeJavaScriptString(
+      formData.commitMessage || 'PrismWeave: Add {title}'
+    );
+    const injectableUrl = this.escapeJavaScriptString(
+      this.injectableBaseUrl + '/content-extractor-injectable.js'
+    );
 
-    // Build the bookmarklet JavaScript - load injectable script first, then proceed
-    const jsCode = [
-      '(function(){',
+    // Build the bookmarklet JavaScript using template literals for better readability
+    const jsCode = `(function() {
+  var config = {
+    token: '${token}',
+    repository: '${repo}',
+    folder: '${folder}',
+    commitMessage: '${msgTemplate}'
+  };
 
-      // Configuration for the extractor (match the IGitHubConfig interface)
-      'var config = {',
-      "  token: '" + token + "',",
-      "  repository: '" + repo + "',",
-      "  folder: '" + folder + "',",
-      "  commitMessage: '" + msgTemplate + "'",
-      '};',
+  function showNotification(message, options) {
+    options = options || {};
+    if (window.prismweaveShowToast) {
+      window.prismweaveShowToast(message, options);
+    } else {
+      alert(message);
+    }
+  }
 
-      // Simple inline toast function for immediate availability
-      'function showNotification(message, options) {',
-      '  options = options || {};',
-      '  if (window.prismweaveShowToast) {',
-      '    window.prismweaveShowToast(message, options);',
-      '  } else {',
-      '    // Fallback to alert if toast not available',
-      '    alert(message);',
-      '  }',
-      '}',
+  function loadPrismWeaveScript() {
+    return new Promise(function(resolve, reject) {
+      if (window.prismweaveShowToast && window.prismweaveExtractAndCommit) {
+        resolve();
+        return;
+      }
 
-      // Load the injectable content extractor
-      'function loadPrismWeaveScript(){',
-      '  return new Promise(function(resolve, reject){',
-      '    if(window.prismweaveShowToast && window.prismweaveExtractAndCommit){',
-      '      resolve();',
-      '      return;',
-      '    }',
-      '    var script = document.createElement("script");',
-      '    script.src = "' + injectableUrl + '";',
-      '    script.onload = function(){',
-      '      if(window.prismweaveShowToast && window.prismweaveExtractAndCommit){',
-      '        resolve();',
-      '      } else {',
-      '        reject(new Error("Failed to load PrismWeave API"));',
-      '      }',
-      '    };',
-      '    script.onerror = function(){',
-      '      reject(new Error("Failed to load PrismWeave script"));',
-      '    };',
-      '    document.head.appendChild(script);',
-      '  });',
-      '}',
+      var script = document.createElement("script");
+      script.src = "${injectableUrl}";
+      script.onload = function() {
+        if (window.prismweaveShowToast && window.prismweaveExtractAndCommit) {
+          resolve();
+        } else {
+          reject(new Error("Failed to load PrismWeave API"));
+        }
+      };
+      script.onerror = function() {
+        reject(new Error("Failed to load PrismWeave script"));
+      };
+      document.head.appendChild(script);
+    });
+  }
 
-      // Main execution flow - load script first, then process
-      'loadPrismWeaveScript().then(function(){',
-      '  var extractionOptions = {',
-      '    includeImages: true,',
-      '    includeLinks: true,',
-      '    cleanHtml: true,',
-      '    generateFrontmatter: true,',
-      '    includeMetadata: true',
-      '  };',
-      '  return window.prismweaveExtractAndCommit(config, extractionOptions);',
-      '}).then(function(result){',
-      '  if(result.success){',
-      '    var commitUrl = result.data && result.data.html_url ? result.data.html_url : null;',
-      "    showNotification('✅ Page captured successfully!', {type: 'success', clickUrl: commitUrl, linkLabel: 'View on GitHub'});",
-      '  } else {',
-      "    showNotification('❌ Capture failed: ' + (result.error || 'Unknown error'), {type: 'error'});",
-      '  }',
-      '}).catch(function(error){',
-      "  showNotification('❌ PrismWeave error: ' + error.message, {type: 'error'});",
-      '});',
-      '})();',
-    ].join('');
+  loadPrismWeaveScript()
+    .then(function() {
+      var extractionOptions = {
+        includeImages: true,
+        includeLinks: true,
+        cleanHtml: true,
+        generateFrontmatter: true,
+        includeMetadata: true
+      };
+      return window.prismweaveExtractAndCommit(config, extractionOptions);
+    })
+    .then(function(result) {
+      if (result.success) {
+        var commitUrl = result.data && result.data.html_url ? result.data.html_url : null;
+        showNotification('✅ Page captured successfully!', {
+          type: 'success',
+          clickUrl: commitUrl,
+          linkLabel: 'View on GitHub'
+        });
+      } else {
+        showNotification('❌ Capture failed: ' + (result.error || 'Unknown error'), {
+          type: 'error'
+        });
+      }
+    })
+    .catch(function(error) {
+      showNotification('❌ PrismWeave error: ' + error.message, {
+        type: 'error'
+      });
+    });
+})();`;
 
     return 'javascript:' + encodeURIComponent(jsCode);
+  }
+
+  /**
+   * Properly escapes a string for safe inclusion in JavaScript code.
+   * Handles single quotes, double quotes, backslashes, and line breaks.
+   *
+   * @param str - The string to escape
+   * @returns The escaped string safe for JavaScript
+   */
+  private escapeJavaScriptString(str: string): string {
+    if (!str) return '';
+
+    return str
+      .replace(/\\/g, '\\\\') // Escape backslashes first
+      .replace(/'/g, "\\'") // Escape single quotes
+      .replace(/"/g, '\\"') // Escape double quotes
+      .replace(/\n/g, '\\n') // Escape newlines
+      .replace(/\r/g, '\\r') // Escape carriage returns
+      .replace(/\t/g, '\\t'); // Escape tabs
   }
 
   validateForm(formData: IFormData): boolean {
