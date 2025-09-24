@@ -250,103 +250,24 @@ class BookmarkletGeneratorUI {
   }
 
   /**
-   * Generates a compact, self-contained bookmarklet with embedded configuration.
-   * Creates a bookmarklet that loads the sophisticated content extractor and processes
-   * the current page using the user's GitHub configuration.
-   *
-   * The generated bookmarklet:
-   * - Embeds user configuration directly in the code
-   * - Dynamically loads the content extractor script first
-   * - Processes the page with advanced extraction options
-   * - Provides user feedback through toast notifications or alert fallback
-   * - Handles errors gracefully with informative messages
+   * Generates a highly optimized, compact bookmarklet with embedded configuration.
+   * Creates minimal code that loads the content extractor and processes the current page.
+   * Optimized for size while maintaining all functionality.
    *
    * @param formData - The form data containing user configuration
    * @returns The complete bookmarklet code as a javascript: URL
    */
   generateCompactBookmarklet(formData: IFormData): string {
-    const token = this.escapeJavaScriptString(formData.githubToken);
-    const repo = this.escapeJavaScriptString(formData.githubRepo);
-    const folder = this.escapeJavaScriptString(formData.defaultFolder);
-    const msgTemplate = this.escapeJavaScriptString(
-      formData.commitMessage || 'PrismWeave: Add {title}'
-    );
-    const injectableUrl = this.escapeJavaScriptString(
+    const t = this.escapeJavaScriptString(formData.githubToken);
+    const r = this.escapeJavaScriptString(formData.githubRepo);
+    const f = this.escapeJavaScriptString(formData.defaultFolder);
+    const m = this.escapeJavaScriptString(formData.commitMessage || 'PrismWeave: Add {title}');
+    const u = this.escapeJavaScriptString(
       this.injectableBaseUrl + '/content-extractor-injectable.js'
     );
 
-    // Build the bookmarklet JavaScript using template literals for better readability
-    const jsCode = `(function() {
-  var config = {
-    token: '${token}',
-    repository: '${repo}',
-    folder: '${folder}',
-    commitMessage: '${msgTemplate}'
-  };
-
-  function showNotification(message, options) {
-    options = options || {};
-    if (window.prismweaveShowToast) {
-      window.prismweaveShowToast(message, options);
-    } else {
-      alert(message);
-    }
-  }
-
-  function loadPrismWeaveScript() {
-    return new Promise(function(resolve, reject) {
-      if (window.prismweaveShowToast && window.prismweaveExtractAndCommit) {
-        resolve();
-        return;
-      }
-
-      var script = document.createElement("script");
-      script.src = "${injectableUrl}";
-      script.onload = function() {
-        if (window.prismweaveShowToast && window.prismweaveExtractAndCommit) {
-          resolve();
-        } else {
-          reject(new Error("Failed to load PrismWeave API"));
-        }
-      };
-      script.onerror = function() {
-        reject(new Error("Failed to load PrismWeave script"));
-      };
-      document.head.appendChild(script);
-    });
-  }
-
-  loadPrismWeaveScript()
-    .then(function() {
-      var extractionOptions = {
-        includeImages: true,
-        includeLinks: true,
-        cleanHtml: true,
-        generateFrontmatter: true,
-        includeMetadata: true
-      };
-      return window.prismweaveExtractAndCommit(config, extractionOptions);
-    })
-    .then(function(result) {
-      if (result.success) {
-        var commitUrl = result.data && result.data.html_url ? result.data.html_url : null;
-        showNotification('✅ Page captured successfully!', {
-          type: 'success',
-          clickUrl: commitUrl,
-          linkLabel: 'View on GitHub'
-        });
-      } else {
-        showNotification('❌ Capture failed: ' + (result.error || 'Unknown error'), {
-          type: 'error'
-        });
-      }
-    })
-    .catch(function(error) {
-      showNotification('❌ PrismWeave error: ' + error.message, {
-        type: 'error'
-      });
-    });
-})();`;
+    // Ultra-compact bookmarklet JavaScript - optimized for minimal size
+    const jsCode = `(function(){var c={token:'${t}',repository:'${r}',folder:'${f}',commitMessage:'${m}'},n=function(a,b){(window.prismweaveShowToast||alert)(a,b||{})},l=function(){return new Promise(function(s,j){if(window.prismweaveExtractAndCommit)return s();var e=document.createElement('script');e.src='${u}';e.onload=function(){window.prismweaveExtractAndCommit?s():j(Error('API load failed'))};e.onerror=function(){j(Error('Script load failed'))};document.head.appendChild(e)})};l().then(function(){return window.prismweaveExtractAndCommit(c,{includeImages:!0,includeLinks:!0,cleanHtml:!0,generateFrontmatter:!0,includeMetadata:!0})}).then(function(r){r.success?n('✅ Captured!',{type:'success',clickUrl:r.data&&r.data.html_url,linkLabel:'View'}):n('❌ Failed: '+(r.error||'Unknown'),{type:'error'})}).catch(function(e){n('❌ Error: '+e.message,{type:'error'})})})();`;
 
     return 'javascript:' + encodeURIComponent(jsCode);
   }

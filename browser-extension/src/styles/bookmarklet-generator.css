@@ -41,6 +41,33 @@ body.pw-font-sans {
   margin-bottom: var(--pw-space-5);
 }
 
+.optimization-note {
+  background: var(--pw-success-50);
+  border: 1px solid var(--pw-success-200);
+  border-radius: var(--pw-radius);
+  padding: var(--pw-space-4);
+  margin-top: var(--pw-space-4);
+}
+
+.optimization-note h5 {
+  color: var(--pw-success-700);
+  margin: 0 0 var(--pw-space-2) 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.optimization-note p {
+  color: var(--pw-success-600);
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+.optimization-note ul {
+  color: var(--pw-success-600);
+  margin: 0;
+  font-size: 0.85rem;
+}
+
 .security-note {
   background: var(--pw-warning-50);
   border: 1px solid var(--pw-warning-200);
