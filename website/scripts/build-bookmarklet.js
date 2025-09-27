@@ -31,7 +31,7 @@ class PersonalBookmarkletBuilder {
       console.log(`📁 Output: ${this.distDir}`);
       console.log('\n🚀 To test locally:');
       console.log('   cd website && npm run dev');
-      console.log('   Open http://localhost:3000/dist/generator.html');
+      console.log('   Open http://localhost:3000/');
     } catch (error) {
       console.error('❌ Build failed:', error.message);
       process.exit(1);
