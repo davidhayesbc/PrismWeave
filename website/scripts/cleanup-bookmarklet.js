@@ -9,7 +9,7 @@ const path = require('path');
 
 class BookmarkletCleaner {
   constructor() {
-    this.distDir = path.join(__dirname, '../dist/bookmarklet');
+    this.distDir = path.join(__dirname, '../dist');
     this.filesToRemove = [
       // Old bookmarklet files
       'bookmarklet.js',

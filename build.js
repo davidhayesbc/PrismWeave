@@ -102,7 +102,7 @@ class PrismWeaveBuildSystem {
 
   async buildBookmarklet() {
     console.log('🔗 Building bookmarklet...');
-    const componentPath = path.join(this.projectRoot, 'browser-extension');
+    const componentPath = path.join(this.projectRoot, 'website');
     
     execSync('node scripts/build-bookmarklet.js', { 
       cwd: componentPath, 

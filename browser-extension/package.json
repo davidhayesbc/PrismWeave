@@ -6,7 +6,6 @@
   "scripts": {
     "build": "node scripts/build-simple.js",
     "build:prod": "cross-env NODE_ENV=production node scripts/build-simple.js",
-    "build:bookmarklet": "node scripts/build-bookmarklet.js",
     "clean": "rimraf dist",
     "test": "jest",
     "test:watch": "jest --watch",

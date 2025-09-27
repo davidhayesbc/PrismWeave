@@ -23,6 +23,7 @@
     "serve:web": "node serve-web.js",
     "watch:web": "node serve-web.js --watch",
     "dev:web": "npm run build:web && node serve-web.js --watch",
+    "dev": "cd website && npm run dev",
     "serve:web:python": "cd dist/web && python -m http.server 8080"
   },
   "devDependencies": {

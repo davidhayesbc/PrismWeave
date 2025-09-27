@@ -1,0 +1,25 @@
+{
+  "name": "prismweave-website",
+  "version": "1.0.0",
+  "description": "PrismWeave Website with Bookmarklet Generator",
+  "private": true,
+  "scripts": {
+    "build": "node scripts/build-bookmarklet.js",
+    "build:prod": "cross-env NODE_ENV=production node scripts/build-bookmarklet.js",
+    "clean": "node scripts/cleanup-bookmarklet.js",
+    "dev": "npm run build && python -m http.server 3000",
+    "serve": "python -m http.server 8080"
+  },
+  "keywords": [
+    "bookmarklet",
+    "content-capture",
+    "web-tool"
+  ],
+  "author": "PrismWeave Team",
+  "license": "MIT",
+  "devDependencies": {
+    "cross-env": "^7.0.3",
+    "esbuild": "^0.25.5",
+    "typescript": "^5.8.3"
+  }
+}

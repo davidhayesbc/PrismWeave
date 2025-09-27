@@ -12,8 +12,8 @@ class PersonalBookmarkletBuilder {
   constructor() {
     this.scriptDir = __dirname;
     this.projectRoot = path.resolve(this.scriptDir, '..');
-    this.srcDir = path.join(this.projectRoot, 'src', 'bookmarklet');
-    this.distDir = path.resolve(this.scriptDir, '..', '..', 'dist', 'bookmarklet');
+    this.srcDir = path.join(this.projectRoot, 'bookmarklet');
+    this.distDir = path.join(this.projectRoot, 'dist');
     this.isProduction = process.env.NODE_ENV === 'production';
   }
 
@@ -30,8 +30,8 @@ class PersonalBookmarkletBuilder {
       console.log('\n✅ Personal bookmarklet generator built successfully!');
       console.log(`📁 Output: ${this.distDir}`);
       console.log('\n🚀 To test locally:');
-      console.log('   npm run dev');
-      console.log('   Open http://localhost:3000/generator.html');
+      console.log('   cd website && npm run dev');
+      console.log('   Open http://localhost:3000/dist/generator.html');
     } catch (error) {
       console.error('❌ Build failed:', error.message);
       process.exit(1);
@@ -80,7 +80,7 @@ class PersonalBookmarkletBuilder {
 
       // Fallback to TypeScript compilation
       try {
-        const tsconfigPath = path.join(this.projectRoot, 'tsconfig.bookmarklet.json');
+        const tsconfigPath = path.join(this.projectRoot, '..', 'browser-extension', 'tsconfig.bookmarklet.json');
         execSync(`npx tsc --project ${tsconfigPath} --outDir ${this.distDir}`, {
           cwd: this.projectRoot,
           stdio: 'inherit',
@@ -183,8 +183,8 @@ export const BOOKMARKLET_CONFIG = {
         // Read and update the HTML to fix CSS paths
         let htmlContent = fs.readFileSync(srcPath, 'utf8');
 
-        // Fix paths for all CSS files - convert ../styles/*.css to *.css
-        htmlContent = htmlContent.replace(/href="\.\.\/styles\/([\w-]+\.css)"/g, 'href="$1"');
+        // Fix paths for all CSS files - convert ../styles/*.css to assets/styles/*.css
+        htmlContent = htmlContent.replace(/href="\.\.\/styles\/([\w-]+\.css)"/g, 'href="assets/styles/$1"');
 
         // Fix script loading for ES6 modules if needed
         if (isUsingModules && htmlFile === 'generator.html') {
@@ -209,7 +209,7 @@ export const BOOKMARKLET_CONFIG = {
     });
 
     // Copy all CSS files from styles directory
-    const stylesDir = path.join(this.projectRoot, 'src', 'styles');
+    const stylesDir = path.join(this.projectRoot, 'assets', 'styles');
     if (fs.existsSync(stylesDir)) {
       console.log('   🎨 Copying CSS files...');
       const cssFiles = fs.readdirSync(stylesDir).filter(file => file.endsWith('.css'));
@@ -504,7 +504,7 @@ export const BOOKMARKLET_CONFIG = {
     });
 
     // CSS files
-    const stylesDir = path.join(this.projectRoot, 'src', 'styles');
+    const stylesDir = path.join(this.projectRoot, 'assets', 'styles');
     if (fs.existsSync(stylesDir)) {
       const cssFiles = fs.readdirSync(stylesDir).filter(file => file.endsWith('.css'));
 
