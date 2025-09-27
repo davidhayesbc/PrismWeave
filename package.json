@@ -15,7 +15,7 @@
     "build:bookmarklet": "node build.js build bookmarklet",
     "build:dev-tools": "node build.js build dev-tools",
     "build:web": "node build.js web",
-  "build:web:fast": "node build.js web --fast",
+    "build:web:fast": "node build.js web --fast",
     "clean": "node build.js clean",
     "test": "npm run test:browser-extension && npm run test:ai-processing",
     "test:browser-extension": "cd browser-extension && npm test",
