@@ -14,6 +14,9 @@ class PersonalBookmarkletBuilder {
     this.projectRoot = path.resolve(this.scriptDir, '..');
     this.srcDir = path.join(this.projectRoot, 'bookmarklet');
     this.distDir = path.join(this.projectRoot, 'dist');
+    this.bookmarkletDistDir = path.join(this.distDir, 'bookmarklet');
+    this.assetsDistDir = path.join(this.distDir, 'assets');
+    this.assetsStylesDistDir = path.join(this.assetsDistDir, 'styles');
     this.isProduction = process.env.NODE_ENV === 'production';
   }
 
@@ -45,8 +48,27 @@ class PersonalBookmarkletBuilder {
       fs.mkdirSync(this.distDir, { recursive: true });
     }
 
-    // Clean up any existing config.js from previous builds
-    const configPath = path.join(this.distDir, 'config.js');
+    if (!fs.existsSync(this.bookmarkletDistDir)) {
+      fs.mkdirSync(this.bookmarkletDistDir, { recursive: true });
+    }
+
+    if (!fs.existsSync(this.assetsDistDir)) {
+      fs.mkdirSync(this.assetsDistDir, { recursive: true });
+    }
+
+    if (!fs.existsSync(this.assetsStylesDistDir)) {
+      fs.mkdirSync(this.assetsStylesDistDir, { recursive: true });
+    }
+
+    const legacyFiles = ['generator.js', 'generator.html', 'bookmarklet-generator.css', 'shared-ui.css', 'config.js'];
+    legacyFiles.forEach(fileName => {
+      const legacyPath = path.join(this.distDir, fileName);
+      if (fs.existsSync(legacyPath) && !fs.lstatSync(legacyPath).isDirectory()) {
+        fs.unlinkSync(legacyPath);
+      }
+    });
+
+    const configPath = path.join(this.bookmarkletDistDir, 'config.js');
     if (fs.existsSync(configPath)) {
       fs.unlinkSync(configPath);
       console.log('🧹 Cleaned up existing config.js');
@@ -57,7 +79,7 @@ class PersonalBookmarkletBuilder {
     console.log('🔧 Compiling generator TypeScript...');
 
     const generatorSource = path.join(this.srcDir, 'generator.ts');
-    const generatorOutput = path.join(this.distDir, 'generator.js');
+    const generatorOutput = path.join(this.bookmarkletDistDir, 'generator.js');
 
     // Check if source exists
     if (!fs.existsSync(generatorSource)) {
@@ -89,14 +111,11 @@ class PersonalBookmarkletBuilder {
         // Move the compiled generator.js from subdirectory to dist root
         const compiledGeneratorPath = path.join(this.distDir, 'bookmarklet', 'generator.js');
         if (fs.existsSync(compiledGeneratorPath)) {
-          fs.copyFileSync(compiledGeneratorPath, generatorOutput);
-          // Clean up the subdirectory structure
+          if (compiledGeneratorPath !== generatorOutput) {
+            fs.copyFileSync(compiledGeneratorPath, generatorOutput);
+          }
           this.cleanupCompiledSubdirs();
-
-          // Since TypeScript creates ES6 modules, create config.js file
           this.createConfigFile();
-
-          // Fix import paths for ES6 modules
           this.fixModuleImports();
         }
         console.log('✅ Generator compiled successfully with TypeScript (modules)');
@@ -107,16 +126,19 @@ class PersonalBookmarkletBuilder {
   }
 
   cleanupCompiledSubdirs() {
-    // Remove the subdirectory structure created by TypeScript compilation
-    const subdirs = ['bookmarklet', 'utils', 'types'];
+    const removalTargets = [
+      path.join(this.distDir, 'utils'),
+      path.join(this.distDir, 'types'),
+      path.join(this.bookmarkletDistDir, 'utils'),
+      path.join(this.bookmarkletDistDir, 'types')
+    ];
 
-    subdirs.forEach(subdir => {
-      const subdirPath = path.join(this.distDir, subdir);
-      if (fs.existsSync(subdirPath)) {
+    removalTargets.forEach(targetPath => {
+      if (fs.existsSync(targetPath)) {
         try {
-          fs.rmSync(subdirPath, { recursive: true, force: true });
+          fs.rmSync(targetPath, { recursive: true, force: true });
         } catch (error) {
-          console.warn(`⚠️ Could not remove ${subdir}: ${error.message}`);
+          console.warn(`⚠️ Could not remove ${targetPath}: ${error.message}`);
         }
       }
     });
@@ -139,7 +161,7 @@ export const BOOKMARKLET_CONFIG = {
   API_TIMEOUT: 30000,
 };`;
 
-    const configPath = path.join(this.distDir, 'config.js');
+    const configPath = path.join(this.bookmarkletDistDir, 'config.js');
     fs.writeFileSync(configPath, configContent);
     console.log('✅ config.js created');
   }
@@ -147,7 +169,7 @@ export const BOOKMARKLET_CONFIG = {
   fixModuleImports() {
     console.log('🔧 Fixing ES6 module import paths...');
 
-    const generatorPath = path.join(this.distDir, 'generator.js');
+    const generatorPath = path.join(this.bookmarkletDistDir, 'generator.js');
     if (fs.existsSync(generatorPath)) {
       let content = fs.readFileSync(generatorPath, 'utf8');
 
@@ -165,14 +187,9 @@ export const BOOKMARKLET_CONFIG = {
   async copyStaticFiles() {
     console.log('📄 Copying static files...');
 
-    // Check if we have a bundled generator.js (no imports) or ES6 modules
-    // If config.js exists, we're using ES6 modules
-    const configPath = path.join(this.distDir, 'config.js');
+    const configPath = path.join(this.bookmarkletDistDir, 'config.js');
     const isUsingModules = fs.existsSync(configPath);
 
-    console.log(`   🔍 Module detection: ${isUsingModules ? 'ES6 modules' : 'bundled'}`);
-
-    // Copy and fix CSS paths for all HTML files in the bookmarklet directory
     const htmlFiles = ['generator.html', 'install.html'];
 
     htmlFiles.forEach(htmlFile => {
@@ -180,35 +197,31 @@ export const BOOKMARKLET_CONFIG = {
       if (fs.existsSync(srcPath)) {
         console.log(`   📋 Copying and fixing paths in ${htmlFile}`);
 
-        // Read and update the HTML to fix CSS paths
         let htmlContent = fs.readFileSync(srcPath, 'utf8');
 
         // Fix paths for all CSS files - convert ../styles/*.css to assets/styles/*.css
-        htmlContent = htmlContent.replace(/href="\.\.\/styles\/([\w-]+\.css)"/g, 'href="assets/styles/$1"');
+        htmlContent = htmlContent.replace(/href="\.\.\/styles\/([\w-]+\.css)"/g, 'href="../assets/$1"');
 
-        // Fix script loading for ES6 modules if needed
         if (isUsingModules && htmlFile === 'generator.html') {
           console.log('   🔧 Adding module support to generator.html');
           htmlContent = htmlContent.replace(
             /<script src="generator\.js"><\/script>/g,
-            '<script type="module" src="generator.js"></script>'
+            '<script type="module" src="./generator.js"></script>'
           );
         } else if (!isUsingModules && htmlFile === 'generator.html') {
           console.log('   🔧 Using regular script loading for bundled generator.html');
-          // Ensure regular script loading (no type="module")
           htmlContent = htmlContent.replace(
             /<script type="module" src="generator\.js"><\/script>/g,
-            '<script src="generator.js"></script>'
+            '<script src="./generator.js"></script>'
           );
         }
 
-        fs.writeFileSync(path.join(this.distDir, htmlFile), htmlContent);
+        fs.writeFileSync(path.join(this.bookmarkletDistDir, htmlFile), htmlContent);
       } else {
         console.log(`   ⚠️  ${htmlFile} not found, skipping`);
       }
     });
 
-    // Copy all CSS files from styles directory
     const stylesDir = path.join(this.projectRoot, 'assets', 'styles');
     if (fs.existsSync(stylesDir)) {
       console.log('   🎨 Copying CSS files...');
@@ -216,16 +229,15 @@ export const BOOKMARKLET_CONFIG = {
 
       cssFiles.forEach(cssFile => {
         const srcPath = path.join(stylesDir, cssFile);
-        const destPath = path.join(this.distDir, cssFile);
+        const destPath = path.join(this.assetsStylesDistDir, cssFile);
         fs.copyFileSync(srcPath, destPath);
         console.log(`      ✅ ${cssFile}`);
       });
     }
 
-    // Copy README if it exists
     const readmePath = path.join(this.srcDir, 'README.md');
     if (fs.existsSync(readmePath)) {
-      fs.copyFileSync(readmePath, path.join(this.distDir, 'README.md'));
+      fs.copyFileSync(readmePath, path.join(this.bookmarkletDistDir, 'README.md'));
     }
 
     console.log('✅ Static files created');
@@ -493,27 +505,25 @@ export const BOOKMARKLET_CONFIG = {
     const coreFiles = ['generator.html', 'generator.js', 'install.html'];
 
     coreFiles.forEach(file => {
-      const filePath = path.join(this.distDir, file);
+      const filePath = path.join(this.bookmarkletDistDir, file);
       if (fs.existsSync(filePath)) {
         const stats = fs.statSync(filePath);
         const size = this.formatFileSize(stats.size);
-        console.log(`   ✅ ${file} ${size}`);
+        console.log(`   ✅ bookmarklet/${file} ${size}`);
       } else {
-        console.log(`   ⚠️  Missing: ${file}`);
+        console.log(`   ⚠️  Missing: bookmarklet/${file}`);
       }
     });
 
-    // CSS files
-    const stylesDir = path.join(this.projectRoot, 'assets', 'styles');
-    if (fs.existsSync(stylesDir)) {
-      const cssFiles = fs.readdirSync(stylesDir).filter(file => file.endsWith('.css'));
+    if (fs.existsSync(this.assetsDistDir)) {
+      const cssFiles = fs.readdirSync(this.assetsDistDir).filter(file => file.endsWith('.css'));
 
       cssFiles.forEach(cssFile => {
-        const filePath = path.join(this.distDir, cssFile);
+        const filePath = path.join(this.assetsDistDir, cssFile);
         if (fs.existsSync(filePath)) {
           const stats = fs.statSync(filePath);
           const size = this.formatFileSize(stats.size);
-          console.log(`   ✅ ${cssFile} ${size}`);
+          console.log(`   ✅ assets/styles/${cssFile} ${size}`);
         }
       });
     }
