@@ -265,21 +265,29 @@ class PrismWeaveBuildSystem {
     }
 
     // Copy bookmarklet files and ensure CSS is accessible for web deployment
-    const bookmarkletDist = path.join(this.projectRoot, 'dist', 'bookmarklet');
+    const bookmarkletDist = path.join(this.projectRoot, 'website', 'dist');
     if (fs.existsSync(bookmarkletDist)) {
-      incrementalCopy(bookmarkletDist, path.join(webDistPath, 'bookmarklet'));
-      
-      // The bookmarklet generator.html already has the correct CSS path (shared-ui.css)
-      // No need to modify the CSS path as the shared-ui.css file is copied with the bookmarklet
-      console.log('   ✅ Bookmarklet files copied with correct CSS paths');
-      
-      // Remove export statements from generator.js for browser compatibility
-      const webGeneratorJs = path.join(webDistPath, 'bookmarklet', 'generator.js');
-      if (fs.existsSync(webGeneratorJs)) {
-        let content = fs.readFileSync(webGeneratorJs, 'utf8');
-        content = content.replace(/export\s*\{[^}]+\}\s*;?\s*$/gm, '');
-        fs.writeFileSync(webGeneratorJs, content);
+      // Copy bookmarklet directory
+      const bookmarkletSrc = path.join(bookmarkletDist, 'bookmarklet');
+      if (fs.existsSync(bookmarkletSrc)) {
+        incrementalCopy(bookmarkletSrc, path.join(webDistPath, 'bookmarklet'));
+        
+        // Remove export statements from generator.js for browser compatibility
+        const webGeneratorJs = path.join(webDistPath, 'bookmarklet', 'generator.js');
+        if (fs.existsSync(webGeneratorJs)) {
+          let content = fs.readFileSync(webGeneratorJs, 'utf8');
+          content = content.replace(/export\s*\{[^}]+\}\s*;?\s*$/gm, '');
+          fs.writeFileSync(webGeneratorJs, content);
+        }
       }
+      
+      // Copy assets directory
+      const assetsSrc = path.join(bookmarkletDist, 'assets');
+      if (fs.existsSync(assetsSrc)) {
+        incrementalCopy(assetsSrc, path.join(webDistPath, 'assets'));
+      }
+      
+      console.log('   ✅ Bookmarklet files copied with correct CSS paths');
     }
 
   // Create web index page from template if available
