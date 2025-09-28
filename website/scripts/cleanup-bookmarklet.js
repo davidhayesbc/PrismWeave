@@ -20,7 +20,6 @@ class BookmarkletCleaner {
       'bookmarklet-url.txt',
       'runtime.js',
       'runtime.js.map',
-      'install.html',
       'install-simple.html',
       'install-hybrid.html', // Legacy hybrid installer - use generator.html instead
       'size-report.json',
@@ -35,7 +34,6 @@ class BookmarkletCleaner {
       // Keep the personal bookmarklet generator files
       'generator.html',
       'generator.js',
-      'install.html',
       'README.md',
     ];
   }
@@ -142,17 +140,6 @@ class BookmarkletCleaner {
           {
             name: 'Size reasonable',
             test: content => content.length > 1000 && content.length < 100000,
-          },
-        ],
-      },
-      {
-        name: 'Installation Page',
-        file: 'install.html',
-        checks: [
-          { name: 'Is HTML', test: content => content.includes('<!DOCTYPE html>') },
-          {
-            name: 'Has navigation',
-            test: content => content.includes('nav') || content.includes('menu'),
           },
         ],
       },

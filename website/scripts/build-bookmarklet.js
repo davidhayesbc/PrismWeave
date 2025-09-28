@@ -190,7 +190,7 @@ export const BOOKMARKLET_CONFIG = {
     const configPath = path.join(this.bookmarkletDistDir, 'config.js');
     const isUsingModules = fs.existsSync(configPath);
 
-    const htmlFiles = ['generator.html', 'install.html'];
+    const htmlFiles = ['generator.html'];
 
     htmlFiles.forEach(htmlFile => {
       const srcPath = path.join(this.srcDir, htmlFile);
@@ -502,7 +502,7 @@ export const BOOKMARKLET_CONFIG = {
     console.log('\n📊 Build Results:');
 
     // Core files
-    const coreFiles = ['generator.html', 'generator.js', 'install.html'];
+    const coreFiles = ['generator.html', 'generator.js'];
 
     coreFiles.forEach(file => {
       const filePath = path.join(this.bookmarkletDistDir, file);

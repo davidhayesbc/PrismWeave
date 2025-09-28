@@ -1,69 +1,150 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>PrismWeave - Unified Content Capture System</title>
-    <!-- Last updated: 2025-09-27 23:25 -->
+    <title>PrismWeave - Unified Content Capture System</title>
     <link rel="icon" href="./favicon.ico" type="image/x-icon" />
     <link rel="icon" href="./favicon.png" type="image/png" />
+    <script>
+        (function () {
+            try {
+                var storageKey = 'prismweave-theme';
+                var storedTheme = localStorage.getItem(storageKey);
+                var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                var resolvedTheme = storedTheme || (prefersDark ? 'dark' : 'light');
+                document.documentElement.dataset.theme = resolvedTheme;
+            } catch (error) {
+                document.documentElement.dataset.theme = 'light';
+            }
+        })();
+    </script>
     <link rel="stylesheet" href="./assets/styles.css">
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>🌟 PrismWeave</h1>
-            <p>Unified document management and content creation system</p>
-        </div>
-
-        <div class="content">
-            <div class="status">
-                <h3>✅ Deployment Status</h3>
-                <p><strong>Build Date:</strong> {{BUILD_DATE}}</p>
-                <p><strong>Version:</strong> {{VERSION}}</p>
-                <p><strong>Environment:</strong> {{ENVIRONMENT}}</p>
+    <div class="page">
+        <header class="site-header">
+            <div class="brand">
+                <img src="./assets/favicon.svg" alt="PrismWeave logo" class="brand__icon">
+                <div class="brand__meta">
+                    <h1>PrismWeave</h1>
+                    <p>Unified document management and content creation system</p>
+                </div>
             </div>
+            <button class="theme-toggle" type="button" data-theme-toggle>
+                <span class="theme-toggle__icon theme-toggle__icon--sun" aria-hidden="true">☀️</span>
+                <span class="theme-toggle__icon theme-toggle__icon--moon" aria-hidden="true">🌙</span>
+                <span class="theme-toggle__label">Theme</span>
+            </button>
+        </header>
 
-            <div class="grid">
-                <div class="card">
-                    <h3>🔗 Bookmarklet</h3>
+        <main class="page-main">
+            <section class="surface status">
+                <div class="status__heading">
+                    <h2>Deployment Status</h2>
+                    <span>Live</span>
+                </div>
+                <dl class="status__grid">
+                    <div>
+                        <dt>Build Date</dt>
+                        <dd>{{BUILD_DATE}}</dd>
+                    </div>
+                    <div>
+                        <dt>Environment</dt>
+                        <dd>{{ENVIRONMENT}}</dd>
+                    </div>
+                </dl>
+            </section>
+
+            <section class="grid">
+                <article class="surface feature">
+                    <h3>Bookmarklet</h3>
                     <p>Ultra-lightweight content capture tool that works in any browser.</p>
-                    <a href="./bookmarklet/generator.html" class="btn">Generate Bookmarklet</a>
-                </div>
+                    <a href="./bookmarklet/generator.html" class="btn">Generate</a>
+                </article>
 
-                <div class="card">
-                    <h3>🧩 Browser Extension</h3>
+                <article class="surface feature">
+                    <h3>Browser Extension</h3>
                     <p>Full-featured browser extension for Chrome and Edge.</p>
-                    <a href="./extension/popup/popup.html" class="btn">View Extension Files</a>
-                </div>
+                    <a href="./extension/popup/popup.html" class="btn">Explore</a>
+                </article>
 
-                <div class="card">
-                    <h3>📖 Documentation</h3>
+                <article class="surface feature">
+                    <h3>Documentation</h3>
                     <p>Learn how to use PrismWeave effectively.</p>
                     <a href="https://github.com/davidhayesbc/PrismWeave#readme" class="btn">Read Docs</a>
-                </div>
+                </article>
 
-                <div class="card">
-                    <h3>🔧 Development</h3>
+                <article class="surface feature">
+                    <h3>Development</h3>
                     <p>Source code and development resources.</p>
-                    <a href="https://github.com/davidhayesbc/PrismWeave" class="btn">GitHub Repository</a>
-                </div>
-            </div>
+                    <a href="https://github.com/davidhayesbc/PrismWeave" class="btn">GitHub</a>
+                </article>
+            </section>
 
-            <div class="quick-start-section">
-                <h3 class="quick-start-heading">🚀 Quick Start</h3>
-                <ol class="quick-start-list">
-                    <li><strong>Try the Bookmarklet:</strong> Click "Generate Bookmarklet" above</li>
+            <section class="surface quick-start">
+                <h2>Quick Start</h2>
+                <ol>
+                    <li><strong>Try the Bookmarklet:</strong> Click "Generate" above</li>
                     <li><strong>Configure GitHub:</strong> Add your repository settings</li>
                     <li><strong>Capture Content:</strong> Use on any webpage to save content</li>
                     <li><strong>Manage Documents:</strong> View captured content in your repository</li>
                 </ol>
-            </div>
-        </div>
+            </section>
+        </main>
 
-        <div class="footer">
-            <p>PrismWeave v{{VERSION}} • Built with ❤️</p>
-        </div>
+        <footer class="site-footer">
+            <small>PrismWeave v{{VERSION}} • Built with care for the open web</small>
+            <img src="./assets/favicon.svg" alt="PrismWeave emblem" class="site-footer__icon">
+        </footer>
     </div>
+
+    <script>
+        (function () {
+            var storageKey = 'prismweave-theme';
+            var root = document.documentElement;
+            var toggle = document.querySelector('[data-theme-toggle]');
+
+            var systemTheme = function () {
+                return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+            };
+
+            var setTheme = function (theme) {
+                root.dataset.theme = theme;
+                if (toggle) {
+                    toggle.setAttribute('aria-label', 'Switch to ' + (theme === 'dark' ? 'light' : 'dark') + ' theme');
+                }
+            };
+
+            var getStoredTheme = function () {
+                try {
+                    return localStorage.getItem(storageKey);
+                } catch (error) {
+                    return null;
+                }
+            };
+
+            var storedTheme = getStoredTheme();
+            setTheme(storedTheme || root.dataset.theme || systemTheme());
+
+            window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function (event) {
+                if (!getStoredTheme()) {
+                    setTheme(event.matches ? 'dark' : 'light');
+                }
+            });
+
+            if (toggle) {
+                toggle.addEventListener('click', function () {
+                    var nextTheme = root.dataset.theme === 'dark' ? 'light' : 'dark';
+                    setTheme(nextTheme);
+                    try {
+                        localStorage.setItem(storageKey, nextTheme);
+                    } catch (error) {
+                        /* Storage may be unavailable; ignore. */
+                    }
+                });
+            }
+        })();
+    </script>
 </body>
 </html>

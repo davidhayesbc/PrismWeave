@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="light">
   <head>
     <meta charset="UTF-8" />
     <meta
@@ -11,6 +11,23 @@
       name="description"
       content="Generate a personalized PrismWeave bookmarklet with your GitHub settings embedded for universal cross-domain content capture."
     />
+    <script>
+      (function () {
+        try {
+          var storageKey = 'prismweave-theme';
+          var storedTheme = localStorage.getItem(storageKey);
+          var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          var resolvedTheme = storedTheme || (prefersDark ? 'dark' : 'light');
+          document.documentElement.dataset.theme = resolvedTheme;
+        } catch (error) {
+          document.documentElement.dataset.theme = 'light';
+        }
+      })();
+    </script>
+    <link
+      rel="stylesheet"
+      href="../assets/styles.css"
+    />
     <link
       rel="stylesheet"
       href="../assets/styles/shared-ui.css"
@@ -21,222 +38,242 @@
     />
   </head>
   <body class="pw-font-sans">
-    <div class="generator-container">
-      <div class="generator-header">
-        <h1>PrismWeave Bookmarklet Generator</h1>
-        <p>
-          Create a personalized bookmarklet with your GitHub settings embedded for universal content capture across all
-          domains.
-        </p>
-      </div>
-
-      <div class="generator-description pw-card">
-        <h3>What is this?</h3>
-        <p>
-          This tool generates a custom bookmarklet that includes your GitHub Personal Access Token and repository
-          settings directly in the code. The generated bookmarklet is highly optimized for minimal size while 
-          maintaining full functionality.
-        </p>
-
-        <div class="optimization-note">
-          <h5>⚡ Optimization Features</h5>
-          <p>
-            The bookmarklet is optimized for size reduction (~70% smaller) while preserving all functionality:
-            <ul>
-              <li>Minimized variable names and compact syntax</li>
-              <li>Streamlined error handling and user feedback</li>
-              <li>Efficient script loading and execution</li>
-              <li>Full content extraction and GitHub integration</li>
-            </ul>
-          </p>
-        </div>
-
-        <div class="security-note">
-          <h5>🔒 Security Note</h5>
-          <p>
-            Your GitHub token will be embedded in the bookmarklet code. Only share the generated bookmarklet with
-            trusted parties, and consider using a fine-grained token with limited repository access.<br />
-            Required permissions:
-            <ul>
-              <li>Read access to metadata</li>
-              <li>Read and Write access to code</li>
-            </ul>
-          </p>
-        </div>
-      </div>
-
-      <form id="generator-form">
-        <div class="generator-form-section">
-          <h3>🔧 GitHub Configuration</h3>
-
-          <div class="pw-form-group">
-            <label
-              for="github-token"
-              class="pw-label"
-            >
-              GitHub Personal Access Token *
-            </label>
-            <input
-              type="password"
-              id="github-token"
-              name="githubToken"
-              class="pw-input"
-              placeholder="ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-              required
-            />
-            <small>
-              Required permissions: Contents (write), Metadata (read).
-              <a
-                href="https://github.com/settings/personal-access-tokens"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Create token
-              </a>
-            </small>
-            <div
-              class="validation-error"
-              id="token-error"
-            ></div>
-          </div>
-
-          <div class="pw-form-group">
-            <label
-              for="github-repo"
-              class="pw-label"
-            >
-              GitHub Repository *
-            </label>
-            <input
-              type="text"
-              id="github-repo"
-              name="githubRepo"
-              class="pw-input"
-              placeholder="username/repository-name"
-              required
-            />
-            <small>Format: owner/repository (e.g., "john/my-documents")</small>
-            <div
-              class="validation-error"
-              id="repo-error"
-            ></div>
-          </div>
-
-          <div class="pw-form-group">
-            <label
-              for="default-folder"
-              class="pw-label"
-            >
-              Default Folder
-            </label>
-            <select
-              id="default-folder"
-              name="defaultFolder"
-              class="pw-input"
-            >
-              <option value="documents">documents</option>
-              <option value="captured">captured</option>
-              <option value="articles">articles</option>
-              <option value="research">research</option>
-              <option value="bookmarks">bookmarks</option>
-              <option value="unsorted">unsorted</option>
-            </select>
-            <small>Folder where captured content will be saved</small>
+    <div class="page page--narrow">
+      <header class="site-header">
+        <div class="brand">
+          <img src="../assets/favicon.svg" alt="PrismWeave logo" class="brand__icon" />
+          <div class="brand__meta">
+            <h1>PrismWeave</h1>
+            <p>Bookmarklet Generator</p>
           </div>
         </div>
-
-        <div class="generator-form-section">
-          <h3>⚙️ Capture Settings</h3>
-
-          <div class="pw-form-group">
-            <label
-              for="commit-message"
-              class="pw-label"
-            >
-              Commit Message Template
-            </label>
-            <input
-              type="text"
-              id="commit-message"
-              name="commitMessage"
-              class="pw-input"
-              placeholder="PrismWeave: Add captured content"
-              value="PrismWeave: Add {title}"
-            />
-            <small>Use {title} and {domain} as placeholders</small>
-          </div>
-
-          <div class="pw-form-group">
-            <label
-              for="file-naming"
-              class="pw-label"
-            >
-              File Naming Pattern
-            </label>
-            <select
-              id="file-naming"
-              name="fileNaming"
-              class="pw-input"
-            >
-              <option value="date-title">YYYY-MM-DD-title-slug.md</option>
-              <option value="timestamp-title">YYYYMMDD-HHMMSS-title-slug.md</option>
-              <option value="domain-date-title">domain-YYYY-MM-DD-title-slug.md</option>
-              <option value="title-only">title-slug.md</option>
-            </select>
-            <small>How captured files will be named</small>
-          </div>
-        </div>
-
-        <button
-          type="submit"
-          class="pw-btn pw-btn-primary pw-btn-lg pw-btn-full"
-          id="generate-btn"
-        >
-          🚀 Generate My Personal Bookmarklet
+        <button class="theme-toggle" type="button" data-theme-toggle>
+          <span class="theme-toggle__icon theme-toggle__icon--sun" aria-hidden="true">☀️</span>
+          <span class="theme-toggle__icon theme-toggle__icon--moon" aria-hidden="true">🌙</span>
+          <span class="theme-toggle__label">Theme</span>
         </button>
-      </form>
+      </header>
 
-      <div id="status-message"></div>
+      <main class="page-main page-main--narrow">
+        <section class="surface surface--static generator-intro">
+          <h2>Build your personal capture bookmarklet</h2>
+          <p>
+            Create a PrismWeave bookmarklet that embeds your GitHub preferences so you can capture content from any
+            page without leaving the browser.
+          </p>
+        </section>
 
-      <div
-        class="generator-result"
-        id="result-section"
-      >
-        <h3>✅ Your Personal Bookmarklet is Ready!</h3>
+        <section class="surface surface--static generator-details">
+          <div class="details-grid">
+            <article class="details-card">
+              <h3>What is this?</h3>
+              <p>
+                Generate a custom bookmarklet that includes your GitHub repository and workflow defaults. The script is
+                optimized for speed and size while keeping the capture experience consistent across browsers.
+              </p>
+            </article>
 
-        <div class="bookmarklet-preview">
-          <h4>Drag this to your bookmarks bar:</h4>
-          <div class="generator-actions">
-            <a
-              href="javascript:void(0)"
-              class="pw-btn pw-btn-primary"
-              id="bookmarklet-link"
-            >
-              📄 PrismWeave Capture
-            </a>
+            <article class="details-card details-card--success">
+              <h4>⚡ Optimization Highlights</h4>
+              <ul>
+                <li>Compact JavaScript with streamlined feedback</li>
+                <li>Automatic content extraction and GitHub commits</li>
+                <li>Works anywhere bookmarklets are supported</li>
+              </ul>
+            </article>
+
+            <article class="details-card details-card--warning">
+              <h4>🔒 Security Note</h4>
+              <p>
+                Your GitHub token is embedded in the bookmarklet. Use a fine-grained token with limited repository
+                access and keep the generated code private.
+              </p>
+              <ul>
+                <li>Permissions: metadata (read), contents (write)</li>
+                <li>Regenerate the token if it is ever exposed</li>
+              </ul>
+            </article>
           </div>
-        </div>
+        </section>
 
-        <div class="generator-install">
-          <h4 class="pw-mb-2">📋 Installation Instructions:</h4>
-          <ol>
-            <li>
-              <strong>Installation (Drag & Drop):</strong>
-              Drag the "PrismWeave Capture" button above to your browser's bookmarks bar
-            </li>
-            <li>
-              <strong>Usage:</strong>
-              Visit any webpage and click your "PrismWeave Capture" bookmark
-            </li>
-          </ol>
-        </div>
+        <form id="generator-form" class="surface surface--static generator-form">
+          <h3 class="generator-form__title">Configuration</h3>
+          <div class="generator-form__grid">
+            <div class="generator-form-section">
+              <h4>🔧 GitHub Settings</h4>
 
-        <div class="bookmarklet-code">
-          <div id="bookmarklet-code-display"></div>
-        </div>
-      </div>
+              <div class="pw-form-group">
+                <label for="github-token" class="pw-label">GitHub Personal Access Token *</label>
+                <input
+                  type="password"
+                  id="github-token"
+                  name="githubToken"
+                  class="pw-input"
+                  placeholder="ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                  required
+                />
+                <small>
+                  Required permissions: Contents (write), Metadata (read).
+                  <a
+                    href="https://github.com/settings/personal-access-tokens"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Create token
+                  </a>
+                </small>
+                <div class="validation-error" id="token-error"></div>
+              </div>
+
+              <div class="pw-form-group">
+                <label for="github-repo" class="pw-label">GitHub Repository *</label>
+                <input
+                  type="text"
+                  id="github-repo"
+                  name="githubRepo"
+                  class="pw-input"
+                  placeholder="username/repository-name"
+                  required
+                />
+                <small>Format: owner/repository (e.g., "john/my-documents")</small>
+                <div class="validation-error" id="repo-error"></div>
+              </div>
+
+              <div class="pw-form-group">
+                <label for="default-folder" class="pw-label">Default Folder</label>
+                <select id="default-folder" name="defaultFolder" class="pw-input">
+                  <option value="documents">documents</option>
+                  <option value="captured">captured</option>
+                  <option value="articles">articles</option>
+                  <option value="research">research</option>
+                  <option value="bookmarks">bookmarks</option>
+                  <option value="unsorted">unsorted</option>
+                </select>
+                <small>Folder where captured content will be saved</small>
+              </div>
+            </div>
+
+            <div class="generator-form-section">
+              <h4>⚙️ Capture Preferences</h4>
+
+              <div class="pw-form-group">
+                <label for="commit-message" class="pw-label">Commit Message Template</label>
+                <input
+                  type="text"
+                  id="commit-message"
+                  name="commitMessage"
+                  class="pw-input"
+                  placeholder="PrismWeave: Add captured content"
+                  value="PrismWeave: Add {title}"
+                />
+                <small>Use {title} and {domain} as placeholders</small>
+              </div>
+
+              <div class="pw-form-group">
+                <label for="file-naming" class="pw-label">File Naming Pattern</label>
+                <select id="file-naming" name="fileNaming" class="pw-input">
+                  <option value="date-title">YYYY-MM-DD-title-slug.md</option>
+                  <option value="timestamp-title">YYYYMMDD-HHMMSS-title-slug.md</option>
+                  <option value="domain-date-title">domain-YYYY-MM-DD-title-slug.md</option>
+                  <option value="title-only">title-slug.md</option>
+                </select>
+                <small>How captured files will be named</small>
+              </div>
+            </div>
+          </div>
+
+          <button type="submit" class="pw-btn pw-btn-primary pw-btn-lg pw-btn-full" id="generate-btn">
+            🚀 Generate My Personal Bookmarklet
+          </button>
+        </form>
+
+        <div id="status-message" class="generator-status"></div>
+
+        <section class="surface surface--static generator-result" id="result-section">
+          <h3>✅ Your Personal Bookmarklet is Ready!</h3>
+
+          <div class="bookmarklet-preview">
+            <h4>Drag this to your bookmarks bar:</h4>
+            <div class="generator-actions">
+              <a href="javascript:void(0)" class="pw-btn pw-btn-primary" id="bookmarklet-link">
+                📄 PrismWeave Capture
+              </a>
+            </div>
+          </div>
+
+          <div class="generator-install">
+            <h4 class="pw-mb-2">📋 Installation Instructions</h4>
+            <ol>
+              <li>
+                <strong>Install:</strong>
+                Drag the "PrismWeave Capture" button to your bookmarks bar.
+              </li>
+              <li>
+                <strong>Use:</strong>
+                Visit any webpage and tap your new bookmark to capture content.
+              </li>
+            </ol>
+          </div>
+
+          <div class="bookmarklet-code">
+            <div id="bookmarklet-code-display"></div>
+          </div>
+        </section>
+      </main>
+
+      <footer class="site-footer site-footer--compact">
+        <small>Bookmarklets run locally in your browser &mdash; PrismWeave v{{VERSION}}</small>
+        <img src="../assets/favicon.svg" alt="PrismWeave emblem" class="site-footer__icon" />
+      </footer>
     </div>
 
+    <script>
+      (function () {
+        var storageKey = 'prismweave-theme';
+        var root = document.documentElement;
+        var toggle = document.querySelector('[data-theme-toggle]');
+
+        var systemTheme = function () {
+          return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        };
+
+        var setTheme = function (theme) {
+          root.dataset.theme = theme;
+          if (toggle) {
+            toggle.setAttribute('aria-label', 'Switch to ' + (theme === 'dark' ? 'light' : 'dark') + ' theme');
+          }
+        };
+
+        var getStoredTheme = function () {
+          try {
+            return localStorage.getItem(storageKey);
+          } catch (error) {
+            return null;
+          }
+        };
+
+        var storedTheme = getStoredTheme();
+        setTheme(storedTheme || root.dataset.theme || systemTheme());
+
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function (event) {
+          if (!getStoredTheme()) {
+            setTheme(event.matches ? 'dark' : 'light');
+          }
+        });
+
+        if (toggle) {
+          toggle.addEventListener('click', function () {
+            var nextTheme = root.dataset.theme === 'dark' ? 'light' : 'dark';
+            setTheme(nextTheme);
+            try {
+              localStorage.setItem(storageKey, nextTheme);
+            } catch (error) {
+              /* localStorage may be unavailable */
+            }
+          });
+        }
+      })();
+    </script>
     <script src="generator.js"></script>
   </body>
 </html>
