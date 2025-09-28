@@ -20,6 +20,11 @@ async function buildExtension() {
   }
   fs.mkdirSync(distPath, { recursive: true });
 
+  const legacySharedStylesPath = path.resolve(__dirname, '..', '..', 'dist', 'shared-styles');
+  if (fs.existsSync(legacySharedStylesPath)) {
+    fs.rmSync(legacySharedStylesPath, { recursive: true });
+  }
+
   const baseOptions = {
     target: 'es2020',
     platform: 'browser',
@@ -113,6 +118,13 @@ async function copyStaticAssets(distPathOverride) {
   const distPath =
     distPathOverride || path.resolve(__dirname, '..', '..', 'dist', 'browser-extension');
   const assets = [
+    // Shared design tokens used by imported CSS
+    {
+      src: '../shared-styles',
+      dest: path.join(distPath, 'shared-styles'),
+      isDirectory: true,
+    },
+
     // Manifest
     { src: 'manifest.json', dest: path.join(distPath, 'manifest.json') },
 

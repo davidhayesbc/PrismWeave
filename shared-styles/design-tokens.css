@@ -1,0 +1,202 @@
+/* PrismWeave design tokens shared between website and browser extension */
+/* Define color system, typography, spacing, shadows, and theme surfaces */
+
+:root {
+  /* Typography */
+  --pw-font-family: "Inter", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  --pw-font-mono: "JetBrains Mono", "Fira Code", "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+
+  /* Shape */
+  --pw-radius-sm: 0.35rem;
+  --pw-radius: 0.5rem;
+  --pw-radius-md: 0.65rem;
+  --pw-radius-lg: 0.9rem;
+  --pw-radius-xl: 1.2rem;
+  --pw-radius-2xl: 1.8rem;
+
+  /* Spacing scale */
+  --pw-space-1: 0.25rem;
+  --pw-space-2: 0.5rem;
+  --pw-space-3: 0.75rem;
+  --pw-space-4: 1rem;
+  --pw-space-5: 1.25rem;
+  --pw-space-6: 1.5rem;
+  --pw-space-8: 2rem;
+  --pw-space-10: 2.5rem;
+  --pw-space-12: 3rem;
+  --pw-space-16: 4rem;
+
+  /* Primary palette */
+  --pw-primary-50: #eef2ff;
+  --pw-primary-100: #e0e7ff;
+  --pw-primary-200: #c7d2fe;
+  --pw-primary-300: #a5b4fc;
+  --pw-primary-400: #818cf8;
+  --pw-primary-500: #6366f1;
+  --pw-primary-600: #4f46e5;
+  --pw-primary-700: #4338ca;
+  --pw-primary-800: #3730a3;
+  --pw-primary-900: #312e81;
+
+  /* Accent & support */
+  --pw-accent-cyan: #22d3ee;
+  --pw-accent-blue: #2563eb;
+  --pw-accent-indigo: #4f46e5;
+  --pw-positive-color: #22c55e;
+  --pw-warning-color: #f59e0b;
+  --pw-error-color: #ef4444;
+
+  /* Gradients */
+  --pw-gradient-primary: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  --pw-gradient-secondary: linear-gradient(135deg, rgba(255, 255, 255, 0.94) 0%, rgba(241, 245, 249, 0.86) 100%);
+  --pw-gradient-success: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+  --pw-gradient-warning: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  --pw-gradient-error: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  --pw-gradient-background: linear-gradient(135deg, rgba(248, 250, 255, 0.95) 0%, rgba(226, 232, 255, 0.88) 45%, rgba(209, 213, 253, 0.94) 100%);
+  --pw-btn-primary-bg: linear-gradient(135deg, #4f52d1 0%, #6c6fd8 100%);
+  --pw-btn-primary-text: #f8fafc;
+  --pw-btn-success-bg: linear-gradient(135deg, #1c9a6a 0%, #167f55 100%);
+  --pw-btn-success-text: #f1f5f9;
+  --pw-btn-warning-bg: linear-gradient(135deg, #d89a4a 0%, #b97a27 100%);
+  --pw-btn-warning-text: #1f2937;
+  --pw-btn-error-bg: linear-gradient(135deg, #d35d6a 0%, #b74352 100%);
+  --pw-btn-error-text: #fdf2f2;
+  --pw-surface-primary-muted: rgba(99, 102, 241, 0.08);
+  --pw-surface-success-muted: rgba(16, 185, 129, 0.09);
+  --pw-surface-warning-muted: rgba(217, 119, 6, 0.11);
+  --pw-surface-error-muted: rgba(220, 38, 38, 0.1);
+
+  /* Neutral palette */
+  --pw-gray-50: #f9fafb;
+  --pw-gray-100: #f3f4f6;
+  --pw-gray-200: #e5e7eb;
+  --pw-gray-300: #d1d5db;
+  --pw-gray-400: #9ca3af;
+  --pw-gray-500: #6b7280;
+  --pw-gray-600: #4b5563;
+  --pw-gray-700: #374151;
+  --pw-gray-800: #1f2937;
+  --pw-gray-900: #0f172a;
+
+  /* Elevation */
+  --pw-shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.07);
+  --pw-shadow: 0 12px 32px -24px rgba(15, 23, 42, 0.6);
+  --pw-shadow-md: 0 18px 45px -28px rgba(15, 23, 42, 0.55);
+  --pw-shadow-lg: 0 24px 60px -35px rgba(15, 23, 42, 0.55);
+  --pw-shadow-xl: 0 32px 86px -48px rgba(15, 23, 42, 0.6);
+  --pw-shadow-2xl: 0 40px 120px -60px rgba(15, 23, 42, 0.65);
+
+  /* Base theme (light) */
+  --pw-page-bg: radial-gradient(circle at top, #f8fafc 0%, #eef2ff 55%, #e0e7ff 100%);
+  --pw-surface-bg: rgba(255, 255, 255, 0.92);
+  --pw-panel-bg: rgba(255, 255, 255, 0.88);
+  --pw-border-color: rgba(148, 163, 184, 0.28);
+  --pw-border-strong: rgba(99, 102, 241, 0.24);
+  --pw-text-primary: #0f172a;
+  --pw-text-secondary: #475569;
+  --pw-text-muted: #64748b;
+  --pw-bg-primary: #ffffff;
+  --pw-bg-secondary: rgba(248, 250, 252, 0.84);
+  --pw-panel-shadow: var(--pw-shadow-lg);
+  --pw-ui-accent: var(--pw-primary-500);
+  --pw-ui-accent-soft: rgba(99, 102, 241, 0.12);
+  --pw-ui-accent-strong: #4f46e5;
+  --pw-ui-border-strong: rgba(99, 102, 241, 0.45);
+  --pw-code-bg: #0f172a;
+  --pw-code-text: #f8fafc;
+  --pw-transition: 0.25s ease;
+
+  /* Utility tokens for legacy selectors */
+  --font-family: var(--pw-font-family);
+  --page-bg: var(--pw-page-bg);
+  --text-color: var(--pw-text-primary);
+  --muted-color: var(--pw-text-secondary);
+  --page-surface: var(--pw-panel-bg);
+  --card-surface: var(--pw-surface-bg);
+  --accent-color: var(--pw-ui-accent);
+  --accent-soft: var(--pw-ui-accent-soft);
+  --accent-strong: var(--pw-ui-accent-strong);
+  --positive-color: var(--pw-positive-color);
+  --shadow: var(--pw-panel-shadow);
+  --radius: 20px;
+}
+
+[data-theme='dark'] {
+  color-scheme: dark;
+  --pw-page-bg: radial-gradient(circle at top, #020617 0%, #0f172a 45%, #020617 100%);
+  --pw-surface-bg: rgba(15, 23, 42, 0.82);
+  --pw-panel-bg: rgba(9, 14, 23, 0.86);
+  --pw-border-color: rgba(59, 130, 246, 0.18);
+  --pw-border-strong: rgba(59, 130, 246, 0.35);
+  --pw-text-primary: #e2e8f0;
+  --pw-text-secondary: #94a3b8;
+  --pw-text-muted: #cbd5f5;
+  --pw-bg-primary: rgba(10, 16, 26, 0.94);
+  --pw-bg-secondary: rgba(17, 25, 40, 0.78);
+  --pw-panel-shadow: 0 18px 60px -34px rgba(2, 6, 23, 0.7);
+  --pw-ui-accent: #22d3ee;
+  --pw-ui-accent-soft: rgba(34, 211, 238, 0.18);
+  --pw-ui-accent-strong: #0ea5e9;
+  --pw-ui-border-strong: rgba(34, 211, 238, 0.42);
+  --pw-code-bg: #0b1120;
+  --pw-code-text: #e2e8f0;
+  --pw-gradient-background: linear-gradient(135deg, rgba(7, 11, 19, 0.94) 0%, rgba(12, 19, 31, 0.9) 52%, rgba(2, 6, 23, 0.94) 100%);
+
+  --page-bg: var(--pw-page-bg);
+  --text-color: var(--pw-text-primary);
+  --muted-color: var(--pw-text-secondary);
+  --page-surface: var(--pw-panel-bg);
+  --card-surface: var(--pw-surface-bg);
+  --accent-color: var(--pw-ui-accent);
+  --accent-soft: var(--pw-ui-accent-soft);
+  --accent-strong: var(--pw-ui-accent-strong);
+  --shadow: var(--pw-panel-shadow);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    color-scheme: dark;
+    --pw-page-bg: radial-gradient(circle at top, #020617 0%, #0f172a 55%, #020617 100%);
+    --pw-surface-bg: rgba(15, 23, 42, 0.82);
+    --pw-panel-bg: rgba(9, 14, 23, 0.86);
+    --pw-border-color: rgba(59, 130, 246, 0.18);
+    --pw-text-primary: #e2e8f0;
+    --pw-text-secondary: #94a3b8;
+    --pw-text-muted: #cbd5f5;
+    --pw-panel-shadow: 0 22px 70px -42px rgba(2, 6, 23, 0.76);
+    --pw-ui-accent: #22d3ee;
+    --pw-ui-accent-soft: rgba(34, 211, 238, 0.18);
+    --pw-ui-accent-strong: #0ea5e9;
+    --pw-ui-border-strong: rgba(34, 211, 238, 0.42);
+    --pw-code-bg: #0b1120;
+    --pw-code-text: #e2e8f0;
+  }
+}
+
+/* Optional helper classes */
+body {
+  font-family: var(--pw-font-family);
+  background: var(--pw-page-bg);
+  color: var(--pw-text-primary);
+  transition: background var(--pw-transition), color var(--pw-transition);
+}
+
+.pw-surface {
+  background: var(--pw-panel-bg);
+  color: var(--pw-text-primary);
+}
+
+.pw-text-primary {
+  color: var(--pw-text-primary);
+}
+
+.pw-text-secondary {
+  color: var(--pw-text-secondary);
+}
+
+.pw-elevated {
+  background: var(--pw-surface-bg);
+  border: 1px solid var(--pw-border-color);
+  border-radius: var(--pw-radius-xl);
+  box-shadow: var(--pw-panel-shadow);
+}

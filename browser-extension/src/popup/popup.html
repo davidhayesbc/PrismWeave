@@ -12,30 +12,44 @@
       href="popup.css"
     />
   </head>
-  <body class="pw-surface">
-    <div class="header">
-      <img
-        src="../../icons/icon64.png"
-        alt="PrismWeave Logo"
-        class="logo"
-      />
-      <h1>PrismWeave</h1>
-    </div>
-
-    <div class="content">
-      <div
-        id="loading"
-        class="hidden pw-loading"
-      >
-        <div class="pw-spinner"></div>
-        <span class="pw-text-secondary">Processing...</span>
-      </div>
-
-      <div id="main-content">
-        <div
-          id="page-info"
-          class="page-info pw-card"
+  <body>
+    <div
+      class="pw-app-shell"
+      id="popup-root"
+    >
+      <header class="pw-app-header">
+        <div class="pw-brand">
+          <img
+            src="../../icons/icon64.png"
+            alt="PrismWeave"
+            class="pw-brand__logo"
+          />
+          <div class="pw-brand__meta">
+            <h1 class="pw-brand__title">PrismWeave</h1>
+            <p class="pw-brand__subtitle">Capture. Simplify. Sync.</p>
+          </div>
+        </div>
+        <button
+          id="theme-toggle"
+          class="pw-theme-toggle"
+          type="button"
+          aria-label="Toggle theme"
         >
+          <span class="pw-theme-toggle__icon pw-theme-toggle__icon--sun">☀️</span>
+          <span class="pw-theme-toggle__icon pw-theme-toggle__icon--moon">🌙</span>
+          <span class="pw-theme-toggle__label">Theme</span>
+        </button>
+      </header>
+
+      <main class="pw-flow">
+        <section
+          id="page-info"
+          class="pw-card pw-card--static"
+        >
+          <div class="pw-section-title">
+            <span class="pw-icon">🌐</span>
+            <span>Active Page</span>
+          </div>
           <div
             class="page-title pw-text-primary"
             id="page-title"
@@ -46,102 +60,111 @@
             class="page-url pw-text-secondary"
             id="page-url"
           ></div>
-        </div>
-        <div
-          id="status"
-          class="status, hidden"
-        >
-          <p
-            class="status-text"
-            id="status-text"
-          ></p>
-        </div>
-        <!-- Enhanced Capture Status Messages -->
-        <div
+        </section>
+
+        <section
           id="capture-status"
-          class="capture-status-container, hidden"
+          class="pw-card pw-card--static capture-status-container hidden"
         >
-          <div class="status-card pw-card">
-            <div class="status-header">
-              <div class="status-icon-wrapper">
-                <div
-                  class="status-icon"
-                  id="status-icon"
-                ></div>
-              </div>
-              <div class="status-content">
-                <div
-                  class="status-title"
-                  id="status-title"
-                ></div>
-                <div
-                  class="status-message"
-                  id="status-message"
-                ></div>
-              </div>
-              <button
-                class="status-close pw-button-icon"
-                id="status-close"
-                aria-label="Close"
-              >
-                ×
-              </button>
-            </div>
-            <div
-              class="status-details, hidden"
-              id="status-details"
-            >
+          <div class="status-header">
+            <div class="status-icon-wrapper">
               <div
-                class="progress-bar, hidden"
-                id="progress-bar"
-              >
-                <div class="progress-fill"></div>
-              </div>
-              <div
-                class="status-actions, hidden"
-                id="status-actions"
+                class="status-icon"
+                id="status-icon"
               ></div>
             </div>
+            <div class="status-content">
+              <div
+                class="status-title"
+                id="status-title"
+              ></div>
+              <div
+                class="status-message"
+                id="status-message"
+              ></div>
+            </div>
+            <button
+              class="status-close pw-button-icon"
+              id="status-close"
+              aria-label="Dismiss status"
+            >
+              ×
+            </button>
           </div>
-        </div>
+          <div
+            class="status-details hidden"
+            id="status-details"
+          >
+            <div
+              class="progress-bar hidden"
+              id="progress-bar"
+            >
+              <div class="progress-fill"></div>
+            </div>
+            <div
+              class="status-actions hidden"
+              id="status-actions"
+            ></div>
+          </div>
+        </section>
 
-        <!-- Capture warning message -->
-        <div
+        <section
           id="capture-warning"
-          class="capture-warning-container, hidden"
+          class="capture-warning-container hidden"
         >
-          <div class="warning-card pw-card pw-card-warning">
+          <div class="warning-card pw-card pw-card--static">
             <div class="warning-icon pw-icon">⚠️</div>
             <div class="warning-content">
               <div class="warning-title pw-text-primary">Page Not Capturable</div>
               <div class="warning-message pw-text-secondary">Cannot capture browser internal pages</div>
             </div>
           </div>
+        </section>
+
+        <div class="pw-inline-actions">
+          <button
+            id="capture-content"
+            class="pw-btn pw-btn-primary pw-btn-full"
+            type="button"
+          >
+            <span class="pw-icon">📄</span>
+            Capture Content
+          </button>
+          <button
+            id="settings-btn"
+            class="pw-btn pw-btn-secondary pw-btn-full"
+            type="button"
+          >
+            <span class="pw-icon">⚙️</span>
+            Settings
+          </button>
+          <button
+            id="view-repo"
+            class="pw-btn pw-btn-secondary pw-btn-full"
+            type="button"
+          >
+            <span class="pw-icon">🔗</span>
+            Repository
+          </button>
         </div>
+      </main>
 
-        <button
-          id="capture-content"
-          class="action-button pw-button pw-button-primary"
-        >
-          <span class="pw-icon">📄</span>
-          Capture Content
-        </button>
-
-        <button
-          id="settings-btn"
-          class="secondary-button pw-button pw-button-secondary"
-        >
-          <span class="pw-icon">⚙️</span>
-          Settings
-        </button>
-        <button
-          id="view-repo"
-          class="secondary-button repo-button pw-button pw-button-secondary"
-        >
-          <span class="pw-icon">🔗</span>
-          View Repository
-        </button>
-      </div>
+      <footer class="pw-footer">
+        <span class="pw-footer__version">
+          v
+          <span id="extension-version">—</span>
+        </span>
+        <span class="pw-footer__links">
+          <a
+            href="https://github.com/davidhayesbc/PrismWeave"
+            target="_blank"
+            rel="noopener"
+            class="pw-footer__link"
+          >
+            Project
+          </a>
+        </span>
+      </footer>
     </div>
     <script
       type="module"

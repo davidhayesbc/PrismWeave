@@ -21,6 +21,7 @@ export class PrismWeavePopup {
   private lastCapturedContent: string | null = null;
   private eventListenersSetup: boolean = false;
   private openRepositoryDebounceTimer: NodeJS.Timeout | null = null;
+  private statusTemplateHTML: string | null = null;
 
   // Dependencies for testability
   private chrome: typeof chrome;
@@ -118,6 +119,8 @@ export class PrismWeavePopup {
       logger.debug('Setting up event listeners');
       this.setupEventListeners();
 
+      this.cacheStatusTemplate();
+
       logger.debug('Checking page capturability');
       this.checkPageCapturability();
 
@@ -129,6 +132,7 @@ export class PrismWeavePopup {
       logger.groupEnd();
     }
   }
+
   private async getCurrentTab(): Promise<void> {
     return new Promise<void>((resolve, reject) => {
       this.chrome.tabs.query({ active: true, currentWindow: true }, (tabs: chrome.tabs.Tab[]) => {
@@ -204,6 +208,32 @@ export class PrismWeavePopup {
     // Mark event listeners as setup
     this.eventListenersSetup = true;
     logger.debug('Event listeners setup completed');
+  }
+
+  private cacheStatusTemplate(): void {
+    if (this.statusTemplateHTML) {
+      return;
+    }
+
+    const container = this.document.getElementById('capture-status');
+    if (container) {
+      this.statusTemplateHTML = container.innerHTML;
+    }
+  }
+
+  private ensureStatusTemplate(): HTMLElement | null {
+    const container = this.document.getElementById('capture-status');
+    if (!container) {
+      return null;
+    }
+
+    if (!this.statusTemplateHTML) {
+      this.statusTemplateHTML = container.innerHTML;
+    } else if (!container.querySelector('#status-title')) {
+      container.innerHTML = this.statusTemplateHTML;
+    }
+
+    return container;
   }
 
   private updatePageInfo(): void {
@@ -941,11 +971,11 @@ export class PrismWeavePopup {
       details?: string[];
     } = {}
   ): void {
-    const container = this.document.getElementById('capture-status');
+    const container = this.ensureStatusTemplate();
     if (!container) return;
 
     // Update container class
-    container.className = `capture-status-container ${type}`;
+    container.className = `pw-card pw-card--static capture-status-container ${type}`;
 
     // Update icon based on type
     const iconElement = this.document.getElementById('status-icon');
@@ -1048,6 +1078,8 @@ export class PrismWeavePopup {
    * @param missingSettings Array of missing setting names
    */
   private showMissingSettingsMessage(message: string, missingSettings: string[] = []): void {
+    this.cacheStatusTemplate();
+
     const container = this.document.getElementById('capture-status');
     if (!container) return;
 
@@ -1084,7 +1116,7 @@ export class PrismWeavePopup {
       </div>
     `;
 
-    container.className = 'capture-status-container missing-settings';
+    container.className = 'pw-card pw-card--static capture-status-container missing-settings';
     container.style.display = 'block';
 
     // Setup event handlers
@@ -1105,12 +1137,20 @@ export class PrismWeavePopup {
     // Auto-hide after 12 seconds (longer for settings issues)
     setTimeout(() => this.resetCaptureStatus(), 12000);
   }
+
   private resetCaptureStatus(): void {
     const statusElement = this.document.getElementById('capture-status');
     if (statusElement) {
+      this.cacheStatusTemplate();
+
+      if (this.statusTemplateHTML) {
+        statusElement.innerHTML = this.statusTemplateHTML;
+      } else {
+        statusElement.textContent = '';
+      }
+
       statusElement.style.display = 'none';
-      statusElement.textContent = '';
-      statusElement.className = 'capture-status';
+      statusElement.className = 'pw-card pw-card--static capture-status-container hidden';
     }
     this.lastCapturedContent = null;
   }

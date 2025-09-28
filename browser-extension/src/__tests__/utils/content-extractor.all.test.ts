@@ -289,10 +289,14 @@ describe('VIII.3 Simon Willison Blog Content Extraction', () => {
     // Mock global objects
     (global as any).document = mockDocument;
     (global as any).window = dom.window;
-    Object.defineProperty(window, 'location', {
-      value: dom.window.location,
-      writable: true,
-    });
+    try {
+      Object.defineProperty(window, 'location', {
+        value: dom.window.location,
+        writable: true,
+      });
+    } catch (error) {
+      (global as any).location = dom.window.location;
+    }
   };
 
   test('VIII.3.1 - Should correctly extract main content from Simon Willison blog structure', async () => {

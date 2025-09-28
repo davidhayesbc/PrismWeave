@@ -1,35 +1,5 @@
 /* PrismWeave Website – modern minimal theme */
-
-:root {
-    --font-family: "Inter", "Segoe UI", sans-serif;
-    --page-bg: radial-gradient(circle at top, #f8fafc 0%, #eef2ff 55%, #e0e7ff 100%);
-    --text-color: #0f172a;
-    --muted-color: #475569;
-    --page-surface: rgba(255, 255, 255, 0.88);
-    --card-surface: rgba(255, 255, 255, 0.92);
-    --border-color: rgba(148, 163, 184, 0.3);
-    --accent-color: #6366f1;
-    --accent-soft: rgba(99, 102, 241, 0.12);
-    --accent-strong: #4f46e5;
-    --positive-color: #22c55e;
-    --shadow: 0 26px 60px -35px rgba(15, 23, 42, 0.5);
-    --radius: 20px;
-    --transition: 0.25s ease;
-}
-
-[data-theme="dark"] {
-    --page-bg: radial-gradient(circle at top, #0f172a 0%, #020617 70%, #000 100%);
-    --text-color: #e2e8f0;
-    --muted-color: #94a3b8;
-    --page-surface: rgba(15, 23, 42, 0.82);
-    --card-surface: rgba(9, 14, 23, 0.86);
-    --border-color: rgba(59, 130, 246, 0.18);
-    --accent-color: #22d3ee;
-    --accent-soft: rgba(34, 211, 238, 0.14);
-    --accent-strong: #0ea5e9;
-    --positive-color: #4ade80;
-    --shadow: 0 28px 70px -30px rgba(2, 6, 23, 0.84);
-}
+@import "../../shared-styles/design-tokens.css";
 
 * {
     box-sizing: border-box;
