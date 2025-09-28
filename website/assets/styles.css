@@ -1,5 +1,6 @@
 /* PrismWeave Website – modern minimal theme */
 @import "../../shared-styles/design-tokens.css";
+@import "../../shared-styles/shared-ui.css";
 
 * {
     box-sizing: border-box;
@@ -79,35 +80,6 @@ a:hover {
     max-width: 36ch;
 }
 
-.theme-toggle {
-    display: inline-flex;
-    align-items: center;
-    gap: 10px;
-    padding: 10px 18px;
-    border-radius: 999px;
-    border: 1px solid var(--border-color);
-    background: var(--accent-soft);
-    color: inherit;
-    font-weight: 600;
-    cursor: pointer;
-    transition: transform var(--transition), border-color var(--transition), background var(--transition);
-}
-
-.theme-toggle:hover {
-    transform: translateY(-1px);
-    border-color: var(--accent-color);
-}
-
-.theme-toggle__icon {
-    display: none;
-    font-size: 1.1rem;
-    line-height: 1;
-}
-
-[data-theme="light"] .theme-toggle__icon--sun,
-[data-theme="dark"] .theme-toggle__icon--moon {
-    display: inline;
-}
 
 .page-main {
     display: flex;
@@ -120,28 +92,10 @@ a:hover {
 }
 
 .surface {
-    background: var(--card-surface);
-    border: 1px solid var(--border-color);
-    border-radius: calc(var(--radius) - 6px);
-    padding: clamp(20px, 3vw, 28px);
     display: flex;
     flex-direction: column;
     gap: 18px;
-    transition: border-color var(--transition), background var(--transition), transform var(--transition);
-}
-
-.surface:hover {
-    border-color: var(--accent-color);
-    transform: translateY(-2px);
-}
-
-.surface--static {
-    transition: border-color var(--transition), background var(--transition);
-}
-
-.surface--static:hover {
-    transform: none;
-    border-color: var(--border-color);
+    padding: clamp(20px, 3vw, 28px);
 }
 
 .surface--muted {
@@ -205,24 +159,6 @@ a:hover {
     color: var(--muted-color);
 }
 
-.btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    background: var(--accent-color);
-    color: #ffffff;
-    padding: 10px 18px;
-    border-radius: 12px;
-    font-weight: 600;
-    transition: transform var(--transition), box-shadow var(--transition), background var(--transition);
-    box-shadow: 0 12px 26px -18px rgba(99, 102, 241, 0.6);
-}
-
-.btn:hover {
-    transform: translateY(-2px);
-    background: var(--accent-strong);
-}
-
 .quick-start h2 {
     margin: 0;
 }
@@ -252,10 +188,6 @@ a:hover {
 }
 
 @media (max-width: 640px) {
-    .theme-toggle__label {
-        display: none;
-    }
-
     .brand__meta p {
         max-width: none;
     }

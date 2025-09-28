@@ -47,15 +47,15 @@
             <p>Bookmarklet Generator</p>
           </div>
         </div>
-        <button class="theme-toggle" type="button" data-theme-toggle>
-          <span class="theme-toggle__icon theme-toggle__icon--sun" aria-hidden="true">☀️</span>
-          <span class="theme-toggle__icon theme-toggle__icon--moon" aria-hidden="true">🌙</span>
-          <span class="theme-toggle__label">Theme</span>
+        <button class="pw-theme-toggle" type="button" data-theme-toggle>
+          <span class="pw-theme-toggle__icon pw-theme-toggle__icon--sun" aria-hidden="true">☀️</span>
+          <span class="pw-theme-toggle__icon pw-theme-toggle__icon--moon" aria-hidden="true">🌙</span>
+          <span class="pw-theme-toggle__label">Theme</span>
         </button>
       </header>
 
       <main class="page-main page-main--narrow">
-        <section class="surface surface--static generator-intro">
+  <section class="pw-card pw-card--static surface generator-intro">
           <h2>Build your personal capture bookmarklet</h2>
           <p>
             Create a PrismWeave bookmarklet that embeds your GitHub preferences so you can capture content from any
@@ -63,9 +63,9 @@
           </p>
         </section>
 
-        <section class="surface surface--static generator-details">
+  <section class="pw-card pw-card--static surface generator-details">
           <div class="details-grid">
-            <article class="details-card">
+            <article class="pw-card details-card">
               <h3>What is this?</h3>
               <p>
                 Generate a custom bookmarklet that includes your GitHub repository and workflow defaults. The script is
@@ -73,7 +73,7 @@
               </p>
             </article>
 
-            <article class="details-card details-card--success">
+            <article class="pw-card details-card details-card--success">
               <h4>⚡ Optimization Highlights</h4>
               <ul>
                 <li>Compact JavaScript with streamlined feedback</li>
@@ -82,7 +82,7 @@
               </ul>
             </article>
 
-            <article class="details-card details-card--warning">
+            <article class="pw-card details-card details-card--warning">
               <h4>🔒 Security Note</h4>
               <p>
                 Your GitHub token is embedded in the bookmarklet. Use a fine-grained token with limited repository
@@ -96,7 +96,7 @@
           </div>
         </section>
 
-        <form id="generator-form" class="surface surface--static generator-form">
+  <form id="generator-form" class="pw-card pw-card--static surface generator-form">
           <h3 class="generator-form__title">Configuration</h3>
           <div class="generator-form__grid">
             <div class="generator-form-section">
@@ -189,7 +189,7 @@
 
         <div id="status-message" class="generator-status"></div>
 
-        <section class="surface surface--static generator-result" id="result-section">
+        <section class="pw-card pw-card--static surface generator-result" id="result-section">
           <h3>✅ Your Personal Bookmarklet is Ready!</h3>
 
           <div class="bookmarklet-preview">

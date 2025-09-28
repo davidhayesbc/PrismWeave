@@ -218,6 +218,12 @@ class PrismWeaveBuildSystem {
       traverse(src, '');
     };
 
+    // Copy shared design tokens used across builds so CSS imports resolve
+    const sharedStylesPath = path.join(this.projectRoot, 'shared-styles');
+    if (fs.existsSync(sharedStylesPath)) {
+      incrementalCopy(sharedStylesPath, path.join(webDistPath, 'shared-styles'));
+    }
+
     // Copy static website assets first (so later copies can reference them)
     const websiteSrcPath = path.join(this.projectRoot, 'website');
     if (fs.existsSync(websiteSrcPath)) {
