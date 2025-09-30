@@ -1,6 +1,6 @@
 /* PrismWeave Website – modern minimal theme */
-@import "../../shared-styles/design-tokens.css";
-@import "../../shared-styles/shared-ui.css";
+@import "./shared-styles/design-tokens.css";
+@import "./shared-styles/shared-ui.css";
 
 * {
     box-sizing: border-box;

@@ -13,10 +13,14 @@ class PersonalBookmarkletBuilder {
     this.scriptDir = __dirname;
     this.projectRoot = path.resolve(this.scriptDir, '..');
     this.srcDir = path.join(this.projectRoot, 'bookmarklet');
+    this.assetsDir = path.join(this.projectRoot, 'assets');
+    this.sharedStylesSourceDir = path.join(this.projectRoot, '..', 'shared-styles');
+    this.assetsSharedDir = path.join(this.assetsDir, 'shared-styles');
     this.distDir = path.join(this.projectRoot, 'dist');
     this.bookmarkletDistDir = path.join(this.distDir, 'bookmarklet');
     this.assetsDistDir = path.join(this.distDir, 'assets');
     this.assetsStylesDistDir = path.join(this.assetsDistDir, 'styles');
+    this.assetsSharedDistDir = path.join(this.assetsDistDir, 'shared-styles');
     this.isProduction = process.env.NODE_ENV === 'production';
   }
 
@@ -26,6 +30,7 @@ class PersonalBookmarkletBuilder {
 
     try {
       this.ensureDirectories();
+      this.syncSharedStyles();
       await this.buildGenerator();
       await this.copyStaticFiles();
       this.reportResults();
@@ -60,6 +65,14 @@ class PersonalBookmarkletBuilder {
       fs.mkdirSync(this.assetsStylesDistDir, { recursive: true });
     }
 
+    if (!fs.existsSync(this.assetsSharedDir)) {
+      fs.mkdirSync(this.assetsSharedDir, { recursive: true });
+    }
+
+    if (!fs.existsSync(this.assetsSharedDistDir)) {
+      fs.mkdirSync(this.assetsSharedDistDir, { recursive: true });
+    }
+
     const legacyFiles = ['generator.js', 'generator.html', 'bookmarklet-generator.css', 'shared-ui.css', 'config.js'];
     legacyFiles.forEach(fileName => {
       const legacyPath = path.join(this.distDir, fileName);
@@ -73,6 +86,36 @@ class PersonalBookmarkletBuilder {
       fs.unlinkSync(configPath);
       console.log('🧹 Cleaned up existing config.js');
     }
+  }
+
+  syncSharedStyles() {
+    console.log('🎨 Syncing shared styles...');
+
+    if (!fs.existsSync(this.sharedStylesSourceDir)) {
+      console.warn('   ⚠️  shared-styles source directory not found, skipping sync');
+      return;
+    }
+
+    const cssFiles = fs
+      .readdirSync(this.sharedStylesSourceDir)
+      .filter(fileName => fileName.endsWith('.css'));
+
+    const existingFiles = fs
+      .readdirSync(this.assetsSharedDir)
+      .filter(fileName => fileName.endsWith('.css'));
+
+    existingFiles.forEach(fileName => {
+      const targetPath = path.join(this.assetsSharedDir, fileName);
+      fs.unlinkSync(targetPath);
+    });
+
+    cssFiles.forEach(fileName => {
+      const sourcePath = path.join(this.sharedStylesSourceDir, fileName);
+      const targetPath = path.join(this.assetsSharedDir, fileName);
+
+      fs.copyFileSync(sourcePath, targetPath);
+      console.log(`   ✅ ${fileName}`);
+    });
   }
 
   async buildGenerator() {
@@ -231,8 +274,30 @@ export const BOOKMARKLET_CONFIG = {
         const srcPath = path.join(stylesDir, cssFile);
         const destPath = path.join(this.assetsStylesDistDir, cssFile);
         fs.copyFileSync(srcPath, destPath);
-        console.log(`      ✅ ${cssFile}`);
+        console.log(`      ✅ styles/${cssFile}`);
       });
+    }
+
+    const rootStylesPath = path.join(this.assetsDir, 'styles.css');
+    if (fs.existsSync(rootStylesPath)) {
+      fs.copyFileSync(rootStylesPath, path.join(this.assetsDistDir, 'styles.css'));
+      console.log('   ✅ Copied assets/styles.css');
+    }
+
+    if (fs.existsSync(this.assetsSharedDir)) {
+      const sharedCssFiles = fs
+        .readdirSync(this.assetsSharedDir)
+        .filter(fileName => fileName.endsWith('.css'));
+
+      if (sharedCssFiles.length > 0) {
+        console.log('   🎨 Copying shared design tokens...');
+        sharedCssFiles.forEach(fileName => {
+          const sourcePath = path.join(this.assetsSharedDir, fileName);
+          const destPath = path.join(this.assetsSharedDistDir, fileName);
+          fs.copyFileSync(sourcePath, destPath);
+          console.log(`      ✅ shared-styles/${fileName}`);
+        });
+      }
     }
 
     const readmePath = path.join(this.srcDir, 'README.md');
