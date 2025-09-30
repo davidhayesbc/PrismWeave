@@ -12,6 +12,7 @@ interface IToastOptions {
   linkLabel?: string; // optional label for inline action link (defaults to hostname or 'Open')
   openInNewTab?: boolean; // default true
   onClick?: () => void; // optional extra callback invoked before navigation
+  forceHighestZIndex?: boolean; // force maximum z-index for extreme cases
 }
 
 const DEFAULT_DURATION = 4000;
@@ -22,9 +23,9 @@ const STYLE_ID = 'prismweave-toast-styles';
 // If the full shared stylesheet is already present these vars will simply be overridden (harmless duplication).
 const CANONICAL_TOAST_CSS = `
 /* PrismWeave Toast Tokens (subset) */
-:root{--pw-space-3:0.75rem;--pw-space-4:1rem;--pw-space-5:1.25rem;--pw-radius-lg:0.75rem;--pw-font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;--pw-success-500:#10b981;--pw-error-500:#ef4444;--pw-primary-500:#3b82f6;--pw-warning-500:#f59e0b;--pw-shadow-lg:0 10px 15px -3px rgba(0,0,0,.1),0 4px 6px -2px rgba(0,0,0,.05);--pw-z-modal:1000}
+:root{--pw-space-3:0.75rem;--pw-space-4:1rem;--pw-space-5:1.25rem;--pw-radius-lg:0.75rem;--pw-font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;--pw-success-500:#10b981;--pw-error-500:#ef4444;--pw-primary-500:#3b82f6;--pw-warning-500:#f59e0b;--pw-shadow-lg:0 10px 15px -3px rgba(0,0,0,.1),0 4px 6px -2px rgba(0,0,0,.05);--pw-z-toast:10000}
 /* Toast container (stack) */
-.pw-toast-container{position:fixed;top:var(--pw-space-5);right:var(--pw-space-5);display:flex;flex-direction:column;gap:var(--pw-space-3);z-index:calc(var(--pw-z-modal) + 1);font-family:var(--pw-font-family)}
+.pw-toast-container{position:fixed;top:var(--pw-space-5);right:var(--pw-space-5);display:flex;flex-direction:column;gap:var(--pw-space-3);z-index:var(--pw-z-toast);font-family:var(--pw-font-family)}
 /* Base toast */
 .pw-toast{background:var(--pw-warning-500);color:#fff;padding:var(--pw-space-3) var(--pw-space-4);border-radius:var(--pw-radius-lg);box-shadow:var(--pw-shadow-lg);font-size:14px;line-height:1.35;display:flex;align-items:center;gap:var(--pw-space-3);max-width:320px;animation:pw-slideIn .3s ease;position:relative}
 .pw-toast-success{background:var(--pw-success-500)}
@@ -71,6 +72,7 @@ export function showToast(message: string, options: IToastOptions = {}): void {
     linkLabel,
     openInNewTab = true,
     onClick,
+    forceHighestZIndex = false,
   } = options;
 
   // If DOM not available (e.g., background worker) simply no-op per updated requirements.
@@ -79,6 +81,11 @@ export function showToast(message: string, options: IToastOptions = {}): void {
   ensureStyles();
   const container = getContainer();
   if (!container) return; // Silent no-op if container can't be created
+
+  // Apply extreme z-index if requested
+  if (forceHighestZIndex) {
+    container.style.zIndex = '2147483647'; // Maximum safe z-index value
+  }
 
   const toast = document.createElement('div');
   toast.className = `pw-toast pw-toast-${type}`;
@@ -197,4 +204,9 @@ function deriveLinkLabel(url: string): string {
 // Provide a global helper for bookmarklet runtime convenience
 if (typeof window !== 'undefined') {
   (window as any).prismweaveShowToast = showToast;
+
+  // Utility function to show toast with maximum z-index for extreme cases
+  (window as any).prismweaveShowToastMaxZ = (message: string, options: IToastOptions = {}) => {
+    return showToast(message, { ...options, forceHighestZIndex: true });
+  };
 }

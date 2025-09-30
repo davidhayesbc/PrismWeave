@@ -1382,14 +1382,12 @@ npm run lint:fix
 #### Extension Debugging
 
 1. **Service Worker Debugging**:
-
    - Open `chrome://extensions/`
    - Find PrismWeave extension
    - Click "Service worker" link
    - Use DevTools console for debugging
 
 2. **Content Script Debugging**:
-
    - Open page with injected content script
    - Press F12 to open DevTools
    - Check Console tab for content script logs
@@ -1915,7 +1913,6 @@ class PerformanceDashboard {
 #### For Users
 
 1. **Optimal Usage Patterns**:
-
    - Close unnecessary tabs before capturing
    - Allow pages to fully load before capturing
    - Use batch capture for multiple articles
@@ -1930,14 +1927,12 @@ class PerformanceDashboard {
 #### For Developers
 
 1. **Code Optimization**:
-
    - Use async/await patterns consistently
    - Implement proper error boundaries
    - Cache expensive operations
    - Minimize DOM manipulation
 
 2. **Resource Management**:
-
    - Clean up event listeners
    - Clear timeouts and intervals
    - Remove unused DOM elements
@@ -2552,3 +2547,82 @@ describe('Capture Workflow', () => {
   });
 });
 ```
+
+## 🔧 Troubleshooting
+
+### Toast Notifications Appearing Behind Page Elements
+
+If toast notifications (success/error messages) appear behind page elements like
+modals, dropdowns, or sticky headers, you can use the enhanced z-index options:
+
+#### Default High Z-Index (Automatic)
+
+PrismWeave toast notifications now use a z-index of `10000` by default, which
+should appear above most page elements:
+
+```css
+/* Automatically applied */
+.pw-toast-container {
+  z-index: 10000; /* High enough for most websites */
+}
+```
+
+#### Maximum Z-Index Override (For Extreme Cases)
+
+For websites with very high z-index values, you can force maximum z-index:
+
+```javascript
+// Force maximum z-index for extreme cases
+window.prismweaveShowToastMaxZ('Message with maximum z-index');
+
+// Or use the option parameter
+window.prismweaveShowToast('Your message', {
+  forceHighestZIndex: true,
+});
+```
+
+This sets the z-index to `2147483647` (maximum safe CSS z-index value).
+
+#### Global Helper Functions
+
+Two global functions are available for toast notifications:
+
+```javascript
+// Standard toast (z-index: 10000)
+window.prismweaveShowToast('Success message', { type: 'success' });
+
+// Maximum z-index toast (z-index: 2147483647)
+window.prismweaveShowToastMaxZ('Critical message', { type: 'error' });
+```
+
+#### Common Z-Index Conflicts
+
+If notifications still appear behind elements:
+
+1. **Check for CSS transforms**: Elements with `transform` create new stacking
+   contexts
+2. **Inspect competing z-index values**: Use browser dev tools to check other
+   elements
+3. **Website-specific issues**: Some sites use z-index values > 999999
+4. **Use the maximum override**: Apply `forceHighestZIndex: true` for
+   problematic sites
+
+#### Example Usage
+
+```javascript
+// For most websites (automatic)
+prismweaveShowToast('Content captured successfully!', {
+  type: 'success',
+  clickUrl: 'https://github.com/user/repo/blob/main/captured-article.md',
+});
+
+// For problematic websites with high z-index elements
+prismweaveShowToast('Content captured successfully!', {
+  type: 'success',
+  forceHighestZIndex: true,
+  clickUrl: 'https://github.com/user/repo/blob/main/captured-article.md',
+});
+```
+
+The enhanced z-index system ensures toast notifications remain visible across
+all website types and layouts.
