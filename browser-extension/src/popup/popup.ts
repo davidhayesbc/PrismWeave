@@ -22,6 +22,7 @@ export class PrismWeavePopup {
   private eventListenersSetup: boolean = false;
   private openRepositoryDebounceTimer: NodeJS.Timeout | null = null;
   private statusTemplateHTML: string | null = null;
+  private themeToggleSetup: boolean = false;
 
   // Dependencies for testability
   private chrome: typeof chrome;
@@ -119,6 +120,9 @@ export class PrismWeavePopup {
       logger.debug('Setting up event listeners');
       this.setupEventListeners();
 
+      logger.debug('Setting up theme toggle');
+      this.setupThemeToggle();
+
       this.cacheStatusTemplate();
 
       logger.debug('Checking page capturability');
@@ -208,6 +212,72 @@ export class PrismWeavePopup {
     // Mark event listeners as setup
     this.eventListenersSetup = true;
     logger.debug('Event listeners setup completed');
+  }
+
+  private setupThemeToggle(): void {
+    // Prevent duplicate theme toggle setup
+    if (this.themeToggleSetup) {
+      logger.debug('Theme toggle already setup, skipping...');
+      return;
+    }
+
+    const storageKey = 'prismweave-theme';
+    const root = this.document.documentElement;
+    const toggle = this.document.querySelector('[data-theme-toggle]') as HTMLButtonElement;
+
+    const systemTheme = (): string => {
+      return this.window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    };
+
+    const setTheme = (theme: string): void => {
+      root.dataset.theme = theme;
+      if (toggle) {
+        toggle.setAttribute('aria-label', `Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`);
+      }
+      logger.debug('Theme set to:', theme);
+    };
+
+    const getStoredTheme = (): string | null => {
+      try {
+        return localStorage.getItem(storageKey);
+      } catch (error) {
+        logger.warn('Failed to get stored theme:', error);
+        return null;
+      }
+    };
+
+    // Initialize theme
+    const storedTheme = getStoredTheme();
+    const initialTheme = storedTheme || root.dataset.theme || systemTheme();
+    setTheme(initialTheme);
+
+    // Listen for system theme changes
+    this.window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
+      if (!getStoredTheme()) {
+        setTheme(event.matches ? 'dark' : 'light');
+      }
+    });
+
+    // Setup toggle button
+    if (toggle) {
+      toggle.addEventListener('click', () => {
+        const currentTheme = root.dataset.theme || 'light';
+        const nextTheme = currentTheme === 'dark' ? 'light' : 'dark';
+        setTheme(nextTheme);
+
+        try {
+          localStorage.setItem(storageKey, nextTheme);
+          logger.debug('Theme preference saved:', nextTheme);
+        } catch (error) {
+          logger.warn('Failed to save theme preference:', error);
+        }
+      });
+    } else {
+      logger.warn('Theme toggle button not found');
+    }
+
+    this.themeToggleSetup = true;
+    logger.debug('Theme toggle setup completed');
   }
 
   private cacheStatusTemplate(): void {
