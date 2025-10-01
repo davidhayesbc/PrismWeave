@@ -56,6 +56,12 @@ async function captureCommand(url: string | undefined, options: any) {
     const urls: string[] = [];
 
     if (url) {
+      // Check if user accidentally passed a file path as a URL
+      if (url.endsWith('.txt') || url.endsWith('.md') || url.includes('\\') || url.includes('./')) {
+        console.error(chalk.red(`Error: It looks like you passed a file path as a URL: ${url}`));
+        console.log(chalk.yellow('Did you mean to use: --file ' + url + ' or -f ' + url + ' ?'));
+        process.exit(1);
+      }
       urls.push(url);
     } else if (options.file) {
       try {
