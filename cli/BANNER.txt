@@ -1,0 +1,68 @@
+
+   ___       _                __      __                       
+  / _ \_____(_)__ __ _  _    / /  ___/ /__ ___ __  _____ 
+ / ___/ __/ (_-</  ' \| |/|/ / _ \/ _  / -_) _ `/ |/ / -_)
+/_/  /_/ /_/___/_/_/_/|__,__/_//_/\_,_/\__/\_,_/|___/\__/ 
+                                                            
+              Command-Line Content Capture                 
+                   Version 0.1.0                           
+                                                            
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   Capture web content • Convert to Markdown • Save to Git
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🚀 Quick Start:
+   npm install && npm run build && npm link
+   prismweave config --set githubToken=TOKEN
+   prismweave config --set githubRepo=owner/repo
+   prismweave capture https://example.com
+
+📚 Documentation:
+   README.md           - Complete user guide
+   QUICKSTART.md       - 5-minute getting started
+   TROUBLESHOOTING.md  - Problem solving
+   INDEX.md            - Documentation hub
+
+✨ Features:
+   ✓ Headless browser capture with Puppeteer
+   ✓ Clean HTML to Markdown conversion
+   ✓ Automatic GitHub commits
+   ✓ Smart file organization
+   ✓ Batch URL processing
+   ✓ 60% code sharing with browser extension
+
+🎯 Usage Examples:
+   # Single URL capture
+   prismweave capture https://blog.com/article
+
+   # Batch processing
+   prismweave capture --file urls.txt
+
+   # Preview without saving
+   prismweave capture URL --dry-run
+
+   # Custom timeout for slow sites
+   prismweave capture URL --timeout 60000
+
+   # Custom commit message
+   prismweave capture URL --message "Great article"
+
+🔧 Configuration:
+   prismweave config --set githubToken=TOKEN
+   prismweave config --set githubRepo=owner/repo
+   prismweave config --test
+   prismweave config --list
+
+📦 Requirements:
+   • Node.js 18.0.0 or higher
+   • GitHub personal access token
+   • Internet connection
+
+🌐 Links:
+   Repository: https://github.com/davidhayesbc/PrismWeave
+   Issues:     https://github.com/davidhayesbc/PrismWeave/issues
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+       Built with ❤️  for the PrismWeave ecosystem
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

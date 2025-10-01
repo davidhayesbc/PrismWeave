@@ -1,0 +1,13 @@
+# Example URLs for PrismWeave CLI
+# Lines starting with # are comments
+# Add one URL per line
+
+# Tech articles
+https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide
+https://github.blog/developer-skills/github/what-is-git-our-beginners-guide-to-version-control/
+
+# Blog posts
+https://simonwillison.net/2024/Oct/21/claude-api-prompt-caching/
+
+# Documentation
+https://docs.github.com/en/get-started/getting-started-with-git/about-git
