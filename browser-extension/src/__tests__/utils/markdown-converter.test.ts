@@ -722,7 +722,9 @@ console.log(x);</code></pre>
     test('I.2.3 - should include metadata in result', () => {
       const html = '<h1>Test</h1><p>Content</p>';
 
-      const result = converter.convertToMarkdown(html);
+      const result = converter.convertToMarkdown(html, {
+        sourceUrl: 'https://example.com/test-page',
+      } as any);
 
       expect(result.metadata).toHaveProperty('title');
       expect(result.metadata).toHaveProperty('url');

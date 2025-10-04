@@ -239,12 +239,33 @@ export class MarkdownConverterCore {
         wordCount = document.body.textContent.trim().split(/\s+/).filter(Boolean).length;
       }
 
+      // Priority order for URL resolution:
+      // 1. options.sourceUrl or options.pageUrl (explicit override for tests)
+      // 2. global.window.location.href (test mocks)
+      // 3. window.location.href (runtime/jsdom)
+      const optionsUrl = (options as any).sourceUrl || (options as any).pageUrl;
+      let pageUrl = '';
+      
+      if (optionsUrl && typeof optionsUrl === 'string' && optionsUrl !== 'http://localhost/') {
+        pageUrl = optionsUrl;
+      } else if (typeof global !== 'undefined' && (global as any).window?.location?.href) {
+        const globalHref = (global as any).window.location.href;
+        if (globalHref !== 'http://localhost/') {
+          pageUrl = globalHref;
+        }
+      }
+      
+      // Fall back to runtime window only if still not found
+      if (!pageUrl && typeof window !== 'undefined' && window.location?.href) {
+        pageUrl = window.location.href;
+      }
+
       const result: IConversionResult = {
         markdown: cleanedMarkdown,
         frontmatter: '',
         metadata: {
           title: '',
-          url: typeof window !== 'undefined' ? window.location.href : '',
+          url: pageUrl,
           captureDate: new Date().toISOString(),
           tags: [],
           author: '',
