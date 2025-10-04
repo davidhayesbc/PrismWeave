@@ -12,7 +12,6 @@ class PrismWeaveBuildSystem {
   constructor() {
     this.projectRoot = __dirname;
     this.isProduction = process.env.NODE_ENV === 'production';
-    this.sharedCoreBuilt = false;
     this.components = {
       'browser-extension': {
         path: 'browser-extension',
@@ -84,37 +83,10 @@ class PrismWeaveBuildSystem {
     
     // Build in order of dependencies
     await this.buildAIProcessing();
-    await this.ensureSharedCoreBuilt();
     await this.buildCLI();
     await this.buildBrowserExtension();
     await this.buildBookmarklet();
     await this.buildWebDeployment();
-  }
-
-  async ensureSharedCoreBuilt() {
-    if (this.sharedCoreBuilt) {
-      return;
-    }
-    await this.buildSharedCore();
-  }
-
-  async buildSharedCore() {
-    console.log('🧱 Building shared core utilities...');
-    const componentPath = path.join(this.projectRoot, 'shared-core');
-
-    if (!fs.existsSync(componentPath)) {
-      console.log('⏭️ Shared core package not found, skipping...');
-      return;
-    }
-
-    execSync('npm run build', {
-      cwd: componentPath,
-      stdio: 'inherit',
-      env: { ...process.env, NODE_ENV: this.isProduction ? 'production' : 'development' }
-    });
-
-    this.sharedCoreBuilt = true;
-    console.log('✅ Shared core utilities built');
   }
 
   async buildBrowserExtension() {
@@ -159,8 +131,6 @@ class PrismWeaveBuildSystem {
       console.log('⏭️ CLI not found, skipping...');
       return;
     }
-
-    await this.ensureSharedCoreBuilt();
 
     // Install dependencies if needed
     if (!fs.existsSync(path.join(componentPath, 'node_modules'))) {

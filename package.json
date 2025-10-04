@@ -7,9 +7,7 @@
   "workspaces": [
     "browser-extension",
     "browser-extension/dev-tools",
-    "ai-processing",
-    "shared-core",
-    "cli"
+    "ai-processing"
   ],
   "scripts": {
     "build": "node build.js build",
