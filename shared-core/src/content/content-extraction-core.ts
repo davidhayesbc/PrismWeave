@@ -1,3 +1,6 @@
+import type { IDocumentMetadata } from '../types.js';
+import { createConsoleLogger, type ILogger } from '../util/index.js';
+
 export interface ICoreExtractionOptions {
   customSelectors?: string[];
   cleanHtml?: boolean;
@@ -9,20 +12,6 @@ export interface ICoreExtractionOptions {
   includeImages?: boolean;
   includeLinks?: boolean;
   maxWordCount?: number;
-}
-
-export interface IDocumentMetadata {
-  title: string;
-  url: string;
-  captureDate: string;
-  tags: string[];
-  author?: string;
-  wordCount?: number;
-  estimatedReadingTime?: number;
-  description?: string;
-  keywords?: string[];
-  publishedDate?: string;
-  language?: string;
 }
 
 export interface ICoreContentResult {
@@ -45,37 +34,43 @@ export interface IImageInfo {
 }
 
 /**
- * Core content extraction utility without Chrome API dependencies
- * Can be used in both browser extension and CLI/Puppeteer contexts
+ * Core content extraction utility that works without Chrome APIs. Consumers are
+ * responsible for executing this code in a DOM-enabled environment (browser,
+ * puppeteer, etc.).
  */
 export class ContentExtractionCore {
-  /**
-   * Extract content from the current page
-   */
+  private readonly logger: ILogger;
+
+  constructor(logger: ILogger = createConsoleLogger('ContentExtractionCore')) {
+    this.logger = logger;
+  }
+
   async extractContent(options: ICoreExtractionOptions = {}): Promise<ICoreContentResult> {
     try {
-      // Wait for content to load if needed
+      this.logger.debug('Starting core content extraction');
+
       if (options.waitForDynamicContent !== false) {
         await this.waitForContent();
       }
 
-      // Extract metadata first
       const metadata = this.extractMetadata();
-
-      // Find and extract main content
       const mainContent = this.findMainContent(options);
       if (!mainContent) {
         throw new Error('No suitable content found on page');
       }
 
-      // Clean the content
       const cleanedElement = this.cleanContent(mainContent, options);
       const content = cleanedElement.innerHTML;
       const cleanedContent = cleanedElement.textContent || '';
 
-      // Calculate metrics
       const wordCount = this.countWords(cleanedContent);
       const readingTime = this.estimateReadingTime(wordCount);
+
+      this.logger.debug('Content extraction completed', {
+        wordCount,
+        readingTime,
+        contentLength: content.length,
+      });
 
       return {
         content,
@@ -89,14 +84,11 @@ export class ContentExtractionCore {
         readingTime,
       };
     } catch (error) {
-      console.error('Content extraction failed:', error);
+      this.logger.error('Content extraction failed:', error);
       throw error;
     }
   }
 
-  /**
-   * Extract page metadata with enhanced blog support
-   */
   extractMetadata(): IDocumentMetadata {
     const wordCount = this.countWords(document.body.textContent || '');
     const metadata: IDocumentMetadata = {
@@ -105,40 +97,34 @@ export class ContentExtractionCore {
       captureDate: new Date().toISOString(),
       tags: this.extractKeywords(),
       author: this.extractAuthor(),
-      wordCount: wordCount,
+      wordCount,
       estimatedReadingTime: this.estimateReadingTime(wordCount),
       description: this.extractDescription(),
       publishedDate: this.extractPublishedDate(),
       language: this.extractLanguage(),
     };
 
-    // Add blog-specific metadata if this looks like a blog
     if (this.isBlogPage()) {
-      const blogMetadata = this.extractBlogMetadata();
-      Object.assign(metadata, blogMetadata);
+      Object.assign(metadata, this.extractBlogMetadata());
     }
 
     return metadata;
   }
 
-  /**
-   * Extract images from the page
-   */
   extractImages(): IImageInfo[] {
     const images: IImageInfo[] = [];
     const imgElements = document.querySelectorAll('img');
 
     imgElements.forEach(img => {
-      const src = (img as HTMLImageElement).src || (img as any).dataset?.src; // Handle lazy-loaded images
-      const alt = (img as HTMLImageElement).alt || '';
+      const src = img.src || (img as HTMLImageElement).dataset.src;
+      const alt = img.alt || '';
 
       if (src && !src.startsWith('data:') && src.length > 0) {
-        // Convert relative URLs to absolute
         try {
           const absoluteUrl = new URL(src, window.location.href).href;
           images.push({ src: absoluteUrl, alt });
         } catch (error) {
-          // Skip invalid URLs
+          // Ignore invalid URLs
         }
       }
     });
@@ -146,9 +132,6 @@ export class ContentExtractionCore {
     return images;
   }
 
-  /**
-   * Get page structure information
-   */
   getPageStructure(): IPageStructure {
     const headings: Array<{ level: number; text: string }> = [];
     const headingElements = document.querySelectorAll('h1, h2, h3, h4, h5, h6');
@@ -167,9 +150,6 @@ export class ContentExtractionCore {
     return { headings, sections, paragraphs };
   }
 
-  /**
-   * Calculate content quality score
-   */
   getContentQualityScore(): number {
     const structure = this.getPageStructure();
     const textLength = document.body.textContent?.length || 0;
@@ -177,21 +157,17 @@ export class ContentExtractionCore {
 
     let score = 0;
 
-    // Text length scoring
     if (textLength > 500) score += 20;
     if (textLength > 1500) score += 20;
     if (textLength > 3000) score += 10;
 
-    // Word count scoring
     if (wordCount > 100) score += 15;
     if (wordCount > 500) score += 15;
 
-    // Structure scoring
     if (structure.headings.length > 0) score += 10;
     if (structure.headings.length > 2) score += 10;
     if (structure.paragraphs > 3) score += 10;
 
-    // Content density (text to HTML ratio)
     const htmlLength = document.body.innerHTML?.length || 1;
     const density = textLength / htmlLength;
     score += density * 10;
@@ -199,9 +175,6 @@ export class ContentExtractionCore {
     return Math.min(score, 100);
   }
 
-  /**
-   * Check if paywall is present
-   */
   isPaywallPresent(): boolean {
     const paywallSelectors = [
       '.paywall',
@@ -215,13 +188,9 @@ export class ContentExtractionCore {
     return paywallSelectors.some(selector => document.querySelector(selector) !== null);
   }
 
-  /**
-   * Extract advanced metadata including structured data
-   */
   extractAdvancedMetadata(): Record<string, unknown> {
     const metadata: Record<string, unknown> = {};
 
-    // Open Graph metadata
     document.querySelectorAll('[property^="og:"]').forEach(meta => {
       const property = meta.getAttribute('property');
       const content = meta.getAttribute('content');
@@ -230,7 +199,6 @@ export class ContentExtractionCore {
       }
     });
 
-    // Twitter Card metadata
     document.querySelectorAll('[name^="twitter:"]').forEach(meta => {
       const name = meta.getAttribute('name');
       const content = meta.getAttribute('content');
@@ -239,7 +207,6 @@ export class ContentExtractionCore {
       }
     });
 
-    // Standard meta tags
     const metaTags = ['description', 'keywords', 'author', 'generator', 'theme-color'];
     metaTags.forEach(name => {
       const meta = document.querySelector(`[name="${name}"]`);
@@ -249,7 +216,6 @@ export class ContentExtractionCore {
       }
     });
 
-    // Structured data (JSON-LD)
     try {
       const jsonLdScripts = document.querySelectorAll('script[type="application/ld+json"]');
       const structuredData: any[] = [];
@@ -258,17 +224,16 @@ export class ContentExtractionCore {
           const data = JSON.parse(script.textContent || '');
           structuredData.push(data);
         } catch (error) {
-          // Skip invalid JSON-LD
+          // Ignore malformed JSON-LD
         }
       });
       if (structuredData.length > 0) {
         metadata.structuredData = structuredData;
       }
     } catch (error) {
-      // JSON-LD parsing failed, continue without it
+      // Ignore structured data errors
     }
 
-    // Page information
     metadata.url = window.location.href;
     metadata.domain = window.location.hostname;
     metadata.pathname = window.location.pathname;
@@ -278,13 +243,9 @@ export class ContentExtractionCore {
     return metadata;
   }
 
-  // Private helper methods
-
   private async waitForContent(): Promise<void> {
-    // Wait a bit for dynamic content to load
     await new Promise(resolve => setTimeout(resolve, 500));
 
-    // Wait for images to finish loading
     const images = Array.from(document.images);
     if (images.length > 0) {
       const imagePromises = images.map(
@@ -295,7 +256,6 @@ export class ContentExtractionCore {
             } else {
               img.addEventListener('load', () => resolve(img));
               img.addEventListener('error', () => resolve(img));
-              // Timeout after 2 seconds
               setTimeout(() => resolve(img), 2000);
             }
           })
@@ -305,7 +265,6 @@ export class ContentExtractionCore {
   }
 
   private findMainContent(options: ICoreExtractionOptions): Element | null {
-    // Try custom selectors first
     if (options.customSelectors?.length) {
       for (const selector of options.customSelectors) {
         const element = document.querySelector(selector);
@@ -315,7 +274,6 @@ export class ContentExtractionCore {
       }
     }
 
-    // Common content selectors in order of preference
     const contentSelectors = [
       'article',
       'main',
@@ -337,7 +295,6 @@ export class ContentExtractionCore {
       }
     }
 
-    // Score-based fallback
     const candidates = Array.from(document.querySelectorAll('div, section, article'));
     let bestCandidate: { element: Element; score: number } | null = null;
 
@@ -356,7 +313,7 @@ export class ContentExtractionCore {
   private hasSubstantialContent(element: Element): boolean {
     const textContent = element.textContent || '';
     const wordCount = this.countWords(textContent);
-    return wordCount > 30; // Require at least 30 words
+    return wordCount > 30;
   }
 
   private scoreElement(element: Element): number {
@@ -364,30 +321,23 @@ export class ContentExtractionCore {
     const wordCount = this.countWords(text);
     let score = 0;
 
-    // Word count scoring
     score += Math.min(wordCount / 10, 50);
 
-    // Paragraph count scoring
     const paragraphs = element.querySelectorAll('p').length;
     score += paragraphs * 2;
 
-    // Link density penalty
     const links = element.querySelectorAll('a').length;
     const linkDensity = links / Math.max(wordCount, 1);
     if (linkDensity > 0.3) score -= 20;
 
-    // Semantic element bonus
     const tagName = element.tagName.toLowerCase();
     if (tagName === 'article') score += 15;
     if (tagName === 'main') score += 10;
 
-    // Class name scoring
     const className = element.className.toLowerCase();
     if (className.includes('content')) score += 10;
     if (className.includes('post')) score += 8;
     if (className.includes('article')) score += 8;
-
-    // Negative scoring
     if (className.includes('sidebar')) score -= 10;
     if (className.includes('footer')) score -= 10;
     if (className.includes('header')) score -= 10;
@@ -399,7 +349,6 @@ export class ContentExtractionCore {
   private cleanContent(element: Element, options: ICoreExtractionOptions): Element {
     const cloned = element.cloneNode(true) as Element;
 
-    // Default exclude selectors
     const defaultExcludeSelectors = [
       'script',
       'style',
@@ -417,16 +366,13 @@ export class ContentExtractionCore {
       '[style*="visibility: hidden"]',
     ];
 
-    // Combine with custom exclude selectors
     const excludeSelectors = [...defaultExcludeSelectors, ...(options.excludeSelectors || [])];
 
-    // Remove unwanted elements
     excludeSelectors.forEach(selector => {
       const elements = cloned.querySelectorAll(selector);
       elements.forEach(el => el.remove());
     });
 
-    // Additional cleaning for ads and navigation
     if (options.removeAds !== false) {
       this.removeAds(cloned);
     }
@@ -453,35 +399,31 @@ export class ContentExtractionCore {
     adSelectors.forEach(selector => {
       const elements = element.querySelectorAll(selector);
       elements.forEach(el => {
-        // Additional check to avoid removing content that just happens to have "ad" in class
         const text = el.textContent || '';
         const wordCount = this.countWords(text);
+        const className = el.className.toLowerCase();
+        const id = el.id.toLowerCase();
 
-        // If it's very short or has typical ad characteristics, remove it
-        if (wordCount < 10 || this.hasAdCharacteristics(el)) {
+        const adPatterns = [
+          'advertisement',
+          'google-ad',
+          'adsense',
+          'ad-banner',
+          'ad-container',
+          'ad-wrapper',
+          'sponsored',
+          'promo-box',
+        ];
+
+        const hasAdCharacteristics = adPatterns.some(
+          pattern => className.includes(pattern) || id.includes(pattern)
+        );
+
+        if (wordCount < 10 || hasAdCharacteristics) {
           el.remove();
         }
       });
     });
-  }
-
-  private hasAdCharacteristics(element: Element): boolean {
-    const className = element.className.toLowerCase();
-    const id = element.id.toLowerCase();
-
-    // Common ad patterns
-    const adPatterns = [
-      'advertisement',
-      'google-ad',
-      'adsense',
-      'ad-banner',
-      'ad-container',
-      'ad-wrapper',
-      'sponsored',
-      'promo-box',
-    ];
-
-    return adPatterns.some(pattern => className.includes(pattern) || id.includes(pattern));
   }
 
   private removeNavigation(element: Element): void {
@@ -505,7 +447,6 @@ export class ContentExtractionCore {
   }
 
   private extractTitle(): string {
-    // Try multiple title sources in order of preference
     const titleSources = [
       () => document.querySelector('[property="og:title"]')?.getAttribute('content'),
       () => document.querySelector('[name="twitter:title"]')?.getAttribute('content'),
@@ -548,10 +489,7 @@ export class ContentExtractionCore {
         .map(keyword => keyword.trim())
         .filter(keyword => keyword.length > 0);
     }
-
-    // Also try to extract tags
-    const tags = this.extractTags();
-    return tags.length > 0 ? tags : [];
+    return [];
   }
 
   private extractAuthor(): string {
@@ -604,14 +542,10 @@ export class ContentExtractionCore {
     );
   }
 
-  /**
-   * Check if current page appears to be a blog post
-   */
   private isBlogPage(): boolean {
     const url = window.location.href.toLowerCase();
     const hostname = window.location.hostname.toLowerCase();
 
-    // Check for blog indicators in URL
     const blogUrlPatterns = [
       /\/blog\//,
       /\/posts?\//,
@@ -625,7 +559,6 @@ export class ContentExtractionCore {
       return true;
     }
 
-    // Check for blog hostnames
     const blogHostnames = [
       'blog.',
       '.blog',
@@ -640,7 +573,6 @@ export class ContentExtractionCore {
       return true;
     }
 
-    // Check for blog-specific elements
     const blogSelectors = [
       '.post',
       '.entry',
@@ -656,35 +588,27 @@ export class ContentExtractionCore {
       const elements = document.querySelectorAll(selector);
       return Array.from(elements).some(el => {
         const wordCount = this.countWords(el.textContent || '');
-        return wordCount > 50; // Must have substantial content
+        return wordCount > 50;
       });
     });
 
     return hasBlogElements;
   }
 
-  /**
-   * Extract blog-specific metadata
-   */
   private extractBlogMetadata(): Partial<IDocumentMetadata> {
     const blogMetadata: Partial<IDocumentMetadata> = {};
 
-    // Extract tags/categories
     const tags = this.extractTags();
     if (tags.length > 0) {
       blogMetadata.tags = tags;
     }
 
-    // Extract reading time estimate
     const wordCount = this.countWords(document.body.textContent || '');
     blogMetadata.estimatedReadingTime = this.estimateReadingTime(wordCount);
 
     return blogMetadata;
   }
 
-  /**
-   * Extract tags from blog pages
-   */
   private extractTags(): string[] {
     const tags: string[] = [];
 
@@ -703,13 +627,11 @@ export class ContentExtractionCore {
       elements.forEach(el => {
         const tagText = el.textContent?.trim();
         if (tagText && tagText.length > 0 && tagText.length < 50) {
-          // Reasonable tag length
           tags.push(tagText);
         }
       });
     });
 
-    // Remove duplicates and return
     return [...new Set(tags)];
   }
 
@@ -718,7 +640,6 @@ export class ContentExtractionCore {
   }
 
   private estimateReadingTime(wordCount: number): number {
-    // Average reading speed: 200 words per minute
     return Math.ceil(wordCount / 200);
   }
 }

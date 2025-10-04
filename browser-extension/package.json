@@ -29,6 +29,9 @@
   ],
   "author": "PrismWeave Team",
   "license": "MIT",
+  "dependencies": {
+    "@prismweave/shared-core": "workspace:*"
+  },
   "devDependencies": {
     "@babel/core": "^7.23.0",
     "@babel/preset-env": "^7.23.0",

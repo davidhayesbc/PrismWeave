@@ -6,6 +6,11 @@
     "moduleResolution": "node",
     "outDir": "./dist",
     "rootDir": "./src",
+    "baseUrl": "./src",
+    "paths": {
+      "@prismweave/shared-core": ["../../shared-core/dist/index"],
+      "@prismweave/shared-core/*": ["../../shared-core/dist/*"]
+    },
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,

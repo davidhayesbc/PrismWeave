@@ -1,0 +1,56 @@
+{
+  "name": "@prismweave/shared-core",
+  "version": "0.1.0",
+  "description": "Shared core utilities for PrismWeave extensions and tooling",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./content": {
+      "import": "./dist/content/index.js",
+      "types": "./dist/content/index.d.ts"
+    },
+      "./content/*": {
+      "import": "./dist/content/*.js",
+      "types": "./dist/content/*.d.ts"
+    },
+    "./markdown": {
+      "import": "./dist/markdown/index.js",
+      "types": "./dist/markdown/index.d.ts"
+    },
+    "./markdown/*": {
+      "import": "./dist/markdown/*.js",
+      "types": "./dist/markdown/*.d.ts"
+    },
+    "./file": {
+      "import": "./dist/file/index.js",
+      "types": "./dist/file/index.d.ts"
+    },
+    "./file/*": {
+      "import": "./dist/file/*.js",
+      "types": "./dist/file/*.d.ts"
+    },
+    "./types": {
+      "import": "./dist/types.js",
+      "types": "./dist/types.d.ts"
+    },
+    "./util": {
+      "import": "./dist/util/index.js",
+      "types": "./dist/util/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "clean": "rimraf dist",
+    "prepare": "npm run build"
+  },
+  "devDependencies": {
+    "rimraf": "^6.0.0",
+    "typescript": "^5.8.3"
+  }
+}
