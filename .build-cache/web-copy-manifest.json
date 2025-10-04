@@ -9,19 +9,19 @@
       "dest": "D:\\source\\PrismWeave\\dist\\web\\README.md"
     },
     "D:\\source\\PrismWeave\\dist\\browser-extension\\background\\service-worker.js": {
-      "sig": "1759595570607.481:164366",
+      "sig": "1759596259887.3875:164366",
       "dest": "D:\\source\\PrismWeave\\dist\\web\\extension\\background\\service-worker.js"
     },
     "D:\\source\\PrismWeave\\dist\\browser-extension\\background\\service-worker.js.map": {
-      "sig": "1759595570607.481:333323",
+      "sig": "1759596259887.3875:333323",
       "dest": "D:\\source\\PrismWeave\\dist\\web\\extension\\background\\service-worker.js.map"
     },
     "D:\\source\\PrismWeave\\dist\\browser-extension\\content\\content-script.js": {
-      "sig": "1759595570605.288:93689",
+      "sig": "1759596259887.3875:93689",
       "dest": "D:\\source\\PrismWeave\\dist\\web\\extension\\content\\content-script.js"
     },
     "D:\\source\\PrismWeave\\dist\\browser-extension\\content\\content-script.js.map": {
-      "sig": "1759595570605.288:193058",
+      "sig": "1759596259887.3875:193058",
       "dest": "D:\\source\\PrismWeave\\dist\\web\\extension\\content\\content-script.js.map"
     },
     "D:\\source\\PrismWeave\\dist\\browser-extension\\icons\\icon128.png": {
@@ -49,11 +49,11 @@
       "dest": "D:\\source\\PrismWeave\\dist\\web\\extension\\icons\\README.md"
     },
     "D:\\source\\PrismWeave\\dist\\browser-extension\\injectable\\content-extractor-injectable.js": {
-      "sig": "1759595570608.525:79773",
+      "sig": "1759596259887.9097:79773",
       "dest": "D:\\source\\PrismWeave\\dist\\web\\injectable\\content-extractor-injectable.js"
     },
     "D:\\source\\PrismWeave\\dist\\browser-extension\\injectable\\content-extractor-injectable.js.map": {
-      "sig": "1759595570609.0469:156293",
+      "sig": "1759596259885.6929:156293",
       "dest": "D:\\source\\PrismWeave\\dist\\web\\injectable\\content-extractor-injectable.js.map"
     },
     "D:\\source\\PrismWeave\\dist\\browser-extension\\manifest.json": {
@@ -69,11 +69,11 @@
       "dest": "D:\\source\\PrismWeave\\dist\\web\\extension\\options\\options.html"
     },
     "D:\\source\\PrismWeave\\dist\\browser-extension\\options\\options.js": {
-      "sig": "1759595570602.6387:34686",
+      "sig": "1759596259876.9822:34686",
       "dest": "D:\\source\\PrismWeave\\dist\\web\\extension\\options\\options.js"
     },
     "D:\\source\\PrismWeave\\dist\\browser-extension\\options\\options.js.map": {
-      "sig": "1759595570602.6387:63899",
+      "sig": "1759596259876.9822:63899",
       "dest": "D:\\source\\PrismWeave\\dist\\web\\extension\\options\\options.js.map"
     },
     "D:\\source\\PrismWeave\\dist\\browser-extension\\popup\\popup.css": {
@@ -85,11 +85,11 @@
       "dest": "D:\\source\\PrismWeave\\dist\\web\\extension\\popup\\popup.html"
     },
     "D:\\source\\PrismWeave\\dist\\browser-extension\\popup\\popup.js": {
-      "sig": "1759595570606.3687:57252",
+      "sig": "1759596259882.5154:57252",
       "dest": "D:\\source\\PrismWeave\\dist\\web\\extension\\popup\\popup.js"
     },
     "D:\\source\\PrismWeave\\dist\\browser-extension\\popup\\popup.js.map": {
-      "sig": "1759595570606.3687:109403",
+      "sig": "1759596259880.8228:109403",
       "dest": "D:\\source\\PrismWeave\\dist\\web\\extension\\popup\\popup.js.map"
     },
     "D:\\source\\PrismWeave\\dist\\browser-extension\\styles\\bookmarklet-generator.css": {
@@ -145,11 +145,11 @@
       "dest": "D:\\source\\PrismWeave\\dist\\web\\bookmarklet\\shared-ui.css"
     },
     "D:\\source\\PrismWeave\\dist\\browser-extension\\injectable\\prismweave-bundle.js": {
-      "sig": "1759595570608.525:90410",
+      "sig": "1759596259887.3875:90410",
       "dest": "D:\\source\\PrismWeave\\dist\\web\\injectable\\prismweave-bundle.js"
     },
     "D:\\source\\PrismWeave\\dist\\browser-extension\\injectable\\prismweave-bundle.js.map": {
-      "sig": "1759595570609.0469:179553",
+      "sig": "1759596259887.9097:179553",
       "dest": "D:\\source\\PrismWeave\\dist\\web\\injectable\\prismweave-bundle.js.map"
     },
     "D:\\source\\PrismWeave\\website\\assets\\styles\\bookmarklet-generator.css": {
@@ -229,11 +229,11 @@
       "dest": "D:\\source\\PrismWeave\\dist\\web\\assets\\styles\\shared-ui.css"
     },
     "D:\\source\\PrismWeave\\website\\dist\\bookmarklet\\generator.html": {
-      "sig": "1759595571505.969:11043",
+      "sig": "1759596260726.367:11043",
       "dest": "D:\\source\\PrismWeave\\dist\\web\\bookmarklet\\generator.html"
     },
     "D:\\source\\PrismWeave\\website\\dist\\bookmarklet\\generator.js": {
-      "sig": "1759595571468.9182:15155",
+      "sig": "1759596260687.27:15155",
       "dest": "D:\\source\\PrismWeave\\dist\\web\\bookmarklet\\generator.js"
     },
     "D:\\source\\PrismWeave\\website\\dist\\bookmarklet\\README.md": {

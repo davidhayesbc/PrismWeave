@@ -589,7 +589,7 @@ export class BrowserCapture {
    * Capture a PDF document
    */
   private async capturePDF(url: string): Promise<ICapturedContent> {
-    console.log('Detected PDF URL, downloading PDF content...');
+    // Note: Progress messages handled by spinner in index.ts
 
     try {
       // Download PDF using fetch (matches browser extension behavior)
@@ -642,7 +642,7 @@ export class BrowserCapture {
       // Extract domain
       const domain = urlObj.hostname.replace(/^www\./, '');
 
-      console.log(`PDF downloaded: ${this.formatFileSize(buffer.length)}`);
+      // Note: File size logging handled by spinner in index.ts
 
       return {
         title,

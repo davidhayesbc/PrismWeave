@@ -21,6 +21,14 @@ function formatFileSize(bytes: number): string {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 
+// Helper function to truncate URLs for display
+function truncateUrl(url: string, maxLength: number = 70): string {
+  if (url.length <= maxLength) return url;
+  const start = url.substring(0, maxLength - 15);
+  const end = url.substring(url.length - 12);
+  return `${start}...${end}`;
+}
+
 const program = new Command();
 
 program
@@ -115,16 +123,19 @@ async function captureCommand(url: string | undefined, options: any) {
     const capture = new BrowserCapture();
     const fileManager = new FileManager();
 
-    console.log(chalk.blue(`\nCapturing ${urls.length} URL(s)...\n`));
+    console.log(chalk.bold.blue(`\n${'='.repeat(80)}`));
+    console.log(chalk.bold.blue(`  Capturing ${urls.length} URL(s)`));
+    console.log(chalk.bold.blue(`${'='.repeat(80)}\n`));
 
     let successCount = 0;
     let failCount = 0;
 
     for (let i = 0; i < urls.length; i++) {
       const currentUrl = urls[i];
-      spinner.start(
-        `[${i + 1}/${urls.length}] Capturing ${chalk.cyan(currentUrl)}`
-      );
+      const progress = chalk.gray(`[${i + 1}/${urls.length}]`);
+      const displayUrl = truncateUrl(currentUrl);
+      
+      spinner.start(`${progress} ${chalk.dim(displayUrl)}`);
 
       try {
         // Capture content
@@ -134,18 +145,16 @@ async function captureCommand(url: string | undefined, options: any) {
           includeLinks: options.links !== false,
         });
 
-        spinner.text = `[${i + 1}/${urls.length}] Processing ${chalk.cyan(currentUrl)}`;
-
         // Handle PDF content
         if (content.isPDF && content.pdfBase64) {
           if (options.dryRun) {
             const filePath = fileManager.generatePDFFilePath(content.title, content.url);
             spinner.succeed(
-              `[${i + 1}/${urls.length}] ${chalk.green('✓')} ${chalk.cyan(currentUrl)}\n` +
-                `  Title: ${content.title}\n` +
-                `  Type: PDF\n` +
-                `  Size: ${content.metadata.fileSize ? formatFileSize(content.metadata.fileSize) : 'Unknown'}\n` +
-                `  Path: ${filePath}`
+              chalk.green.bold(`${progress} ✓ PDF Captured`) + '\n' +
+              chalk.white(`   ${chalk.bold('Title:')}  ${content.title}`) + '\n' +
+              chalk.white(`   ${chalk.bold('Type:')}   PDF Document`) + '\n' +
+              chalk.white(`   ${chalk.bold('Size:')}   ${content.metadata.fileSize ? formatFileSize(content.metadata.fileSize) : 'Unknown'}`) + '\n' +
+              chalk.gray(`   ${chalk.bold('Path:')}   ${filePath}`)
             );
           } else {
             // Save PDF to GitHub
@@ -163,18 +172,18 @@ async function captureCommand(url: string | undefined, options: any) {
 
             if (result.success) {
               spinner.succeed(
-                `[${i + 1}/${urls.length}] ${chalk.green('✓')} ${chalk.cyan(currentUrl)}\n` +
-                  `  Title: ${content.title}\n` +
-                  `  Type: PDF\n` +
-                  `  Size: ${content.metadata.fileSize ? formatFileSize(content.metadata.fileSize) : 'Unknown'}\n` +
-                  `  Saved: ${result.filePath}\n` +
-                  `  URL: ${result.url || 'N/A'}`
+                chalk.green.bold(`${progress} ✓ PDF Saved to GitHub`) + '\n' +
+                chalk.white(`   ${chalk.bold('Title:')}    ${content.title}`) + '\n' +
+                chalk.white(`   ${chalk.bold('Type:')}     PDF Document`) + '\n' +
+                chalk.white(`   ${chalk.bold('Size:')}     ${content.metadata.fileSize ? formatFileSize(content.metadata.fileSize) : 'Unknown'}`) + '\n' +
+                chalk.cyan(`   ${chalk.bold('Saved:')}    ${result.filePath}`) + '\n' +
+                chalk.gray(`   ${chalk.bold('GitHub:')}   ${result.url || 'N/A'}`)
               );
               successCount++;
             } else {
               spinner.fail(
-                `[${i + 1}/${urls.length}] ${chalk.red('✗')} ${chalk.cyan(currentUrl)}\n` +
-                  `  Error: ${result.error}`
+                chalk.red.bold(`${progress} ✗ Failed`) + '\n' +
+                chalk.red(`   Error: ${result.error}`)
               );
               failCount++;
             }
@@ -196,10 +205,10 @@ async function captureCommand(url: string | undefined, options: any) {
         if (options.dryRun) {
           const filePath = fileManager.generateFilePath(metadata);
           spinner.succeed(
-            `[${i + 1}/${urls.length}] ${chalk.green('✓')} ${chalk.cyan(currentUrl)}\n` +
-              `  Title: ${content.title}\n` +
-              `  Words: ${content.stats.wordCount}\n` +
-              `  Path: ${filePath}`
+            chalk.green.bold(`${progress} ✓ Web Page Captured`) + '\n' +
+            chalk.white(`   ${chalk.bold('Title:')}    ${content.title}`) + '\n' +
+            chalk.white(`   ${chalk.bold('Words:')}    ${content.stats.wordCount.toLocaleString()}`) + '\n' +
+            chalk.gray(`   ${chalk.bold('Path:')}     ${filePath}`)
           );
         } else {
           // Save to GitHub
@@ -216,25 +225,26 @@ async function captureCommand(url: string | undefined, options: any) {
 
           if (result.success) {
             spinner.succeed(
-              `[${i + 1}/${urls.length}] ${chalk.green('✓')} ${chalk.cyan(currentUrl)}\n` +
-                `  Title: ${content.title}\n` +
-                `  Words: ${content.stats.wordCount}\n` +
-                `  Saved: ${result.filePath}\n` +
-                `  URL: ${result.url || 'N/A'}`
+              chalk.green.bold(`${progress} ✓ Web Page Saved to GitHub`) + '\n' +
+              chalk.white(`   ${chalk.bold('Title:')}    ${content.title}`) + '\n' +
+              chalk.white(`   ${chalk.bold('Words:')}    ${content.stats.wordCount.toLocaleString()}`) + '\n' +
+              chalk.cyan(`   ${chalk.bold('Saved:')}    ${result.filePath}`) + '\n' +
+              chalk.gray(`   ${chalk.bold('GitHub:')}   ${result.url || 'N/A'}`)
             );
             successCount++;
           } else {
             spinner.fail(
-              `[${i + 1}/${urls.length}] ${chalk.red('✗')} ${chalk.cyan(currentUrl)}\n` +
-                `  Error: ${result.error}`
+              chalk.red.bold(`${progress} ✗ Failed`) + '\n' +
+              chalk.red(`   Error: ${result.error}`)
             );
             failCount++;
           }
         }
       } catch (error) {
         spinner.fail(
-          `[${i + 1}/${urls.length}] ${chalk.red('✗')} ${chalk.cyan(currentUrl)}\n` +
-            `  Error: ${(error as Error).message}`
+          chalk.red.bold(`${progress} ✗ Capture Failed`) + '\n' +
+          chalk.red(`   ${(error as Error).message}`) + '\n' +
+          chalk.gray(`   URL: ${currentUrl}`)
         );
         failCount++;
       }
@@ -249,13 +259,15 @@ async function captureCommand(url: string | undefined, options: any) {
     await capture.close();
 
     // Summary
-    console.log(chalk.blue('\n' + '='.repeat(60)));
-    console.log(chalk.blue('Summary:'));
-    console.log(chalk.green(`  ✓ Successful: ${successCount}`));
+    console.log(chalk.bold.blue(`\n${'='.repeat(80)}`));
+    console.log(chalk.bold.blue('  Capture Summary'));
+    console.log(chalk.bold.blue(`${'='.repeat(80)}`));
+    console.log(chalk.green.bold(`  ✓ Successful:  ${successCount.toString().padStart(3)}`));
     if (failCount > 0) {
-      console.log(chalk.red(`  ✗ Failed: ${failCount}`));
+      console.log(chalk.red.bold(`  ✗ Failed:      ${failCount.toString().padStart(3)}`));
     }
-    console.log(chalk.blue('='.repeat(60) + '\n'));
+    console.log(chalk.gray(`  • Total URLs:  ${urls.length.toString().padStart(3)}`));
+    console.log(chalk.bold.blue(`${'='.repeat(80)}\n`));
 
     if (failCount > 0) {
       process.exit(1);
