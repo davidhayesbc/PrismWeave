@@ -20,6 +20,7 @@ export interface ICapturedContent {
   url: string;
   html: string;
   markdown: string;
+  httpStatus?: number;
   isPDF?: boolean;
   pdfBase64?: string;
   metadata: {
@@ -94,11 +95,13 @@ export class BrowserCapture {
         await page.setUserAgent(options.userAgent);
       }
 
-      // Navigate to URL
-      await page.goto(url, {
+      // Navigate to URL and capture response status
+      const response = await page.goto(url, {
         waitUntil: 'networkidle2',
         timeout: options.timeout || 30000,
       });
+
+      const httpStatus = response?.status();
 
       // Wait for specific selector if provided
       if (options.waitForSelector) {
@@ -109,6 +112,9 @@ export class BrowserCapture {
 
       // Extract content
       const content = await this.extractContent(page, url, options);
+
+      // Add HTTP status to content
+      content.httpStatus = httpStatus;
 
       return content;
     } finally {
@@ -600,6 +606,8 @@ export class BrowserCapture {
         },
       });
 
+      const httpStatus = response.status;
+
       if (!response.ok) {
         throw new Error(`Failed to download PDF: ${response.status} ${response.statusText}`);
       }
@@ -649,6 +657,7 @@ export class BrowserCapture {
         url,
         html: '',
         markdown: '',
+        httpStatus,
         isPDF: true,
         pdfBase64,
         metadata: {

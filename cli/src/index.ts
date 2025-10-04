@@ -145,16 +145,42 @@ async function captureCommand(url: string | undefined, options: any) {
           includeLinks: options.links !== false,
         });
 
+        // Check for HTTP error status codes (4xx, 5xx)
+        if (content.httpStatus && content.httpStatus >= 400) {
+          const statusMessage = content.httpStatus >= 500 
+            ? 'Server Error' 
+            : content.httpStatus === 404 
+              ? 'Not Found' 
+              : content.httpStatus === 403 
+                ? 'Forbidden' 
+                : 'Client Error';
+          
+          spinner.fail(
+            chalk.red.bold(`${progress} ✗ HTTP ${content.httpStatus} - ${statusMessage}`) + '\n' +
+            chalk.red(`   Cannot save page with error status code`) + '\n' +
+            chalk.gray(`   URL: ${currentUrl}`)
+          );
+          failCount++;
+          
+          // Add delay before next URL
+          if (i < urls.length - 1) {
+            await new Promise((resolve) => setTimeout(resolve, 1000));
+          }
+          continue;
+        }
+
         // Handle PDF content
         if (content.isPDF && content.pdfBase64) {
           if (options.dryRun) {
             const filePath = fileManager.generatePDFFilePath(content.title, content.url);
             spinner.succeed(
               chalk.green.bold(`${progress} ✓ PDF Captured`) + '\n' +
-              chalk.white(`   ${chalk.bold('Title:')}  ${content.title}`) + '\n' +
-              chalk.white(`   ${chalk.bold('Type:')}   PDF Document`) + '\n' +
-              chalk.white(`   ${chalk.bold('Size:')}   ${content.metadata.fileSize ? formatFileSize(content.metadata.fileSize) : 'Unknown'}`) + '\n' +
-              chalk.gray(`   ${chalk.bold('Path:')}   ${filePath}`)
+              chalk.white(`   ${chalk.bold('Title:')}   ${content.title}`) + '\n' +
+              chalk.blue(`   ${chalk.bold('URL:')}     ${currentUrl}`) + '\n' +
+              chalk.yellow(`   ${chalk.bold('Status:')}  ${content.httpStatus || 'N/A'}`) + '\n' +
+              chalk.white(`   ${chalk.bold('Type:')}    PDF Document`) + '\n' +
+              chalk.white(`   ${chalk.bold('Size:')}    ${content.metadata.fileSize ? formatFileSize(content.metadata.fileSize) : 'Unknown'}`) + '\n' +
+              chalk.gray(`   ${chalk.bold('Path:')}    ${filePath}`)
             );
           } else {
             // Save PDF to GitHub
@@ -174,6 +200,8 @@ async function captureCommand(url: string | undefined, options: any) {
               spinner.succeed(
                 chalk.green.bold(`${progress} ✓ PDF Saved to GitHub`) + '\n' +
                 chalk.white(`   ${chalk.bold('Title:')}    ${content.title}`) + '\n' +
+                chalk.blue(`   ${chalk.bold('URL:')}      ${currentUrl}`) + '\n' +
+                chalk.yellow(`   ${chalk.bold('Status:')}   ${content.httpStatus || 'N/A'}`) + '\n' +
                 chalk.white(`   ${chalk.bold('Type:')}     PDF Document`) + '\n' +
                 chalk.white(`   ${chalk.bold('Size:')}     ${content.metadata.fileSize ? formatFileSize(content.metadata.fileSize) : 'Unknown'}`) + '\n' +
                 chalk.cyan(`   ${chalk.bold('Saved:')}    ${result.filePath}`) + '\n' +
@@ -207,6 +235,8 @@ async function captureCommand(url: string | undefined, options: any) {
           spinner.succeed(
             chalk.green.bold(`${progress} ✓ Web Page Captured`) + '\n' +
             chalk.white(`   ${chalk.bold('Title:')}    ${content.title}`) + '\n' +
+            chalk.blue(`   ${chalk.bold('URL:')}      ${currentUrl}`) + '\n' +
+            chalk.yellow(`   ${chalk.bold('Status:')}   ${content.httpStatus || 'N/A'}`) + '\n' +
             chalk.white(`   ${chalk.bold('Words:')}    ${content.stats.wordCount.toLocaleString()}`) + '\n' +
             chalk.gray(`   ${chalk.bold('Path:')}     ${filePath}`)
           );
@@ -227,6 +257,8 @@ async function captureCommand(url: string | undefined, options: any) {
             spinner.succeed(
               chalk.green.bold(`${progress} ✓ Web Page Saved to GitHub`) + '\n' +
               chalk.white(`   ${chalk.bold('Title:')}    ${content.title}`) + '\n' +
+              chalk.blue(`   ${chalk.bold('URL:')}      ${currentUrl}`) + '\n' +
+              chalk.yellow(`   ${chalk.bold('Status:')}   ${content.httpStatus || 'N/A'}`) + '\n' +
               chalk.white(`   ${chalk.bold('Words:')}    ${content.stats.wordCount.toLocaleString()}`) + '\n' +
               chalk.cyan(`   ${chalk.bold('Saved:')}    ${result.filePath}`) + '\n' +
               chalk.gray(`   ${chalk.bold('GitHub:')}   ${result.url || 'N/A'}`)
