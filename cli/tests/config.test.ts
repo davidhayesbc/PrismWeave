@@ -13,6 +13,7 @@ describe('ConfigManager', () => {
   let hasExistingConfig = false;
 
   beforeEach(() => {
+    hasExistingConfig = false;
     const configDir = join(homedir(), '.prismweave');
     configPath = join(configDir, 'config.json');
     backupPath = join(configDir, 'config.backup.json');
@@ -64,10 +65,16 @@ describe('ConfigManager', () => {
         mkdirSync(configDir, { recursive: true });
       }
 
+      const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
       writeFileSync(configPath, 'invalid json {{{');
 
       const config = new ConfigManager();
       expect(config.getAll()).toEqual({});
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        'Failed to load config:',
+        expect.any(String)
+      );
+      consoleWarnSpy.mockRestore();
     });
   });
 

@@ -128,9 +128,8 @@
   },
   
   // Jest Test Explorer Configuration
-  "jest.runMode": "on-demand",
-  "jest.rootPath": "browser-extension",
-  "jest.jestCommandLine": "npm test --",
+  "jest.disabledWorkspaceFolders": [],
+  "jest.enable": true,
   "jest.outputConfig": {
     "revealOn": "run",
     "revealWithFocus": false,
