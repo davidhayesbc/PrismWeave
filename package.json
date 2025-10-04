@@ -13,6 +13,7 @@
     "build": "node build.js build",
     "build:browser-extension": "node build.js build browser-extension",
     "build:bookmarklet": "node build.js build bookmarklet",
+    "build:cli": "node build.js build cli",
     "build:dev-tools": "node build.js build dev-tools",
     "build:web": "node build.js web",
     "build:web:fast": "node build.js web --fast",

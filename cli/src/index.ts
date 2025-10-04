@@ -12,6 +12,15 @@ import { BrowserCapture } from './browser-capture.js';
 import { ConfigManager } from './config.js';
 import { FileManager, IDocumentMetadata, IGitHubSettings } from './shared/file-manager.js';
 
+// Helper function to format file sizes
+function formatFileSize(bytes: number): string {
+  if (bytes === 0) return '0 Bytes';
+  const k = 1024;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
 const program = new Command();
 
 program
@@ -127,7 +136,53 @@ async function captureCommand(url: string | undefined, options: any) {
 
         spinner.text = `[${i + 1}/${urls.length}] Processing ${chalk.cyan(currentUrl)}`;
 
-        // Create metadata
+        // Handle PDF content
+        if (content.isPDF && content.pdfBase64) {
+          if (options.dryRun) {
+            const filePath = fileManager.generatePDFFilePath(content.title, content.url);
+            spinner.succeed(
+              `[${i + 1}/${urls.length}] ${chalk.green('✓')} ${chalk.cyan(currentUrl)}\n` +
+                `  Title: ${content.title}\n` +
+                `  Type: PDF\n` +
+                `  Size: ${content.metadata.fileSize ? formatFileSize(content.metadata.fileSize) : 'Unknown'}\n` +
+                `  Path: ${filePath}`
+            );
+          } else {
+            // Save PDF to GitHub
+            const githubSettings: IGitHubSettings = {
+              token: githubToken,
+              repository: githubRepo,
+            };
+
+            const result = await fileManager.savePDFToGitHub(
+              content.pdfBase64,
+              content.title,
+              content.url,
+              githubSettings
+            );
+
+            if (result.success) {
+              spinner.succeed(
+                `[${i + 1}/${urls.length}] ${chalk.green('✓')} ${chalk.cyan(currentUrl)}\n` +
+                  `  Title: ${content.title}\n` +
+                  `  Type: PDF\n` +
+                  `  Size: ${content.metadata.fileSize ? formatFileSize(content.metadata.fileSize) : 'Unknown'}\n` +
+                  `  Saved: ${result.filePath}\n` +
+                  `  URL: ${result.url || 'N/A'}`
+              );
+              successCount++;
+            } else {
+              spinner.fail(
+                `[${i + 1}/${urls.length}] ${chalk.red('✗')} ${chalk.cyan(currentUrl)}\n` +
+                  `  Error: ${result.error}`
+              );
+              failCount++;
+            }
+          }
+          continue;
+        }
+
+        // Create metadata for regular web pages
         const metadata: IDocumentMetadata = {
           title: content.title,
           url: content.url,

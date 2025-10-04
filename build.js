@@ -23,6 +23,11 @@ class PrismWeaveBuildSystem {
         buildScript: 'scripts/build-bookmarklet.js',
         distPath: 'dist/bookmarklet',
       },
+      'cli': {
+        path: 'cli',
+        buildScript: 'npm run build',
+        distPath: 'cli/dist',
+      },
       'ai-processing': {
         path: 'ai-processing',
         buildScript: 'python -m pytest tests/ -v',
@@ -50,6 +55,9 @@ class PrismWeaveBuildSystem {
         case 'bookmarklet':
           await this.buildBookmarklet();
           break;
+        case 'cli':
+          await this.buildCLI();
+          break;
         case 'ai-processing':
           await this.buildAIProcessing();
           break;
@@ -75,6 +83,7 @@ class PrismWeaveBuildSystem {
     
     // Build in order of dependencies
     await this.buildAIProcessing();
+    await this.buildCLI();
     await this.buildBrowserExtension();
     await this.buildBookmarklet();
     await this.buildWebDeployment();
@@ -111,6 +120,32 @@ class PrismWeaveBuildSystem {
     });
     
     console.log('✅ Bookmarklet built');
+  }
+
+  async buildCLI() {
+    console.log('🖥️ Building CLI tool...');
+    const componentPath = path.join(this.projectRoot, 'cli');
+    
+    // Check if CLI directory exists
+    if (!fs.existsSync(componentPath)) {
+      console.log('⏭️ CLI not found, skipping...');
+      return;
+    }
+
+    // Install dependencies if needed
+    if (!fs.existsSync(path.join(componentPath, 'node_modules'))) {
+      console.log('📥 Installing CLI dependencies...');
+      execSync('npm install', { cwd: componentPath, stdio: 'inherit' });
+    }
+
+    // Build using TypeScript compiler
+    execSync('npm run build', { 
+      cwd: componentPath, 
+      stdio: 'inherit',
+      env: { ...process.env, NODE_ENV: this.isProduction ? 'production' : 'development' }
+    });
+    
+    console.log('✅ CLI tool built');
   }
 
   async buildAIProcessing() {
@@ -630,6 +665,7 @@ class PrismWeaveBuildSystem {
     
     const cleanPaths = [
       'dist',
+      'cli/dist',
       'ai-processing/__pycache__',
       'ai-processing/.pytest_cache',
     ];

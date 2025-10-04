@@ -20,6 +20,8 @@ export interface ICapturedContent {
   url: string;
   html: string;
   markdown: string;
+  isPDF?: boolean;
+  pdfBase64?: string;
   metadata: {
     description?: string;
     author?: string;
@@ -29,6 +31,8 @@ export interface ICapturedContent {
     estimatedReadingTime?: number;
     publishedDate?: string;
     language?: string;
+    fileSize?: number;
+    mimeType?: string;
   };
   stats: {
     wordCount: number;
@@ -41,6 +45,7 @@ export interface ICapturedContent {
 export class BrowserCapture {
   private browser: Browser | null = null;
   private converter: MarkdownConverterCore;
+  private static readonly MAX_PDF_SIZE = 25 * 1024 * 1024; // 25MB GitHub file limit
 
   constructor() {
     this.converter = new MarkdownConverterCore();
@@ -65,6 +70,11 @@ export class BrowserCapture {
     url: string,
     options: ICaptureOptions = {}
   ): Promise<ICapturedContent> {
+    // Check if this is a PDF URL first (before launching browser)
+    if (this.isPDFUrl(url)) {
+      return await this.capturePDF(url);
+    }
+
     if (!this.browser) {
       await this.initialize();
     }
@@ -544,5 +554,130 @@ export class BrowserCapture {
     lines.push('---');
 
     return lines.join('\n');
+  }
+
+  // =================================================================
+  // PDF CAPTURE METHODS
+  // =================================================================
+
+  /**
+   * Check if a URL points to a PDF document
+   */
+  private isPDFUrl(url: string): boolean {
+    try {
+      const urlObj = new URL(url);
+
+      // Check if URL ends with .pdf
+      if (urlObj.pathname.toLowerCase().endsWith('.pdf')) {
+        return true;
+      }
+
+      // Check for PDF viewer URLs
+      if (url.includes('blob:') && url.includes('pdf')) {
+        return true;
+      }
+
+      // Check for common PDF viewer patterns
+      const pdfPatterns = [/\.pdf$/i, /\/pdf\//i, /viewer\.html.*\.pdf/i, /pdfjs/i];
+      return pdfPatterns.some(pattern => pattern.test(url));
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Capture a PDF document
+   */
+  private async capturePDF(url: string): Promise<ICapturedContent> {
+    console.log('Detected PDF URL, downloading PDF content...');
+
+    try {
+      // Download PDF using fetch (matches browser extension behavior)
+      const response = await fetch(url, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+          Accept: 'application/pdf,*/*',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to download PDF: ${response.status} ${response.statusText}`);
+      }
+
+      // Validate content type
+      const contentType = response.headers.get('content-type');
+      if (contentType && !contentType.includes('pdf')) {
+        console.warn('Warning: Content-Type may not be PDF:', contentType);
+      }
+
+      // Get PDF as buffer
+      const arrayBuffer = await response.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+
+      if (buffer.length === 0) {
+        throw new Error('Downloaded PDF is empty');
+      }
+
+      // Validate size (matches browser extension MAX_PDF_SIZE)
+      if (buffer.length > BrowserCapture.MAX_PDF_SIZE) {
+        throw new Error(
+          `PDF file too large (${this.formatFileSize(buffer.length)}). Maximum allowed: ${this.formatFileSize(BrowserCapture.MAX_PDF_SIZE)}`
+        );
+      }
+
+      // Validate it's actually a PDF (check magic number: %PDF)
+      if (buffer.length < 4 || buffer.toString('utf-8', 0, 4) !== '%PDF') {
+        throw new Error('Downloaded file is not a valid PDF (missing PDF header)');
+      }
+
+      // Convert to base64 for storage
+      const pdfBase64 = buffer.toString('base64');
+
+      // Extract title from URL
+      const urlObj = new URL(url);
+      const pathname = urlObj.pathname;
+      const filename = pathname.split('/').pop() || 'document.pdf';
+      const title = filename.replace(/\.pdf$/i, '') || 'PDF Document';
+
+      // Extract domain
+      const domain = urlObj.hostname.replace(/^www\./, '');
+
+      console.log(`PDF downloaded: ${this.formatFileSize(buffer.length)}`);
+
+      return {
+        title,
+        url,
+        html: '',
+        markdown: '',
+        isPDF: true,
+        pdfBase64,
+        metadata: {
+          capturedAt: new Date().toISOString(),
+          fileSize: buffer.length,
+          mimeType: 'application/pdf',
+        },
+        stats: {
+          wordCount: 0,
+          characterCount: 0,
+          imageCount: 0,
+          linkCount: 0,
+        },
+      };
+    } catch (error) {
+      throw new Error(`PDF capture failed: ${(error as Error).message}`);
+    }
+  }
+
+  /**
+   * Format file size in human-readable format
+   */
+  private formatFileSize(bytes: number): string {
+    if (bytes === 0) return '0 Bytes';
+
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   }
 }

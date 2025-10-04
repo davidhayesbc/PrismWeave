@@ -111,6 +111,14 @@ export class FileManager {
     return `documents/${folder}/${filename}`;
   }
 
+  generatePDFFilePath(title: string, url: string): string {
+    const date = this.formatDate(new Date());
+    const domain = this.extractDomain(url);
+    const sanitizedTitle = this.sanitizeTitle(title);
+    const filename = `${date}-${domain}-${sanitizedTitle}.pdf`;
+    return `documents/pdfs/${filename}`;
+  }
+
   async saveToGitHub(
     content: string,
     metadata: IDocumentMetadata,
@@ -134,6 +142,49 @@ export class FileManager {
         content,
         commitMessage,
         existingFile?.sha
+      );
+
+      return {
+        success: true,
+        filePath,
+        sha: result.content?.sha,
+        url: result.content?.html_url,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        filePath: '',
+        error: (error as Error).message,
+      };
+    }
+  }
+
+  async savePDFToGitHub(
+    pdfBase64: string,
+    title: string,
+    url: string,
+    githubSettings: IGitHubSettings
+  ): Promise<IFileOperationResult> {
+    try {
+      const filePath = this.generatePDFFilePath(title, url);
+      const domain = this.extractDomain(url);
+      const commitMessage = `Add PDF document: ${title} (${domain})`;
+
+      const repoInfo = this.parseRepositoryPath(githubSettings.repository);
+      const existingFile = await this.getFileInfo(
+        githubSettings.token,
+        repoInfo,
+        filePath
+      );
+
+      const result = await this.createOrUpdateFile(
+        githubSettings.token,
+        repoInfo,
+        filePath,
+        pdfBase64,
+        commitMessage,
+        existingFile?.sha,
+        true // Indicate this is already base64
       );
 
       return {
@@ -262,11 +313,12 @@ export class FileManager {
     path: string,
     content: string,
     message: string,
-    existingSha?: string
+    existingSha?: string,
+    isBase64?: boolean
   ): Promise<any> {
     const requestBody: any = {
       message,
-      content: Buffer.from(content, 'utf-8').toString('base64'),
+      content: isBase64 ? content : Buffer.from(content, 'utf-8').toString('base64'),
       branch: 'main',
     };
 
