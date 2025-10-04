@@ -64,6 +64,7 @@ module.exports = {
   // Module name mapping for browser APIs and TypeScript imports
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
+    '^@prismweave/shared-core/(.*)$': '<rootDir>/../shared-core/src/$1',
     // Handle TypeScript imports with .js extensions - more specific to avoid JSDOM conflicts
     '^(\\.{1,2}/.+)\\.js$': '$1',
     '^(src/.+)\\.js$': '$1',

@@ -6,6 +6,9 @@ const esbuild = require('esbuild');
 const fs = require('fs');
 const path = require('path');
 
+const projectRoot = path.resolve(__dirname, '..', '..');
+const sharedCoreSrcPath = path.resolve(projectRoot, 'shared-core', 'src');
+
 async function buildExtension() {
   console.log('🚀 Building PrismWeave Browser Extension...');
 
@@ -31,6 +34,9 @@ async function buildExtension() {
     sourcemap: !isProduction, // No sourcemaps in production
     minify: isProduction, // Minify in production
     bundle: true, // Bundle all dependencies
+    alias: {
+      '@prismweave/shared-core': sharedCoreSrcPath,
+    },
     define: {
       'process.env.NODE_ENV': isProduction ? '"production"' : '"development"',
       'process.env.PRISMWEAVE_INJECTABLE_URL': JSON.stringify(
@@ -189,6 +195,9 @@ async function buildDev() {
     sourcemap: true,
     minify: false,
     bundle: true,
+    alias: {
+      '@prismweave/shared-core': sharedCoreSrcPath,
+    },
   };
 
   const contexts = await Promise.all([

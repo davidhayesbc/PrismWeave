@@ -23,6 +23,10 @@
     "strictPropertyInitialization": true,
     "noImplicitThis": true,
     "allowSyntheticDefaultImports": true,
+    "baseUrl": ".",
+    "paths": {
+      "@prismweave/shared-core/*": ["../shared-core/src/*"]
+    },
     "types": ["chrome", "jest", "node"]
   },
   "include": ["src/**/*.ts"],

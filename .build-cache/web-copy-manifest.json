@@ -9,19 +9,19 @@
       "dest": "D:\\source\\PrismWeave\\dist\\web\\README.md"
     },
     "D:\\source\\PrismWeave\\dist\\browser-extension\\background\\service-worker.js": {
-      "sig": "1759596881603.8904:164366",
+      "sig": "1759615475928.0588:164366",
       "dest": "D:\\source\\PrismWeave\\dist\\web\\extension\\background\\service-worker.js"
     },
     "D:\\source\\PrismWeave\\dist\\browser-extension\\background\\service-worker.js.map": {
-      "sig": "1759596881604.4353:333323",
+      "sig": "1759615475928.0588:333323",
       "dest": "D:\\source\\PrismWeave\\dist\\web\\extension\\background\\service-worker.js.map"
     },
     "D:\\source\\PrismWeave\\dist\\browser-extension\\content\\content-script.js": {
-      "sig": "1759596881603.3308:93689",
+      "sig": "1759615475931.0374:94202",
       "dest": "D:\\source\\PrismWeave\\dist\\web\\extension\\content\\content-script.js"
     },
     "D:\\source\\PrismWeave\\dist\\browser-extension\\content\\content-script.js.map": {
-      "sig": "1759596881602.2405:193058",
+      "sig": "1759615475931.0374:188998",
       "dest": "D:\\source\\PrismWeave\\dist\\web\\extension\\content\\content-script.js.map"
     },
     "D:\\source\\PrismWeave\\dist\\browser-extension\\icons\\icon128.png": {
@@ -49,11 +49,11 @@
       "dest": "D:\\source\\PrismWeave\\dist\\web\\extension\\icons\\README.md"
     },
     "D:\\source\\PrismWeave\\dist\\browser-extension\\injectable\\content-extractor-injectable.js": {
-      "sig": "1759596881600.639:79773",
+      "sig": "1759615475926.9658:80244",
       "dest": "D:\\source\\PrismWeave\\dist\\web\\injectable\\content-extractor-injectable.js"
     },
     "D:\\source\\PrismWeave\\dist\\browser-extension\\injectable\\content-extractor-injectable.js.map": {
-      "sig": "1759596881600.639:156293",
+      "sig": "1759615475928.0588:152231",
       "dest": "D:\\source\\PrismWeave\\dist\\web\\injectable\\content-extractor-injectable.js.map"
     },
     "D:\\source\\PrismWeave\\dist\\browser-extension\\manifest.json": {
@@ -69,11 +69,11 @@
       "dest": "D:\\source\\PrismWeave\\dist\\web\\extension\\options\\options.html"
     },
     "D:\\source\\PrismWeave\\dist\\browser-extension\\options\\options.js": {
-      "sig": "1759596881592.1982:34686",
+      "sig": "1759615475913.087:34686",
       "dest": "D:\\source\\PrismWeave\\dist\\web\\extension\\options\\options.js"
     },
     "D:\\source\\PrismWeave\\dist\\browser-extension\\options\\options.js.map": {
-      "sig": "1759596881592.1982:63899",
+      "sig": "1759615475913.6199:63899",
       "dest": "D:\\source\\PrismWeave\\dist\\web\\extension\\options\\options.js.map"
     },
     "D:\\source\\PrismWeave\\dist\\browser-extension\\popup\\popup.css": {
@@ -85,11 +85,11 @@
       "dest": "D:\\source\\PrismWeave\\dist\\web\\extension\\popup\\popup.html"
     },
     "D:\\source\\PrismWeave\\dist\\browser-extension\\popup\\popup.js": {
-      "sig": "1759596881598.543:57252",
+      "sig": "1759615475923.0898:57252",
       "dest": "D:\\source\\PrismWeave\\dist\\web\\extension\\popup\\popup.js"
     },
     "D:\\source\\PrismWeave\\dist\\browser-extension\\popup\\popup.js.map": {
-      "sig": "1759596881598.543:109403",
+      "sig": "1759615475923.0898:109403",
       "dest": "D:\\source\\PrismWeave\\dist\\web\\extension\\popup\\popup.js.map"
     },
     "D:\\source\\PrismWeave\\dist\\browser-extension\\styles\\bookmarklet-generator.css": {
@@ -145,11 +145,11 @@
       "dest": "D:\\source\\PrismWeave\\dist\\web\\bookmarklet\\shared-ui.css"
     },
     "D:\\source\\PrismWeave\\dist\\browser-extension\\injectable\\prismweave-bundle.js": {
-      "sig": "1759596881600.639:90410",
+      "sig": "1759615475928.646:90881",
       "dest": "D:\\source\\PrismWeave\\dist\\web\\injectable\\prismweave-bundle.js"
     },
     "D:\\source\\PrismWeave\\dist\\browser-extension\\injectable\\prismweave-bundle.js.map": {
-      "sig": "1759596881598.543:179553",
+      "sig": "1759615475928.646:175491",
       "dest": "D:\\source\\PrismWeave\\dist\\web\\injectable\\prismweave-bundle.js.map"
     },
     "D:\\source\\PrismWeave\\website\\assets\\styles\\bookmarklet-generator.css": {
@@ -229,11 +229,11 @@
       "dest": "D:\\source\\PrismWeave\\dist\\web\\assets\\styles\\shared-ui.css"
     },
     "D:\\source\\PrismWeave\\website\\dist\\bookmarklet\\generator.html": {
-      "sig": "1759596882465.0862:11043",
+      "sig": "1759615476778.109:11043",
       "dest": "D:\\source\\PrismWeave\\dist\\web\\bookmarklet\\generator.html"
     },
     "D:\\source\\PrismWeave\\website\\dist\\bookmarklet\\generator.js": {
-      "sig": "1759596882427.9683:15155",
+      "sig": "1759615476738.1348:15155",
       "dest": "D:\\source\\PrismWeave\\dist\\web\\bookmarklet\\generator.js"
     },
     "D:\\source\\PrismWeave\\website\\dist\\bookmarklet\\README.md": {
@@ -279,6 +279,66 @@
     "D:\\source\\PrismWeave\\website\\dist\\assets\\styles.css": {
       "sig": "1759247193652.9507:3579",
       "dest": "D:\\source\\PrismWeave\\dist\\web\\assets\\styles.css"
+    },
+    "D:\\source\\PrismWeave\\website\\node_modules\\.bin\\cross-env": {
+      "sig": "1759614516490.1104:1358",
+      "dest": "D:\\source\\PrismWeave\\dist\\web\\node_modules\\.bin\\cross-env"
+    },
+    "D:\\source\\PrismWeave\\website\\node_modules\\.bin\\cross-env-shell": {
+      "sig": "1759614516490.1104:1370",
+      "dest": "D:\\source\\PrismWeave\\dist\\web\\node_modules\\.bin\\cross-env-shell"
+    },
+    "D:\\source\\PrismWeave\\website\\node_modules\\.bin\\cross-env-shell.CMD": {
+      "sig": "1759614516490.1104:1134",
+      "dest": "D:\\source\\PrismWeave\\dist\\web\\node_modules\\.bin\\cross-env-shell.CMD"
+    },
+    "D:\\source\\PrismWeave\\website\\node_modules\\.bin\\cross-env-shell.ps1": {
+      "sig": "1759614516490.1104:1989",
+      "dest": "D:\\source\\PrismWeave\\dist\\web\\node_modules\\.bin\\cross-env-shell.ps1"
+    },
+    "D:\\source\\PrismWeave\\website\\node_modules\\.bin\\cross-env.CMD": {
+      "sig": "1759614516490.1104:1122",
+      "dest": "D:\\source\\PrismWeave\\dist\\web\\node_modules\\.bin\\cross-env.CMD"
+    },
+    "D:\\source\\PrismWeave\\website\\node_modules\\.bin\\cross-env.ps1": {
+      "sig": "1759614516490.1104:1965",
+      "dest": "D:\\source\\PrismWeave\\dist\\web\\node_modules\\.bin\\cross-env.ps1"
+    },
+    "D:\\source\\PrismWeave\\website\\node_modules\\.bin\\esbuild": {
+      "sig": "1759614516490.1104:1120",
+      "dest": "D:\\source\\PrismWeave\\dist\\web\\node_modules\\.bin\\esbuild"
+    },
+    "D:\\source\\PrismWeave\\website\\node_modules\\.bin\\esbuild.CMD": {
+      "sig": "1759614516490.1104:892",
+      "dest": "D:\\source\\PrismWeave\\dist\\web\\node_modules\\.bin\\esbuild.CMD"
+    },
+    "D:\\source\\PrismWeave\\website\\node_modules\\.bin\\esbuild.ps1": {
+      "sig": "1759614516490.1104:1709",
+      "dest": "D:\\source\\PrismWeave\\dist\\web\\node_modules\\.bin\\esbuild.ps1"
+    },
+    "D:\\source\\PrismWeave\\website\\node_modules\\.bin\\tsc": {
+      "sig": "1759614516490.1104:1136",
+      "dest": "D:\\source\\PrismWeave\\dist\\web\\node_modules\\.bin\\tsc"
+    },
+    "D:\\source\\PrismWeave\\website\\node_modules\\.bin\\tsc.CMD": {
+      "sig": "1759614516490.1104:908",
+      "dest": "D:\\source\\PrismWeave\\dist\\web\\node_modules\\.bin\\tsc.CMD"
+    },
+    "D:\\source\\PrismWeave\\website\\node_modules\\.bin\\tsc.ps1": {
+      "sig": "1759614516490.1104:1723",
+      "dest": "D:\\source\\PrismWeave\\dist\\web\\node_modules\\.bin\\tsc.ps1"
+    },
+    "D:\\source\\PrismWeave\\website\\node_modules\\.bin\\tsserver": {
+      "sig": "1759614516492.1113:1146",
+      "dest": "D:\\source\\PrismWeave\\dist\\web\\node_modules\\.bin\\tsserver"
+    },
+    "D:\\source\\PrismWeave\\website\\node_modules\\.bin\\tsserver.CMD": {
+      "sig": "1759614516492.1113:918",
+      "dest": "D:\\source\\PrismWeave\\dist\\web\\node_modules\\.bin\\tsserver.CMD"
+    },
+    "D:\\source\\PrismWeave\\website\\node_modules\\.bin\\tsserver.ps1": {
+      "sig": "1759614516492.1113:1743",
+      "dest": "D:\\source\\PrismWeave\\dist\\web\\node_modules\\.bin\\tsserver.ps1"
     }
   },
   "destToSrc": {
@@ -355,6 +415,21 @@
     "D:\\source\\PrismWeave\\dist\\web\\assets\\shared-styles\\shared-ui.css": "D:\\source\\PrismWeave\\website\\dist\\assets\\shared-styles\\shared-ui.css",
     "D:\\source\\PrismWeave\\dist\\web\\dist\\assets\\shared-styles\\design-tokens.css": "D:\\source\\PrismWeave\\website\\dist\\assets\\shared-styles\\design-tokens.css",
     "D:\\source\\PrismWeave\\dist\\web\\dist\\assets\\shared-styles\\shared-ui.css": "D:\\source\\PrismWeave\\website\\dist\\assets\\shared-styles\\shared-ui.css",
-    "D:\\source\\PrismWeave\\dist\\web\\dist\\assets\\styles.css": "D:\\source\\PrismWeave\\website\\dist\\assets\\styles.css"
+    "D:\\source\\PrismWeave\\dist\\web\\dist\\assets\\styles.css": "D:\\source\\PrismWeave\\website\\dist\\assets\\styles.css",
+    "D:\\source\\PrismWeave\\dist\\web\\node_modules\\.bin\\cross-env": "D:\\source\\PrismWeave\\website\\node_modules\\.bin\\cross-env",
+    "D:\\source\\PrismWeave\\dist\\web\\node_modules\\.bin\\cross-env-shell": "D:\\source\\PrismWeave\\website\\node_modules\\.bin\\cross-env-shell",
+    "D:\\source\\PrismWeave\\dist\\web\\node_modules\\.bin\\cross-env-shell.CMD": "D:\\source\\PrismWeave\\website\\node_modules\\.bin\\cross-env-shell.CMD",
+    "D:\\source\\PrismWeave\\dist\\web\\node_modules\\.bin\\cross-env-shell.ps1": "D:\\source\\PrismWeave\\website\\node_modules\\.bin\\cross-env-shell.ps1",
+    "D:\\source\\PrismWeave\\dist\\web\\node_modules\\.bin\\cross-env.CMD": "D:\\source\\PrismWeave\\website\\node_modules\\.bin\\cross-env.CMD",
+    "D:\\source\\PrismWeave\\dist\\web\\node_modules\\.bin\\cross-env.ps1": "D:\\source\\PrismWeave\\website\\node_modules\\.bin\\cross-env.ps1",
+    "D:\\source\\PrismWeave\\dist\\web\\node_modules\\.bin\\esbuild": "D:\\source\\PrismWeave\\website\\node_modules\\.bin\\esbuild",
+    "D:\\source\\PrismWeave\\dist\\web\\node_modules\\.bin\\esbuild.CMD": "D:\\source\\PrismWeave\\website\\node_modules\\.bin\\esbuild.CMD",
+    "D:\\source\\PrismWeave\\dist\\web\\node_modules\\.bin\\esbuild.ps1": "D:\\source\\PrismWeave\\website\\node_modules\\.bin\\esbuild.ps1",
+    "D:\\source\\PrismWeave\\dist\\web\\node_modules\\.bin\\tsc": "D:\\source\\PrismWeave\\website\\node_modules\\.bin\\tsc",
+    "D:\\source\\PrismWeave\\dist\\web\\node_modules\\.bin\\tsc.CMD": "D:\\source\\PrismWeave\\website\\node_modules\\.bin\\tsc.CMD",
+    "D:\\source\\PrismWeave\\dist\\web\\node_modules\\.bin\\tsc.ps1": "D:\\source\\PrismWeave\\website\\node_modules\\.bin\\tsc.ps1",
+    "D:\\source\\PrismWeave\\dist\\web\\node_modules\\.bin\\tsserver": "D:\\source\\PrismWeave\\website\\node_modules\\.bin\\tsserver",
+    "D:\\source\\PrismWeave\\dist\\web\\node_modules\\.bin\\tsserver.CMD": "D:\\source\\PrismWeave\\website\\node_modules\\.bin\\tsserver.CMD",
+    "D:\\source\\PrismWeave\\dist\\web\\node_modules\\.bin\\tsserver.ps1": "D:\\source\\PrismWeave\\website\\node_modules\\.bin\\tsserver.ps1"
   }
 }
