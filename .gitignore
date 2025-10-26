@@ -61,6 +61,7 @@ test-outputs/
 .parcel-cache/
 .eslintcache
 *.tsbuildinfo
+.build-cache/
 
 # Temporary files
 tmp/
