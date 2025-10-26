@@ -61,7 +61,10 @@
 		"python.testing.cwd": "./ai-processing",
 		"python.testing.autoTestDiscoverOnSaveEnabled": true,
 		"python.analysis.autoImportCompletions": true,
-		"python.analysis.typeCheckingMode": "basic"
+		"python.analysis.typeCheckingMode": "basic",
+		
+		// Test configuration
+		"testing.automaticallyOpenPeekView": "never"
 	},
 	"extensions": {
 		"recommendations": [

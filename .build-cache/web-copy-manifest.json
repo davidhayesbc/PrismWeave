@@ -339,6 +339,210 @@
     "D:\\source\\PrismWeave\\website\\node_modules\\.bin\\tsserver.ps1": {
       "sig": "1759614516492.1113:1743",
       "dest": "D:\\source\\PrismWeave\\dist\\web\\node_modules\\.bin\\tsserver.ps1"
+    },
+    "/home/dhayes/Source/PrismWeave/shared-styles/design-tokens.css": {
+      "sig": "1761501411772.5972:7382",
+      "dest": "/home/dhayes/Source/PrismWeave/dist/web/shared-styles/design-tokens.css"
+    },
+    "/home/dhayes/Source/PrismWeave/shared-styles/shared-ui.css": {
+      "sig": "1761501411773.0056:13289",
+      "dest": "/home/dhayes/Source/PrismWeave/dist/web/shared-styles/shared-ui.css"
+    },
+    "/home/dhayes/Source/PrismWeave/website/assets/favicon.svg": {
+      "sig": "1761501411773.0496:591",
+      "dest": "/home/dhayes/Source/PrismWeave/dist/web/assets/favicon.svg"
+    },
+    "/home/dhayes/Source/PrismWeave/website/assets/shared-styles/design-tokens.css": {
+      "sig": "1761501589060.7102:7382",
+      "dest": "/home/dhayes/Source/PrismWeave/dist/web/assets/shared-styles/design-tokens.css"
+    },
+    "/home/dhayes/Source/PrismWeave/website/assets/shared-styles/shared-ui.css": {
+      "sig": "1761501589060.8564:13289",
+      "dest": "/home/dhayes/Source/PrismWeave/dist/web/assets/shared-styles/shared-ui.css"
+    },
+    "/home/dhayes/Source/PrismWeave/website/assets/styles/bookmarklet-generator.css": {
+      "sig": "1761501411773.0857:4174",
+      "dest": "/home/dhayes/Source/PrismWeave/dist/web/assets/styles/bookmarklet-generator.css"
+    },
+    "/home/dhayes/Source/PrismWeave/website/assets/styles/shared-ui.css": {
+      "sig": "1761501411773.1296:42",
+      "dest": "/home/dhayes/Source/PrismWeave/dist/web/assets/styles/shared-ui.css"
+    },
+    "/home/dhayes/Source/PrismWeave/website/assets/styles.css": {
+      "sig": "1761501411773.0857:3386",
+      "dest": "/home/dhayes/Source/PrismWeave/dist/web/assets/styles.css"
+    },
+    "/home/dhayes/Source/PrismWeave/website/README.md": {
+      "sig": "1761501411773.0056:2005",
+      "dest": "/home/dhayes/Source/PrismWeave/dist/web/README.md"
+    },
+    "/home/dhayes/Source/PrismWeave/website/bookmarklet/README.md": {
+      "sig": "1761501411773.1296:12994",
+      "dest": "/home/dhayes/Source/PrismWeave/dist/web/bookmarklet/README.md"
+    },
+    "/home/dhayes/Source/PrismWeave/website/bookmarklet/config.ts": {
+      "sig": "1761501411773.182:475",
+      "dest": "/home/dhayes/Source/PrismWeave/dist/web/bookmarklet/config.ts"
+    },
+    "/home/dhayes/Source/PrismWeave/website/bookmarklet/generator.html": {
+      "sig": "1761501411773.182:10764",
+      "dest": "/home/dhayes/Source/PrismWeave/dist/web/bookmarklet/generator.html"
+    },
+    "/home/dhayes/Source/PrismWeave/website/bookmarklet/generator.ts": {
+      "sig": "1761501411773.182:17360",
+      "dest": "/home/dhayes/Source/PrismWeave/dist/web/bookmarklet/generator.ts"
+    },
+    "/home/dhayes/Source/PrismWeave/website/dist/assets/shared-styles/design-tokens.css": {
+      "sig": "1761501589265.1772:7382",
+      "dest": "/home/dhayes/Source/PrismWeave/dist/web/assets/shared-styles/design-tokens.css"
+    },
+    "/home/dhayes/Source/PrismWeave/website/dist/assets/shared-styles/shared-ui.css": {
+      "sig": "1761501589265.2249:13289",
+      "dest": "/home/dhayes/Source/PrismWeave/dist/web/assets/shared-styles/shared-ui.css"
+    },
+    "/home/dhayes/Source/PrismWeave/website/dist/assets/styles/bookmarklet-generator.css": {
+      "sig": "1761501589264.9236:4174",
+      "dest": "/home/dhayes/Source/PrismWeave/dist/web/assets/styles/bookmarklet-generator.css"
+    },
+    "/home/dhayes/Source/PrismWeave/website/dist/assets/styles/shared-ui.css": {
+      "sig": "1761501589265.0432:42",
+      "dest": "/home/dhayes/Source/PrismWeave/dist/web/assets/styles/shared-ui.css"
+    },
+    "/home/dhayes/Source/PrismWeave/website/dist/assets/styles.css": {
+      "sig": "1761501589265.0862:3386",
+      "dest": "/home/dhayes/Source/PrismWeave/dist/web/assets/styles.css"
+    },
+    "/home/dhayes/Source/PrismWeave/website/dist/bookmarklet/README.md": {
+      "sig": "1761501589265.4023:12994",
+      "dest": "/home/dhayes/Source/PrismWeave/dist/web/bookmarklet/README.md"
+    },
+    "/home/dhayes/Source/PrismWeave/website/dist/bookmarklet/generator.html": {
+      "sig": "1761501589264.5085:10764",
+      "dest": "/home/dhayes/Source/PrismWeave/dist/web/bookmarklet/generator.html"
+    },
+    "/home/dhayes/Source/PrismWeave/website/dist/bookmarklet/generator.js": {
+      "sig": "1761501589255.5085:15155",
+      "dest": "/home/dhayes/Source/PrismWeave/dist/web/bookmarklet/generator.js"
+    },
+    "/home/dhayes/Source/PrismWeave/website/package.json": {
+      "sig": "1761501411773.182:685",
+      "dest": "/home/dhayes/Source/PrismWeave/dist/web/package.json"
+    },
+    "/home/dhayes/Source/PrismWeave/website/scripts/build-bookmarklet.js": {
+      "sig": "1761501411773.182:24106",
+      "dest": "/home/dhayes/Source/PrismWeave/dist/web/scripts/build-bookmarklet.js"
+    },
+    "/home/dhayes/Source/PrismWeave/website/scripts/cleanup-bookmarklet.js": {
+      "sig": "1761501411773.3225:6489",
+      "dest": "/home/dhayes/Source/PrismWeave/dist/web/scripts/cleanup-bookmarklet.js"
+    },
+    "/home/dhayes/Source/PrismWeave/dist/browser-extension/background/service-worker.js": {
+      "sig": "1761501588987.2815:164366",
+      "dest": "/home/dhayes/Source/PrismWeave/dist/web/extension/background/service-worker.js"
+    },
+    "/home/dhayes/Source/PrismWeave/dist/browser-extension/background/service-worker.js.map": {
+      "sig": "1761501588987.2815:319643",
+      "dest": "/home/dhayes/Source/PrismWeave/dist/web/extension/background/service-worker.js.map"
+    },
+    "/home/dhayes/Source/PrismWeave/dist/browser-extension/content/content-script.js": {
+      "sig": "1761501588985.951:94245",
+      "dest": "/home/dhayes/Source/PrismWeave/dist/web/extension/content/content-script.js"
+    },
+    "/home/dhayes/Source/PrismWeave/dist/browser-extension/content/content-script.js.map": {
+      "sig": "1761501588985.951:187788",
+      "dest": "/home/dhayes/Source/PrismWeave/dist/web/extension/content/content-script.js.map"
+    },
+    "/home/dhayes/Source/PrismWeave/dist/browser-extension/icons/README.md": {
+      "sig": "1761501588993.7405:1867",
+      "dest": "/home/dhayes/Source/PrismWeave/dist/web/extension/icons/README.md"
+    },
+    "/home/dhayes/Source/PrismWeave/dist/browser-extension/icons/icon128.png": {
+      "sig": "1761501588993.7405:9554",
+      "dest": "/home/dhayes/Source/PrismWeave/dist/web/extension/icons/icon128.png"
+    },
+    "/home/dhayes/Source/PrismWeave/dist/browser-extension/icons/icon16.png": {
+      "sig": "1761501588993.7405:583",
+      "dest": "/home/dhayes/Source/PrismWeave/dist/web/extension/icons/icon16.png"
+    },
+    "/home/dhayes/Source/PrismWeave/dist/browser-extension/icons/icon32.png": {
+      "sig": "1761501588993.7405:1476",
+      "dest": "/home/dhayes/Source/PrismWeave/dist/web/extension/icons/icon32.png"
+    },
+    "/home/dhayes/Source/PrismWeave/dist/browser-extension/icons/icon48.png": {
+      "sig": "1761501588993.7405:2635",
+      "dest": "/home/dhayes/Source/PrismWeave/dist/web/extension/icons/icon48.png"
+    },
+    "/home/dhayes/Source/PrismWeave/dist/browser-extension/icons/icon64.png": {
+      "sig": "1761501588993.7405:3831",
+      "dest": "/home/dhayes/Source/PrismWeave/dist/web/extension/icons/icon64.png"
+    },
+    "/home/dhayes/Source/PrismWeave/dist/browser-extension/injectable/content-extractor-injectable.js": {
+      "sig": "1761501588985.4495:80329",
+      "dest": "/home/dhayes/Source/PrismWeave/dist/web/injectable/content-extractor-injectable.js"
+    },
+    "/home/dhayes/Source/PrismWeave/dist/browser-extension/injectable/content-extractor-injectable.js.map": {
+      "sig": "1761501588985.4495:152755",
+      "dest": "/home/dhayes/Source/PrismWeave/dist/web/injectable/content-extractor-injectable.js.map"
+    },
+    "/home/dhayes/Source/PrismWeave/dist/browser-extension/injectable/prismweave-bundle.js": {
+      "sig": "1761501588986.5093:90966",
+      "dest": "/home/dhayes/Source/PrismWeave/dist/web/injectable/prismweave-bundle.js"
+    },
+    "/home/dhayes/Source/PrismWeave/dist/browser-extension/injectable/prismweave-bundle.js.map": {
+      "sig": "1761501588986.5093:175061",
+      "dest": "/home/dhayes/Source/PrismWeave/dist/web/injectable/prismweave-bundle.js.map"
+    },
+    "/home/dhayes/Source/PrismWeave/dist/browser-extension/manifest.json": {
+      "sig": "1761501588993.468:1492",
+      "dest": "/home/dhayes/Source/PrismWeave/dist/web/extension/manifest.json"
+    },
+    "/home/dhayes/Source/PrismWeave/dist/browser-extension/options/options.css": {
+      "sig": "1761501588993.7405:13815",
+      "dest": "/home/dhayes/Source/PrismWeave/dist/web/extension/options/options.css"
+    },
+    "/home/dhayes/Source/PrismWeave/dist/browser-extension/options/options.html": {
+      "sig": "1761501588993.709:12761",
+      "dest": "/home/dhayes/Source/PrismWeave/dist/web/extension/options/options.html"
+    },
+    "/home/dhayes/Source/PrismWeave/dist/browser-extension/options/options.js": {
+      "sig": "1761501588981.7056:34686",
+      "dest": "/home/dhayes/Source/PrismWeave/dist/web/extension/options/options.js"
+    },
+    "/home/dhayes/Source/PrismWeave/dist/browser-extension/options/options.js.map": {
+      "sig": "1761501588981.7056:61457",
+      "dest": "/home/dhayes/Source/PrismWeave/dist/web/extension/options/options.js.map"
+    },
+    "/home/dhayes/Source/PrismWeave/dist/browser-extension/popup/popup.css": {
+      "sig": "1761501588993.6716:10873",
+      "dest": "/home/dhayes/Source/PrismWeave/dist/web/extension/popup/popup.css"
+    },
+    "/home/dhayes/Source/PrismWeave/dist/browser-extension/popup/popup.html": {
+      "sig": "1761501588993.617:4824",
+      "dest": "/home/dhayes/Source/PrismWeave/dist/web/extension/popup/popup.html"
+    },
+    "/home/dhayes/Source/PrismWeave/dist/browser-extension/popup/popup.js": {
+      "sig": "1761501588985.6406:57252",
+      "dest": "/home/dhayes/Source/PrismWeave/dist/web/extension/popup/popup.js"
+    },
+    "/home/dhayes/Source/PrismWeave/dist/browser-extension/popup/popup.js.map": {
+      "sig": "1761501588985.6406:104793",
+      "dest": "/home/dhayes/Source/PrismWeave/dist/web/extension/popup/popup.js.map"
+    },
+    "/home/dhayes/Source/PrismWeave/dist/browser-extension/shared-styles/design-tokens.css": {
+      "sig": "1761501588992.509:7382",
+      "dest": "/home/dhayes/Source/PrismWeave/dist/web/extension/shared-styles/design-tokens.css"
+    },
+    "/home/dhayes/Source/PrismWeave/dist/browser-extension/shared-styles/shared-ui.css": {
+      "sig": "1761501588992.509:13289",
+      "dest": "/home/dhayes/Source/PrismWeave/dist/web/extension/shared-styles/shared-ui.css"
+    },
+    "/home/dhayes/Source/PrismWeave/dist/browser-extension/styles/extension-base.css": {
+      "sig": "1761501588994.0173:2874",
+      "dest": "/home/dhayes/Source/PrismWeave/dist/web/extension/styles/extension-base.css"
+    },
+    "/home/dhayes/Source/PrismWeave/dist/browser-extension/styles/shared-ui.css": {
+      "sig": "1761501588994.0173:48",
+      "dest": "/home/dhayes/Source/PrismWeave/dist/web/extension/styles/shared-ui.css"
     }
   },
   "destToSrc": {
@@ -430,6 +634,62 @@
     "D:\\source\\PrismWeave\\dist\\web\\node_modules\\.bin\\tsc.ps1": "D:\\source\\PrismWeave\\website\\node_modules\\.bin\\tsc.ps1",
     "D:\\source\\PrismWeave\\dist\\web\\node_modules\\.bin\\tsserver": "D:\\source\\PrismWeave\\website\\node_modules\\.bin\\tsserver",
     "D:\\source\\PrismWeave\\dist\\web\\node_modules\\.bin\\tsserver.CMD": "D:\\source\\PrismWeave\\website\\node_modules\\.bin\\tsserver.CMD",
-    "D:\\source\\PrismWeave\\dist\\web\\node_modules\\.bin\\tsserver.ps1": "D:\\source\\PrismWeave\\website\\node_modules\\.bin\\tsserver.ps1"
+    "D:\\source\\PrismWeave\\dist\\web\\node_modules\\.bin\\tsserver.ps1": "D:\\source\\PrismWeave\\website\\node_modules\\.bin\\tsserver.ps1",
+    "/home/dhayes/Source/PrismWeave/dist/web/shared-styles/design-tokens.css": "/home/dhayes/Source/PrismWeave/shared-styles/design-tokens.css",
+    "/home/dhayes/Source/PrismWeave/dist/web/shared-styles/shared-ui.css": "/home/dhayes/Source/PrismWeave/shared-styles/shared-ui.css",
+    "/home/dhayes/Source/PrismWeave/dist/web/assets/favicon.svg": "/home/dhayes/Source/PrismWeave/website/assets/favicon.svg",
+    "/home/dhayes/Source/PrismWeave/dist/web/assets/shared-styles/design-tokens.css": "/home/dhayes/Source/PrismWeave/website/dist/assets/shared-styles/design-tokens.css",
+    "/home/dhayes/Source/PrismWeave/dist/web/assets/shared-styles/shared-ui.css": "/home/dhayes/Source/PrismWeave/website/dist/assets/shared-styles/shared-ui.css",
+    "/home/dhayes/Source/PrismWeave/dist/web/assets/styles/bookmarklet-generator.css": "/home/dhayes/Source/PrismWeave/website/dist/assets/styles/bookmarklet-generator.css",
+    "/home/dhayes/Source/PrismWeave/dist/web/assets/styles/shared-ui.css": "/home/dhayes/Source/PrismWeave/website/dist/assets/styles/shared-ui.css",
+    "/home/dhayes/Source/PrismWeave/dist/web/assets/styles.css": "/home/dhayes/Source/PrismWeave/website/dist/assets/styles.css",
+    "/home/dhayes/Source/PrismWeave/dist/web/README.md": "/home/dhayes/Source/PrismWeave/website/README.md",
+    "/home/dhayes/Source/PrismWeave/dist/web/bookmarklet/README.md": "/home/dhayes/Source/PrismWeave/website/dist/bookmarklet/README.md",
+    "/home/dhayes/Source/PrismWeave/dist/web/bookmarklet/config.ts": "/home/dhayes/Source/PrismWeave/website/bookmarklet/config.ts",
+    "/home/dhayes/Source/PrismWeave/dist/web/bookmarklet/generator.html": "/home/dhayes/Source/PrismWeave/website/dist/bookmarklet/generator.html",
+    "/home/dhayes/Source/PrismWeave/dist/web/bookmarklet/generator.ts": "/home/dhayes/Source/PrismWeave/website/bookmarklet/generator.ts",
+    "/home/dhayes/Source/PrismWeave/dist/web/dist/assets/shared-styles/design-tokens.css": "/home/dhayes/Source/PrismWeave/website/dist/assets/shared-styles/design-tokens.css",
+    "/home/dhayes/Source/PrismWeave/dist/web/dist/assets/shared-styles/shared-ui.css": "/home/dhayes/Source/PrismWeave/website/dist/assets/shared-styles/shared-ui.css",
+    "/home/dhayes/Source/PrismWeave/dist/web/dist/assets/styles/bookmarklet-generator.css": "/home/dhayes/Source/PrismWeave/website/dist/assets/styles/bookmarklet-generator.css",
+    "/home/dhayes/Source/PrismWeave/dist/web/dist/assets/styles/shared-ui.css": "/home/dhayes/Source/PrismWeave/website/dist/assets/styles/shared-ui.css",
+    "/home/dhayes/Source/PrismWeave/dist/web/dist/assets/styles.css": "/home/dhayes/Source/PrismWeave/website/dist/assets/styles.css",
+    "/home/dhayes/Source/PrismWeave/dist/web/dist/bookmarklet/README.md": "/home/dhayes/Source/PrismWeave/website/dist/bookmarklet/README.md",
+    "/home/dhayes/Source/PrismWeave/dist/web/dist/bookmarklet/generator.html": "/home/dhayes/Source/PrismWeave/website/dist/bookmarklet/generator.html",
+    "/home/dhayes/Source/PrismWeave/dist/web/dist/bookmarklet/generator.js": "/home/dhayes/Source/PrismWeave/website/dist/bookmarklet/generator.js",
+    "/home/dhayes/Source/PrismWeave/dist/web/package.json": "/home/dhayes/Source/PrismWeave/website/package.json",
+    "/home/dhayes/Source/PrismWeave/dist/web/scripts/build-bookmarklet.js": "/home/dhayes/Source/PrismWeave/website/scripts/build-bookmarklet.js",
+    "/home/dhayes/Source/PrismWeave/dist/web/scripts/cleanup-bookmarklet.js": "/home/dhayes/Source/PrismWeave/website/scripts/cleanup-bookmarklet.js",
+    "/home/dhayes/Source/PrismWeave/dist/web/extension/background/service-worker.js": "/home/dhayes/Source/PrismWeave/dist/browser-extension/background/service-worker.js",
+    "/home/dhayes/Source/PrismWeave/dist/web/extension/background/service-worker.js.map": "/home/dhayes/Source/PrismWeave/dist/browser-extension/background/service-worker.js.map",
+    "/home/dhayes/Source/PrismWeave/dist/web/extension/content/content-script.js": "/home/dhayes/Source/PrismWeave/dist/browser-extension/content/content-script.js",
+    "/home/dhayes/Source/PrismWeave/dist/web/extension/content/content-script.js.map": "/home/dhayes/Source/PrismWeave/dist/browser-extension/content/content-script.js.map",
+    "/home/dhayes/Source/PrismWeave/dist/web/extension/icons/README.md": "/home/dhayes/Source/PrismWeave/dist/browser-extension/icons/README.md",
+    "/home/dhayes/Source/PrismWeave/dist/web/extension/icons/icon128.png": "/home/dhayes/Source/PrismWeave/dist/browser-extension/icons/icon128.png",
+    "/home/dhayes/Source/PrismWeave/dist/web/extension/icons/icon16.png": "/home/dhayes/Source/PrismWeave/dist/browser-extension/icons/icon16.png",
+    "/home/dhayes/Source/PrismWeave/dist/web/extension/icons/icon32.png": "/home/dhayes/Source/PrismWeave/dist/browser-extension/icons/icon32.png",
+    "/home/dhayes/Source/PrismWeave/dist/web/extension/icons/icon48.png": "/home/dhayes/Source/PrismWeave/dist/browser-extension/icons/icon48.png",
+    "/home/dhayes/Source/PrismWeave/dist/web/extension/icons/icon64.png": "/home/dhayes/Source/PrismWeave/dist/browser-extension/icons/icon64.png",
+    "/home/dhayes/Source/PrismWeave/dist/web/extension/injectable/content-extractor-injectable.js": "/home/dhayes/Source/PrismWeave/dist/browser-extension/injectable/content-extractor-injectable.js",
+    "/home/dhayes/Source/PrismWeave/dist/web/extension/injectable/content-extractor-injectable.js.map": "/home/dhayes/Source/PrismWeave/dist/browser-extension/injectable/content-extractor-injectable.js.map",
+    "/home/dhayes/Source/PrismWeave/dist/web/extension/injectable/prismweave-bundle.js": "/home/dhayes/Source/PrismWeave/dist/browser-extension/injectable/prismweave-bundle.js",
+    "/home/dhayes/Source/PrismWeave/dist/web/extension/injectable/prismweave-bundle.js.map": "/home/dhayes/Source/PrismWeave/dist/browser-extension/injectable/prismweave-bundle.js.map",
+    "/home/dhayes/Source/PrismWeave/dist/web/extension/manifest.json": "/home/dhayes/Source/PrismWeave/dist/browser-extension/manifest.json",
+    "/home/dhayes/Source/PrismWeave/dist/web/extension/options/options.css": "/home/dhayes/Source/PrismWeave/dist/browser-extension/options/options.css",
+    "/home/dhayes/Source/PrismWeave/dist/web/extension/options/options.html": "/home/dhayes/Source/PrismWeave/dist/browser-extension/options/options.html",
+    "/home/dhayes/Source/PrismWeave/dist/web/extension/options/options.js": "/home/dhayes/Source/PrismWeave/dist/browser-extension/options/options.js",
+    "/home/dhayes/Source/PrismWeave/dist/web/extension/options/options.js.map": "/home/dhayes/Source/PrismWeave/dist/browser-extension/options/options.js.map",
+    "/home/dhayes/Source/PrismWeave/dist/web/extension/popup/popup.css": "/home/dhayes/Source/PrismWeave/dist/browser-extension/popup/popup.css",
+    "/home/dhayes/Source/PrismWeave/dist/web/extension/popup/popup.html": "/home/dhayes/Source/PrismWeave/dist/browser-extension/popup/popup.html",
+    "/home/dhayes/Source/PrismWeave/dist/web/extension/popup/popup.js": "/home/dhayes/Source/PrismWeave/dist/browser-extension/popup/popup.js",
+    "/home/dhayes/Source/PrismWeave/dist/web/extension/popup/popup.js.map": "/home/dhayes/Source/PrismWeave/dist/browser-extension/popup/popup.js.map",
+    "/home/dhayes/Source/PrismWeave/dist/web/extension/shared-styles/design-tokens.css": "/home/dhayes/Source/PrismWeave/dist/browser-extension/shared-styles/design-tokens.css",
+    "/home/dhayes/Source/PrismWeave/dist/web/extension/shared-styles/shared-ui.css": "/home/dhayes/Source/PrismWeave/dist/browser-extension/shared-styles/shared-ui.css",
+    "/home/dhayes/Source/PrismWeave/dist/web/extension/styles/extension-base.css": "/home/dhayes/Source/PrismWeave/dist/browser-extension/styles/extension-base.css",
+    "/home/dhayes/Source/PrismWeave/dist/web/extension/styles/shared-ui.css": "/home/dhayes/Source/PrismWeave/dist/browser-extension/styles/shared-ui.css",
+    "/home/dhayes/Source/PrismWeave/dist/web/injectable/content-extractor-injectable.js": "/home/dhayes/Source/PrismWeave/dist/browser-extension/injectable/content-extractor-injectable.js",
+    "/home/dhayes/Source/PrismWeave/dist/web/injectable/content-extractor-injectable.js.map": "/home/dhayes/Source/PrismWeave/dist/browser-extension/injectable/content-extractor-injectable.js.map",
+    "/home/dhayes/Source/PrismWeave/dist/web/injectable/prismweave-bundle.js": "/home/dhayes/Source/PrismWeave/dist/browser-extension/injectable/prismweave-bundle.js",
+    "/home/dhayes/Source/PrismWeave/dist/web/injectable/prismweave-bundle.js.map": "/home/dhayes/Source/PrismWeave/dist/browser-extension/injectable/prismweave-bundle.js.map",
+    "/home/dhayes/Source/PrismWeave/dist/web/bookmarklet/generator.js": "/home/dhayes/Source/PrismWeave/website/dist/bookmarklet/generator.js"
   }
 }

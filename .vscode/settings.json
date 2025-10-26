@@ -139,5 +139,6 @@
   // Testing API configuration for built-in test explorer
   "testing.automaticallyOpenPeekView": "failureInVisibleDocument",
   "testing.followRunningTest": true,
-  "testing.openTesting": "neverOpen"
+  "testing.openTesting": "neverOpen",
+  "testing.automaticallyOpenTestResults": "neverOpen"
 }
