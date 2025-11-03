@@ -47,9 +47,12 @@ class PrismWeaveBuildSystem {
       switch (target) {
         case 'all':
         case 'build':
+          // Always refresh brand assets (icons, logo.png) first so downstream builds pick them up
+          await this.generateBrandAssets().catch((e) => console.warn('⚠️  Brand asset generation skipped:', e.message));
           await this.buildAll();
           break;
         case 'browser-extension':
+          await this.generateBrandAssets().catch((e) => console.warn('⚠️  Brand asset generation skipped:', e.message));
           await this.buildBrowserExtension();
           break;
         case 'bookmarklet':
@@ -62,6 +65,7 @@ class PrismWeaveBuildSystem {
           await this.buildAIProcessing();
           break;
         case 'web':
+          await this.generateBrandAssets().catch((e) => console.warn('⚠️  Brand asset generation skipped:', e.message));
           await this.buildWebOnly({ fast: fastMode });
           break;
         case 'clean':
@@ -292,6 +296,9 @@ class PrismWeaveBuildSystem {
         }
       }
     }
+
+    // Ensure latest logo assets (logo.svg, logo.png, PWA icons) copied into web dist
+    await this.copyBrandAssetsToWeb(webDistPath);
 
     // Copy browser extension files for web deployment
     const browserExtensionDist = path.join(this.projectRoot, 'dist', 'browser-extension');
@@ -552,6 +559,133 @@ class PrismWeaveBuildSystem {
 </html>`;
 
     fs.writeFileSync(path.join(webDistPath, 'index.html'), indexHtml);
+  }
+
+  // --- Brand asset pipeline ---
+  async generateBrandAssets() {
+    const root = this.projectRoot;
+    const logoSvgPath = path.join(root, 'logo.svg');
+    if (!fs.existsSync(logoSvgPath)) {
+      console.warn('ℹ️  logo.svg not found, skipping brand asset generation');
+      return;
+    }
+
+    // Try to load sharp for SVG rasterization
+    let sharp;
+    try {
+      sharp = require('sharp');
+    } catch (e) {
+      console.warn('⚠️  sharp is not installed; skipping icon rasterization from SVG. Install with: npm i -D sharp');
+      return;
+    }
+
+    // Read SVG once
+    const svgContent = fs.readFileSync(logoSvgPath, 'utf8');
+
+    // Helper: extract the logo-mark symbol content from logo.svg
+    const markMatch = svgContent.match(/<symbol[^>]*id=["']logo-mark["'][^>]*>([\s\S]*?)<\/symbol>/i);
+    let markInner = null;
+    if (markMatch) {
+      markInner = markMatch[1];
+    }
+
+    // Build a minimal SVG wrapper for the mark (fallback to full SVG if no mark)
+    const markSvg = markInner
+      ? `<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" style="color:#111">\n  ${markInner}\n</svg>`
+      : svgContent; // fallback: use full logo if symbol missing
+
+    // Outputs
+    const rootLogoPng = path.join(root, 'logo.png');
+    const extIconsDir = path.join(root, 'browser-extension', 'icons');
+    const websiteAssetsDir = path.join(root, 'website', 'assets');
+
+    this.ensureDirectory(extIconsDir);
+    this.ensureDirectory(websiteAssetsDir);
+
+    // 1) Regenerate root logo.png at high resolution from full SVG
+    await sharp(Buffer.from(svgContent))
+      .resize(1024, 1024, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+      .png()
+      .toFile(rootLogoPng)
+      .catch((e) => console.warn('⚠️  Failed to render root logo.png:', e.message));
+
+    // 2) Generate browser extension icons from the compact mark
+    const iconSizes = [16, 32, 48, 64, 128];
+    for (const size of iconSizes) {
+      const outPath = path.join(extIconsDir, `icon${size}.png`);
+      try {
+        await sharp(Buffer.from(markSvg))
+          .resize(size, size, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+          .png()
+          .toFile(outPath);
+      } catch (e) {
+        console.warn(`⚠️  Failed to render icon${size}.png:`, e.message);
+      }
+    }
+
+    // 3) Website assets: copy logo.svg, generate logo.png, and common PWA sizes
+    try {
+      fs.copyFileSync(logoSvgPath, path.join(websiteAssetsDir, 'logo.svg'));
+    } catch (_) {}
+
+    try {
+      await sharp(Buffer.from(svgContent))
+        .resize(512, 512, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+        .png()
+        .toFile(path.join(websiteAssetsDir, 'logo.png'));
+    } catch (e) {
+      console.warn('⚠️  Failed to render website/assets/logo.png:', e.message);
+    }
+
+    // Generate PWA suggested icons
+    const pwaIcons = [192, 384, 512];
+    for (const size of pwaIcons) {
+      const outPath = path.join(websiteAssetsDir, `icon-${size}.png`);
+      try {
+        await sharp(Buffer.from(markSvg))
+          .resize(size, size, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+          .png()
+          .toFile(outPath);
+      } catch (e) {
+        console.warn(`⚠️  Failed to render website/assets/icon-${size}.png:`, e.message);
+      }
+    }
+
+    console.log('✅ Brand assets generated from logo.svg');
+  }
+
+  async copyBrandAssetsToWeb(webDistPath) {
+    try {
+      const assets = [
+        ['logo.svg', 'logo.svg'],
+        ['logo.png', 'logo.png'],
+      ];
+
+      for (const [srcName, destName] of assets) {
+        const src = path.join(this.projectRoot, srcName);
+        if (fs.existsSync(src)) {
+          const dest = path.join(webDistPath, destName);
+          this.ensureDirectory(path.dirname(dest));
+          fs.copyFileSync(src, dest);
+        }
+      }
+
+      // Also copy website/assets generated icons if present
+      const websiteAssetsDir = path.join(this.projectRoot, 'website', 'assets');
+      if (fs.existsSync(websiteAssetsDir)) {
+        const files = ['logo.svg', 'logo.png', 'icon-192.png', 'icon-384.png', 'icon-512.png'];
+        for (const name of files) {
+          const src = path.join(websiteAssetsDir, name);
+          if (fs.existsSync(src)) {
+            const dest = path.join(webDistPath, 'assets', name);
+            this.ensureDirectory(path.dirname(dest));
+            fs.copyFileSync(src, dest);
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('⚠️  Failed to copy brand assets to web dist:', e.message);
+    }
   }
 
   async createFavicon(webDistPath) {
