@@ -15,7 +15,7 @@ class PersonalBookmarkletBuilder {
     this.srcDir = path.join(this.projectRoot, 'bookmarklet');
     this.assetsDir = path.join(this.projectRoot, 'assets');
     this.sharedStylesSourceDir = path.join(this.projectRoot, '..', 'shared-styles');
-    this.assetsSharedDir = path.join(this.assetsDir, 'shared-styles');
+    // Build output directories only
     this.distDir = path.join(this.projectRoot, 'dist');
     this.bookmarkletDistDir = path.join(this.distDir, 'bookmarklet');
     this.assetsDistDir = path.join(this.distDir, 'assets');
@@ -65,10 +65,7 @@ class PersonalBookmarkletBuilder {
       fs.mkdirSync(this.assetsStylesDistDir, { recursive: true });
     }
 
-    if (!fs.existsSync(this.assetsSharedDir)) {
-      fs.mkdirSync(this.assetsSharedDir, { recursive: true });
-    }
-
+    // Only create dist directory for shared styles, not in source
     if (!fs.existsSync(this.assetsSharedDistDir)) {
       fs.mkdirSync(this.assetsSharedDistDir, { recursive: true });
     }
@@ -95,7 +92,7 @@ class PersonalBookmarkletBuilder {
   }
 
   syncSharedStyles() {
-    console.log('🎨 Syncing shared styles...');
+    console.log('🎨 Syncing shared styles to dist...');
 
     if (!fs.existsSync(this.sharedStylesSourceDir)) {
       console.warn('   ⚠️  shared-styles source directory not found, skipping sync');
@@ -106,21 +103,25 @@ class PersonalBookmarkletBuilder {
       .readdirSync(this.sharedStylesSourceDir)
       .filter((fileName) => fileName.endsWith('.css'));
 
-    const existingFiles = fs
-      .readdirSync(this.assetsSharedDir)
-      .filter((fileName) => fileName.endsWith('.css'));
+    // Clean existing files in DIST directory only
+    if (fs.existsSync(this.assetsSharedDistDir)) {
+      const existingFiles = fs
+        .readdirSync(this.assetsSharedDistDir)
+        .filter((fileName) => fileName.endsWith('.css'));
 
-    existingFiles.forEach((fileName) => {
-      const targetPath = path.join(this.assetsSharedDir, fileName);
-      fs.unlinkSync(targetPath);
-    });
+      existingFiles.forEach((fileName) => {
+        const targetPath = path.join(this.assetsSharedDistDir, fileName);
+        fs.unlinkSync(targetPath);
+      });
+    }
 
+    // Copy to DIST directory, not source assets
     cssFiles.forEach((fileName) => {
       const sourcePath = path.join(this.sharedStylesSourceDir, fileName);
-      const targetPath = path.join(this.assetsSharedDir, fileName);
+      const targetPath = path.join(this.assetsSharedDistDir, fileName);
 
       fs.copyFileSync(sourcePath, targetPath);
-      console.log(`   ✅ ${fileName}`);
+      console.log(`   ✅ ${fileName} → dist/assets/shared-styles/`);
     });
   }
 
@@ -298,21 +299,7 @@ export const BOOKMARKLET_CONFIG = {
       console.log('   ✅ Copied assets/styles.css');
     }
 
-    if (fs.existsSync(this.assetsSharedDir)) {
-      const sharedCssFiles = fs
-        .readdirSync(this.assetsSharedDir)
-        .filter((fileName) => fileName.endsWith('.css'));
-
-      if (sharedCssFiles.length > 0) {
-        console.log('   🎨 Copying shared design tokens...');
-        sharedCssFiles.forEach((fileName) => {
-          const sourcePath = path.join(this.assetsSharedDir, fileName);
-          const destPath = path.join(this.assetsSharedDistDir, fileName);
-          fs.copyFileSync(sourcePath, destPath);
-          console.log(`      ✅ shared-styles/${fileName}`);
-        });
-      }
-    }
+    // Shared styles are now handled by syncSharedStyles() which copies directly to dist
 
     const readmePath = path.join(this.srcDir, 'README.md');
     if (fs.existsSync(readmePath)) {

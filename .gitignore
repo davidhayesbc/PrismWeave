@@ -22,6 +22,10 @@ build/
 dist/
 out/
 
+# Build artifacts - shared styles copied by build process
+website/assets/shared-styles/
+website/dist/
+
 # Extension packages
 *.zip
 *.crx
