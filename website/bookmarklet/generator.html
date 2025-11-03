@@ -15,7 +15,7 @@
       content="Generate a personalized PrismWeave bookmarklet with your GitHub settings embedded for universal cross-domain content capture."
     />
     <script>
-      (function () {
+      (function () { // minimal inline to avoid FOUC
         try {
           var storageKey = 'prismweave-theme';
           var storedTheme = localStorage.getItem(storageKey);
@@ -40,7 +40,7 @@
     <div class="page page--narrow">
       <header class="site-header">
         <div class="brand">
-          <a href="../index.html" aria-label="Go to PrismWeave home" style="display:flex;align-items:center;gap:16px;text-decoration:none;color:inherit;">
+          <a href="../index.html" aria-label="Go to PrismWeave home" class="brand__link">
             <img src="../assets/logo.svg" alt="PrismWeave logo" class="brand__icon" />
             <div class="brand__meta">
               <h1>PrismWeave</h1>
@@ -225,59 +225,13 @@
 
       <footer class="site-footer site-footer--compact">
         <small>Bookmarklets run locally in your browser &mdash; PrismWeave v{{VERSION}}</small>
-        <a href="../index.html" aria-label="Go to PrismWeave home" style="display:inline-block;">
+        <a href="../index.html" aria-label="Go to PrismWeave home" class="site-footer__home-link">
           <img src="../assets/logo.svg" alt="PrismWeave emblem" class="site-footer__icon" />
         </a>
       </footer>
     </div>
 
-    <script>
-      (function () {
-        var storageKey = 'prismweave-theme';
-        var root = document.documentElement;
-        var toggle = document.querySelector('[data-theme-toggle]');
-
-        var systemTheme = function () {
-          return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-        };
-
-        var setTheme = function (theme) {
-          root.dataset.theme = theme;
-          if (toggle) {
-            toggle.setAttribute('aria-label', 'Switch to ' + (theme === 'dark' ? 'light' : 'dark') + ' theme');
-          }
-        };
-
-        var getStoredTheme = function () {
-          try {
-            return localStorage.getItem(storageKey);
-          } catch (error) {
-            return null;
-          }
-        };
-
-        var storedTheme = getStoredTheme();
-        setTheme(storedTheme || root.dataset.theme || systemTheme());
-
-        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function (event) {
-          if (!getStoredTheme()) {
-            setTheme(event.matches ? 'dark' : 'light');
-          }
-        });
-
-        if (toggle) {
-          toggle.addEventListener('click', function () {
-            var nextTheme = root.dataset.theme === 'dark' ? 'light' : 'dark';
-            setTheme(nextTheme);
-            try {
-              localStorage.setItem(storageKey, nextTheme);
-            } catch (error) {
-              /* localStorage may be unavailable */
-            }
-          });
-        }
-      })();
-    </script>
+    <script src="../assets/theme.js"></script>
     <script src="generator.js"></script>
   </body>
 </html>
