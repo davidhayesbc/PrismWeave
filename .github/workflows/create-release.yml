@@ -19,81 +19,81 @@ permissions:
 jobs:
   build-and-release:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          
+
       - name: Install dependencies
         run: |
           cd browser-extension
           npm install
-          
+
       - name: Build all components
         run: |
           echo "🔨 Building PrismWeave components..."
-          
+
           # Install esbuild for building
           npm install esbuild
-          
+
           # Build browser extension
           cd browser-extension
           npm run build
           cd ..
-          
+
           # Use unified build system
           node build.js build
-          
+
           echo "✅ Build completed"
-          
+
       - name: Package browser extension
         run: |
           echo "📦 Packaging browser extension..."
-          
+
           cd browser-extension/dist
           zip -r ../prismweave-extension-${{ github.ref_name }}.zip .
           cd ..
-          
+
           # Create standalone bookmarklet package
           mkdir -p ../dist/release/bookmarklet
           cp dist/bookmarklet/* ../dist/release/bookmarklet/
           cd ../dist/release
           zip -r ../prismweave-bookmarklet-${{ github.ref_name }}.zip bookmarklet/
           cd ../..
-          
+
       - name: Generate release notes
         run: |
           echo "📝 Generating release notes..."
-          
+
           VERSION=${{ github.ref_name }}
           DATE=$(date +"%Y-%m-%d")
-          
+
           cat > release-notes.md << EOF
           # PrismWeave ${VERSION}
-          
+
           Released on ${DATE}
-          
+
           ## 🚀 What's New
-          
+
           This release includes the PrismWeave document capture system with both browser extension and bookmarklet options.
-          
+
           ## 📁 Downloads
-          
+
           ### Browser Extension (Recommended)
           - **prismweave-extension-${VERSION}.zip** - Full Chrome/Edge extension with advanced features
           - Install by loading unpacked in developer mode
-          
+
           ### Bookmarklet (Universal)
           - **prismweave-bookmarklet-${VERSION}.zip** - Lightweight bookmarklet for any browser
           - Works without installing an extension
-          
+
           ## 🎯 Features
-          
+
           ### Browser Extension
           - ✅ Clean markdown conversion from web pages
           - ✅ Direct GitHub repository integration
@@ -101,7 +101,7 @@ jobs:
           - ✅ Advanced content extraction settings
           - ✅ Automatic folder organization
           - ✅ Image handling and processing
-          
+
           ### Bookmarklet
           - ✅ Universal browser compatibility
           - ✅ No extension installation required
@@ -109,39 +109,39 @@ jobs:
           - ✅ GitHub API integration
           - ✅ Drag-and-drop installation
           - ✅ Self-contained operation
-          
+
           ## 📋 Installation
-          
+
           ### Browser Extension
           1. Download \`prismweave-extension-${VERSION}.zip\`
           2. Extract to a folder
           3. Go to \`chrome://extensions/\`
           4. Enable "Developer mode"
           5. Click "Load unpacked" and select the folder
-          
+
           ### Bookmarklet
           1. Visit https://davidhayesbc.github.io/PrismWeave/
           2. Drag the bookmarklet button to your bookmarks bar
           3. Click it on any webpage to capture content
-          
+
           ## 🔧 Configuration
-          
+
           Both tools require:
           - GitHub personal access token
           - Target repository (public or private)
           - Optional: custom folder structure
-          
+
           ## 🆘 Support
-          
+
           - 📖 Documentation: https://davidhayesbc.github.io/PrismWeave/
           - 🐛 Issues: https://github.com/davidhayesbc/PrismWeave/issues
           - 💬 Discussions: https://github.com/davidhayesbc/PrismWeave/discussions
-          
+
           ---
-          
+
           **Full Changelog**: https://github.com/davidhayesbc/PrismWeave/compare/${VERSION}
           EOF
-          
+
       - name: Create GitHub Release
         id: create_release
         uses: softprops/action-gh-release@v1
@@ -156,71 +156,71 @@ jobs:
           files: |
             ./browser-extension/prismweave-extension-${{ github.ref_name }}.zip
             ./dist/prismweave-bookmarklet-${{ github.ref_name }}.zip
-          
+
       - name: Trigger website deployment
         run: |
           echo "🌐 Triggering website deployment..."
           # The website will be updated automatically by the deploy-website workflow
-          
+
   deploy-website:
     needs: build-and-release
     if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
-    
+
     runs-on: ubuntu-latest
-    
+
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-      
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          
+
       - name: Build website with release info
         run: |
           echo "🚀 Building website with release information..."
           mkdir -p dist/web
-          
+
           # Get version from tag or package.json
           if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
             VERSION=${GITHUB_REF#refs/tags/}
           else
             VERSION=$(node -e "console.log(require('./package.json').version || '1.0.0')" 2>/dev/null || echo "1.0.0")
           fi
-          
+
           LAST_MODIFIED=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-          
+
           echo "Using version: $VERSION"
           echo "Last modified: $LAST_MODIFIED"
-          
+
           # Build the actual extension and bookmarklet
           npm install esbuild
           node build.js build
-          
+
           # Process HTML template with version substitution
           sed "s/{{VERSION}}/$VERSION/g" .github/templates/index.html > dist/web/index.html
-          
+
           # Process sitemap with last modified date
           sed "s/{{LAST_MODIFIED}}/$LAST_MODIFIED/g" .github/templates/sitemap.xml > dist/web/sitemap.xml
-          
+
           # Copy other static files
           cp .github/templates/404.html dist/web/404.html
           cp .github/templates/robots.txt dist/web/robots.txt
-          
+
           # Copy built extension and bookmarklet files to web directory
           if [ -d "browser-extension/dist" ]; then
             cp -r browser-extension/dist dist/web/extension
           fi
-          
+
           if [ -d "dist/bookmarklet" ]; then
             cp -r dist/bookmarklet dist/web/bookmarklet
           fi
-          
+
       - name: List generated files
         run: |
           echo "Generated website files:"
@@ -233,15 +233,15 @@ jobs:
           echo ""
           echo "Index.html size:"
           wc -c dist/web/index.html
-          
+
       - name: Setup GitHub Pages
         uses: actions/configure-pages@v4
-        
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: ./dist/web
-          
+
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4

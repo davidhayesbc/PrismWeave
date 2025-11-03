@@ -245,7 +245,7 @@ export class MarkdownConverterCore {
       // 3. window.location.href (runtime/jsdom)
       const optionsUrl = (options as any).sourceUrl || (options as any).pageUrl;
       let pageUrl = '';
-      
+
       if (optionsUrl && typeof optionsUrl === 'string' && optionsUrl !== 'http://localhost/') {
         pageUrl = optionsUrl;
       } else if (typeof global !== 'undefined' && (global as any).window?.location?.href) {
@@ -254,7 +254,7 @@ export class MarkdownConverterCore {
           pageUrl = globalHref;
         }
       }
-      
+
       // Fall back to runtime window only if still not found
       if (!pageUrl && typeof window !== 'undefined' && window.location?.href) {
         pageUrl = window.location.href;

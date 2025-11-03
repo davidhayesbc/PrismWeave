@@ -1,208 +1,209 @@
 /* PrismWeave Website – modern minimal theme */
 /* Use canonical shared styles from repo root to avoid duplication */
-@import url("../../shared-styles/design-tokens.css");
-@import url("../../shared-styles/shared-ui.css");
+@import url('../../shared-styles/design-tokens.css');
+@import url('../../shared-styles/shared-ui.css');
 
 * {
-    box-sizing: border-box;
+  box-sizing: border-box;
 }
 
 body {
-    margin: 0;
-    min-height: 100vh;
-    font-family: var(--font-family);
-    color: var(--text-color);
-    background: var(--page-bg);
-    display: flex;
-    align-items: flex-start;
-    justify-content: center;
-    padding: clamp(24px, 6vw, 60px);
-    transition: color var(--transition), background var(--transition);
+  margin: 0;
+  min-height: 100vh;
+  font-family: var(--font-family);
+  color: var(--text-color);
+  background: var(--page-bg);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: clamp(24px, 6vw, 60px);
+  transition:
+    color var(--transition),
+    background var(--transition);
 }
 
 /* Shared link styles for brand/footer links */
 .brand__link {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    text-decoration: none;
-    color: inherit;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  text-decoration: none;
+  color: inherit;
 }
 
 .site-footer__home-link {
-    display: inline-block;
+  display: inline-block;
 }
 
 a {
-    color: inherit;
-    text-decoration: none;
+  color: inherit;
+  text-decoration: none;
 }
 
 a:hover {
-    text-decoration: underline;
+  text-decoration: underline;
 }
 
 .page {
-    width: min(1120px, 100%);
-    display: flex;
-    flex-direction: column;
-    gap: clamp(24px, 5vw, 36px);
-    background: var(--page-surface);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius);
-    box-shadow: var(--shadow);
-    padding: clamp(28px, 6vw, 48px);
-    -webkit-backdrop-filter: blur(16px);
-    backdrop-filter: blur(16px);
+  width: min(1120px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: clamp(24px, 5vw, 36px);
+  background: var(--page-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: clamp(28px, 6vw, 48px);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
 }
 
 .page--narrow {
-    width: min(920px, 100%);
+  width: min(920px, 100%);
 }
 
 .site-header,
 .site-footer {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    flex-wrap: wrap;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
 }
 
 .brand {
-    display: flex;
-    align-items: center;
-    gap: 16px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
 }
 
 .brand__icon {
-    width: 56px;
-    height: 56px;
-    border-radius: 18px;
-    box-shadow: 0 18px 32px -20px rgba(79, 70, 229, 0.55);
+  width: 56px;
+  height: 56px;
+  border-radius: 18px;
+  box-shadow: 0 18px 32px -20px rgba(79, 70, 229, 0.55);
 }
 
 .brand__meta h1 {
-    margin: 0;
-    font-size: clamp(1.9rem, 4vw, 2.4rem);
-    letter-spacing: -0.03em;
+  margin: 0;
+  font-size: clamp(1.9rem, 4vw, 2.4rem);
+  letter-spacing: -0.03em;
 }
 
 .brand__meta p {
-    margin: 6px 0 0;
-    color: var(--muted-color);
-    max-width: 36ch;
+  margin: 6px 0 0;
+  color: var(--muted-color);
+  max-width: 36ch;
 }
 
-
 .page-main {
-    display: flex;
-    flex-direction: column;
-    gap: clamp(20px, 4vw, 32px);
+  display: flex;
+  flex-direction: column;
+  gap: clamp(20px, 4vw, 32px);
 }
 
 .page-main--narrow {
-    gap: clamp(16px, 3vw, 28px);
+  gap: clamp(16px, 3vw, 28px);
 }
 
 .surface {
-    display: flex;
-    flex-direction: column;
-    gap: 18px;
-    padding: clamp(20px, 3vw, 28px);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: clamp(20px, 3vw, 28px);
 }
 
 .surface--muted {
-    background: rgba(148, 163, 184, 0.12);
-    border-color: rgba(148, 163, 184, 0.24);
+  background: rgba(148, 163, 184, 0.12);
+  border-color: rgba(148, 163, 184, 0.24);
 }
 
 .status__heading {
-    display: flex;
-    align-items: baseline;
-    gap: 12px;
-    margin: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin: 0;
 }
 
 .status__heading h2 {
-    margin: 0;
-    font-size: 1.25rem;
+  margin: 0;
+  font-size: 1.25rem;
 }
 
 .status__heading span {
-    font-size: 0.85rem;
-    text-transform: uppercase;
-    letter-spacing: 0.14em;
-    color: var(--positive-color);
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--positive-color);
 }
 
 .status__grid {
-    display: grid;
-    gap: 12px;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    margin: 0;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  margin: 0;
 }
 
 .status__grid dt {
-    font-size: 0.8rem;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--muted-color);
-    margin-bottom: 4px;
+  font-size: 0.8rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted-color);
+  margin-bottom: 4px;
 }
 
 .status__grid dd {
-    margin: 0;
-    font-size: 1.05rem;
-    font-weight: 600;
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 600;
 }
 
 .grid {
-    display: grid;
-    gap: clamp(16px, 4vw, 24px);
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  display: grid;
+  gap: clamp(16px, 4vw, 24px);
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
 }
 
 .feature h3 {
-    margin: 0 0 6px;
-    font-size: 1.2rem;
+  margin: 0 0 6px;
+  font-size: 1.2rem;
 }
 
 .feature p {
-    margin: 0 0 14px;
-    color: var(--muted-color);
+  margin: 0 0 14px;
+  color: var(--muted-color);
 }
 
 .quick-start h2 {
-    margin: 0;
+  margin: 0;
 }
 
 .quick-start ol {
-    margin: 0;
-    padding-left: 20px;
-    display: grid;
-    gap: 10px;
-    color: var(--muted-color);
+  margin: 0;
+  padding-left: 20px;
+  display: grid;
+  gap: 10px;
+  color: var(--muted-color);
 }
 
 .site-footer {
-    padding-top: 12px;
-    border-top: 1px solid var(--border-color);
+  padding-top: 12px;
+  border-top: 1px solid var(--border-color);
 }
 
 .site-footer small {
-    color: var(--muted-color);
-    font-size: 0.85rem;
+  color: var(--muted-color);
+  font-size: 0.85rem;
 }
 
 .site-footer__icon {
-    width: 34px;
-    height: 34px;
-    opacity: 0.8;
+  width: 34px;
+  height: 34px;
+  opacity: 0.8;
 }
 
 @media (max-width: 640px) {
-    .brand__meta p {
-        max-width: none;
-    }
+  .brand__meta p {
+    max-width: none;
+  }
 }

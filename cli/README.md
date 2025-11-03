@@ -121,9 +121,11 @@ prismweave capture https://example.com --dry-run
 Capture one or more URLs and save to GitHub.
 
 **Arguments:**
+
 - `[url]` - URL to capture (optional if using --file)
 
 **Options:**
+
 - `-f, --file <path>` - File containing URLs (one per line)
 - `-t, --token <token>` - GitHub personal access token
 - `-r, --repo <repo>` - GitHub repository (owner/repo format)
@@ -137,6 +139,7 @@ Capture one or more URLs and save to GitHub.
 Manage CLI configuration.
 
 **Options:**
+
 - `--set <key=value>` - Set a configuration value
 - `--get <key>` - Get a configuration value
 - `--list` - List all configuration
@@ -165,6 +168,7 @@ YYYY-MM-DD-domain-title.md
 ```
 
 For example:
+
 ```
 2025-01-15-example-com-how-to-use-prismweave.md
 ```
@@ -175,17 +179,17 @@ Captured pages are converted to markdown with YAML frontmatter:
 
 ```markdown
 ---
-title: "Article Title"
-url: "https://example.com/article"
-capture_date: "2025-01-15T10:30:00.000Z"
-description: "Article description"
-author: "Author Name"
+title: 'Article Title'
+url: 'https://example.com/article'
+capture_date: '2025-01-15T10:30:00.000Z'
+description: 'Article description'
+author: 'Author Name'
 tags:
-  - "tag1"
-  - "tag2"
+  - 'tag1'
+  - 'tag2'
 word_count: 1234
 reading_time: 7 min
-source: "PrismWeave CLI"
+source: 'PrismWeave CLI'
 ---
 
 # Article Title
@@ -202,6 +206,7 @@ The CLI shares core functionality with the browser extension:
 - **Type Definitions**: Shares interfaces and types
 
 Shared modules are located in:
+
 - `cli/src/shared/markdown-converter-core.ts`
 - `cli/src/shared/file-manager.ts`
 
@@ -278,6 +283,7 @@ prismweave capture https://slow-site.com --timeout 60000
 ## Configuration File Location
 
 The CLI stores configuration at:
+
 - **Windows**: `C:\Users\<username>\.prismweave\config.json`
 - **macOS/Linux**: `~/.prismweave/config.json`
 

@@ -5,9 +5,11 @@ A comprehensive document management and content creation system that captures we
 ## Components
 
 ### 🌐 Browser Extension
+
 Chrome/Edge extension for capturing web pages directly from your browser.
 
 **Features:**
+
 - One-click web page capture
 - Automatic markdown conversion
 - GitHub integration
@@ -17,9 +19,11 @@ Chrome/Edge extension for capturing web pages directly from your browser.
 **Location:** `browser-extension/`
 
 ### 💻 Command Line Interface (NEW!)
+
 CLI tool for batch capturing and automation.
 
 **Features:**
+
 - Headless browser capture
 - Batch processing from URL files
 - Automated GitHub commits
@@ -30,9 +34,11 @@ CLI tool for batch capturing and automation.
 **Quick Start:** See [cli/QUICKSTART.md](cli/QUICKSTART.md)
 
 ### 🤖 AI Processing
+
 Local AI integration with Ollama for content processing and generation.
 
 **Features:**
+
 - Local embeddings with sentence-transformers
 - NPU acceleration (AI HX 370)
 - Document analysis and categorization
@@ -41,6 +47,7 @@ Local AI integration with Ollama for content processing and generation.
 **Location:** `ai-processing/`
 
 ### 🔧 VS Code Extension
+
 VS Code integration for document management and content creation.
 
 **Location:** `vscode-extension/`
@@ -108,12 +115,14 @@ This ensures consistency across all capture methods while maintaining code reusa
 ## Use Cases
 
 ### Browser Extension Use Cases
+
 - Quick article capture while browsing
 - Research and documentation gathering
 - One-click save for later reading
 - Building personal knowledge base
 
 ### CLI Use Cases
+
 - Batch processing multiple URLs
 - Automated capture scripts
 - CI/CD integration
@@ -162,5 +171,6 @@ MIT License - See LICENSE file for details
 ## Support
 
 For issues, questions, or suggestions:
+
 - GitHub Issues: https://github.com/davidhayesbc/PrismWeave/issues
 - Documentation: See component-specific README files

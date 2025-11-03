@@ -108,7 +108,6 @@ When the server is running on `http://localhost:8080`:
 
 - **🏠 Bookmarklet Generator**:
   `http://localhost:8080/bookmarklet/generator.html`
-
   - Interactive bookmarklet generator with GitHub settings
   - Personal bookmarklet creation with embedded configuration
   - Step-by-step installation instructions

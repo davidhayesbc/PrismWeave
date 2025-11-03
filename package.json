@@ -18,15 +18,17 @@
     "build:web": "node build.js web",
     "build:web:fast": "node build.js web --fast",
     "clean": "node build.js clean",
-  "test": "npm run test:cli && npm run test:browser-extension && npm run test:ai-processing",
-  "test:browser-extension": "npm test --prefix browser-extension",
-  "test:cli": "npm test --prefix cli",
+    "test": "npm run test:cli && npm run test:browser-extension && npm run test:ai-processing",
+    "test:browser-extension": "npm test --prefix browser-extension",
+    "test:cli": "npm test --prefix cli",
     "test:ai-processing": "cd ai-processing && .venv/bin/python -m pytest tests/ -v || echo 'AI processing tests require Python environment'",
     "serve:web": "node serve-web.js",
     "watch:web": "node serve-web.js --watch",
     "dev:web": "npm run build:web && node serve-web.js --watch",
     "dev": "npm run build:web && node serve-web.js --watch",
-    "serve:web:python": "cd dist/web && python -m http.server 8080"
+    "serve:web:python": "cd dist/web && python -m http.server 8080",
+    "format": "npx prettier --write .",
+    "format:check": "npx prettier --check ."
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",

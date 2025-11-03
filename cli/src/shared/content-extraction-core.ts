@@ -134,7 +134,7 @@ export class ContentExtractionCore {
     const images: IImageInfo[] = [];
     const imgElements = document.querySelectorAll('img');
 
-    imgElements.forEach(img => {
+    imgElements.forEach((img) => {
       const src = (img as HTMLImageElement).src || (img as any).dataset?.src; // Handle lazy-loaded images
       const alt = (img as HTMLImageElement).alt || '';
 
@@ -159,7 +159,7 @@ export class ContentExtractionCore {
     const headings: Array<{ level: number; text: string }> = [];
     const headingElements = document.querySelectorAll('h1, h2, h3, h4, h5, h6');
 
-    headingElements.forEach(heading => {
+    headingElements.forEach((heading) => {
       const level = parseInt(heading.tagName.charAt(1));
       const text = heading.textContent?.trim() || '';
       if (text) {
@@ -218,7 +218,7 @@ export class ContentExtractionCore {
       '[id*="paywall"]',
     ];
 
-    return paywallSelectors.some(selector => document.querySelector(selector) !== null);
+    return paywallSelectors.some((selector) => document.querySelector(selector) !== null);
   }
 
   /**
@@ -228,7 +228,7 @@ export class ContentExtractionCore {
     const metadata: Record<string, unknown> = {};
 
     // Open Graph metadata
-    document.querySelectorAll('[property^="og:"]').forEach(meta => {
+    document.querySelectorAll('[property^="og:"]').forEach((meta) => {
       const property = meta.getAttribute('property');
       const content = meta.getAttribute('content');
       if (property && content) {
@@ -237,7 +237,7 @@ export class ContentExtractionCore {
     });
 
     // Twitter Card metadata
-    document.querySelectorAll('[name^="twitter:"]').forEach(meta => {
+    document.querySelectorAll('[name^="twitter:"]').forEach((meta) => {
       const name = meta.getAttribute('name');
       const content = meta.getAttribute('content');
       if (name && content) {
@@ -247,7 +247,7 @@ export class ContentExtractionCore {
 
     // Standard meta tags
     const metaTags = ['description', 'keywords', 'author', 'generator', 'theme-color'];
-    metaTags.forEach(name => {
+    metaTags.forEach((name) => {
       const meta = document.querySelector(`[name="${name}"]`);
       if (meta) {
         const content = meta.getAttribute('content');
@@ -259,7 +259,7 @@ export class ContentExtractionCore {
     try {
       const jsonLdScripts = document.querySelectorAll('script[type="application/ld+json"]');
       const structuredData: any[] = [];
-      jsonLdScripts.forEach(script => {
+      jsonLdScripts.forEach((script) => {
         try {
           const data = JSON.parse(script.textContent || '');
           structuredData.push(data);
@@ -288,14 +288,14 @@ export class ContentExtractionCore {
 
   private async waitForContent(): Promise<void> {
     // Wait a bit for dynamic content to load
-    await new Promise(resolve => setTimeout(resolve, 500));
+    await new Promise((resolve) => setTimeout(resolve, 500));
 
     // Wait for images to finish loading
     const images = Array.from(document.images);
     if (images.length > 0) {
       const imagePromises = images.map(
-        img =>
-          new Promise(resolve => {
+        (img) =>
+          new Promise((resolve) => {
             if (img.complete) {
               resolve(img);
             } else {
@@ -304,7 +304,7 @@ export class ContentExtractionCore {
               // Timeout after 2 seconds
               setTimeout(() => resolve(img), 2000);
             }
-          })
+          }),
       );
       await Promise.all(imagePromises);
     }
@@ -427,9 +427,9 @@ export class ContentExtractionCore {
     const excludeSelectors = [...defaultExcludeSelectors, ...(options.excludeSelectors || [])];
 
     // Remove unwanted elements
-    excludeSelectors.forEach(selector => {
+    excludeSelectors.forEach((selector) => {
       const elements = cloned.querySelectorAll(selector);
-      elements.forEach(el => el.remove());
+      elements.forEach((el) => el.remove());
     });
 
     // Additional cleaning for ads and navigation
@@ -456,9 +456,9 @@ export class ContentExtractionCore {
       '[id*="sponsor"]',
     ];
 
-    adSelectors.forEach(selector => {
+    adSelectors.forEach((selector) => {
       const elements = element.querySelectorAll(selector);
-      elements.forEach(el => {
+      elements.forEach((el) => {
         // Additional check to avoid removing content that just happens to have "ad" in class
         const text = el.textContent || '';
         const wordCount = this.countWords(text);
@@ -487,7 +487,7 @@ export class ContentExtractionCore {
       'promo-box',
     ];
 
-    return adPatterns.some(pattern => className.includes(pattern) || id.includes(pattern));
+    return adPatterns.some((pattern) => className.includes(pattern) || id.includes(pattern));
   }
 
   private removeNavigation(element: Element): void {
@@ -504,9 +504,9 @@ export class ContentExtractionCore {
       '.breadcrumb',
     ];
 
-    navSelectors.forEach(selector => {
+    navSelectors.forEach((selector) => {
       const elements = element.querySelectorAll(selector);
-      elements.forEach(el => el.remove());
+      elements.forEach((el) => el.remove());
     });
   }
 
@@ -551,8 +551,8 @@ export class ContentExtractionCore {
     if (keywordsMeta) {
       return keywordsMeta
         .split(',')
-        .map(keyword => keyword.trim())
-        .filter(keyword => keyword.length > 0);
+        .map((keyword) => keyword.trim())
+        .filter((keyword) => keyword.length > 0);
     }
 
     // Also try to extract tags
@@ -627,7 +627,7 @@ export class ContentExtractionCore {
       /\/news\//,
     ];
 
-    if (blogUrlPatterns.some(pattern => pattern.test(url))) {
+    if (blogUrlPatterns.some((pattern) => pattern.test(url))) {
       return true;
     }
 
@@ -642,7 +642,7 @@ export class ContentExtractionCore {
       'ghost.io',
     ];
 
-    if (blogHostnames.some(host => hostname.includes(host))) {
+    if (blogHostnames.some((host) => hostname.includes(host))) {
       return true;
     }
 
@@ -658,9 +658,9 @@ export class ContentExtractionCore {
       '.news-article',
     ];
 
-    const hasBlogElements = blogSelectors.some(selector => {
+    const hasBlogElements = blogSelectors.some((selector) => {
       const elements = document.querySelectorAll(selector);
-      return Array.from(elements).some(el => {
+      return Array.from(elements).some((el) => {
         const wordCount = this.countWords(el.textContent || '');
         return wordCount > 50; // Must have substantial content
       });
@@ -704,9 +704,9 @@ export class ContentExtractionCore {
       '[rel="tag"]',
     ];
 
-    tagSelectors.forEach(selector => {
+    tagSelectors.forEach((selector) => {
       const elements = document.querySelectorAll(selector);
-      elements.forEach(el => {
+      elements.forEach((el) => {
         const tagText = el.textContent?.trim();
         if (tagText && tagText.length > 0 && tagText.length < 50) {
           // Reasonable tag length
@@ -720,7 +720,7 @@ export class ContentExtractionCore {
   }
 
   private countWords(text: string): number {
-    return text.split(/\s+/).filter(word => word.length > 0).length;
+    return text.split(/\s+/).filter((word) => word.length > 0).length;
   }
 
   private estimateReadingTime(wordCount: number): number {

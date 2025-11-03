@@ -17,12 +17,12 @@ npm run test:coverage
 
 ## 📊 Test Files Overview
 
-| File | Tests | Purpose |
-|------|-------|---------|
-| `config.test.ts` | 25+ | Configuration management |
-| `file-manager.test.ts` | 35+ | GitHub & file operations |
-| `markdown-converter.test.ts` | 40+ | HTML to Markdown |
-| `content-extraction.test.ts` | 30+ | Web content extraction |
+| File                         | Tests | Purpose                  |
+| ---------------------------- | ----- | ------------------------ |
+| `config.test.ts`             | 25+   | Configuration management |
+| `file-manager.test.ts`       | 35+   | GitHub & file operations |
+| `markdown-converter.test.ts` | 40+   | HTML to Markdown         |
+| `content-extraction.test.ts` | 30+   | Web content extraction   |
 
 ## 🎯 Coverage Goals
 
@@ -47,22 +47,26 @@ cli/
 ## 🔧 Key Features Tested
 
 ### ConfigManager
+
 - ✅ Load/save configuration
 - ✅ Validate GitHub settings
 - ✅ Handle file errors
 
 ### FileManager
+
 - ✅ Generate filenames
 - ✅ Classify content
 - ✅ GitHub API operations
 - ✅ PDF handling
 
 ### MarkdownConverter
+
 - ✅ HTML to Markdown
 - ✅ Complex structures
 - ✅ Statistics calculation
 
 ### ContentExtraction
+
 - ✅ Extract metadata
 - ✅ Analyze content
 - ✅ Detect blogs
@@ -71,14 +75,17 @@ cli/
 ## 🐛 Troubleshooting
 
 ### Module errors?
+
 - Check `.js` extensions in imports
 - Verify `"type": "module"` in package.json
 
 ### Tests not found?
+
 - Ensure test files in `tests/` directory
 - Check file names end with `.test.ts`
 
 ### Mocks not working?
+
 - Call `jest.clearAllMocks()` in `beforeEach`
 - Verify mock before import
 

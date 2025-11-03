@@ -79,7 +79,10 @@ class PrismWeaveWebServer {
     if (fs.existsSync(extensionDist)) watchTargets.push(extensionDist);
     if (fs.existsSync(bookmarkletDist)) watchTargets.push(bookmarkletDist);
 
-    console.log('🔍 Watching paths for changes:', watchTargets.map(p => path.relative(__dirname, p)).join(', '));
+    console.log(
+      '🔍 Watching paths for changes:',
+      watchTargets.map((p) => path.relative(__dirname, p)).join(', '),
+    );
 
     const rebuild = () => {
       if (this._isBuilding) return; // skip if build in progress
@@ -99,14 +102,14 @@ class PrismWeaveWebServer {
       }
     };
 
-    this._watcher = watchTargets.map(target =>
+    this._watcher = watchTargets.map((target) =>
       fs.watch(target, { recursive: true }, (eventType, filename) => {
         if (!filename) return;
         // Ignore temp files or coverage artifacts
         if (/\.swp$|~$|\.tmp$/i.test(filename)) return;
         if (this._rebuildTimer) clearTimeout(this._rebuildTimer);
         this._rebuildTimer = setTimeout(rebuild, this.debounceMs);
-      })
+      }),
     );
   }
 
@@ -127,7 +130,7 @@ class PrismWeaveWebServer {
 
     // Security: prevent directory traversal
     pathname = pathname.replace(/\.\./g, '');
-    
+
     const filePath = path.join(this.distPath, pathname);
     const extname = path.extname(filePath).toLowerCase();
 
@@ -197,12 +200,12 @@ class PrismWeaveWebServer {
         return;
       }
 
-      const listing = files.map(file => {
+      const listing = files.map((file) => {
         const filePath = path.join(dirPath, file);
         const stats = fs.statSync(filePath);
         const isDir = stats.isDirectory();
         const url = path.join(urlPath, file).replace(/\\/g, '/');
-        
+
         return {
           name: file + (isDir ? '/' : ''),
           url: url + (isDir ? '/' : ''),
@@ -213,7 +216,7 @@ class PrismWeaveWebServer {
       });
 
       const html = this.generateDirectoryHTML(urlPath, listing);
-      
+
       res.setHeader('Access-Control-Allow-Origin', '*');
       res.writeHead(200, { 'Content-Type': 'text/html' });
       res.end(html);
@@ -258,7 +261,9 @@ class PrismWeaveWebServer {
             </tr>
         </thead>
         <tbody>
-            ${files.map(file => `
+            ${files
+              .map(
+                (file) => `
                 <tr>
                     <td>
                         <a href="${file.url}" class="${file.isDirectory ? 'directory' : ''}">
@@ -268,7 +273,9 @@ class PrismWeaveWebServer {
                     <td class="size">${file.size}</td>
                     <td class="date">${new Date(file.modified).toLocaleString()}</td>
                 </tr>
-            `).join('')}
+            `,
+              )
+              .join('')}
         </tbody>
     </table>
     

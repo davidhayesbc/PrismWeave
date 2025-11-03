@@ -1,4 +1,3 @@
 /* Proxy stylesheet: canonical shared styles live in /shared-styles
 	This file simply re-exports them for the website build without duplication. */
-@import url("../../../shared-styles/shared-ui.css");
-
+@import url('../../../shared-styles/shared-ui.css');

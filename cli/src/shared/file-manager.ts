@@ -52,13 +52,7 @@ export class FileManager {
       'stackoverflow',
       'developer',
     ],
-    business: [
-      'business',
-      'marketing',
-      'finance',
-      'startup',
-      'entrepreneur',
-    ],
+    business: ['business', 'marketing', 'finance', 'startup', 'entrepreneur'],
     tutorial: ['tutorial', 'guide', 'how-to', 'learn', 'course'],
     news: ['news', 'article', 'blog', 'opinion', 'analysis'],
     research: ['research', 'study', 'paper', 'academic', 'journal'],
@@ -99,9 +93,7 @@ export class FileManager {
       }
     });
 
-    const sortedFolders = Object.entries(folderScores).sort(
-      ([, a], [, b]) => b - a
-    );
+    const sortedFolders = Object.entries(folderScores).sort(([, a], [, b]) => b - a);
     return sortedFolders[0] ? sortedFolders[0][0] : 'unsorted';
   }
 
@@ -122,18 +114,14 @@ export class FileManager {
   async saveToGitHub(
     content: string,
     metadata: IDocumentMetadata,
-    githubSettings: IGitHubSettings
+    githubSettings: IGitHubSettings,
   ): Promise<IFileOperationResult> {
     try {
       const filePath = this.generateFilePath(metadata);
       const commitMessage = this.generateCommitMessage(metadata);
 
       const repoInfo = this.parseRepositoryPath(githubSettings.repository);
-      const existingFile = await this.getFileInfo(
-        githubSettings.token,
-        repoInfo,
-        filePath
-      );
+      const existingFile = await this.getFileInfo(githubSettings.token, repoInfo, filePath);
 
       const result = await this.createOrUpdateFile(
         githubSettings.token,
@@ -141,7 +129,7 @@ export class FileManager {
         filePath,
         content,
         commitMessage,
-        existingFile?.sha
+        existingFile?.sha,
       );
 
       return {
@@ -163,7 +151,7 @@ export class FileManager {
     pdfBase64: string,
     title: string,
     url: string,
-    githubSettings: IGitHubSettings
+    githubSettings: IGitHubSettings,
   ): Promise<IFileOperationResult> {
     try {
       const filePath = this.generatePDFFilePath(title, url);
@@ -171,11 +159,7 @@ export class FileManager {
       const commitMessage = `Add PDF document: ${title} (${domain})`;
 
       const repoInfo = this.parseRepositoryPath(githubSettings.repository);
-      const existingFile = await this.getFileInfo(
-        githubSettings.token,
-        repoInfo,
-        filePath
-      );
+      const existingFile = await this.getFileInfo(githubSettings.token, repoInfo, filePath);
 
       const result = await this.createOrUpdateFile(
         githubSettings.token,
@@ -184,7 +168,7 @@ export class FileManager {
         pdfBase64,
         commitMessage,
         existingFile?.sha,
-        true // Indicate this is already base64
+        true, // Indicate this is already base64
       );
 
       return {
@@ -204,7 +188,7 @@ export class FileManager {
 
   async testConnection(
     token: string,
-    repo: string
+    repo: string,
   ): Promise<{ success: boolean; error?: string; details?: any }> {
     try {
       const repoInfo = this.parseRepositoryPath(repo);
@@ -212,14 +196,14 @@ export class FileManager {
         `${FileManager.API_BASE}/repos/${repoInfo.owner}/${repoInfo.repo}`,
         {
           headers: this.getAuthHeaders(token),
-        }
+        },
       );
 
       if (!response.ok) {
         throw new Error(`Repository access failed: ${response.status}`);
       }
 
-      const data = await response.json() as { full_name: string; private: boolean };
+      const data = (await response.json()) as { full_name: string; private: boolean };
       return {
         success: true,
         details: {
@@ -263,9 +247,7 @@ export class FileManager {
   }
 
   private parseRepositoryPath(repoPath: string): IRepositoryInfo {
-    const cleanPath = repoPath
-      .replace(/^https?:\/\/github\.com\//, '')
-      .replace(/\.git$/, '');
+    const cleanPath = repoPath.replace(/^https?:\/\/github\.com\//, '').replace(/\.git$/, '');
     const parts = cleanPath.split('/');
 
     if (parts.length < 2) {
@@ -278,7 +260,7 @@ export class FileManager {
   private async getFileInfo(
     token: string,
     repoInfo: IRepositoryInfo,
-    path: string
+    path: string,
   ): Promise<{ sha: string } | null> {
     try {
       const response = await fetch(
@@ -286,7 +268,7 @@ export class FileManager {
         {
           method: 'GET',
           headers: this.getAuthHeaders(token),
-        }
+        },
       );
 
       if (response.status === 404) {
@@ -297,7 +279,7 @@ export class FileManager {
         throw new Error(`GitHub API error: ${response.status}`);
       }
 
-      const data = await response.json() as { sha: string };
+      const data = (await response.json()) as { sha: string };
       return { sha: data.sha };
     } catch (error) {
       if ((error as Error).message.includes('404')) {
@@ -314,7 +296,7 @@ export class FileManager {
     content: string,
     message: string,
     existingSha?: string,
-    isBase64?: boolean
+    isBase64?: boolean,
   ): Promise<any> {
     const requestBody: any = {
       message,
@@ -335,13 +317,13 @@ export class FileManager {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(requestBody),
-      }
+      },
     );
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({})) as { message?: string };
+      const errorData = (await response.json().catch(() => ({}))) as { message?: string };
       throw new Error(
-        `GitHub API error: ${response.status} - ${errorData.message || 'Unknown error'}`
+        `GitHub API error: ${response.status} - ${errorData.message || 'Unknown error'}`,
       );
     }
 

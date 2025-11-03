@@ -121,9 +121,9 @@ class BookmarkletCleaner {
         name: 'Personal Bookmarklet Generator',
         file: 'generator.html',
         checks: [
-          { name: 'Is HTML', test: content => content.includes('<!DOCTYPE html>') },
-          { name: 'Has generator form', test: content => content.includes('generator-form') },
-          { name: 'Contains GitHub fields', test: content => content.includes('github-token') },
+          { name: 'Is HTML', test: (content) => content.includes('<!DOCTYPE html>') },
+          { name: 'Has generator form', test: (content) => content.includes('generator-form') },
+          { name: 'Contains GitHub fields', test: (content) => content.includes('github-token') },
         ],
       },
       {
@@ -132,14 +132,14 @@ class BookmarkletCleaner {
         checks: [
           {
             name: 'Has bookmarklet generation',
-            test: content =>
+            test: (content) =>
               content.includes('generateCompactBookmarklet') ||
               content.includes('BookmarkletGenerator'),
           },
-          { name: 'Has GitHub integration', test: content => content.includes('github') },
+          { name: 'Has GitHub integration', test: (content) => content.includes('github') },
           {
             name: 'Size reasonable',
-            test: content => content.length > 1000 && content.length < 100000,
+            test: (content) => content.length > 1000 && content.length < 100000,
           },
         ],
       },

@@ -28,15 +28,14 @@ try {
     // Unix-like systems
     execSync(`cd "${distDir}" && zip -r "${packagePath}" .`, { stdio: 'inherit' });
   }
-  
+
   console.log('✓ Extension packaged successfully!');
   console.log(`Package location: ${packagePath}`);
-  
+
   // Get package size
   const stats = fs.statSync(packagePath);
   const fileSizeInMB = (stats.size / (1024 * 1024)).toFixed(2);
   console.log(`Package size: ${fileSizeInMB} MB`);
-  
 } catch (error) {
   console.error('Error creating package:', error.message);
   console.log('\nAlternative: Manually zip the contents of the dist folder');

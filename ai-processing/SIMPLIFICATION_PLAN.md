@@ -3,6 +3,7 @@
 ## Current State Analysis
 
 The ai-processing module currently contains:
+
 - Complex CLI with multiple commands and features
 - Multiple processing strategies and fallback paths
 - RAG (Retrieval Augmented Generation) server
@@ -20,6 +21,7 @@ The ai-processing module currently contains:
 **Primary Goal**: Reduce to ONLY document processing and embedding storage using LangChain
 
 **Keep Only**:
+
 1. Document processing (markdown files → embeddings)
 2. Embedding generation and storage via LangChain
 3. Basic verification that embeddings are stored correctly
@@ -27,6 +29,7 @@ The ai-processing module currently contains:
 5. Essential dependencies
 
 **Remove Completely**:
+
 1. CLI interface (complex command structure)
 2. API server and RAG endpoints
 3. Multiple model fallbacks and strategies
@@ -45,8 +48,9 @@ The ai-processing module currently contains:
 ## Step-by-Step Implementation Plan
 
 ### Phase 1: Remove Unnecessary Folders and Files
+
 - [ ] Remove `cli/` folder entirely
-- [ ] Remove `docker/` folder entirely  
+- [ ] Remove `docker/` folder entirely
 - [ ] Remove `scripts/` folder entirely
 - [ ] Remove `integrations/` folder entirely
 - [ ] Remove `src/api/` folder entirely
@@ -55,6 +59,7 @@ The ai-processing module currently contains:
 - [ ] Remove complex test files (keep only basic embedding tests)
 
 ### Phase 2: Simplify Dependencies
+
 - [ ] Remove from pyproject.toml:
   - FastAPI, uvicorn (API server)
   - Click, rich (CLI tools)
@@ -71,6 +76,7 @@ The ai-processing module currently contains:
   - Basic text processing: `python-frontmatter`, `markdown`
 
 ### Phase 3: Create Simplified Core Module
+
 - [ ] Create new `src/core/` module with:
   - `document_processor.py` - LangChain-only document processing
   - `embedding_store.py` - LangChain ChromaDB integration
@@ -78,6 +84,7 @@ The ai-processing module currently contains:
   - `__init__.py` - Simple public API
 
 ### Phase 4: Implement LangChain-Only Processing
+
 - [ ] `document_processor.py`:
   - Load markdown files with frontmatter
   - Split text using LangChain text splitters
@@ -89,6 +96,7 @@ The ai-processing module currently contains:
   - No complex search or ranking
 
 ### Phase 5: Create Simple Entry Point
+
 - [ ] Create `main.py` in root:
   - Single function to process a directory of markdown files
   - Generate embeddings and store in ChromaDB
@@ -96,6 +104,7 @@ The ai-processing module currently contains:
   - Basic error handling only
 
 ### Phase 6: Minimal Configuration
+
 - [ ] Simplify `config.yaml`:
   - Remove all Ollama configuration
   - Remove API configuration
@@ -103,6 +112,7 @@ The ai-processing module currently contains:
   - Keep only: embedding model name, ChromaDB path, chunk size
 
 ### Phase 7: Essential Testing
+
 - [ ] Create `test_core.py`:
   - Test document loading and processing
   - Test embedding generation and storage
@@ -110,6 +120,7 @@ The ai-processing module currently contains:
   - Remove all other test files
 
 ### Phase 8: Update Documentation
+
 - [ ] Rewrite `README.md`:
   - Remove all CLI documentation
   - Remove API documentation
@@ -169,6 +180,7 @@ process_documents(
 ## Verification Plan
 
 After simplification, verify:
+
 1. [ ] Can load markdown files with frontmatter
 2. [ ] Can generate embeddings using LangChain
 3. [ ] Can store embeddings in ChromaDB via LangChain
@@ -178,15 +190,18 @@ After simplification, verify:
 
 ## Risk Assessment
 
-**Low Risk**: 
+**Low Risk**:
+
 - Document processing and embedding generation are core LangChain features
 - ChromaDB integration is well-established in LangChain
 
 **Medium Risk**:
+
 - May need to adjust chunk sizes for optimal embedding quality
 - May need to tune embedding model selection
 
 **High Risk**:
+
 - None identified - this is a significant simplification with well-supported components
 
 ## Success Criteria
@@ -200,7 +215,7 @@ After simplification, verify:
 ## Timeline
 
 - Phase 1-2: Remove files and dependencies (1 hour)
-- Phase 3-4: Implement core functionality (2 hours)  
+- Phase 3-4: Implement core functionality (2 hours)
 - Phase 5-6: Entry point and configuration (30 minutes)
 - Phase 7-8: Testing and documentation (1 hour)
 - **Total**: ~4.5 hours of focused work

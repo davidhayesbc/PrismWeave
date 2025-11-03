@@ -70,10 +70,7 @@ describe('ConfigManager', () => {
 
       const config = new ConfigManager();
       expect(config.getAll()).toEqual({});
-      expect(consoleWarnSpy).toHaveBeenCalledWith(
-        'Failed to load config:',
-        expect.any(String)
-      );
+      expect(consoleWarnSpy).toHaveBeenCalledWith('Failed to load config:', expect.any(String));
       consoleWarnSpy.mockRestore();
     });
   });

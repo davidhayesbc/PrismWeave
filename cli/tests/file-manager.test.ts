@@ -239,7 +239,7 @@ describe('FileManager', () => {
   describe('GitHub Save Operations', () => {
     test('should save new file to GitHub', async () => {
       const mockFetch = global.fetch as jest.MockedFunction<typeof fetch>;
-      
+
       // Mock GET request (file doesn't exist)
       mockFetch.mockResolvedValueOnce({
         ok: false,
@@ -446,7 +446,7 @@ describe('FileManager', () => {
 
       expect(mockFetch).toHaveBeenCalledWith(
         expect.stringContaining('/repos/owner/repo'),
-        expect.any(Object)
+        expect.any(Object),
       );
     });
 
@@ -462,7 +462,7 @@ describe('FileManager', () => {
 
       expect(mockFetch).toHaveBeenCalledWith(
         expect.stringContaining('/repos/owner/repo'),
-        expect.any(Object)
+        expect.any(Object),
       );
     });
 
@@ -478,7 +478,7 @@ describe('FileManager', () => {
 
       expect(mockFetch).toHaveBeenCalledWith(
         expect.stringContaining('/repos/owner/repo'),
-        expect.any(Object)
+        expect.any(Object),
       );
     });
   });

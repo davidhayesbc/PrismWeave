@@ -5,7 +5,9 @@ This directory contains comprehensive test suites for the PrismWeave CLI tool.
 ## Test Coverage
 
 ### `config.test.ts`
+
 Tests for the ConfigManager class that handles CLI configuration:
+
 - Configuration loading and persistence
 - Get/set operations for config values
 - Configuration validation
@@ -13,7 +15,9 @@ Tests for the ConfigManager class that handles CLI configuration:
 - Type safety and edge cases
 
 ### `file-manager.test.ts`
+
 Tests for the FileManager class that handles GitHub operations:
+
 - Filename generation and sanitization
 - Folder classification based on content
 - File path generation
@@ -23,7 +27,9 @@ Tests for the FileManager class that handles GitHub operations:
 - Commit message generation
 
 ### `markdown-converter.test.ts`
+
 Tests for the MarkdownConverterCore class:
+
 - Basic HTML to Markdown conversion
 - Complex HTML structures (lists, code blocks, blockquotes)
 - Conversion options (images, links, formatting)
@@ -35,7 +41,9 @@ Tests for the MarkdownConverterCore class:
 - Performance with large content
 
 ### `content-extraction.test.ts`
+
 Tests for the ContentExtractionCore class:
+
 - Metadata extraction (title, description, author, keywords)
 - Image extraction and URL normalization
 - Page structure analysis
@@ -101,6 +109,7 @@ describe('MyModule', () => {
 ## Mocking Best Practices
 
 ### Mocking fetch
+
 ```typescript
 global.fetch = jest.fn();
 
@@ -112,6 +121,7 @@ mockFetch.mockResolvedValueOnce({
 ```
 
 ### Mocking DOM
+
 ```typescript
 import { JSDOM } from 'jsdom';
 
@@ -123,6 +133,7 @@ function setupDOM(html: string): void {
 ```
 
 ### Mocking File System
+
 ```typescript
 import { existsSync, readFileSync, writeFileSync } from 'fs';
 
@@ -136,6 +147,7 @@ jest.mock('fs', () => ({
 ## Coverage Reports
 
 Coverage reports are generated in the `coverage/` directory:
+
 - `coverage/lcov-report/index.html` - Interactive HTML report
 - `coverage/lcov.info` - LCOV format for CI/CD integration
 - Console output shows summary after test run
@@ -143,6 +155,7 @@ Coverage reports are generated in the `coverage/` directory:
 ## Continuous Integration
 
 These tests are designed to run in CI/CD pipelines:
+
 - All tests must pass before merging
 - Coverage thresholds must be met
 - Tests run on Node.js 20.x+
@@ -150,19 +163,25 @@ These tests are designed to run in CI/CD pipelines:
 ## Troubleshooting
 
 ### ES Module Issues
+
 If you encounter module resolution errors, ensure:
+
 - All imports use `.js` extension
 - `package.json` has `"type": "module"`
 - Jest config uses `extensionsToTreatAsEsm`
 
 ### TypeScript Compilation
+
 Tests are compiled on-the-fly by ts-jest. If compilation fails:
+
 - Check `tsconfig.json` settings
 - Verify all dependencies are installed
 - Run `npm run build` to check for TypeScript errors
 
 ### Mock Not Working
+
 If mocks aren't being applied:
+
 - Clear mocks in `beforeEach` with `jest.clearAllMocks()`
 - Ensure mocks are defined before importing modules
 - Check mock implementation matches expected interface

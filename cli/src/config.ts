@@ -80,10 +80,7 @@ export class ConfigManager {
       errors.push('GitHub repository is required');
     }
 
-    if (
-      this.config.githubRepo &&
-      !/^[\w-]+\/[\w-]+$/.test(this.config.githubRepo)
-    ) {
+    if (this.config.githubRepo && !/^[\w-]+\/[\w-]+$/.test(this.config.githubRepo)) {
       errors.push('GitHub repository must be in format: owner/repo');
     }
 

@@ -3,9 +3,11 @@
 <!-- Use this file to provide workspace-specific custom instructions to Copilot. For more details, visit https://code.visualstudio.com/docs/copilot/copilot-customization#_use-a-githubcopilotinstructionsmd-file -->
 
 ## Project Overview
+
 PrismWeave is a comprehensive document management and content creation system that captures web pages as markdown, syncs via Git, and uses local AI for processing and content generation.
 
 ## Core Architecture
+
 - **Browser Extension**: Chrome/Edge Manifest V3 for web page capture
 - **AI Processing**: Local Ollama integration with NPU acceleration (AI HX 370)
 - **Storage**: Git-based repository with markdown files and vector database
@@ -15,6 +17,7 @@ PrismWeave is a comprehensive document management and content creation system th
 ## Development Guidelines
 
 ### Code Quality Standards
+
 - Use TypeScript for all JavaScript/Node.js code
 - Follow functional programming patterns where appropriate
 - Implement comprehensive error handling and logging
@@ -22,6 +25,7 @@ PrismWeave is a comprehensive document management and content creation system th
 - Use async/await for asynchronous operations
 
 ### Browser Extension Development
+
 - Target Manifest V3 for Chrome/Edge compatibility
 - Implement content scripts for clean HTML extraction
 - Use background service workers for Git operations
@@ -34,6 +38,7 @@ PrismWeave is a comprehensive document management and content creation system th
 - Use Turndown rules for consistent markdown conversion
 
 ### AI Integration Best Practices
+
 - Use local models (Ollama) for privacy and cost efficiency
 - Implement proper model lifecycle management
 - Optimize for AI HX 370 NPU acceleration
@@ -41,6 +46,7 @@ PrismWeave is a comprehensive document management and content creation system th
 - Implement batch processing for efficiency
 
 ### VS Code Extension Development
+
 - Follow VS Code extension API best practices
 - Use TreeDataProvider for document explorer
 - Implement proper webview security
@@ -48,6 +54,7 @@ PrismWeave is a comprehensive document management and content creation system th
 - Support VS Code themes and accessibility
 
 ### Git Integration
+
 - Implement atomic commits for document changes
 - Use meaningful commit messages with document metadata
 - Handle merge conflicts intelligently
@@ -55,6 +62,7 @@ PrismWeave is a comprehensive document management and content creation system th
 - Maintain clean repository structure
 
 ### File Management
+
 - Use YAML frontmatter for document metadata
 - Implement consistent file naming conventions
 - Organize documents by topic/category automatically
@@ -62,6 +70,7 @@ PrismWeave is a comprehensive document management and content creation system th
 - Support markdown standards (CommonMark)
 
 ### Security Considerations
+
 - Secure GitHub token storage and handling
 - Sanitize all user inputs and captured content
 - Implement proper CORS handling in extensions
@@ -69,6 +78,7 @@ PrismWeave is a comprehensive document management and content creation system th
 - Follow principle of least privilege
 
 ## Project Structure
+
 ```
 PrismWeave/
 ├── .github/                # GitHub configuration
@@ -96,16 +106,18 @@ PrismWeave/
 ```
 
 ## Repository Structure (Target for captured content)
+
 ```
 prismweave-repo/
 ├── documents/              # Captured markdown files
-├── images/                 # Captured images  
+├── images/                 # Captured images
 ├── .prismweave/           # System metadata and vector DB
 ├── generated/             # AI-created content
 └── .github/               # GitHub configuration
 ```
 
 ## Technology Stack
+
 - **Frontend**: TypeScript, Chrome Extension APIs, VS Code Extension API
 - **Backend**: Python for AI processing, Node.js for utilities
 - **AI**: Ollama, sentence-transformers, local embeddings
@@ -113,6 +125,7 @@ prismweave-repo/
 - **Version Control**: Git with GitHub API integration
 
 ## Naming Conventions
+
 - Use camelCase for JavaScript/TypeScript variables and functions
 - Use PascalCase for classes and interfaces
 - Use kebab-case for file names and CSS classes
@@ -120,6 +133,7 @@ prismweave-repo/
 - Prefix interfaces with 'I' (e.g., IDocument, ICapture)
 
 ## Testing Strategy
+
 - Unit tests for core business logic
 - Integration tests for AI processing pipeline
 - End-to-end tests for browser extension workflow
@@ -127,6 +141,7 @@ prismweave-repo/
 - Cross-browser compatibility testing
 
 ## Performance Optimization
+
 - Lazy load document content in VS Code extension
 - Implement efficient vector search algorithms
 - Use streaming for large file operations
@@ -134,7 +149,9 @@ prismweave-repo/
 - Minimize memory usage in browser extension
 
 ## Content Creation Guidelines
+
 When generating articles or blog posts:
+
 - Reference source documents with proper citations
 - Maintain factual accuracy from source material
 - Use clear, engaging writing style
@@ -142,6 +159,7 @@ When generating articles or blog posts:
 - Generate proper markdown formatting
 
 ## AI Processing Guidelines
+
 - Chunk documents appropriately for embedding generation
 - Use appropriate model sizes for different tasks
 - Implement progress tracking for long operations
@@ -149,6 +167,7 @@ When generating articles or blog posts:
 - Handle multilingual content appropriately
 
 ## Specialized Instructions
+
 - **Testing**: Use `.github/instructions/copilot-instructions-testing.md` for Jest test creation and coverage improvement
 - **Browser Extension**: Use `.github/instructions/copilot-instructions-browser-extension.md` for extension-specific code patterns
 - **Service Worker**: Use `.github/instructions/copilot-instructions-service-worker.md` for self-contained service worker development
@@ -160,21 +179,26 @@ When generating articles or blog posts:
 ## Common Issues and Solutions
 
 ### Browser Extension Module Compatibility
+
 **Problem**: `Uncaught SyntaxError: Unexpected token 'export'` in service worker
-**Solution**: 
+**Solution**:
+
 1. Use ES2020 modules in TypeScript for clean development
 2. Post-build conversion removes ES6 exports for service worker compatibility
 3. Use global assignments for service worker importScripts
 4. Maintain dual compatibility for different extension contexts
 
 **Correct Pattern**:
+
 ```typescript
 // Service worker - NO ES6 imports/exports after build
-interface IMessageData { type: string; }
+interface IMessageData {
+  type: string;
+}
 
 // Utility files - ES6 in source, converted for service worker
-class MyUtil { }
-export { MyUtil };  // Removed in service worker build
+class MyUtil {}
+export { MyUtil }; // Removed in service worker build
 // Global assignments remain
 if (typeof self !== 'undefined') {
   self.MyUtil = MyUtil;

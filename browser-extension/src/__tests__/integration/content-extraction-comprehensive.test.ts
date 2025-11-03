@@ -29,7 +29,7 @@ describe('Content Extraction Integration', () => {
 
   test('should extract content from article element', async () => {
     const result = await extractor.extractContent();
-    
+
     expect(result.content).toBeDefined();
     expect(result.content).toContain('Test Article Title');
     expect(result.content).toContain('This is a test paragraph');
@@ -40,9 +40,9 @@ describe('Content Extraction Integration', () => {
 
   test('should handle empty content gracefully', async () => {
     document.body.innerHTML = '<div></div>';
-    
+
     const result = await extractor.extractContent();
-    
+
     expect(result.content).toBeDefined();
     expect(result.metadata).toBeDefined();
   });
@@ -57,7 +57,7 @@ describe('Content Extraction Integration', () => {
     `;
 
     const result = await extractor.extractContent();
-    
+
     expect(result.metadata).toBeDefined();
     expect(result.metadata.title).toBeDefined();
   });

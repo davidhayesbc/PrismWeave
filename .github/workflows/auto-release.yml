@@ -36,43 +36,43 @@ permissions:
 jobs:
   auto-version-and-release:
     runs-on: ubuntu-latest
-    
+
     outputs:
       new_version: ${{ steps.version.outputs.new_version }}
       new_tag: ${{ steps.version.outputs.new_tag }}
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Fetch all history for proper version calculation
+          fetch-depth: 0 # Fetch all history for proper version calculation
           token: ${{ secrets.GITHUB_TOKEN }}
-        
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          
+
       - name: Configure Git
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          
+
       - name: Calculate new version
         id: version
         run: |
           echo "🔢 Calculating new version..."
-          
+
           # Get inputs
           MAJOR=${{ github.event.inputs.major }}
           MINOR=${{ github.event.inputs.minor }}
           RELEASE_TYPE=${{ github.event.inputs.release_type }}
-          
+
           echo "Input - Major: $MAJOR, Minor: $MINOR, Type: $RELEASE_TYPE"
-          
+
           # Get the latest tag matching the major.minor pattern
           LATEST_TAG=$(git tag -l "v${MAJOR}.${MINOR}.*" | sort -V | tail -n1)
-          
+
           if [ -z "$LATEST_TAG" ]; then
             echo "No previous tags found for v${MAJOR}.${MINOR}.x, starting with patch version 0"
             PATCH=0
@@ -82,7 +82,7 @@ jobs:
             PATCH=$(echo $LATEST_TAG | sed "s/v${MAJOR}\.${MINOR}\.//" | sed 's/[^0-9].*//')
             echo "Current patch version: $PATCH"
           fi
-          
+
           # Calculate new version based on release type
           case $RELEASE_TYPE in
             "patch")
@@ -102,115 +102,115 @@ jobs:
               NEW_VERSION="${MAJOR}.${MINOR}.${NEW_PATCH}"
               ;;
           esac
-          
+
           NEW_TAG="v${NEW_VERSION}"
-          
+
           echo "🎯 New version: $NEW_VERSION"
           echo "🏷️  New tag: $NEW_TAG"
-          
+
           # Set outputs
           echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
           echo "new_tag=$NEW_TAG" >> $GITHUB_OUTPUT
-          
+
           # Check if tag already exists
           if git tag -l "$NEW_TAG" | grep -q "$NEW_TAG"; then
             echo "❌ Tag $NEW_TAG already exists!"
             exit 1
           fi
-          
+
       - name: Update package.json
         run: |
           echo "📝 Updating package.json version to ${{ steps.version.outputs.new_version }}"
-          
+
           # Update root package.json
           npm version ${{ steps.version.outputs.new_version }} --no-git-tag-version
-          
+
           # Update browser-extension package.json if it exists
           if [ -f "browser-extension/package.json" ]; then
             cd browser-extension
             npm version ${{ steps.version.outputs.new_version }} --no-git-tag-version
             cd ..
           fi
-          
+
           # Update vscode-extension package.json if it exists
           if [ -f "vscode-extension/package.json" ]; then
             cd vscode-extension
             npm version ${{ steps.version.outputs.new_version }} --no-git-tag-version
             cd ..
           fi
-          
+
       - name: Install dependencies
         run: |
           npm install esbuild
           cd browser-extension
           npm install
           cd ..
-          
+
       - name: Build all components
         run: |
           echo "🔨 Building PrismWeave components for version ${{ steps.version.outputs.new_version }}..."
-          
+
           # Build using unified build system
           node build.js build
-          
+
           echo "✅ Build completed"
-          
+
       - name: Package releases
         run: |
           echo "📦 Packaging releases for ${{ steps.version.outputs.new_tag }}..."
-          
+
           mkdir -p dist/releases
-          
+
           # Package browser extension
           cd browser-extension/dist
           zip -r "../../dist/releases/prismweave-extension-${{ steps.version.outputs.new_tag }}.zip" .
           cd ../..
-          
+
           # Package bookmarklet
           if [ -d "browser-extension/dist/bookmarklet" ]; then
             cd browser-extension/dist/bookmarklet
             zip -r "../../../dist/releases/prismweave-bookmarklet-${{ steps.version.outputs.new_tag }}.zip" .
             cd ../../..
           fi
-          
+
           echo "📋 Release packages created:"
           ls -la dist/releases/
-          
+
       - name: Generate release notes
         run: |
           echo "📝 Generating release notes for ${{ steps.version.outputs.new_tag }}..."
-          
+
           VERSION=${{ steps.version.outputs.new_tag }}
           DATE=$(date +"%Y-%m-%d")
-          
+
           cat > release-notes.md << EOF
           # PrismWeave ${VERSION}
-          
+
           **Released:** ${DATE}  
           **Type:** ${{ github.event.inputs.release_type }} release
-          
+
           ## 📋 Release Information
-          
+
           This is an automatically generated ${{ github.event.inputs.release_type }} release of PrismWeave.
-          
+
           ### Version Details
           - **Previous Version**: Based on latest v${{ github.event.inputs.major }}.${{ github.event.inputs.minor }}.x release
           - **New Version**: ${VERSION}
           - **Release Type**: ${{ github.event.inputs.release_type }}
           - **Build Date**: ${DATE}
-          
+
           ## 📁 Downloads
-          
+
           ### 🧩 Browser Extension (Recommended)
           - **prismweave-extension-${VERSION}.zip** - Full Chrome/Edge extension
           - Install via Developer Mode → Load Unpacked
-          
+
           ### 🔖 Bookmarklet (Universal)  
           - **prismweave-bookmarklet-${VERSION}.zip** - Works in any browser
           - No extension installation required
-          
+
           ## 🎯 Features Included
-          
+
           ### Browser Extension
           - ✅ Advanced content extraction with smart algorithms
           - ✅ Direct GitHub repository integration  
@@ -219,7 +219,7 @@ jobs:
           - ✅ Automatic folder organization
           - ✅ Image processing and handling
           - ✅ Batch processing capabilities
-          
+
           ### Bookmarklet
           - ✅ Universal browser compatibility
           - ✅ Drag-and-drop installation
@@ -227,60 +227,60 @@ jobs:
           - ✅ GitHub API integration
           - ✅ Lightweight (~75KB runtime)
           - ✅ Works offline after initial load
-          
+
           ## 🚀 Quick Start
-          
+
           ### Extension Installation
           1. Download \`prismweave-extension-${VERSION}.zip\`
           2. Extract to a folder on your computer
           3. Open Chrome/Edge → Extensions → Developer Mode ON
           4. Click "Load unpacked" → Select extracted folder
           5. Configure GitHub token and repository in extension popup
-          
+
           ### Bookmarklet Installation
           1. Visit: https://davidhayesbc.github.io/PrismWeave/
           2. Drag the "🌟 PrismWeave Capture" button to bookmarks bar
           3. Click bookmarklet on any webpage to capture
           4. Configure GitHub settings on first use
-          
+
           ## 📖 Documentation
-          
+
           - **Website**: https://davidhayesbc.github.io/PrismWeave/
           - **Installation Guide**: https://raw.githubusercontent.com/davidhayesbc/PrismWeave/main/EXTENSION_INSTALL.md  
           - **Usage Guide**: https://raw.githubusercontent.com/davidhayesbc/PrismWeave/main/USAGE_GUIDE.md
           - **GitHub Repository**: https://github.com/davidhayesbc/PrismWeave
-          
+
           ## 🆘 Support & Issues
-          
+
           - 🐛 **Bug Reports**: [GitHub Issues](https://github.com/davidhayesbc/PrismWeave/issues)
           - 💬 **Discussions**: [GitHub Discussions](https://github.com/davidhayesbc/PrismWeave/discussions)
           - 📧 **Contact**: See repository for contact information
-          
+
           ## 🔄 Changelog
-          
+
           Auto-generated ${{ github.event.inputs.release_type }} release with latest improvements and bug fixes.
-          
+
           **Full Changelog**: https://github.com/davidhayesbc/PrismWeave/commits/${VERSION}
-          
+
           ---
-          
+
           *This release was automatically generated by GitHub Actions on ${DATE}*
           EOF
-          
+
       - name: Commit version changes
         run: |
           echo "💾 Committing version changes..."
-          
+
           git add .
           git commit -m "🔖 Bump version to ${{ steps.version.outputs.new_version }}"
-          
+
           echo "📌 Creating and pushing tag ${{ steps.version.outputs.new_tag }}"
           git tag ${{ steps.version.outputs.new_tag }}
-          
+
           # Push changes and tag
           git push origin main
           git push origin ${{ steps.version.outputs.new_tag }}
-          
+
       - name: Create GitHub Release
         id: create_release
         uses: softprops/action-gh-release@v1
@@ -288,14 +288,14 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: ${{ steps.version.outputs.new_tag }}
-          name: "PrismWeave ${{ steps.version.outputs.new_tag }}"
+          name: 'PrismWeave ${{ steps.version.outputs.new_tag }}'
           body_path: release-notes.md
           draft: ${{ github.event.inputs.draft }}
           prerelease: false
           files: |
             ./dist/releases/prismweave-extension-${{ steps.version.outputs.new_tag }}.zip
             ./dist/releases/prismweave-bookmarklet-${{ steps.version.outputs.new_tag }}.zip
-            
+
       - name: Release Summary
         run: |
           echo "🎉 Release ${{ steps.version.outputs.new_tag }} created successfully!"
@@ -310,7 +310,7 @@ jobs:
     needs: auto-version-and-release
     if: success()
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Trigger website deployment
         run: |

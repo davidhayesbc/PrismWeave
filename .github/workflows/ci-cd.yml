@@ -3,9 +3,9 @@ name: CI/CD Pipeline
 # Main comprehensive CI/CD pipeline - runs on all pushes and PRs
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
   pull_request:
-    branches: [ main, develop ]
+    branches: [main, develop]
   workflow_dispatch:
 
 env:
@@ -16,37 +16,37 @@ jobs:
   test-browser-extension:
     runs-on: ubuntu-latest
     name: Test Browser Extension
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-          
+
       - name: Install root dependencies
         run: npm install
-        
+
       - name: Install browser extension dependencies
         working-directory: browser-extension
         run: npm install
-        
+
       - name: Lint TypeScript code
         working-directory: browser-extension
         run: npm run lint
         continue-on-error: true
-        
+
       - name: Run type checking
         working-directory: browser-extension
         run: npx tsc --noEmit
-        
+
       - name: Run browser extension tests
         working-directory: browser-extension
         run: npm run test:coverage
-        
+
       - name: Upload coverage reports
         uses: actions/upload-artifact@v4
         if: always()
@@ -54,7 +54,7 @@ jobs:
           name: browser-extension-coverage
           path: browser-extension/coverage/
           retention-days: 30
-          
+
       - name: Build browser extension
         working-directory: browser-extension
         run: npm run build
@@ -63,35 +63,35 @@ jobs:
   # test-vscode-extension:
   #   runs-on: ubuntu-latest
   #   name: Test VS Code Extension
-  #   
+  #
   #   steps:
   #     - name: Checkout repository
   #       uses: actions/checkout@v4
-  #       
+  #
   #     - name: Setup Node.js
   #       uses: actions/setup-node@v4
   #       with:
   #         node-version: ${{ env.NODE_VERSION }}
   #         cache: 'npm'
-  #         
+  #
   #     - name: Install root dependencies
   #       run: npm install
-  #       
+  #
   #     - name: Install VS Code extension dependencies
   #       working-directory: vscode-extension
   #       run: |
   #         npm install
   #         # Install optional dependencies separately to handle failures gracefully
   #         npm install onnxruntime-node || echo "Optional dependency onnxruntime-node failed to install, continuing..."
-  #       
+  #
   #     - name: Run type checking
   #       working-directory: vscode-extension
   #       run: npx tsc --noEmit
-  #       
+  #
   #     - name: Run VS Code extension tests
   #       working-directory: vscode-extension
   #       run: npm test
-  #       
+  #
   #     - name: Build VS Code extension
   #       working-directory: vscode-extension
   #       run: npm run compile
@@ -99,33 +99,33 @@ jobs:
   test-ai-processing:
     runs-on: ubuntu-latest
     name: Test AI Processing
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        
+
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-          
+
       - name: Install uv
         run: pip install uv
-        
+
       - name: Install AI processing dependencies
         working-directory: ai-processing
         run: uv sync
-        
+
       - name: Run Python linting
         working-directory: ai-processing
         run: .venv/bin/python -m flake8 src/ tests/ --max-line-length=88 --extend-ignore=E203,W503
         continue-on-error: true
-        
+
       - name: Run Python type checking
         working-directory: ai-processing
         run: .venv/bin/python -m mypy src/
         continue-on-error: true
-        
+
       - name: Run AI processing tests with coverage
         working-directory: ai-processing
         run: |
@@ -134,7 +134,7 @@ jobs:
             --cov-report=term \
             --cov-report=html \
             --cov-report=xml
-        
+
       - name: Upload AI processing coverage
         uses: actions/upload-artifact@v4
         if: always()
@@ -150,62 +150,62 @@ jobs:
     name: Integration Build & Test
     needs: [test-browser-extension, test-ai-processing]
     if: success()
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-          
+
       - name: Install root dependencies
         run: npm install
-        
+
       - name: Install browser extension dependencies
         working-directory: browser-extension
         run: npm install
-        
+
       - name: Run unified build system
         run: npm run build
-        
+
       - name: Test web build
         run: npm run build:web
-        
+
       - name: Verify build outputs
         run: |
           echo "🔍 Verifying build outputs..."
-          
+
           # Check browser extension build
           echo "Browser Extension outputs:"
           ls -la browser-extension/dist/
-          
+
           # Check web build
           echo "Web build outputs:"
           ls -la dist/web/
-          
+
           # Verify key files exist
           test -f dist/web/index.html || (echo "❌ Missing index.html" && exit 1)
           test -d dist/web/extension || (echo "❌ Missing extension directory" && exit 1)
           test -d dist/web/bookmarklet || (echo "❌ Missing bookmarklet directory" && exit 1)
-          
+
           echo "✅ All build outputs verified"
-          
+
       - name: Test serve functionality
         run: |
           echo "🔍 Testing web server..."
           timeout 10s npm run serve:web -- --port 3000 &
           SERVER_PID=$!
           sleep 3
-          
+
           # Test if server is responding
           curl -f http://localhost:3000/ > /dev/null || (echo "❌ Web server not responding" && exit 1)
-          
+
           kill $SERVER_PID 2>/dev/null || true
           echo "✅ Web server test passed"
-          
+
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -218,28 +218,28 @@ jobs:
   security-scan:
     runs-on: ubuntu-latest
     name: Security Scan
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-          
+
       - name: Install dependencies
         run: npm install
-        
+
       - name: Run npm audit
         run: npm audit --audit-level=high
         continue-on-error: true
-        
+
       - name: Install browser extension dependencies
         working-directory: browser-extension
         run: npm install
-        
+
       - name: Run browser extension security audit
         working-directory: browser-extension
         run: npm audit --audit-level=high
@@ -248,23 +248,23 @@ jobs:
   validate-manifests:
     runs-on: ubuntu-latest
     name: Validate Manifests
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        
+
       - name: Validate package.json files
         run: |
           echo "🔍 Validating package.json files..."
-          
+
           # Root package.json
           echo "Validating root package.json..."
           node -e "JSON.parse(require('fs').readFileSync('package.json', 'utf8'))" || exit 1
-          
+
           # Browser extension package.json
           echo "Validating browser-extension/package.json..."
           node -e "JSON.parse(require('fs').readFileSync('browser-extension/package.json', 'utf8'))" || exit 1
-          
+
           # VS Code extension package.json (optional - only if directory exists)
           if [ -f "vscode-extension/package.json" ]; then
             echo "Validating vscode-extension/package.json..."
@@ -272,9 +272,9 @@ jobs:
           else
             echo "⏭️ vscode-extension/package.json not found, skipping validation"
           fi
-          
+
           echo "✅ All package.json files are valid"
-          
+
       - name: Validate browser extension manifest
         run: |
           echo "🔍 Validating browser extension manifest.json..."
@@ -290,7 +290,7 @@ jobs:
             }
             console.log('✅ Browser extension manifest is valid');
           "
-          
+
       - name: Validate AI processing configuration
         run: |
           echo "🔍 Validating AI processing pyproject.toml..."
@@ -304,47 +304,54 @@ jobs:
   summary:
     runs-on: ubuntu-latest
     name: Test Summary
-    needs: [test-browser-extension, test-ai-processing, build-and-test-integration, security-scan, validate-manifests]
+    needs:
+      [
+        test-browser-extension,
+        test-ai-processing,
+        build-and-test-integration,
+        security-scan,
+        validate-manifests,
+      ]
     if: always()
-    
+
     steps:
       - name: Check test results
         run: |
           echo "🏁 CI/CD Pipeline Summary"
           echo "========================="
-          
+
           if [ "${{ needs.test-browser-extension.result }}" == "success" ]; then
             echo "✅ Browser Extension Tests: PASSED"
           else
             echo "❌ Browser Extension Tests: FAILED"
           fi
-          
+
           echo "ℹ️  VS Code Extension Tests: DISABLED"
-          
+
           if [ "${{ needs.test-ai-processing.result }}" == "success" ]; then
             echo "✅ AI Processing Tests: PASSED"
           else
             echo "❌ AI Processing Tests: FAILED"
           fi
-          
+
           if [ "${{ needs.build-and-test-integration.result }}" == "success" ]; then
             echo "✅ Integration Build: PASSED"
           else
             echo "❌ Integration Build: FAILED"
           fi
-          
+
           if [ "${{ needs.security-scan.result }}" == "success" ]; then
             echo "✅ Security Scan: PASSED"
           else
             echo "⚠️  Security Scan: COMPLETED WITH WARNINGS"
           fi
-          
+
           if [ "${{ needs.validate-manifests.result }}" == "success" ]; then
             echo "✅ Manifest Validation: PASSED"
           else
             echo "❌ Manifest Validation: FAILED"
           fi
-          
+
           # Fail the job if any critical tests failed
           if [ "${{ needs.test-browser-extension.result }}" != "success" ] || 
              [ "${{ needs.test-ai-processing.result }}" != "success" ] || 

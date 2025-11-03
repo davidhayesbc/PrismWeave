@@ -1,4 +1,4 @@
-@import "./design-tokens.css";
+@import './design-tokens.css';
 
 /* Base typography */
 .pw-font-sans {
@@ -182,8 +182,8 @@
   line-height: 1;
 }
 
-[data-theme="light"] .pw-theme-toggle__icon--sun,
-[data-theme="dark"] .pw-theme-toggle__icon--moon {
+[data-theme='light'] .pw-theme-toggle__icon--sun,
+[data-theme='dark'] .pw-theme-toggle__icon--moon {
   display: inline-flex;
 }
 

@@ -64,10 +64,7 @@ export class MarkdownConverterCore {
 
     this.turndownService.addRule('taskList', {
       filter: (node) => {
-        return (
-          node.nodeName === 'INPUT' &&
-          node.getAttribute('type') === 'checkbox'
-        );
+        return node.nodeName === 'INPUT' && node.getAttribute('type') === 'checkbox';
       },
       replacement: (content, node) => {
         const element = node as any;
@@ -76,10 +73,7 @@ export class MarkdownConverterCore {
     });
   }
 
-  convertToMarkdown(
-    html: string,
-    options: IConversionOptions = {}
-  ): IConversionResult {
+  convertToMarkdown(html: string, options: IConversionOptions = {}): IConversionResult {
     if (!this._isInitialized) {
       throw new Error('Markdown converter not initialized');
     }
@@ -126,36 +120,27 @@ export class MarkdownConverterCore {
     let markdown = html;
 
     // Headers
-    markdown = markdown.replace(
-      /<h([1-6])[^>]*>(.*?)<\/h[1-6]>/gi,
-      (match, level, content) => {
-        const headerLevel = '#'.repeat(parseInt(level));
-        return `\n${headerLevel} ${this.stripHtml(content)}\n`;
-      }
-    );
+    markdown = markdown.replace(/<h([1-6])[^>]*>(.*?)<\/h[1-6]>/gi, (match, level, content) => {
+      const headerLevel = '#'.repeat(parseInt(level));
+      return `\n${headerLevel} ${this.stripHtml(content)}\n`;
+    });
 
     // Paragraphs
     markdown = markdown.replace(/<p[^>]*>(.*?)<\/p>/gi, '\n$1\n');
 
     // Strong/Bold
-    markdown = markdown.replace(
-      /<(strong|b)[^>]*>(.*?)<\/(strong|b)>/gi,
-      '**$2**'
-    );
+    markdown = markdown.replace(/<(strong|b)[^>]*>(.*?)<\/(strong|b)>/gi, '**$2**');
 
     // Emphasis/Italic
     markdown = markdown.replace(/<(em|i)[^>]*>(.*?)<\/(em|i)>/gi, '*$2*');
 
     // Links
-    markdown = markdown.replace(
-      /<a[^>]*href=["']([^"']*)["'][^>]*>(.*?)<\/a>/gi,
-      '[$2]($1)'
-    );
+    markdown = markdown.replace(/<a[^>]*href=["']([^"']*)["'][^>]*>(.*?)<\/a>/gi, '[$2]($1)');
 
     // Images
     markdown = markdown.replace(
       /<img[^>]*src=["']([^"']*)["'][^>]*alt=["']([^"']*)["'][^>]*>/gi,
-      '![$2]($1)'
+      '![$2]($1)',
     );
 
     // Lists
@@ -165,10 +150,7 @@ export class MarkdownConverterCore {
     });
 
     // Code blocks
-    markdown = markdown.replace(
-      /<pre[^>]*><code[^>]*>(.*?)<\/code><\/pre>/gis,
-      '\n```\n$1\n```\n'
-    );
+    markdown = markdown.replace(/<pre[^>]*><code[^>]*>(.*?)<\/code><\/pre>/gis, '\n```\n$1\n```\n');
     markdown = markdown.replace(/<code[^>]*>(.*?)<\/code>/gi, '`$1`');
 
     // Line breaks
@@ -194,9 +176,7 @@ export class MarkdownConverterCore {
     imageCount: number;
     linkCount: number;
   } {
-    const wordCount = markdown
-      .split(/\s+/)
-      .filter((word) => word.length > 0).length;
+    const wordCount = markdown.split(/\s+/).filter((word) => word.length > 0).length;
     const characterCount = markdown.length;
     const imageCount = (markdown.match(/!\[.*?\]\(.*?\)/g) || []).length;
     const linkCount = (markdown.match(/\[.*?\]\(.*?\)/g) || []).length;

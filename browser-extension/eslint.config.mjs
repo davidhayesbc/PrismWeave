@@ -160,11 +160,11 @@ export default [
         afterEach: 'readonly',
         beforeAll: 'readonly',
         afterAll: 'readonly',
-        
+
         // Browser extension globals
         chrome: 'readonly',
         browser: 'readonly',
-        
+
         // Browser globals
         window: 'readonly',
         document: 'readonly',
@@ -175,11 +175,11 @@ export default [
         clearTimeout: 'readonly',
         setInterval: 'readonly',
         clearInterval: 'readonly',
-        
+
         // Service Worker globals
         importScripts: 'readonly',
         self: 'readonly',
-        
+
         // Global classes available in tests
         global: 'readonly',
       },

@@ -11,13 +11,15 @@ A simplified document processing system that converts documents into embeddings 
 **Simple Purpose**: Take documents → Generate embeddings → Store in ChromaDB
 
 ### Supported Document Types
+
 - **Markdown** (`.md`) with frontmatter support
 - **PDF** (`.pdf`) files
 - **Word Documents** (`.docx`)
-- **HTML** (`.html`, `.htm`) files  
+- **HTML** (`.html`, `.htm`) files
 - **Text** (`.txt`) files
 
 ### Key Features
+
 - **Local Processing**: Uses Ollama for privacy (no cloud APIs)
 - **LangChain Integration**: Built on LangChain ecosystem for reliability
 - **Frontmatter Support**: Preserves metadata from markdown files
@@ -27,6 +29,7 @@ A simplified document processing system that converts documents into embeddings 
 ## 🛠️ Installation
 
 ### 1. Prerequisites
+
 ```bash
 # Install Ollama
 # Download from: https://ollama.com
@@ -36,6 +39,7 @@ ollama pull nomic-embed-text:latest
 ```
 
 ### 2. Install Dependencies
+
 ```bash
 cd ai-processing
 uv sync
@@ -49,6 +53,7 @@ source .venv/bin/activate  # Linux/Mac
 ## 🚀 Usage
 
 ### Command Line Interface
+
 ```bash
 # Process a single file
 python cli.py process document.md
@@ -85,6 +90,7 @@ python cli.py --help
 ```
 
 ### Examples
+
 ```bash
 # Process PrismWeaveDocs tech folder with verification
 python cli.py process "d:\source\PrismWeaveDocs\documents\tech" --verify
@@ -97,6 +103,7 @@ python cli.py list --max 20 --verbose
 ```
 
 ### Python API
+
 ```python
 from src.core import process_documents
 
@@ -108,6 +115,7 @@ process_documents(
 ```
 
 ### Advanced Usage
+
 ```python
 from src.core import DocumentProcessor, EmbeddingStore, load_config
 
@@ -143,17 +151,17 @@ ollama:
   host: http://localhost:11434
   timeout: 60
   models:
-    embedding: "nomic-embed-text:latest"
+    embedding: 'nomic-embed-text:latest'
 
 # Document Processing Configuration
 processing:
-  chunk_size: 1000           # Smaller chunks for web documents
-  chunk_overlap: 200         # Overlap between chunks
+  chunk_size: 1000 # Smaller chunks for web documents
+  chunk_overlap: 200 # Overlap between chunks
 
 # Vector Database Configuration
 vector:
-  collection_name: "documents"
-  persist_directory: "../../PrismWeaveDocs/.prismweave/chroma_db"
+  collection_name: 'documents'
+  persist_directory: '../../PrismWeaveDocs/.prismweave/chroma_db'
 ```
 
 ## 📁 Project Structure
@@ -177,11 +185,13 @@ ai-processing/
 ## 📊 What Gets Processed
 
 ### Input Documents
+
 - Loads documents from specified directory (recursive)
 - Preserves frontmatter metadata from markdown files
 - Handles various document formats via LangChain loaders
 
 ### Processing Steps
+
 1. **Load Document**: Read file with appropriate loader
 2. **Extract Metadata**: Parse frontmatter and file info
 3. **Split Text**: Create chunks for optimal embedding
@@ -189,6 +199,7 @@ ai-processing/
 5. **Store in ChromaDB**: Save with metadata for retrieval
 
 ### Output
+
 - Embeddings stored in ChromaDB collection
 - Metadata preserved for each document chunk
 - Verification reports for stored data
@@ -196,16 +207,19 @@ ai-processing/
 ## 🔧 Development
 
 ### Run Tests
+
 ```bash
 pytest tests/
 ```
 
 ### Dependencies
+
 - **Core**: LangChain, ChromaDB, Ollama embeddings
 - **Documents**: python-frontmatter, pypdf, docx2txt
 - **Utils**: PyYAML, requests
 
 ### Code Structure
+
 - **`DocumentProcessor`**: Handles file loading and text splitting
 - **`EmbeddingStore`**: Manages ChromaDB operations
 - **`Config`**: Configuration management with validation
@@ -214,6 +228,7 @@ pytest tests/
 ## ❓ Troubleshooting
 
 ### Ollama Connection Issues
+
 ```bash
 # Check if Ollama is running
 curl http://localhost:11434/api/tags
@@ -226,11 +241,13 @@ ollama pull nomic-embed-text:latest
 ```
 
 ### Memory Issues
+
 - Reduce `chunk_size` in config for lower memory usage
 - Process smaller directories at a time
 - Restart Ollama to clear memory: `ollama serve`
 
 ### ChromaDB Issues
+
 ```python
 # Clear existing embeddings
 from src.core import EmbeddingStore, load_config
@@ -245,10 +262,11 @@ This project is licensed under the MIT License.
 ## 🤝 Integration
 
 Part of the PrismWeave document management ecosystem:
+
 - **Browser Extension**: Captures web content as markdown
 - **VS Code Extension**: Manages document collections
 - **AI Processing**: Converts documents to searchable embeddings (this module)
 
 ---
 
-*Simplified for focused document processing and embedding generation.*
+_Simplified for focused document processing and embedding generation._

@@ -1,109 +1,120 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en" data-theme="light">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>PrismWeave - Unified Content Capture System</title>
     <link rel="icon" href="./assets/favicon-16x16.png" sizes="16x16" type="image/png" />
     <link rel="icon" href="./assets/favicon-32x32.png" sizes="32x32" type="image/png" />
     <link rel="icon" href="./assets/logo.svg" type="image/svg+xml" />
     <script>
-        (function () { // minimal inline to avoid FOUC
-            try {
-                var storageKey = 'prismweave-theme';
-                var storedTheme = localStorage.getItem(storageKey);
-                var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-                var resolvedTheme = storedTheme || (prefersDark ? 'dark' : 'light');
-                document.documentElement.dataset.theme = resolvedTheme;
-            } catch (error) {
-                document.documentElement.dataset.theme = 'light';
-            }
-        })();
+      (function () {
+        // minimal inline to avoid FOUC
+        try {
+          var storageKey = 'prismweave-theme';
+          var storedTheme = localStorage.getItem(storageKey);
+          var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          var resolvedTheme = storedTheme || (prefersDark ? 'dark' : 'light');
+          document.documentElement.dataset.theme = resolvedTheme;
+        } catch (error) {
+          document.documentElement.dataset.theme = 'light';
+        }
+      })();
     </script>
-    <link rel="stylesheet" href="./assets/styles.css">
-</head>
-<body>
+    <link rel="stylesheet" href="./assets/styles.css" />
+  </head>
+  <body>
     <div class="page">
-        <header class="site-header">
-            <div class="brand">
-                <a href="./" aria-label="Go to PrismWeave home" class="brand__link">
-                    <img src="./assets/logo.svg" alt="PrismWeave logo" class="brand__icon">
-                    <div class="brand__meta">
-                        <h1>PrismWeave</h1>
-                        <p>Unified document management and content creation system</p>
-                    </div>
-                </a>
+      <header class="site-header">
+        <div class="brand">
+          <a href="./" aria-label="Go to PrismWeave home" class="brand__link">
+            <img src="./assets/logo.svg" alt="PrismWeave logo" class="brand__icon" />
+            <div class="brand__meta">
+              <h1>PrismWeave</h1>
+              <p>Unified document management and content creation system</p>
             </div>
-            <button class="pw-theme-toggle" type="button" data-theme-toggle>
-                <span class="pw-theme-toggle__icon pw-theme-toggle__icon--sun" aria-hidden="true">☀️</span>
-                <span class="pw-theme-toggle__icon pw-theme-toggle__icon--moon" aria-hidden="true">🌙</span>
-                <span class="pw-theme-toggle__label">Theme</span>
-            </button>
-        </header>
+          </a>
+        </div>
+        <button class="pw-theme-toggle" type="button" data-theme-toggle>
+          <span class="pw-theme-toggle__icon pw-theme-toggle__icon--sun" aria-hidden="true"
+            >☀️</span
+          >
+          <span class="pw-theme-toggle__icon pw-theme-toggle__icon--moon" aria-hidden="true"
+            >🌙</span
+          >
+          <span class="pw-theme-toggle__label">Theme</span>
+        </button>
+      </header>
 
-        <main class="page-main">
-            <section class="pw-card surface status">
-                <div class="status__heading">
-                    <h2>Deployment Status</h2>
-                    <span>Live</span>
-                </div>
-                <dl class="status__grid">
-                    <div>
-                        <dt>Build Date</dt>
-                        <dd>{{BUILD_DATE}}</dd>
-                    </div>
-                    <div>
-                        <dt>Environment</dt>
-                        <dd>{{ENVIRONMENT}}</dd>
-                    </div>
-                </dl>
-            </section>
+      <main class="page-main">
+        <section class="pw-card surface status">
+          <div class="status__heading">
+            <h2>Deployment Status</h2>
+            <span>Live</span>
+          </div>
+          <dl class="status__grid">
+            <div>
+              <dt>Build Date</dt>
+              <dd>{{BUILD_DATE}}</dd>
+            </div>
+            <div>
+              <dt>Environment</dt>
+              <dd>{{ENVIRONMENT}}</dd>
+            </div>
+          </dl>
+        </section>
 
-            <section class="grid">
-                <article class="pw-card surface feature">
-                    <h3>Bookmarklet</h3>
-                    <p>Ultra-lightweight content capture tool that works in any browser.</p>
-                    <a href="./bookmarklet/generator.html" class="pw-btn pw-btn-primary">Generate</a>
-                </article>
+        <section class="grid">
+          <article class="pw-card surface feature">
+            <h3>Bookmarklet</h3>
+            <p>Ultra-lightweight content capture tool that works in any browser.</p>
+            <a href="./bookmarklet/generator.html" class="pw-btn pw-btn-primary">Generate</a>
+          </article>
 
-                <article class="pw-card surface feature">
-                    <h3>Browser Extension</h3>
-                    <p>Full-featured browser extension for Chrome and Edge.</p>
-                    <a href="./extension/popup/popup.html" class="pw-btn pw-btn-primary">Explore</a>
-                </article>
+          <article class="pw-card surface feature">
+            <h3>Browser Extension</h3>
+            <p>Full-featured browser extension for Chrome and Edge.</p>
+            <a href="./extension/popup/popup.html" class="pw-btn pw-btn-primary">Explore</a>
+          </article>
 
-                <article class="pw-card surface feature">
-                    <h3>Documentation</h3>
-                    <p>Learn how to use PrismWeave effectively.</p>
-                    <a href="https://github.com/davidhayesbc/PrismWeave#readme" class="pw-btn pw-btn-primary">Read Docs</a>
-                </article>
+          <article class="pw-card surface feature">
+            <h3>Documentation</h3>
+            <p>Learn how to use PrismWeave effectively.</p>
+            <a
+              href="https://github.com/davidhayesbc/PrismWeave#readme"
+              class="pw-btn pw-btn-primary"
+              >Read Docs</a
+            >
+          </article>
 
-                <article class="pw-card surface feature">
-                    <h3>Development</h3>
-                    <p>Source code and development resources.</p>
-                    <a href="https://github.com/davidhayesbc/PrismWeave" class="pw-btn pw-btn-primary">GitHub</a>
-                </article>
-            </section>
+          <article class="pw-card surface feature">
+            <h3>Development</h3>
+            <p>Source code and development resources.</p>
+            <a href="https://github.com/davidhayesbc/PrismWeave" class="pw-btn pw-btn-primary"
+              >GitHub</a
+            >
+          </article>
+        </section>
 
-            <section class="pw-card pw-card--static surface quick-start">
-                <h2>Quick Start</h2>
-                <ol>
-                    <li><strong>Try the Bookmarklet:</strong> Click "Generate" above</li>
-                    <li><strong>Configure GitHub:</strong> Add your repository settings</li>
-                    <li><strong>Capture Content:</strong> Use on any webpage to save content</li>
-                    <li><strong>Manage Documents:</strong> View captured content in your repository</li>
-                </ol>
-            </section>
-        </main>
+        <section class="pw-card pw-card--static surface quick-start">
+          <h2>Quick Start</h2>
+          <ol>
+            <li><strong>Try the Bookmarklet:</strong> Click "Generate" above</li>
+            <li><strong>Configure GitHub:</strong> Add your repository settings</li>
+            <li><strong>Capture Content:</strong> Use on any webpage to save content</li>
+            <li><strong>Manage Documents:</strong> View captured content in your repository</li>
+          </ol>
+        </section>
+      </main>
 
-        <footer class="site-footer">
-            <small>PrismWeave v{{VERSION}} • Built with care for the open web</small>
-            <a href="./" aria-label="Go to PrismWeave home" class="site-footer__home-link">
-                <img src="./assets/logo.svg" alt="PrismWeave emblem" class="site-footer__icon">
-            </a>
-        </footer>
+      <footer class="site-footer">
+        <small>PrismWeave v{{VERSION}} • Built with care for the open web</small>
+        <a href="./" aria-label="Go to PrismWeave home" class="site-footer__home-link">
+          <img src="./assets/logo.svg" alt="PrismWeave emblem" class="site-footer__icon" />
+        </a>
+      </footer>
     </div>
 
     <script src="./assets/theme.js"></script>
-</body>
+  </body>
 </html>

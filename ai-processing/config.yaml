@@ -5,14 +5,14 @@ ollama:
   host: http://localhost:11434
   timeout: 60
   models:
-    embedding: "nomic-embed-text:latest"  # Vector embeddings for search
+    embedding: 'nomic-embed-text:latest' # Vector embeddings for search
 
 # Document Processing Configuration
 processing:
-  chunk_size: 1000           # Smaller chunks for web documents
-  chunk_overlap: 200         # Overlap between chunks
+  chunk_size: 1000 # Smaller chunks for web documents
+  chunk_overlap: 200 # Overlap between chunks
 
 # Vector Database Configuration
 vector:
-  collection_name: "documents"
-  persist_directory: "../../PrismWeaveDocs/.prismweave/chroma_db"
+  collection_name: 'documents'
+  persist_directory: '../../PrismWeaveDocs/.prismweave/chroma_db'

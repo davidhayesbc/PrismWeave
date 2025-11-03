@@ -2,7 +2,7 @@ name: Update README Badges
 
 on:
   workflow_run:
-    workflows: ["CI/CD Pipeline", "Deploy Website"]
+    workflows: ['CI/CD Pipeline', 'Deploy Website']
     types:
       - completed
   schedule:
@@ -14,11 +14,11 @@ jobs:
   update-badges:
     runs-on: ubuntu-latest
     name: Update Status Badges
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        
+
       - name: Get workflow status
         id: get-status
         run: |
@@ -26,29 +26,29 @@ jobs:
           CI_STATUS=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
             "https://api.github.com/repos/${{ github.repository }}/actions/workflows/ci-cd.yml/runs?per_page=1" \
             | jq -r '.workflow_runs[0].conclusion // "unknown"')
-          
+
           DEPLOY_STATUS=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
             "https://api.github.com/repos/${{ github.repository }}/actions/workflows/deploy-website.yml/runs?per_page=1" \
             | jq -r '.workflow_runs[0].conclusion // "unknown"')
-          
+
           echo "ci_status=$CI_STATUS" >> $GITHUB_OUTPUT
           echo "deploy_status=$DEPLOY_STATUS" >> $GITHUB_OUTPUT
-          
+
       - name: Create badge info
         run: |
           echo "📊 Current Status:"
           echo "CI/CD Pipeline: ${{ steps.get-status.outputs.ci_status }}"
           echo "Website Deploy: ${{ steps.get-status.outputs.deploy_status }}"
-          
+
           # Create a simple status file that could be used by external tools
           mkdir -p .github/status
           echo '{ "ci": "${{ steps.get-status.outputs.ci_status }}", "deploy": "${{ steps.get-status.outputs.deploy_status }}", "updated": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'" }' > .github/status/badges.json
-          
+
       - name: Commit status update
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          
+
           if [ -n "$(git status --porcelain)" ]; then
             git add .github/status/badges.json
             git commit -m "Update status badges [skip ci]" || exit 0

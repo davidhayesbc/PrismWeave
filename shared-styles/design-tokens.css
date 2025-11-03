@@ -3,8 +3,10 @@
 
 :root {
   /* Typography */
-  --pw-font-family: "Inter", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-  --pw-font-mono: "JetBrains Mono", "Fira Code", "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  --pw-font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  --pw-font-mono:
+    'JetBrains Mono', 'Fira Code', 'SFMono-Regular', Menlo, Monaco, Consolas, 'Liberation Mono',
+    'Courier New', monospace;
 
   /* Shape */
   --pw-radius-sm: 0.35rem;
@@ -95,11 +97,20 @@
 
   /* Gradients */
   --pw-gradient-primary: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-  --pw-gradient-secondary: linear-gradient(135deg, rgba(255, 255, 255, 0.94) 0%, rgba(241, 245, 249, 0.86) 100%);
+  --pw-gradient-secondary: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.94) 0%,
+    rgba(241, 245, 249, 0.86) 100%
+  );
   --pw-gradient-success: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
   --pw-gradient-warning: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
   --pw-gradient-error: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-  --pw-gradient-background: linear-gradient(135deg, rgba(248, 250, 255, 0.95) 0%, rgba(226, 232, 255, 0.88) 45%, rgba(209, 213, 253, 0.94) 100%);
+  --pw-gradient-background: linear-gradient(
+    135deg,
+    rgba(248, 250, 255, 0.95) 0%,
+    rgba(226, 232, 255, 0.88) 45%,
+    rgba(209, 213, 253, 0.94) 100%
+  );
   --pw-btn-primary-bg: linear-gradient(135deg, #4f52d1 0%, #6c6fd8 100%);
   --pw-btn-primary-text: #f8fafc;
   --pw-btn-success-bg: linear-gradient(135deg, #1c9a6a 0%, #167f55 100%);
@@ -187,7 +198,12 @@
   --pw-ui-border-strong: rgba(34, 211, 238, 0.42);
   --pw-code-bg: #0b1120;
   --pw-code-text: #e2e8f0;
-  --pw-gradient-background: linear-gradient(135deg, rgba(7, 11, 19, 0.94) 0%, rgba(12, 19, 31, 0.9) 52%, rgba(2, 6, 23, 0.94) 100%);
+  --pw-gradient-background: linear-gradient(
+    135deg,
+    rgba(7, 11, 19, 0.94) 0%,
+    rgba(12, 19, 31, 0.9) 52%,
+    rgba(2, 6, 23, 0.94) 100%
+  );
 
   --page-bg: var(--pw-page-bg);
   --text-color: var(--pw-text-primary);
@@ -225,7 +241,9 @@ body {
   font-family: var(--pw-font-family);
   background: var(--pw-page-bg);
   color: var(--pw-text-primary);
-  transition: background var(--pw-transition), color var(--pw-transition);
+  transition:
+    background var(--pw-transition),
+    color var(--pw-transition);
 }
 
 .pw-surface {

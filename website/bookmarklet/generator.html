@@ -2,10 +2,7 @@
 <html lang="en" data-theme="light">
   <head>
     <meta charset="UTF-8" />
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1.0"
-    />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>PrismWeave Bookmarklet Generator</title>
     <link rel="icon" href="../assets/favicon-16x16.png" sizes="16x16" type="image/png" />
     <link rel="icon" href="../assets/favicon-32x32.png" sizes="32x32" type="image/png" />
@@ -15,7 +12,8 @@
       content="Generate a personalized PrismWeave bookmarklet with your GitHub settings embedded for universal cross-domain content capture."
     />
     <script>
-      (function () { // minimal inline to avoid FOUC
+      (function () {
+        // minimal inline to avoid FOUC
         try {
           var storageKey = 'prismweave-theme';
           var storedTheme = localStorage.getItem(storageKey);
@@ -27,14 +25,8 @@
         }
       })();
     </script>
-    <link
-      rel="stylesheet"
-      href="../assets/styles.css"
-    />
-    <link
-      rel="stylesheet"
-      href="../assets/styles/bookmarklet-generator.css"
-    />
+    <link rel="stylesheet" href="../assets/styles.css" />
+    <link rel="stylesheet" href="../assets/styles/bookmarklet-generator.css" />
   </head>
   <body class="pw-font-sans">
     <div class="page page--narrow">
@@ -49,28 +41,33 @@
           </a>
         </div>
         <button class="pw-theme-toggle" type="button" data-theme-toggle>
-          <span class="pw-theme-toggle__icon pw-theme-toggle__icon--sun" aria-hidden="true">☀️</span>
-          <span class="pw-theme-toggle__icon pw-theme-toggle__icon--moon" aria-hidden="true">🌙</span>
+          <span class="pw-theme-toggle__icon pw-theme-toggle__icon--sun" aria-hidden="true"
+            >☀️</span
+          >
+          <span class="pw-theme-toggle__icon pw-theme-toggle__icon--moon" aria-hidden="true"
+            >🌙</span
+          >
           <span class="pw-theme-toggle__label">Theme</span>
         </button>
       </header>
 
       <main class="page-main page-main--narrow">
-  <section class="pw-card pw-card--static surface generator-intro">
+        <section class="pw-card pw-card--static surface generator-intro">
           <h2>Build your personal capture bookmarklet</h2>
           <p>
-            Create a PrismWeave bookmarklet that embeds your GitHub preferences so you can capture content from any
-            page without leaving the browser.
+            Create a PrismWeave bookmarklet that embeds your GitHub preferences so you can capture
+            content from any page without leaving the browser.
           </p>
         </section>
 
-  <section class="pw-card pw-card--static surface generator-details">
+        <section class="pw-card pw-card--static surface generator-details">
           <div class="details-grid">
             <article class="pw-card details-card">
               <h3>What is this?</h3>
               <p>
-                Generate a custom bookmarklet that includes your GitHub repository and workflow defaults. The script is
-                optimized for speed and size while keeping the capture experience consistent across browsers.
+                Generate a custom bookmarklet that includes your GitHub repository and workflow
+                defaults. The script is optimized for speed and size while keeping the capture
+                experience consistent across browsers.
               </p>
             </article>
 
@@ -86,8 +83,8 @@
             <article class="pw-card details-card details-card--warning">
               <h4>🔒 Security Note</h4>
               <p>
-                Your GitHub token is embedded in the bookmarklet. Use a fine-grained token with limited repository
-                access and keep the generated code private.
+                Your GitHub token is embedded in the bookmarklet. Use a fine-grained token with
+                limited repository access and keep the generated code private.
               </p>
               <ul>
                 <li>Permissions: metadata (read), contents (write)</li>
@@ -97,7 +94,7 @@
           </div>
         </section>
 
-  <form id="generator-form" class="pw-card pw-card--static surface generator-form">
+        <form id="generator-form" class="pw-card pw-card--static surface generator-form">
           <h3 class="generator-form__title">Configuration</h3>
           <div class="generator-form__grid">
             <div class="generator-form-section">
@@ -183,7 +180,11 @@
             </div>
           </div>
 
-          <button type="submit" class="pw-btn pw-btn-primary pw-btn-lg pw-btn-full" id="generate-btn">
+          <button
+            type="submit"
+            class="pw-btn pw-btn-primary pw-btn-lg pw-btn-full"
+            id="generate-btn"
+          >
             🚀 Generate My Personal Bookmarklet
           </button>
         </form>
@@ -197,7 +198,11 @@
             <h4>Drag this to your bookmarks bar:</h4>
             <div class="generator-actions">
               <a href="javascript:void(0)" class="pw-btn pw-btn-primary" id="bookmarklet-link">
-                <img src="../assets/logo.svg" alt="" style="width: 20px; height: 20px; vertical-align: middle; margin-right: 8px;" />
+                <img
+                  src="../assets/logo.svg"
+                  alt=""
+                  style="width: 20px; height: 20px; vertical-align: middle; margin-right: 8px"
+                />
                 PrismWeave Capture
               </a>
             </div>

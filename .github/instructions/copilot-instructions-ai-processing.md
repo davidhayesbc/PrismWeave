@@ -9,11 +9,13 @@ The **AI Processing Module** is the core intelligence engine of PrismWeave, prov
 ## Technology Stack
 
 ### Package Management
+
 - **UV Package Manager**: Primary dependency management (10-100x faster than pip)
 - **pyproject.toml**: Modern Python project configuration
 - **uv.lock**: Dependency lockfile for reproducible builds
 
 ### Core Dependencies
+
 - **Ollama**: Local LLM inference server (`ollama>=0.1.7`)
 - **ChromaDB**: Vector database for embeddings (`chromadb>=0.4.15`)
 - **aiohttp**: Async HTTP client for Ollama communication (`aiohttp>=3.12.13`)
@@ -22,6 +24,7 @@ The **AI Processing Module** is the core intelligence engine of PrismWeave, prov
 - **Click**: Command-line argument parsing (`click>=8.1.7`)
 
 ### AI/ML Libraries
+
 - **sentence-transformers**: Text embeddings (`sentence-transformers>=2.2.2`)
 - **transformers**: Hugging Face transformers (optional, in `performance` group)
 - **torch**: PyTorch for local model execution (optional)
@@ -52,6 +55,7 @@ ai-processing/
 ## Development Environment Setup
 
 ### Prerequisites
+
 ```bash
 # Install UV (recommended)
 curl -LsSf https://astral.sh/uv/install.sh | sh
@@ -62,6 +66,7 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 
 ### UV-Based Setup (Recommended)
+
 ```bash
 # Navigate to ai-processing directory
 cd d:\source\PrismWeave\ai-processing
@@ -80,6 +85,7 @@ uv run python cli/prismweave.py --help
 ```
 
 ### Traditional Setup (pip/venv)
+
 ```bash
 # Create virtual environment
 python -m venv venv
@@ -100,6 +106,7 @@ pip install -e .
 **Purpose**: Simplified async client for communicating with local Ollama server
 
 **Key Features**:
+
 - Async/await support with aiohttp
 - Model management (list, pull, check existence)
 - Text generation with streaming support
@@ -108,20 +115,21 @@ pip install -e .
 - Timeout and retry logic
 
 **Usage Patterns**:
+
 ```python
 # Always use async context manager
 async with OllamaClient(host="http://localhost:11434") as client:
     # Check if model exists
     if not await client.model_exists("phi3:mini"):
         await client.pull_model("phi3:mini")
-    
+
     # Generate text
     result = await client.generate(
         model="phi3:mini",
         prompt="Summarize this document...",
         system="You are a helpful document analyst."
     )
-    
+
     # Generate embeddings
     embeddings = await client.embed(
         model="nomic-embed-text",
@@ -130,6 +138,7 @@ async with OllamaClient(host="http://localhost:11434") as client:
 ```
 
 **Error Handling**:
+
 - Always wrap Ollama calls in try-catch
 - Check model availability before use
 - Handle timeout errors gracefully
@@ -140,6 +149,7 @@ async with OllamaClient(host="http://localhost:11434") as client:
 **Purpose**: AI-powered document analysis and metadata generation
 
 **Capabilities**:
+
 - Content summarization
 - Automatic tag generation
 - Category classification
@@ -148,6 +158,7 @@ async with OllamaClient(host="http://localhost:11434") as client:
 - Readability scoring
 
 **Usage Pattern**:
+
 ```python
 processor = DocumentProcessor()
 analysis, metadata = await processor.process_file(file_path)
@@ -164,6 +175,7 @@ print(f"Confidence: {analysis.confidence}")
 **Purpose**: Vector-based document search and retrieval
 
 **Features**:
+
 - ChromaDB integration
 - Embedding generation and storage
 - Similarity search
@@ -171,6 +183,7 @@ print(f"Confidence: {analysis.confidence}")
 - Batch processing support
 
 **Usage Pattern**:
+
 ```python
 search_engine = SemanticSearch(config.vector)
 await search_engine.initialize()
@@ -195,6 +208,7 @@ results = await search_engine.search(
 **Purpose**: Rich command-line interface for AI processing operations
 
 **Key Commands**:
+
 - `health` - Check system health and model availability
 - `process` - Analyze documents and generate metadata
 - `search` - Semantic search across document collection
@@ -203,6 +217,7 @@ results = await search_engine.search(
 - `vector-*` - Vector database management
 
 **CLI Design Principles**:
+
 - Use Rich library for beautiful output
 - Async operations with progress indicators
 - Comprehensive error handling and reporting
@@ -211,35 +226,37 @@ results = await search_engine.search(
 ## Configuration Management
 
 ### Configuration File (`config.yaml`)
+
 ```yaml
 # Ollama server settings
 ollama:
   host: http://localhost:11434
   timeout: 60
   models:
-    large: "llama3.1:8b"      # Complex analysis
-    medium: "phi3:mini"       # Standard processing
-    small: "phi3:mini"        # Quick tasks
-    embedding: "nomic-embed-text"  # Vector embeddings
+    large: 'llama3.1:8b' # Complex analysis
+    medium: 'phi3:mini' # Standard processing
+    small: 'phi3:mini' # Quick tasks
+    embedding: 'nomic-embed-text' # Vector embeddings
 
 # Processing settings
 processing:
-  max_concurrent: 1          # Prevent Ollama overload
+  max_concurrent: 1 # Prevent Ollama overload
   chunk_size: 3000
   chunk_overlap: 300
-  summary_timeout: 180       # Increased timeouts
+  summary_timeout: 180 # Increased timeouts
   tagging_timeout: 120
   categorization_timeout: 90
 
 # Vector database
 vector:
-  collection_name: "documents"
-  persist_directory: "../../PrismWeaveDocs/.prismweave/chroma_db"
+  collection_name: 'documents'
+  persist_directory: '../../PrismWeaveDocs/.prismweave/chroma_db'
   max_results: 20
   similarity_threshold: 0.6
 ```
 
 ### Configuration Loading
+
 ```python
 from src.utils.config_simplified import get_config, Config
 
@@ -260,23 +277,25 @@ embedding_model = config.get_model('embedding')
 ## Model Strategy
 
 ### Recommended Models
-| Model | Size | Purpose | Use Case |
-|-------|------|---------|----------|
-| `phi3:mini` | ~2.3GB | Analysis, Tagging | Fast general-purpose processing |
-| `nomic-embed-text` | ~274MB | Embeddings | Semantic search vectors |
-| `llama3.1:8b` | ~4.6GB | Complex Analysis | High-quality summaries, RAG |
-| `qwen2.5:7b` | ~4.4GB | Alternative | Advanced reasoning tasks |
+
+| Model              | Size   | Purpose           | Use Case                        |
+| ------------------ | ------ | ----------------- | ------------------------------- |
+| `phi3:mini`        | ~2.3GB | Analysis, Tagging | Fast general-purpose processing |
+| `nomic-embed-text` | ~274MB | Embeddings        | Semantic search vectors         |
+| `llama3.1:8b`      | ~4.6GB | Complex Analysis  | High-quality summaries, RAG     |
+| `qwen2.5:7b`       | ~4.4GB | Alternative       | Advanced reasoning tasks        |
 
 ### Model Selection Logic
+
 ```python
 # Use smaller models for quick tasks
 if task_type in ['tagging', 'classification']:
     model = config.get_model('small')  # phi3:mini
-    
+
 # Use larger models for complex analysis
 elif task_type in ['summarization', 'rag']:
     model = config.get_model('large')  # llama3.1:8b
-    
+
 # Always use specialized embedding model
 elif task_type == 'embedding':
     model = config.get_model('embedding')  # nomic-embed-text
@@ -285,17 +304,18 @@ elif task_type == 'embedding':
 ## Error Handling Patterns
 
 ### Ollama Connection Errors
+
 ```python
 async def safe_ollama_operation():
     try:
         async with OllamaClient() as client:
             if not await client.is_available():
                 raise RuntimeError("Ollama server not available")
-            
+
             # Perform operation
             result = await client.generate(...)
             return result
-            
+
     except asyncio.TimeoutError:
         logger.error("Ollama operation timed out")
         raise
@@ -305,6 +325,7 @@ async def safe_ollama_operation():
 ```
 
 ### Model Management
+
 ```python
 async def ensure_model_available(client: OllamaClient, model_name: str):
     """Ensure model is available, pull if necessary"""
@@ -316,12 +337,13 @@ async def ensure_model_available(client: OllamaClient, model_name: str):
 ```
 
 ### Vector Database Errors
+
 ```python
 try:
     search_engine = SemanticSearch(config.vector)
     await search_engine.initialize()
     # Perform operations
-    
+
 except Exception as e:
     logger.error(f"Vector database error: {e}")
     # Fallback to non-vector operations
@@ -330,6 +352,7 @@ except Exception as e:
 ## Testing Patterns
 
 ### Test Environment Setup
+
 ```python
 # tests/conftest.py
 import pytest
@@ -350,6 +373,7 @@ async def mock_ollama_client():
 ```
 
 ### Async Testing
+
 ```python
 import pytest
 
@@ -357,16 +381,17 @@ import pytest
 async def test_document_processing():
     """Test document processing pipeline"""
     processor = DocumentProcessor()
-    
+
     # Test with sample document
     result = await processor.process_file(sample_file_path)
-    
+
     assert result.analysis.summary
     assert len(result.analysis.tags) > 0
     assert result.analysis.confidence > 0.5
 ```
 
 ### UV Testing Commands
+
 ```bash
 # Run all tests
 uv run pytest
@@ -384,18 +409,21 @@ uv run pytest -m "not slow"
 ## Performance Optimization
 
 ### Ollama Optimization
+
 - Use smaller models for simple tasks
 - Implement proper connection pooling
 - Set appropriate timeouts
 - Monitor NPU utilization for AI HX 370
 
 ### Vector Database Optimization
+
 - Batch document additions when possible
 - Use appropriate chunk sizes (3000 chars recommended)
 - Implement embedding caching
 - Regular database cleanup
 
 ### Memory Management
+
 ```python
 # Limit concurrent operations
 async with asyncio.Semaphore(max_concurrent) as sem:
@@ -411,9 +439,11 @@ async with OllamaClient() as client:
 ## Common Issues and Solutions
 
 ### GenerationResult API Compatibility
+
 **Issue**: `GenerationResult.__init__() got an unexpected keyword argument 'done_reason'`
 
 **Solution**: Use the `from_dict()` class method for robust field handling:
+
 ```python
 # Correct approach
 result = GenerationResult.from_dict(response_data)
@@ -430,18 +460,22 @@ def from_dict(cls, data: Dict[str, Any]) -> 'GenerationResult':
 ```
 
 ### Ollama Model Loading
+
 **Issue**: Model not found errors
 
 **Solution**: Always check and pull models:
+
 ```python
 if not await client.model_exists(model_name):
     await client.pull_model(model_name)
 ```
 
 ### Vector Database Persistence
+
 **Issue**: Embeddings not persisting between sessions
 
 **Solution**: Use absolute paths and ensure directory creation:
+
 ```python
 persist_dir = Path(config.vector.persist_directory).resolve()
 persist_dir.mkdir(parents=True, exist_ok=True)
@@ -450,12 +484,14 @@ persist_dir.mkdir(parents=True, exist_ok=True)
 ## Debugging and Logging
 
 ### Enable Debug Logging
+
 ```yaml
 # config.yaml
-log_level: "DEBUG"
+log_level: 'DEBUG'
 ```
 
 ### CLI Debugging
+
 ```bash
 # Run with debug output
 uv run python cli/prismweave.py --log-level DEBUG health
@@ -468,6 +504,7 @@ uv run python cli/prismweave.py vector-verify "document_id"
 ```
 
 ### Code Debugging
+
 ```python
 import logging
 logger = logging.getLogger(__name__)
@@ -481,20 +518,24 @@ logger.warning(f"Model {model_name} not found, attempting to pull")
 ## Integration Points
 
 ### Browser Extension Integration
+
 - Documents captured by browser extension are processed by this module
 - Metadata flows back to browser extension for enhanced UI
 
 ### VS Code Extension Integration
+
 - Processed documents available in VS Code sidebar
 - Semantic search integration in VS Code command palette
 
 ### GitHub Repository Integration
+
 - Processed documents stored in PrismWeaveDocs repository
 - Vector database persisted alongside documents
 
 ## Development Workflow
 
 ### Adding New Features
+
 1. Create feature branch
 2. Update `pyproject.toml` if new dependencies needed
 3. Run `uv sync` to install dependencies
@@ -504,6 +545,7 @@ logger.warning(f"Model {model_name} not found, attempting to pull")
 7. Test with CLI commands
 
 ### UV Package Management
+
 ```bash
 # Add new dependency
 uv add package-name
@@ -522,6 +564,7 @@ uv tree
 ```
 
 ### Code Quality
+
 ```bash
 # Format code
 uv run black src/ cli/ tests/
@@ -539,30 +582,35 @@ uv run flake8 src/ cli/
 ## Best Practices
 
 ### Async Programming
+
 - Always use `async with` for resource management
 - Handle timeouts and cancellation properly
 - Use semaphores to limit concurrency
 - Prefer `asyncio.gather()` for parallel operations
 
 ### Error Handling
+
 - Wrap external API calls in try-catch
 - Provide meaningful error messages
 - Log errors at appropriate levels
 - Implement graceful degradation
 
 ### Configuration
+
 - Use type hints for configuration classes
 - Validate configuration on startup
 - Provide sensible defaults
 - Document all configuration options
 
 ### Testing
+
 - Write async tests with proper fixtures
 - Mock external dependencies (Ollama, ChromaDB)
 - Test error conditions and edge cases
 - Use appropriate test markers (`@pytest.mark.slow`)
 
 ### Documentation
+
 - Document all public APIs
 - Include usage examples
 - Keep README.md updated
@@ -571,6 +619,7 @@ uv run flake8 src/ cli/
 ## Future Enhancements
 
 ### Planned Features
+
 - RAG (Retrieval Augmented Generation) improvements
 - Multi-modal document processing (images, PDFs)
 - Advanced query expansion and semantic routing
@@ -578,6 +627,7 @@ uv run flake8 src/ cli/
 - Distributed processing support
 
 ### Architecture Evolution
+
 - Plugin system for custom processors
 - Advanced caching strategies
 - Model fine-tuning capabilities

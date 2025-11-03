@@ -68,7 +68,7 @@ class BookmarkletGeneratorUI {
     this.resultSection = document.getElementById('result-section') as HTMLElement;
     this.bookmarkletLink = document.getElementById('bookmarklet-link') as HTMLAnchorElement;
     this.bookmarkletCodeDisplay = document.getElementById(
-      'bookmarklet-code-display'
+      'bookmarklet-code-display',
     ) as HTMLElement;
 
     this.init();
@@ -113,7 +113,7 @@ class BookmarkletGeneratorUI {
    * This method establishes the complete event-driven behavior of the UI.
    */
   bindEvents(): void {
-    this.form.addEventListener('submit', e => this.handleSubmit(e));
+    this.form.addEventListener('submit', (e) => this.handleSubmit(e));
 
     // Real-time validation
     const tokenInput = document.getElementById('github-token') as HTMLInputElement;
@@ -267,7 +267,7 @@ class BookmarkletGeneratorUI {
     const f = this.escapeJavaScriptString(formData.defaultFolder);
     const m = this.escapeJavaScriptString(formData.commitMessage || 'PrismWeave: Add {title}');
     const u = this.escapeJavaScriptString(
-      this.injectableBaseUrl + '/content-extractor-injectable.js'
+      this.injectableBaseUrl + '/content-extractor-injectable.js',
     );
 
     // Ultra-compact bookmarklet JavaScript - optimized for minimal size
@@ -299,7 +299,7 @@ class BookmarkletGeneratorUI {
     let isValid = true;
 
     // Clear previous errors
-    document.querySelectorAll('.validation-error').forEach(el => {
+    document.querySelectorAll('.validation-error').forEach((el) => {
       el.textContent = '';
     });
 
@@ -316,7 +316,7 @@ class BookmarkletGeneratorUI {
     ) {
       this.showFieldError(
         'token-error',
-        'Token should start with "ghp_" (classic) or "github_pat_" (fine-grained)'
+        'Token should start with "ghp_" (classic) or "github_pat_" (fine-grained)',
       );
       isValid = false;
     }

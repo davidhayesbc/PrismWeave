@@ -9,6 +9,7 @@ Common issues and their solutions.
 **Symptom**: Dependencies fail to install
 
 **Solutions**:
+
 ```bash
 # Clear npm cache
 npm cache clean --force
@@ -26,6 +27,7 @@ npm install --registry https://registry.npmjs.org/
 **Symptom**: TypeScript compilation errors
 
 **Solutions**:
+
 ```bash
 # Ensure TypeScript is installed
 npm install -g typescript
@@ -43,6 +45,7 @@ npm run build
 **Symptom**: Permission errors on Unix/Linux/Mac
 
 **Solution**:
+
 ```bash
 # Option 1: Use sudo (not recommended)
 sudo npm link
@@ -62,6 +65,7 @@ npm link
 **Symptom**: Trying to capture without configuration
 
 **Solution**:
+
 ```bash
 # Set required configuration
 prismweave config --set githubToken=ghp_your_token_here
@@ -81,6 +85,7 @@ prismweave config --test
 **Problem**: Repository must be in `owner/repo` format
 
 **Solutions**:
+
 ```bash
 # ❌ Wrong formats
 prismweave config --set githubRepo=https://github.com/owner/repo
@@ -98,6 +103,7 @@ prismweave config --set githubRepo=owner/repo
 **Problem**: Config file permissions or path issue
 
 **Solutions**:
+
 ```bash
 # Check config location
 # Windows: C:\Users\<username>\.prismweave\config.json
@@ -119,6 +125,7 @@ echo '{}' > ~/.prismweave/config.json
 **Symptom**: Puppeteer can't start Chromium
 
 **Solutions**:
+
 ```bash
 # Solution 1: Install Chromium manually
 npx puppeteer browsers install chrome
@@ -135,6 +142,7 @@ npm install --ignore-scripts
 **Symptom**: Missing dependencies on Linux
 
 **Solution**:
+
 ```bash
 # Ubuntu/Debian
 sudo apt-get install -y \
@@ -204,6 +212,7 @@ sudo yum install -y \
 **Symptom**: "Navigation timeout" errors
 
 **Solutions**:
+
 ```bash
 # Increase timeout for slow sites
 prismweave capture https://slow-site.com --timeout 60000
@@ -219,6 +228,7 @@ prismweave config --set timeout=60000
 **Symptom**: Authentication failed
 
 **Solutions**:
+
 1. Check token is valid: Visit https://github.com/settings/tokens
 2. Token has correct scopes:
    - Private repos: `repo` scope
@@ -231,6 +241,7 @@ prismweave config --set timeout=60000
 **Symptom**: Repository not found
 
 **Solutions**:
+
 ```bash
 # Verify repository exists
 # Go to: https://github.com/owner/repo
@@ -248,8 +259,9 @@ prismweave config --test
 **Symptom**: Rate limit or permission denied
 
 **Solutions**:
+
 1. **Rate limit exceeded**: Wait 1 hour or use different token
-2. **Permission denied**: 
+2. **Permission denied**:
    - Check token scopes
    - Verify you have write access to repository
    - Try `prismweave config --test`
@@ -259,6 +271,7 @@ prismweave config --test
 **Symptom**: Duplicate files or commit conflicts
 
 **Solution**:
+
 ```bash
 # The CLI automatically handles updates
 # If you see this error, it might be a bug
@@ -276,6 +289,7 @@ prismweave capture URL --dry-run
 **Symptom**: Empty or minimal content captured
 
 **Solutions**:
+
 ```bash
 # Try with longer timeout
 prismweave capture URL --timeout 60000
@@ -292,6 +306,7 @@ prismweave capture URL --timeout 60000
 **Symptom**: Markdown has formatting issues
 
 **Solutions**:
+
 1. Site might have dynamic content loading
 2. Wait for specific selector:
    - Modify capture code to add `waitForSelector`
@@ -303,6 +318,7 @@ prismweave capture URL --timeout 60000
 **Symptom**: Capture fails for certain URLs
 
 **Solutions**:
+
 ```bash
 # Ensure URL is valid and accessible
 curl -I URL
@@ -321,6 +337,7 @@ curl -I URL
 **Symptom**: Can't read URL file
 
 **Solutions**:
+
 ```bash
 # Use absolute path
 prismweave capture --file /full/path/to/urls.txt
@@ -338,6 +355,7 @@ cat urls.txt
 **Symptom**: Batch processing has failures
 
 **Solution**:
+
 ```bash
 # Check the error messages for each URL
 # Common causes:
@@ -354,12 +372,14 @@ prismweave capture FAILED_URL --timeout 60000
 
 **Symptom**: Takes too long for many URLs
 
-**Explanation**: 
+**Explanation**:
+
 - Each URL requires browser startup (~3-5 seconds)
 - Page load time varies by site
 - GitHub API calls add overhead
 
 **Optimization**:
+
 ```bash
 # Process URLs in smaller batches
 split -l 10 all-urls.txt batch-
@@ -377,6 +397,7 @@ done
 **Symptom**: Process uses lots of RAM
 
 **Solution**:
+
 ```bash
 # Puppeteer uses significant memory
 # Close browser between captures (automatic)
@@ -392,12 +413,14 @@ done
 **Symptom**: Each capture takes very long
 
 **Causes**:
+
 1. Slow internet connection
 2. Slow website
 3. Large page with many resources
 4. JavaScript-heavy site
 
 **Solutions**:
+
 ```bash
 # Increase timeout
 prismweave capture URL --timeout 120000
@@ -413,6 +436,7 @@ prismweave capture URL --no-images
 **Symptom**: After `npm link`, command not available
 
 **Solutions**:
+
 ```bash
 # Option 1: Reinstall with npm link
 cd cli
@@ -436,6 +460,7 @@ export PATH="$PATH:$HOME/.npm-global/bin"
 **Symptom**: Scripts blocked by execution policy
 
 **Solution**:
+
 ```powershell
 # Run as Administrator
 Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
@@ -446,6 +471,7 @@ Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 **Symptom**: Can't find executables
 
 **Solution**:
+
 1. Add Node.js to PATH
 2. Restart terminal/PowerShell
 3. Use full paths if needed
@@ -501,16 +527,16 @@ npm link
 
 ## Common Error Messages
 
-| Error | Cause | Solution |
-|-------|-------|----------|
-| `ECONNREFUSED` | Network issue | Check internet connection |
-| `EACCES` | Permission denied | Use sudo or fix npm permissions |
-| `MODULE_NOT_FOUND` | Missing dependency | Run `npm install` |
-| `ETIMEDOUT` | Operation timeout | Increase `--timeout` |
-| `ENOENT` | File not found | Check file path |
-| `401 Unauthorized` | Invalid token | Check GitHub token |
-| `404 Not Found` | Invalid repo/URL | Verify repository format |
-| `403 Forbidden` | No permission | Check token scopes |
+| Error              | Cause              | Solution                        |
+| ------------------ | ------------------ | ------------------------------- |
+| `ECONNREFUSED`     | Network issue      | Check internet connection       |
+| `EACCES`           | Permission denied  | Use sudo or fix npm permissions |
+| `MODULE_NOT_FOUND` | Missing dependency | Run `npm install`               |
+| `ETIMEDOUT`        | Operation timeout  | Increase `--timeout`            |
+| `ENOENT`           | File not found     | Check file path                 |
+| `401 Unauthorized` | Invalid token      | Check GitHub token              |
+| `404 Not Found`    | Invalid repo/URL   | Verify repository format        |
+| `403 Forbidden`    | No permission      | Check token scopes              |
 
 ## Need More Help?
 

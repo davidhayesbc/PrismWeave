@@ -38,6 +38,7 @@ Visual guide to understanding how the CLI components work together.
 ## 📦 Component Relationships
 
 ### Main Entry Point (`index.ts`)
+
 ```
 index.ts (CLI Entry)
     │
@@ -57,6 +58,7 @@ index.ts (CLI Entry)
 ```
 
 ### Shared Code Architecture
+
 ```
 Browser Extension          CLI Tool
       │                       │
@@ -71,6 +73,7 @@ Browser Extension          CLI Tool
 ## 🔄 Data Flow Diagrams
 
 ### Single URL Capture Flow
+
 ```
 1. User Command
    prismweave capture https://example.com
@@ -109,6 +112,7 @@ Browser Extension          CLI Tool
 ```
 
 ### Batch Processing Flow
+
 ```
 1. User Command
    prismweave capture --file urls.txt
@@ -131,6 +135,7 @@ Browser Extension          CLI Tool
 ```
 
 ### Configuration Flow
+
 ```
 1. User Command
    prismweave config --set githubToken=TOKEN
@@ -173,6 +178,7 @@ index.ts
 ## 🔗 Module Interactions
 
 ### Browser Capture Module
+
 ```typescript
 BrowserCapture
     │
@@ -193,6 +199,7 @@ BrowserCapture
 ```
 
 ### Markdown Converter Module (Shared)
+
 ```typescript
 MarkdownConverterCore
     │
@@ -210,6 +217,7 @@ MarkdownConverterCore
 ```
 
 ### File Manager Module (Shared)
+
 ```typescript
 FileManager
     │
@@ -237,6 +245,7 @@ FileManager
 ```
 
 ### Config Manager Module
+
 ```typescript
 ConfigManager
     │
@@ -267,6 +276,7 @@ ConfigManager
 ## 🎯 Command Flow Examples
 
 ### Example 1: Capture with Custom Message
+
 ```
 Command:
   prismweave capture https://blog.com/article --message "Great article"
@@ -275,31 +285,32 @@ Flow:
   1. CLI Parser extracts:
      - URL: "https://blog.com/article"
      - message: "Great article"
-  
+
   2. Load Config:
      - githubToken: "ghp_xxx"
      - githubRepo: "user/repo"
-  
+
   3. Browser Capture:
      - Launch browser
      - Navigate to URL
      - Extract: title, content, metadata
-  
+
   4. Convert to Markdown:
      - HTML → Markdown
      - Generate frontmatter
-  
+
   5. Save to GitHub:
      - Folder: "documents/" (default)
      - Filename: "2025-01-15-blog.com-article-1234.md"
      - Commit: "Great article"
-  
+
   6. Output:
      ✅ Captured: Great Article
      📁 Saved to: documents/2025-01-15-blog.com-article-1234.md
 ```
 
 ### Example 2: Batch Processing
+
 ```
 Command:
   prismweave capture --file tech-articles.txt
@@ -312,26 +323,27 @@ File Content (tech-articles.txt):
 Flow:
   1. Read File:
      - Parse 3 URLs
-  
+
   2. For Each URL:
      URL 1: nodejs.org/en/docs/
        ├─► Capture → tech/2025-01-15-nodejs.org-docs-1234.md
        └─► Wait 1 second
-     
+
      URL 2: github.com/features
        ├─► Capture → tech/2025-01-15-github.com-features-1235.md
        └─► Wait 1 second
-     
+
      URL 3: developer.mozilla.org
        ├─► Capture → reference/2025-01-15-developer.mozilla.org-1236.md
        └─► Done
-  
+
   3. Summary:
      ✅ Successfully captured 3 URLs
      📁 Saved to GitHub repository
 ```
 
 ### Example 3: Config Test
+
 ```
 Command:
   prismweave config --test
@@ -340,22 +352,22 @@ Flow:
   1. Load Config:
      - githubToken: "ghp_xxx"
      - githubRepo: "user/repo"
-  
+
   2. Test GitHub User:
      GET https://api.github.com/user
      ├─► 200 OK
      └─► User: "username"
-  
+
   3. Test Repository Access:
      GET https://api.github.com/repos/user/repo
      ├─► 200 OK
      └─► Repo: "user/repo" (private: false)
-  
+
   4. Test Write Access:
      GET https://api.github.com/repos/user/repo/contents
      ├─► 200 OK
      └─► Has write access: true
-  
+
   5. Output:
      ✅ GitHub connection test successful
      👤 User: username
@@ -368,6 +380,7 @@ Flow:
 ## 🧩 Shared Code Strategy
 
 ### What's Shared (60%+ Reuse)
+
 ```
 ┌────────────────────────────────────────────────┐
 │          Browser Extension                     │
@@ -397,6 +410,7 @@ Flow:
 ```
 
 ### What's CLI-Specific
+
 ```
 CLI-Specific Components:
 ├─► browser-capture.ts
@@ -410,6 +424,7 @@ CLI-Specific Components:
 ```
 
 ### Adaptation Layer
+
 ```
 Browser Extension API          Node.js API
 ─────────────────────          ───────────
@@ -425,6 +440,7 @@ chrome.tabs             ──►    Puppeteer browser/page
 ## 📊 Performance Flow
 
 ### Timing Breakdown (Typical)
+
 ```
 Total Capture Time: ~10 seconds
 
@@ -449,6 +465,7 @@ Total Capture Time: ~10 seconds
 ```
 
 ### Memory Usage
+
 ```
 Base CLI Process: ~50MB
 ├─► Node.js runtime: ~30MB
@@ -466,6 +483,7 @@ Peak Memory: ~350MB per capture
 ## 🚀 Optimization Strategies
 
 ### Current Implementation
+
 ```
 Sequential Processing:
   URL 1 → Browser → Convert → Save → Close
@@ -478,6 +496,7 @@ Sequential Processing:
 ```
 
 ### Future Parallel Processing
+
 ```
 Parallel Processing (Future):
   ┌─► URL 1 → Browser → Convert → Save → Close
@@ -492,6 +511,7 @@ Parallel Processing (Future):
 ## 📝 Summary
 
 This CLI tool demonstrates:
+
 - **Clean Architecture**: Separation of concerns
 - **Code Reuse**: 60%+ shared with browser extension
 - **Extensibility**: Easy to add new features
@@ -499,6 +519,7 @@ This CLI tool demonstrates:
 - **Type Safety**: Full TypeScript support
 
 **Key Files**:
+
 - `index.ts` - Main entry point
 - `browser-capture.ts` - Puppeteer integration
 - `config.ts` - Configuration management

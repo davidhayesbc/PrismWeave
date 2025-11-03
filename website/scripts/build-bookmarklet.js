@@ -73,8 +73,14 @@ class PersonalBookmarkletBuilder {
       fs.mkdirSync(this.assetsSharedDistDir, { recursive: true });
     }
 
-    const legacyFiles = ['generator.js', 'generator.html', 'bookmarklet-generator.css', 'shared-ui.css', 'config.js'];
-    legacyFiles.forEach(fileName => {
+    const legacyFiles = [
+      'generator.js',
+      'generator.html',
+      'bookmarklet-generator.css',
+      'shared-ui.css',
+      'config.js',
+    ];
+    legacyFiles.forEach((fileName) => {
       const legacyPath = path.join(this.distDir, fileName);
       if (fs.existsSync(legacyPath) && !fs.lstatSync(legacyPath).isDirectory()) {
         fs.unlinkSync(legacyPath);
@@ -98,18 +104,18 @@ class PersonalBookmarkletBuilder {
 
     const cssFiles = fs
       .readdirSync(this.sharedStylesSourceDir)
-      .filter(fileName => fileName.endsWith('.css'));
+      .filter((fileName) => fileName.endsWith('.css'));
 
     const existingFiles = fs
       .readdirSync(this.assetsSharedDir)
-      .filter(fileName => fileName.endsWith('.css'));
+      .filter((fileName) => fileName.endsWith('.css'));
 
-    existingFiles.forEach(fileName => {
+    existingFiles.forEach((fileName) => {
       const targetPath = path.join(this.assetsSharedDir, fileName);
       fs.unlinkSync(targetPath);
     });
 
-    cssFiles.forEach(fileName => {
+    cssFiles.forEach((fileName) => {
       const sourcePath = path.join(this.sharedStylesSourceDir, fileName);
       const targetPath = path.join(this.assetsSharedDir, fileName);
 
@@ -137,7 +143,7 @@ class PersonalBookmarkletBuilder {
         {
           cwd: this.projectRoot,
           stdio: 'inherit',
-        }
+        },
       );
       console.log('✅ Generator compiled successfully with esbuild (bundled)');
     } catch (esbuildError) {
@@ -145,7 +151,12 @@ class PersonalBookmarkletBuilder {
 
       // Fallback to TypeScript compilation
       try {
-        const tsconfigPath = path.join(this.projectRoot, '..', 'browser-extension', 'tsconfig.bookmarklet.json');
+        const tsconfigPath = path.join(
+          this.projectRoot,
+          '..',
+          'browser-extension',
+          'tsconfig.bookmarklet.json',
+        );
         execSync(`npx tsc --project ${tsconfigPath} --outDir ${this.distDir}`, {
           cwd: this.projectRoot,
           stdio: 'inherit',
@@ -173,10 +184,10 @@ class PersonalBookmarkletBuilder {
       path.join(this.distDir, 'utils'),
       path.join(this.distDir, 'types'),
       path.join(this.bookmarkletDistDir, 'utils'),
-      path.join(this.bookmarkletDistDir, 'types')
+      path.join(this.bookmarkletDistDir, 'types'),
     ];
 
-    removalTargets.forEach(targetPath => {
+    removalTargets.forEach((targetPath) => {
       if (fs.existsSync(targetPath)) {
         try {
           fs.rmSync(targetPath, { recursive: true, force: true });
@@ -219,7 +230,7 @@ export const BOOKMARKLET_CONFIG = {
       // Fix import paths to include .js extension
       content = content.replace(
         /import\s+{([^}]+)}\s+from\s+['"]\.\/config['"]/g,
-        "import { $1 } from './config.js'"
+        "import { $1 } from './config.js'",
       );
 
       fs.writeFileSync(generatorPath, content);
@@ -235,7 +246,7 @@ export const BOOKMARKLET_CONFIG = {
 
     const htmlFiles = ['generator.html'];
 
-    htmlFiles.forEach(htmlFile => {
+    htmlFiles.forEach((htmlFile) => {
       const srcPath = path.join(this.srcDir, htmlFile);
       if (fs.existsSync(srcPath)) {
         console.log(`   📋 Copying and fixing paths in ${htmlFile}`);
@@ -243,19 +254,22 @@ export const BOOKMARKLET_CONFIG = {
         let htmlContent = fs.readFileSync(srcPath, 'utf8');
 
         // Fix paths for all CSS files - convert ../styles/*.css to assets/styles/*.css
-        htmlContent = htmlContent.replace(/href="\.\.\/styles\/([\w-]+\.css)"/g, 'href="../assets/$1"');
+        htmlContent = htmlContent.replace(
+          /href="\.\.\/styles\/([\w-]+\.css)"/g,
+          'href="../assets/$1"',
+        );
 
         if (isUsingModules && htmlFile === 'generator.html') {
           console.log('   🔧 Adding module support to generator.html');
           htmlContent = htmlContent.replace(
             /<script src="generator\.js"><\/script>/g,
-            '<script type="module" src="./generator.js"></script>'
+            '<script type="module" src="./generator.js"></script>',
           );
         } else if (!isUsingModules && htmlFile === 'generator.html') {
           console.log('   🔧 Using regular script loading for bundled generator.html');
           htmlContent = htmlContent.replace(
             /<script type="module" src="generator\.js"><\/script>/g,
-            '<script src="./generator.js"></script>'
+            '<script src="./generator.js"></script>',
           );
         }
 
@@ -268,9 +282,9 @@ export const BOOKMARKLET_CONFIG = {
     const stylesDir = path.join(this.projectRoot, 'assets', 'styles');
     if (fs.existsSync(stylesDir)) {
       console.log('   🎨 Copying CSS files...');
-      const cssFiles = fs.readdirSync(stylesDir).filter(file => file.endsWith('.css'));
+      const cssFiles = fs.readdirSync(stylesDir).filter((file) => file.endsWith('.css'));
 
-      cssFiles.forEach(cssFile => {
+      cssFiles.forEach((cssFile) => {
         const srcPath = path.join(stylesDir, cssFile);
         const destPath = path.join(this.assetsStylesDistDir, cssFile);
         fs.copyFileSync(srcPath, destPath);
@@ -287,11 +301,11 @@ export const BOOKMARKLET_CONFIG = {
     if (fs.existsSync(this.assetsSharedDir)) {
       const sharedCssFiles = fs
         .readdirSync(this.assetsSharedDir)
-        .filter(fileName => fileName.endsWith('.css'));
+        .filter((fileName) => fileName.endsWith('.css'));
 
       if (sharedCssFiles.length > 0) {
         console.log('   🎨 Copying shared design tokens...');
-        sharedCssFiles.forEach(fileName => {
+        sharedCssFiles.forEach((fileName) => {
           const sourcePath = path.join(this.assetsSharedDir, fileName);
           const destPath = path.join(this.assetsSharedDistDir, fileName);
           fs.copyFileSync(sourcePath, destPath);
@@ -569,7 +583,7 @@ export const BOOKMARKLET_CONFIG = {
     // Core files
     const coreFiles = ['generator.html', 'generator.js'];
 
-    coreFiles.forEach(file => {
+    coreFiles.forEach((file) => {
       const filePath = path.join(this.bookmarkletDistDir, file);
       if (fs.existsSync(filePath)) {
         const stats = fs.statSync(filePath);
@@ -581,9 +595,9 @@ export const BOOKMARKLET_CONFIG = {
     });
 
     if (fs.existsSync(this.assetsDistDir)) {
-      const cssFiles = fs.readdirSync(this.assetsDistDir).filter(file => file.endsWith('.css'));
+      const cssFiles = fs.readdirSync(this.assetsDistDir).filter((file) => file.endsWith('.css'));
 
-      cssFiles.forEach(cssFile => {
+      cssFiles.forEach((cssFile) => {
         const filePath = path.join(this.assetsDistDir, cssFile);
         if (fs.existsSync(filePath)) {
           const stats = fs.statSync(filePath);
@@ -611,7 +625,7 @@ async function main() {
 
 // Execute if called directly
 if (require.main === module) {
-  main().catch(error => {
+  main().catch((error) => {
     console.error('❌ Build failed:', error);
     process.exit(1);
   });

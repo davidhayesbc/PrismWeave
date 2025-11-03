@@ -30,7 +30,10 @@
   function setTheme(theme) {
     root.dataset.theme = theme;
     if (toggle) {
-      toggle.setAttribute('aria-label', 'Switch to ' + (theme === 'dark' ? 'light' : 'dark') + ' theme');
+      toggle.setAttribute(
+        'aria-label',
+        'Switch to ' + (theme === 'dark' ? 'light' : 'dark') + ' theme',
+      );
     }
   }
 

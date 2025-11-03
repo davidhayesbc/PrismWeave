@@ -67,10 +67,7 @@ export class BrowserCapture {
     });
   }
 
-  async captureUrl(
-    url: string,
-    options: ICaptureOptions = {}
-  ): Promise<ICapturedContent> {
+  async captureUrl(url: string, options: ICaptureOptions = {}): Promise<ICapturedContent> {
     // Check if this is a PDF URL first (before launching browser)
     if (this.isPDFUrl(url)) {
       return await this.capturePDF(url);
@@ -132,11 +129,13 @@ export class BrowserCapture {
   private async extractContent(
     page: Page,
     url: string,
-    options: ICaptureOptions
+    options: ICaptureOptions,
   ): Promise<ICapturedContent> {
     // Use a comprehensive extraction script that mimics ContentExtractionCore
     const pageData = await page.evaluate(
-      (extractionOptions: any): {
+      (
+        extractionOptions: any,
+      ): {
         title: string;
         html: string;
         metadata: {
@@ -153,7 +152,7 @@ export class BrowserCapture {
       } => {
         // Helper functions (matching ContentExtractionCore logic)
         const countWords = (text: string): number => {
-          return text.split(/\s+/).filter(word => word.length > 0).length;
+          return text.split(/\s+/).filter((word) => word.length > 0).length;
         };
 
         const estimateReadingTime = (wordCount: number): number => {
@@ -272,9 +271,9 @@ export class BrowserCapture {
             ...(extractionOptions.excludeSelectors || []),
           ];
 
-          excludeSelectors.forEach(selector => {
+          excludeSelectors.forEach((selector) => {
             const elements = cloned.querySelectorAll(selector);
-            elements.forEach(el => el.remove());
+            elements.forEach((el) => el.remove());
           });
 
           // Remove navigation
@@ -292,9 +291,9 @@ export class BrowserCapture {
               '.breadcrumb',
             ];
 
-            navSelectors.forEach(selector => {
+            navSelectors.forEach((selector) => {
               const elements = cloned.querySelectorAll(selector);
-              elements.forEach(el => el.remove());
+              elements.forEach((el) => el.remove());
             });
           }
 
@@ -311,9 +310,9 @@ export class BrowserCapture {
               '[id*="sponsor"]',
             ];
 
-            adSelectors.forEach(selector => {
+            adSelectors.forEach((selector) => {
               const elements = cloned.querySelectorAll(selector);
-              elements.forEach(el => {
+              elements.forEach((el) => {
                 const text = el.textContent || '';
                 const wordCount = countWords(text);
                 const className = el.className.toLowerCase();
@@ -331,7 +330,7 @@ export class BrowserCapture {
                 ];
 
                 const hasAdCharacteristics = adPatterns.some(
-                  pattern => className.includes(pattern) || id.includes(pattern)
+                  (pattern) => className.includes(pattern) || id.includes(pattern),
                 );
 
                 if (wordCount < 10 || hasAdCharacteristics) {
@@ -366,8 +365,7 @@ export class BrowserCapture {
         const extractDescription = (): string => {
           const descSources = [
             () => document.querySelector('[property="og:description"]')?.getAttribute('content'),
-            () =>
-              document.querySelector('[name="twitter:description"]')?.getAttribute('content'),
+            () => document.querySelector('[name="twitter:description"]')?.getAttribute('content'),
             () => document.querySelector('[name="description"]')?.getAttribute('content'),
           ];
 
@@ -386,16 +384,15 @@ export class BrowserCapture {
           if (keywordsMeta) {
             return keywordsMeta
               .split(',')
-              .map(keyword => keyword.trim())
-              .filter(keyword => keyword.length > 0);
+              .map((keyword) => keyword.trim())
+              .filter((keyword) => keyword.length > 0);
           }
           return [];
         };
 
         const extractAuthor = (): string => {
           const authorSources = [
-            () =>
-              document.querySelector('[property="article:author"]')?.getAttribute('content'),
+            () => document.querySelector('[property="article:author"]')?.getAttribute('content'),
             () => document.querySelector('[name="author"]')?.getAttribute('content'),
             () => document.querySelector('[rel="author"]')?.textContent,
             () => document.querySelector('.author')?.textContent,
@@ -480,7 +477,7 @@ export class BrowserCapture {
         excludeSelectors: [],
         includeImages: options.includeImages ?? true,
         includeLinks: options.includeLinks ?? true,
-      }
+      },
     );
 
     // Convert HTML to Markdown
@@ -498,7 +495,7 @@ export class BrowserCapture {
         wordCount: pageData.wordCount,
         estimatedReadingTime: pageData.readingTime,
       },
-      pageData.wordCount
+      pageData.wordCount,
     );
 
     const markdown = frontmatter + '\n\n' + conversionResult.markdown;
@@ -527,7 +524,7 @@ export class BrowserCapture {
     title: string,
     url: string,
     metadata: any,
-    wordCount: number
+    wordCount: number,
   ): string {
     const lines = ['---'];
 
@@ -536,9 +533,7 @@ export class BrowserCapture {
     lines.push(`capture_date: "${new Date().toISOString()}"`);
 
     if (metadata.description) {
-      lines.push(
-        `description: "${metadata.description.replace(/"/g, '\\"')}"`
-      );
+      lines.push(`description: "${metadata.description.replace(/"/g, '\\"')}"`);
     }
 
     if (metadata.author) {
@@ -553,9 +548,7 @@ export class BrowserCapture {
     }
 
     lines.push(`word_count: ${wordCount}`);
-    lines.push(
-      `reading_time: ${Math.ceil(wordCount / 200)} min`
-    );
+    lines.push(`reading_time: ${Math.ceil(wordCount / 200)} min`);
     lines.push('source: "PrismWeave CLI"');
     lines.push('---');
 
@@ -585,7 +578,7 @@ export class BrowserCapture {
 
       // Check for common PDF viewer patterns
       const pdfPatterns = [/\.pdf$/i, /\/pdf\//i, /viewer\.html.*\.pdf/i, /pdfjs/i];
-      return pdfPatterns.some(pattern => pattern.test(url));
+      return pdfPatterns.some((pattern) => pattern.test(url));
     } catch {
       return false;
     }
@@ -629,7 +622,7 @@ export class BrowserCapture {
       // Validate size (matches browser extension MAX_PDF_SIZE)
       if (buffer.length > BrowserCapture.MAX_PDF_SIZE) {
         throw new Error(
-          `PDF file too large (${this.formatFileSize(buffer.length)}). Maximum allowed: ${this.formatFileSize(BrowserCapture.MAX_PDF_SIZE)}`
+          `PDF file too large (${this.formatFileSize(buffer.length)}). Maximum allowed: ${this.formatFileSize(BrowserCapture.MAX_PDF_SIZE)}`,
         );
       }
 

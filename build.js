@@ -18,12 +18,12 @@ class PrismWeaveBuildSystem {
         buildScript: 'scripts/build-simple.js',
         distPath: 'dist/browser-extension',
       },
-      'bookmarklet': {
+      bookmarklet: {
         path: 'browser-extension',
         buildScript: 'scripts/build-bookmarklet.js',
         distPath: 'dist/bookmarklet',
       },
-      'cli': {
+      cli: {
         path: 'cli',
         buildScript: 'npm run build',
         distPath: 'cli/dist',
@@ -32,7 +32,7 @@ class PrismWeaveBuildSystem {
         path: 'ai-processing',
         buildScript: 'python -m pytest tests/ -v',
         distPath: 'dist/ai-processing',
-      }
+      },
     };
   }
 
@@ -48,11 +48,15 @@ class PrismWeaveBuildSystem {
         case 'all':
         case 'build':
           // Always refresh brand assets (icons, logo.png) first so downstream builds pick them up
-          await this.generateBrandAssets().catch((e) => console.warn('⚠️  Brand asset generation skipped:', e.message));
+          await this.generateBrandAssets().catch((e) =>
+            console.warn('⚠️  Brand asset generation skipped:', e.message),
+          );
           await this.buildAll();
           break;
         case 'browser-extension':
-          await this.generateBrandAssets().catch((e) => console.warn('⚠️  Brand asset generation skipped:', e.message));
+          await this.generateBrandAssets().catch((e) =>
+            console.warn('⚠️  Brand asset generation skipped:', e.message),
+          );
           await this.buildBrowserExtension();
           break;
         case 'bookmarklet':
@@ -65,7 +69,9 @@ class PrismWeaveBuildSystem {
           await this.buildAIProcessing();
           break;
         case 'web':
-          await this.generateBrandAssets().catch((e) => console.warn('⚠️  Brand asset generation skipped:', e.message));
+          await this.generateBrandAssets().catch((e) =>
+            console.warn('⚠️  Brand asset generation skipped:', e.message),
+          );
           await this.buildWebOnly({ fast: fastMode });
           break;
         case 'clean':
@@ -84,7 +90,7 @@ class PrismWeaveBuildSystem {
 
   async buildAll() {
     console.log('🏗️ Building all components...');
-    
+
     // Build in order of dependencies
     await this.buildAIProcessing();
     await this.buildCLI();
@@ -96,7 +102,7 @@ class PrismWeaveBuildSystem {
   async buildBrowserExtension() {
     console.log('📦 Building browser extension...');
     const componentPath = path.join(this.projectRoot, 'browser-extension');
-    
+
     // Install dependencies if needed
     if (!fs.existsSync(path.join(componentPath, 'node_modules'))) {
       console.log('📥 Installing browser extension dependencies...');
@@ -104,32 +110,32 @@ class PrismWeaveBuildSystem {
     }
 
     // Run the build script
-    execSync('node scripts/build-simple.js', { 
-      cwd: componentPath, 
+    execSync('node scripts/build-simple.js', {
+      cwd: componentPath,
       stdio: 'inherit',
-      env: { ...process.env, NODE_ENV: this.isProduction ? 'production' : 'development' }
+      env: { ...process.env, NODE_ENV: this.isProduction ? 'production' : 'development' },
     });
-    
+
     console.log('✅ Browser extension built');
   }
 
   async buildBookmarklet() {
     console.log('🔗 Building bookmarklet...');
     const componentPath = path.join(this.projectRoot, 'website');
-    
-    execSync('node scripts/build-bookmarklet.js', { 
-      cwd: componentPath, 
+
+    execSync('node scripts/build-bookmarklet.js', {
+      cwd: componentPath,
       stdio: 'inherit',
-      env: { ...process.env, NODE_ENV: this.isProduction ? 'production' : 'development' }
+      env: { ...process.env, NODE_ENV: this.isProduction ? 'production' : 'development' },
     });
-    
+
     console.log('✅ Bookmarklet built');
   }
 
   async buildCLI() {
     console.log('🖥️ Building CLI tool...');
     const componentPath = path.join(this.projectRoot, 'cli');
-    
+
     // Check if CLI directory exists
     if (!fs.existsSync(componentPath)) {
       console.log('⏭️ CLI not found, skipping...');
@@ -143,19 +149,19 @@ class PrismWeaveBuildSystem {
     }
 
     // Build using TypeScript compiler
-    execSync('npm run build', { 
-      cwd: componentPath, 
+    execSync('npm run build', {
+      cwd: componentPath,
       stdio: 'inherit',
-      env: { ...process.env, NODE_ENV: this.isProduction ? 'production' : 'development' }
+      env: { ...process.env, NODE_ENV: this.isProduction ? 'production' : 'development' },
     });
-    
+
     console.log('✅ CLI tool built');
   }
 
   async buildAIProcessing() {
     console.log('🤖 Building AI processing...');
     const componentPath = path.join(this.projectRoot, 'ai-processing');
-    
+
     // Check if AI processing directory exists
     if (!fs.existsSync(componentPath)) {
       console.log('⏭️ AI processing not found, skipping...');
@@ -164,10 +170,10 @@ class PrismWeaveBuildSystem {
 
     // Run tests to validate the AI processing setup
     try {
-      execSync('python -m pytest tests/ -v --tb=short', { 
-        cwd: componentPath, 
+      execSync('python -m pytest tests/ -v --tb=short', {
+        cwd: componentPath,
         stdio: 'inherit',
-        timeout: 30000 // 30 second timeout
+        timeout: 30000, // 30 second timeout
       });
       console.log('✅ AI processing validated');
     } catch (error) {
@@ -188,7 +194,9 @@ class PrismWeaveBuildSystem {
       const extDist = path.join(this.projectRoot, 'dist', 'browser-extension');
       const bmDist = path.join(this.projectRoot, 'dist', 'bookmarklet');
       if (!fs.existsSync(extDist) || !fs.existsSync(bmDist)) {
-        console.log('⚠️  Fast mode requested but required dist outputs missing; performing full build');
+        console.log(
+          '⚠️  Fast mode requested but required dist outputs missing; performing full build',
+        );
         await this.buildBrowserExtension();
         await this.buildBookmarklet();
       }
@@ -201,7 +209,7 @@ class PrismWeaveBuildSystem {
     const fast = options.fast;
     console.log(`🌐 Building web deployment${fast ? ' (fast mode: incremental copy)' : ''}...`);
     const buildStart = Date.now();
-    
+
     // Create web distribution directory
     const webDistPath = path.join(this.projectRoot, 'dist', 'web');
     this.ensureDirectory(webDistPath);
@@ -228,7 +236,7 @@ class PrismWeaveBuildSystem {
         for (const entry of entries) {
           const relPath = path.join(relative, entry.name);
           const absPath = path.join(currentSrc, entry.name);
-            if (filterFn && !filterFn(absPath, relPath, entry)) continue;
+          if (filterFn && !filterFn(absPath, relPath, entry)) continue;
           const destPath = path.join(destRoot, relPath);
           const key = absPath; // source path key
           if (entry.isDirectory()) {
@@ -244,7 +252,8 @@ class PrismWeaveBuildSystem {
                 fs.copyFileSync(absPath, destPath);
                 manifest.files[key] = { sig, dest: destPath };
                 manifest.destToSrc[destPath] = key;
-                copyStats.copied++; copyStats.bytesCopied += stats.size;
+                copyStats.copied++;
+                copyStats.bytesCopied += stats.size;
               } else {
                 copyStats.skipped++;
               }
@@ -289,7 +298,8 @@ class PrismWeaveBuildSystem {
             fs.copyFileSync(src, dest);
             manifest.files[src] = { sig, dest };
             manifest.destToSrc[dest] = src;
-            copyStats.copied++; copyStats.bytesCopied += stats.size;
+            copyStats.copied++;
+            copyStats.bytesCopied += stats.size;
           } else {
             copyStats.skipped++;
           }
@@ -319,7 +329,7 @@ class PrismWeaveBuildSystem {
       const bookmarkletSrc = path.join(bookmarkletDist, 'bookmarklet');
       if (fs.existsSync(bookmarkletSrc)) {
         incrementalCopy(bookmarkletSrc, path.join(webDistPath, 'bookmarklet'));
-        
+
         // Remove export statements from generator.js for browser compatibility
         const webGeneratorJs = path.join(webDistPath, 'bookmarklet', 'generator.js');
         if (fs.existsSync(webGeneratorJs)) {
@@ -328,28 +338,30 @@ class PrismWeaveBuildSystem {
           fs.writeFileSync(webGeneratorJs, content);
         }
       }
-      
+
       // Copy assets directory
       const assetsSrc = path.join(bookmarkletDist, 'assets');
       if (fs.existsSync(assetsSrc)) {
         incrementalCopy(assetsSrc, path.join(webDistPath, 'assets'));
       }
-      
+
       console.log('   ✅ Bookmarklet files copied with correct CSS paths');
     }
 
-  // Create web index page from template if available
-  await this.createWebIndexPage(webDistPath);
+    // Create web index page from template if available
+    await this.createWebIndexPage(webDistPath);
 
-  // Generate favicon.ico into web dist (from logo.png or logo.svg)
-  await this.createFavicon(webDistPath);
+    // Generate favicon.ico into web dist (from logo.png or logo.svg)
+    await this.createFavicon(webDistPath);
 
     // Create deployment manifest
     await this.createDeploymentManifest(webDistPath);
 
     // Remove orphaned dest files (only in fast mode to save time on full builds)
     if (fast) {
-      const allDestFiles = this.getDirectoryListing(webDistPath).map(f => path.join(webDistPath, f.path));
+      const allDestFiles = this.getDirectoryListing(webDistPath).map((f) =>
+        path.join(webDistPath, f.path),
+      );
       for (const destFile of allDestFiles) {
         const srcRef = manifest.destToSrc[destFile];
         if (srcRef && !fs.existsSync(srcRef)) {
@@ -378,7 +390,9 @@ class PrismWeaveBuildSystem {
     const duration = Date.now() - buildStart;
     console.log('✅ Web deployment built');
     console.log(`📁 Web files available at: ${webDistPath}`);
-    console.log(`📊 Web Build Summary: copied=${copyStats.copied} skipped=${copyStats.skipped} removed=${copyStats.removed} bytes=${copyStats.bytesCopied} duration=${duration}ms${fast ? ' (fast)' : ''}`);
+    console.log(
+      `📊 Web Build Summary: copied=${copyStats.copied} skipped=${copyStats.skipped} removed=${copyStats.removed} bytes=${copyStats.bytesCopied} duration=${duration}ms${fast ? ' (fast)' : ''}`,
+    );
   }
 
   async createWebIndexPage(webDistPath) {
@@ -390,12 +404,16 @@ class PrismWeaveBuildSystem {
       const ensureFavicons = (html) => {
         const needsIco = !/href=["']\.\/?favicon\.ico["']/i.test(html);
         const needsPng = !/href=["']\.\/?favicon\.png["']/i.test(html);
-        const needsSvg = !/type=["']image\/svg\+xml["'][^>]*href=["']\.\/?logo\.svg["']|href=["']\.\/?logo\.svg["'][^>]*type=["']image\/svg\+xml["']/i.test(html);
+        const needsSvg =
+          !/type=["']image\/svg\+xml["'][^>]*href=["']\.\/?logo\.svg["']|href=["']\.\/?logo\.svg["'][^>]*type=["']image\/svg\+xml["']/i.test(
+            html,
+          );
 
         if (!needsIco && !needsPng && !needsSvg) return html;
 
         const links = [];
-        if (needsIco) links.push('    <link rel="icon" href="./favicon.ico" type="image/x-icon" />');
+        if (needsIco)
+          links.push('    <link rel="icon" href="./favicon.ico" type="image/x-icon" />');
         if (needsPng) links.push('    <link rel="icon" href="./favicon.png" type="image/png" />');
         if (needsSvg) links.push('    <link rel="icon" href="./logo.svg" type="image/svg+xml" />');
 
@@ -412,7 +430,7 @@ class PrismWeaveBuildSystem {
       return;
     }
 
-  const indexHtml = `<!DOCTYPE html>
+    const indexHtml = `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -575,7 +593,9 @@ class PrismWeaveBuildSystem {
     try {
       sharp = require('sharp');
     } catch (e) {
-      console.warn('⚠️  sharp is not installed; skipping icon rasterization from SVG. Install with: npm i -D sharp');
+      console.warn(
+        '⚠️  sharp is not installed; skipping icon rasterization from SVG. Install with: npm i -D sharp',
+      );
       return;
     }
 
@@ -583,7 +603,9 @@ class PrismWeaveBuildSystem {
     const svgContent = fs.readFileSync(logoSvgPath, 'utf8');
 
     // Helper: extract the logo-mark symbol content from logo.svg
-    const markMatch = svgContent.match(/<symbol[^>]*id=["']logo-mark["'][^>]*>([\s\S]*?)<\/symbol>/i);
+    const markMatch = svgContent.match(
+      /<symbol[^>]*id=["']logo-mark["'][^>]*>([\s\S]*?)<\/symbol>/i,
+    );
     let markInner = null;
     if (markMatch) {
       markInner = markMatch[1];
@@ -736,10 +758,12 @@ class PrismWeaveBuildSystem {
       // For best quality, provide logo.png; otherwise we ship a tiny generic fallback.
       const fallbackIco = Buffer.from(
         '00000100010010100000010020006804000016000000280000001000000020000000010020000000000040040000000000000000000000000000000000000000',
-        'hex'
+        'hex',
       );
       fs.writeFileSync(icoPath, fallbackIco);
-      console.log('⚠️  Generated a minimal placeholder favicon (provide logo.png for better quality)');
+      console.log(
+        '⚠️  Generated a minimal placeholder favicon (provide logo.png for better quality)',
+      );
     } catch (e) {
       console.warn('⚠️  Favicon generation failed:', e.message);
     }
@@ -760,21 +784,21 @@ class PrismWeaveBuildSystem {
 
     fs.writeFileSync(
       path.join(webDistPath, 'deployment-manifest.json'),
-      JSON.stringify(manifest, null, 2)
+      JSON.stringify(manifest, null, 2),
     );
   }
 
   getDirectoryListing(dirPath) {
     const files = [];
-    
+
     function traverse(currentPath, relativePath = '') {
       const items = fs.readdirSync(currentPath);
-      
+
       for (const item of items) {
         const fullPath = path.join(currentPath, item);
         const relativeFilePath = path.join(relativePath, item);
         const stats = fs.statSync(fullPath);
-        
+
         if (stats.isDirectory()) {
           traverse(fullPath, relativeFilePath);
         } else {
@@ -786,17 +810,17 @@ class PrismWeaveBuildSystem {
         }
       }
     }
-    
+
     if (fs.existsSync(dirPath)) {
       traverse(dirPath);
     }
-    
+
     return files;
   }
 
   async clean() {
     console.log('🧹 Cleaning build artifacts...');
-    
+
     const cleanPaths = [
       'dist',
       'cli/dist',
@@ -823,13 +847,13 @@ class PrismWeaveBuildSystem {
 
   copyDirectory(src, dest) {
     this.ensureDirectory(dest);
-    
+
     const items = fs.readdirSync(src);
     for (const item of items) {
       const srcPath = path.join(src, item);
       const destPath = path.join(dest, item);
       const stats = fs.statSync(srcPath);
-      
+
       if (stats.isDirectory()) {
         this.copyDirectory(srcPath, destPath);
       } else {
@@ -842,16 +866,16 @@ class PrismWeaveBuildSystem {
 // Main execution
 async function main() {
   const args = process.argv.slice(2);
-  
+
   // Handle different call patterns:
   // node build.js -> build all
   // node build.js web -> build web
   // node build.js clean -> clean
   // node build.js build all -> build all
   // node build.js build browser-extension -> build browser-extension
-  
+
   let command, target;
-  
+
   if (args.length === 0) {
     command = 'build';
     target = 'all';

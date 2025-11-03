@@ -108,13 +108,11 @@ async function captureCommand(url: string | undefined, options: any) {
     const githubRepo = options.repo || config.get('githubRepo');
 
     if (!options.dryRun && (!githubToken || !githubRepo)) {
-      console.error(
-        chalk.red('Error: GitHub token and repository are required')
-      );
+      console.error(chalk.red('Error: GitHub token and repository are required'));
       console.log(
         chalk.yellow(
-          '\nSet them using:\n  prismweave config --set githubToken=<token>\n  prismweave config --set githubRepo=<owner/repo>'
-        )
+          '\nSet them using:\n  prismweave config --set githubToken=<token>\n  prismweave config --set githubRepo=<owner/repo>',
+        ),
       );
       process.exit(1);
     }
@@ -134,7 +132,7 @@ async function captureCommand(url: string | undefined, options: any) {
       const currentUrl = urls[i];
       const progress = chalk.gray(`[${i + 1}/${urls.length}]`);
       const displayUrl = truncateUrl(currentUrl);
-      
+
       spinner.start(`${progress} ${chalk.dim(displayUrl)}`);
 
       try {
@@ -147,21 +145,24 @@ async function captureCommand(url: string | undefined, options: any) {
 
         // Check for HTTP error status codes (4xx, 5xx)
         if (content.httpStatus && content.httpStatus >= 400) {
-          const statusMessage = content.httpStatus >= 500 
-            ? 'Server Error' 
-            : content.httpStatus === 404 
-              ? 'Not Found' 
-              : content.httpStatus === 403 
-                ? 'Forbidden' 
-                : 'Client Error';
-          
+          const statusMessage =
+            content.httpStatus >= 500
+              ? 'Server Error'
+              : content.httpStatus === 404
+                ? 'Not Found'
+                : content.httpStatus === 403
+                  ? 'Forbidden'
+                  : 'Client Error';
+
           spinner.fail(
-            chalk.red.bold(`${progress} ✗ HTTP ${content.httpStatus} - ${statusMessage}`) + '\n' +
-            chalk.red(`   Cannot save page with error status code`) + '\n' +
-            chalk.gray(`   URL: ${currentUrl}`)
+            chalk.red.bold(`${progress} ✗ HTTP ${content.httpStatus} - ${statusMessage}`) +
+              '\n' +
+              chalk.red(`   Cannot save page with error status code`) +
+              '\n' +
+              chalk.gray(`   URL: ${currentUrl}`),
           );
           failCount++;
-          
+
           // Add delay before next URL
           if (i < urls.length - 1) {
             await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -174,13 +175,21 @@ async function captureCommand(url: string | undefined, options: any) {
           if (options.dryRun) {
             const filePath = fileManager.generatePDFFilePath(content.title, content.url);
             spinner.succeed(
-              chalk.green.bold(`${progress} ✓ PDF Captured`) + '\n' +
-              chalk.white(`   ${chalk.bold('Title:')}   ${content.title}`) + '\n' +
-              chalk.blue(`   ${chalk.bold('URL:')}     ${currentUrl}`) + '\n' +
-              chalk.yellow(`   ${chalk.bold('Status:')}  ${content.httpStatus || 'N/A'}`) + '\n' +
-              chalk.white(`   ${chalk.bold('Type:')}    PDF Document`) + '\n' +
-              chalk.white(`   ${chalk.bold('Size:')}    ${content.metadata.fileSize ? formatFileSize(content.metadata.fileSize) : 'Unknown'}`) + '\n' +
-              chalk.gray(`   ${chalk.bold('Path:')}    ${filePath}`)
+              chalk.green.bold(`${progress} ✓ PDF Captured`) +
+                '\n' +
+                chalk.white(`   ${chalk.bold('Title:')}   ${content.title}`) +
+                '\n' +
+                chalk.blue(`   ${chalk.bold('URL:')}     ${currentUrl}`) +
+                '\n' +
+                chalk.yellow(`   ${chalk.bold('Status:')}  ${content.httpStatus || 'N/A'}`) +
+                '\n' +
+                chalk.white(`   ${chalk.bold('Type:')}    PDF Document`) +
+                '\n' +
+                chalk.white(
+                  `   ${chalk.bold('Size:')}    ${content.metadata.fileSize ? formatFileSize(content.metadata.fileSize) : 'Unknown'}`,
+                ) +
+                '\n' +
+                chalk.gray(`   ${chalk.bold('Path:')}    ${filePath}`),
             );
           } else {
             // Save PDF to GitHub
@@ -193,25 +202,35 @@ async function captureCommand(url: string | undefined, options: any) {
               content.pdfBase64,
               content.title,
               content.url,
-              githubSettings
+              githubSettings,
             );
 
             if (result.success) {
               spinner.succeed(
-                chalk.green.bold(`${progress} ✓ PDF Saved to GitHub`) + '\n' +
-                chalk.white(`   ${chalk.bold('Title:')}    ${content.title}`) + '\n' +
-                chalk.blue(`   ${chalk.bold('URL:')}      ${currentUrl}`) + '\n' +
-                chalk.yellow(`   ${chalk.bold('Status:')}   ${content.httpStatus || 'N/A'}`) + '\n' +
-                chalk.white(`   ${chalk.bold('Type:')}     PDF Document`) + '\n' +
-                chalk.white(`   ${chalk.bold('Size:')}     ${content.metadata.fileSize ? formatFileSize(content.metadata.fileSize) : 'Unknown'}`) + '\n' +
-                chalk.cyan(`   ${chalk.bold('Saved:')}    ${result.filePath}`) + '\n' +
-                chalk.gray(`   ${chalk.bold('GitHub:')}   ${result.url || 'N/A'}`)
+                chalk.green.bold(`${progress} ✓ PDF Saved to GitHub`) +
+                  '\n' +
+                  chalk.white(`   ${chalk.bold('Title:')}    ${content.title}`) +
+                  '\n' +
+                  chalk.blue(`   ${chalk.bold('URL:')}      ${currentUrl}`) +
+                  '\n' +
+                  chalk.yellow(`   ${chalk.bold('Status:')}   ${content.httpStatus || 'N/A'}`) +
+                  '\n' +
+                  chalk.white(`   ${chalk.bold('Type:')}     PDF Document`) +
+                  '\n' +
+                  chalk.white(
+                    `   ${chalk.bold('Size:')}     ${content.metadata.fileSize ? formatFileSize(content.metadata.fileSize) : 'Unknown'}`,
+                  ) +
+                  '\n' +
+                  chalk.cyan(`   ${chalk.bold('Saved:')}    ${result.filePath}`) +
+                  '\n' +
+                  chalk.gray(`   ${chalk.bold('GitHub:')}   ${result.url || 'N/A'}`),
               );
               successCount++;
             } else {
               spinner.fail(
-                chalk.red.bold(`${progress} ✗ Failed`) + '\n' +
-                chalk.red(`   Error: ${result.error}`)
+                chalk.red.bold(`${progress} ✗ Failed`) +
+                  '\n' +
+                  chalk.red(`   Error: ${result.error}`),
               );
               failCount++;
             }
@@ -233,12 +252,19 @@ async function captureCommand(url: string | undefined, options: any) {
         if (options.dryRun) {
           const filePath = fileManager.generateFilePath(metadata);
           spinner.succeed(
-            chalk.green.bold(`${progress} ✓ Web Page Captured`) + '\n' +
-            chalk.white(`   ${chalk.bold('Title:')}    ${content.title}`) + '\n' +
-            chalk.blue(`   ${chalk.bold('URL:')}      ${currentUrl}`) + '\n' +
-            chalk.yellow(`   ${chalk.bold('Status:')}   ${content.httpStatus || 'N/A'}`) + '\n' +
-            chalk.white(`   ${chalk.bold('Words:')}    ${content.stats.wordCount.toLocaleString()}`) + '\n' +
-            chalk.gray(`   ${chalk.bold('Path:')}     ${filePath}`)
+            chalk.green.bold(`${progress} ✓ Web Page Captured`) +
+              '\n' +
+              chalk.white(`   ${chalk.bold('Title:')}    ${content.title}`) +
+              '\n' +
+              chalk.blue(`   ${chalk.bold('URL:')}      ${currentUrl}`) +
+              '\n' +
+              chalk.yellow(`   ${chalk.bold('Status:')}   ${content.httpStatus || 'N/A'}`) +
+              '\n' +
+              chalk.white(
+                `   ${chalk.bold('Words:')}    ${content.stats.wordCount.toLocaleString()}`,
+              ) +
+              '\n' +
+              chalk.gray(`   ${chalk.bold('Path:')}     ${filePath}`),
           );
         } else {
           // Save to GitHub
@@ -247,36 +273,43 @@ async function captureCommand(url: string | undefined, options: any) {
             repository: githubRepo,
           };
 
-          const result = await fileManager.saveToGitHub(
-            content.markdown,
-            metadata,
-            githubSettings
-          );
+          const result = await fileManager.saveToGitHub(content.markdown, metadata, githubSettings);
 
           if (result.success) {
             spinner.succeed(
-              chalk.green.bold(`${progress} ✓ Web Page Saved to GitHub`) + '\n' +
-              chalk.white(`   ${chalk.bold('Title:')}    ${content.title}`) + '\n' +
-              chalk.blue(`   ${chalk.bold('URL:')}      ${currentUrl}`) + '\n' +
-              chalk.yellow(`   ${chalk.bold('Status:')}   ${content.httpStatus || 'N/A'}`) + '\n' +
-              chalk.white(`   ${chalk.bold('Words:')}    ${content.stats.wordCount.toLocaleString()}`) + '\n' +
-              chalk.cyan(`   ${chalk.bold('Saved:')}    ${result.filePath}`) + '\n' +
-              chalk.gray(`   ${chalk.bold('GitHub:')}   ${result.url || 'N/A'}`)
+              chalk.green.bold(`${progress} ✓ Web Page Saved to GitHub`) +
+                '\n' +
+                chalk.white(`   ${chalk.bold('Title:')}    ${content.title}`) +
+                '\n' +
+                chalk.blue(`   ${chalk.bold('URL:')}      ${currentUrl}`) +
+                '\n' +
+                chalk.yellow(`   ${chalk.bold('Status:')}   ${content.httpStatus || 'N/A'}`) +
+                '\n' +
+                chalk.white(
+                  `   ${chalk.bold('Words:')}    ${content.stats.wordCount.toLocaleString()}`,
+                ) +
+                '\n' +
+                chalk.cyan(`   ${chalk.bold('Saved:')}    ${result.filePath}`) +
+                '\n' +
+                chalk.gray(`   ${chalk.bold('GitHub:')}   ${result.url || 'N/A'}`),
             );
             successCount++;
           } else {
             spinner.fail(
-              chalk.red.bold(`${progress} ✗ Failed`) + '\n' +
-              chalk.red(`   Error: ${result.error}`)
+              chalk.red.bold(`${progress} ✗ Failed`) +
+                '\n' +
+                chalk.red(`   Error: ${result.error}`),
             );
             failCount++;
           }
         }
       } catch (error) {
         spinner.fail(
-          chalk.red.bold(`${progress} ✗ Capture Failed`) + '\n' +
-          chalk.red(`   ${(error as Error).message}`) + '\n' +
-          chalk.gray(`   URL: ${currentUrl}`)
+          chalk.red.bold(`${progress} ✗ Capture Failed`) +
+            '\n' +
+            chalk.red(`   ${(error as Error).message}`) +
+            '\n' +
+            chalk.gray(`   URL: ${currentUrl}`),
         );
         failCount++;
       }
@@ -348,9 +381,7 @@ async function configCommand(options: any) {
     const repo = config.get('githubRepo');
 
     if (!token || !repo) {
-      spinner.fail(
-        chalk.red('GitHub token and repository must be configured')
-      );
+      spinner.fail(chalk.red('GitHub token and repository must be configured'));
       process.exit(1);
     }
 
@@ -362,11 +393,7 @@ async function configCommand(options: any) {
         spinner.succeed(chalk.green('✓ GitHub connection successful'));
         if (result.details) {
           console.log(chalk.cyan(`  Repository: ${result.details.name}`));
-          console.log(
-            chalk.cyan(
-              `  Private: ${result.details.private ? 'Yes' : 'No'}`
-            )
-          );
+          console.log(chalk.cyan(`  Private: ${result.details.private ? 'Yes' : 'No'}`));
         }
       } else {
         spinner.fail(chalk.red(`✗ Connection failed: ${result.error}`));
