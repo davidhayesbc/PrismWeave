@@ -54,9 +54,10 @@
 }
 
 .pw-container.pw-theme-dark {
-  background: var(--pw-dark-bg);
-  border-color: var(--pw-dark-border);
-  color: var(--pw-dark-text);
+  /* Map legacy dark tokens to canonical theme tokens */
+  background: var(--pw-bg-primary);
+  border-color: var(--pw-border-color);
+  color: var(--pw-text-primary);
 }
 
 /* Positioning classes */

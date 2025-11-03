@@ -33,10 +33,6 @@
     />
     <link
       rel="stylesheet"
-      href="../assets/styles/shared-ui.css"
-    />
-    <link
-      rel="stylesheet"
       href="../assets/styles/bookmarklet-generator.css"
     />
   </head>
@@ -44,11 +40,13 @@
     <div class="page page--narrow">
       <header class="site-header">
         <div class="brand">
-          <img src="../assets/logo.svg" alt="PrismWeave logo" class="brand__icon" />
-          <div class="brand__meta">
-            <h1>PrismWeave</h1>
-            <p>Bookmarklet Generator</p>
-          </div>
+          <a href="../index.html" aria-label="Go to PrismWeave home" style="display:flex;align-items:center;gap:16px;text-decoration:none;color:inherit;">
+            <img src="../assets/logo.svg" alt="PrismWeave logo" class="brand__icon" />
+            <div class="brand__meta">
+              <h1>PrismWeave</h1>
+              <p>Bookmarklet Generator</p>
+            </div>
+          </a>
         </div>
         <button class="pw-theme-toggle" type="button" data-theme-toggle>
           <span class="pw-theme-toggle__icon pw-theme-toggle__icon--sun" aria-hidden="true">☀️</span>
@@ -227,7 +225,9 @@
 
       <footer class="site-footer site-footer--compact">
         <small>Bookmarklets run locally in your browser &mdash; PrismWeave v{{VERSION}}</small>
-        <img src="../assets/logo.svg" alt="PrismWeave emblem" class="site-footer__icon" />
+        <a href="../index.html" aria-label="Go to PrismWeave home" style="display:inline-block;">
+          <img src="../assets/logo.svg" alt="PrismWeave emblem" class="site-footer__icon" />
+        </a>
       </footer>
     </div>
 

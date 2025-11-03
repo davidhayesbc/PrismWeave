@@ -56,6 +56,43 @@
   --pw-warning-color: #f59e0b;
   --pw-error-color: #ef4444;
 
+  /* Status palettes (success/warning/error) */
+  /* Success (green) */
+  --pw-success-50: #f0fdf4;
+  --pw-success-100: #dcfce7;
+  --pw-success-200: #bbf7d0;
+  --pw-success-300: #86efac;
+  --pw-success-400: #4ade80;
+  --pw-success-500: #22c55e; /* aligns with --pw-positive-color */
+  --pw-success-600: #16a34a;
+  --pw-success-700: #15803d;
+  --pw-success-800: #166534;
+  --pw-success-900: #14532d;
+
+  /* Warning (amber) */
+  --pw-warning-50: #fffbeb;
+  --pw-warning-100: #fef3c7;
+  --pw-warning-200: #fde68a;
+  --pw-warning-300: #fcd34d;
+  --pw-warning-400: #fbbf24;
+  --pw-warning-500: #f59e0b; /* aligns with --pw-warning-color */
+  --pw-warning-600: #d97706;
+  --pw-warning-700: #b45309;
+  --pw-warning-800: #92400e;
+  --pw-warning-900: #78350f;
+
+  /* Error (red) */
+  --pw-error-50: #fef2f2;
+  --pw-error-100: #fee2e2;
+  --pw-error-200: #fecaca;
+  --pw-error-300: #fca5a5;
+  --pw-error-400: #f87171;
+  --pw-error-500: #ef4444; /* aligns with --pw-error-color */
+  --pw-error-600: #dc2626;
+  --pw-error-700: #b91c1c;
+  --pw-error-800: #991b1b;
+  --pw-error-900: #7f1d1d;
+
   /* Gradients */
   --pw-gradient-primary: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
   --pw-gradient-secondary: linear-gradient(135deg, rgba(255, 255, 255, 0.94) 0%, rgba(241, 245, 249, 0.86) 100%);
