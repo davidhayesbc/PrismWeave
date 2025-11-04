@@ -1,8 +1,5 @@
 // Jest configuration for PrismWeave Browser Extension
 module.exports = {
-  // Use ts-jest preset for TypeScript support
-  preset: 'ts-jest',
-
   // Test environment setup
   testEnvironment: 'jsdom',
 
@@ -13,19 +10,17 @@ module.exports = {
   testMatch: ['<rootDir>/src/**/__tests__/**/*.test.{js,ts}', '<rootDir>/tests/**/*.test.{js,ts}'],
   // Transform configuration for TypeScript and JavaScript
   transform: {
-    '^.+\\.ts$': [
+    '^.+\\.tsx?$': [
       'ts-jest',
       {
         tsconfig: 'tsconfig.test.json',
-      },
-    ],
-    '^.+\\.js$': [
-      'babel-jest',
-      {
-        presets: [['@babel/preset-env', { targets: { node: 'current' } }]],
+        isolatedModules: true,
       },
     ],
   },
+
+  // Transform ignore patterns
+  transformIgnorePatterns: ['node_modules/(?!(turndown)/)'],
 
   // Module file extensions
   moduleFileExtensions: ['ts', 'js', 'json'],

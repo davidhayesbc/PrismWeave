@@ -120,6 +120,8 @@
   // Jest Test Explorer Configuration
   "jest.disabledWorkspaceFolders": [],
   "jest.enable": true,
+  "jest.rootPath": "browser-extension",
+  "jest.jestCommandLine": "npm test --",
   "jest.outputConfig": {
     "revealOn": "run",
     "revealWithFocus": false,
