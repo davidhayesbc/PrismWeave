@@ -15,8 +15,8 @@ Canonical source of design tokens and shared UI styles used across:
 
 Prefer linking directly to the files in this directory to avoid duplication:
 
-- From the website CSS (proxy example already wired): `website/assets/styles/shared-ui.css` imports `../../../shared-styles/shared-ui.css`.
-- From the browser extension styles: import via relative path up to this folder (see `browser-extension/src/styles/extension-base.css`).
+- From the website CSS: `website/assets/styles.css` imports `../../shared-styles/shared-ui.css`.
+- From the browser extension: `browser-extension/src/styles/extension-base.css` and `browser-extension/src/options/options.css` import directly via `../../../shared-styles/shared-ui.css`.
 
 If you previously duplicated these files elsewhere, please remove the copies and import from here instead.
 
