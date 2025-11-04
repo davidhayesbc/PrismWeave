@@ -1,8 +1,8 @@
 {
   "github.copilot.enable": {
-    "*": true  
+    "*": true
   },
-  "github.copilot.chat.codeGeneration.useInstructionFiles": true,  
+  "github.copilot.chat.codeGeneration.useInstructionFiles": true,
   "github.copilot.chat.testGeneration.instructions": [
     {
       "file": ".github/instructions/copilot-instructions-testing.md"
@@ -28,7 +28,7 @@
       "file": ".github/instructions/copilot-instructions-ai-processing.md"
     }
   ],
-  
+
   // Formatting and Code Quality Settings
   "editor.formatOnSave": true,
   "editor.formatOnPaste": true,
@@ -37,12 +37,12 @@
     "source.fixAll.eslint": "explicit",
     "source.organizeImports": "explicit"
   },
-  
+
   // Default formatter settings
   "editor.defaultFormatter": "esbenp.prettier-vscode",
   "typescript.format.enable": false,
   "javascript.format.enable": false,
-  
+
   // File-specific formatter settings
   "[typescript]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode",
@@ -77,47 +77,37 @@
     "editor.formatOnSave": true,
     "editor.wordWrap": "on"
   },
-  
+
   // Browser extension specific settings
   "typescript.preferences.importModuleSpecifier": "relative",
   "typescript.suggest.autoImports": true,
   "typescript.updateImportsOnFileMove.enabled": "always",
-  
+
   // File associations
   "files.associations": {
     "*.json": "jsonc"
   },
-  
+
   // Prettier integration
   "prettier.requireConfig": true,
   "prettier.useEditorConfig": false,
-  
+
   // ESLint integration
   "eslint.workingDirectories": ["browser-extension"],
-  "eslint.validate": [
-    "javascript",
-    "typescript"
-  ],
-  
+  "eslint.validate": ["javascript", "typescript"],
+
   // Python settings for ai-processing module
-  "python.analysis.extraPaths": [
-    "./ai-processing/src"
-  ],
-  "python.defaultInterpreterPath": "./ai-processing/.venv/Scripts/python.exe",
-  "python.pythonPath": "./ai-processing/.venv/Scripts/python.exe",
+  "python.analysis.extraPaths": ["./ai-processing/src"],
+  "python.defaultInterpreterPath": "${workspaceFolder}/ai-processing/.venv/bin/python",
   "python.terminal.activateEnvironment": true,
   "python.testing.pytestEnabled": true,
   "python.testing.unittestEnabled": false,
-  "python.testing.pytestArgs": [
-    "ai-processing/tests",
-    "-v",
-    "--tb=short"
-  ],
-  "python.testing.cwd": "./ai-processing",
+  "python.testing.pytestArgs": ["tests", "-v", "--tb=short"],
+  "python.testing.cwd": "${workspaceFolder}/ai-processing",
   "python.testing.autoTestDiscoverOnSaveEnabled": true,
   "python.analysis.autoImportCompletions": true,
   "python.analysis.typeCheckingMode": "basic",
-  
+
   // Python file formatting
   "[python]": {
     "editor.defaultFormatter": "ms-python.python",
@@ -126,7 +116,7 @@
       "source.organizeImports": "explicit"
     }
   },
-  
+
   // Jest Test Explorer Configuration
   "jest.disabledWorkspaceFolders": [],
   "jest.enable": true,
@@ -135,10 +125,11 @@
     "revealWithFocus": false,
     "clearOnRun": "terminal"
   },
-  
+
   // Testing API configuration for built-in test explorer
   "testing.automaticallyOpenPeekView": "failureInVisibleDocument",
   "testing.followRunningTest": true,
   "testing.openTesting": "neverOpen",
-  "testing.automaticallyOpenTestResults": "neverOpen"
+  "testing.automaticallyOpenTestResults": "neverOpen",
+  "python-envs.pythonProjects": []
 }
