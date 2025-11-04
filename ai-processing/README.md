@@ -244,6 +244,7 @@ python cli.py stats --detailed
 ```
 
 Shows:
+
 - Total chunks and source files
 - Average chunks per file
 - File type distribution
@@ -271,6 +272,7 @@ python cli.py export markdown_docs.json --filter-type md --max 100
 ### Progress Reporting
 
 Automatic rich progress bars for batch operations (>5 files):
+
 - Real-time progress visualization
 - Current file indicator
 - Time elapsed and ETA

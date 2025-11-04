@@ -66,12 +66,14 @@ Implement Phase 3 Enhanced Features: Semantic Search, Statistics, Export, and Pr
 ### Files Changed
 
 **New Files:**
+
 - tests/test_cli_enhancements.py
 - examples/PHASE3_USAGE.md
 - examples/QUICK_REFERENCE.md
 - PHASE3_COMPLETE.md
 
 **Modified Files:**
+
 - cli.py (added search, stats, export commands + progress bars)
 - pyproject.toml (added rich dependency)
 - src/core/embedding_store.py (added search_similar_with_scores)
@@ -93,6 +95,7 @@ None - All changes are additive and backward compatible
 ### Migration Notes
 
 Users should install the rich library for enhanced UI:
+
 ```bash
 uv sync  # Automatically installs rich
 # or
@@ -104,6 +107,7 @@ Commands work without rich (fallback to simple output)
 ### Next Steps
 
 Phase 3 complete! Ready for Phase 4: Integration
+
 - VS Code extension API
 - Browser extension processing pipeline
 - Optional FastAPI server

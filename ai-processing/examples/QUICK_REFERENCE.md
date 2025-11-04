@@ -7,17 +7,20 @@
 ## 🔍 Search Command
 
 **Basic Usage:**
+
 ```bash
 uv run python cli.py search "QUERY"
 ```
 
 **Options:**
+
 - `-m, --max INTEGER` - Max results (default: 10)
 - `-t, --threshold FLOAT` - Similarity threshold (0.0-1.0)
 - `-v, --verbose` - Show full content
 - `--filter-type TEXT` - Filter by file type (md, txt, pdf)
 
 **Examples:**
+
 ```bash
 # Basic search
 uv run python cli.py search "machine learning"
@@ -40,14 +43,17 @@ uv run python cli.py search "neural networks" --threshold 0.8
 ## 📊 Stats Command
 
 **Basic Usage:**
+
 ```bash
 uv run python cli.py stats
 ```
 
 **Options:**
+
 - `-d, --detailed` - Show detailed analytics
 
 **Examples:**
+
 ```bash
 # Quick overview
 uv run python cli.py stats
@@ -57,6 +63,7 @@ uv run python cli.py stats --detailed
 ```
 
 **Shows:**
+
 - Total chunks and files
 - Average chunks per file
 - File type distribution (detailed mode)
@@ -68,17 +75,20 @@ uv run python cli.py stats --detailed
 ## 💾 Export Command
 
 **Basic Usage:**
+
 ```bash
 uv run python cli.py export OUTPUT_FILE
 ```
 
 **Options:**
+
 - `-f, --format [json|csv]` - Export format (default: json)
 - `--filter-type TEXT` - Filter by file type
 - `--include-content` - Include full content (JSON only)
 - `-m, --max INTEGER` - Max documents to export
 
 **Examples:**
+
 ```bash
 # Basic JSON export
 uv run python cli.py export documents.json
@@ -104,12 +114,14 @@ uv run python cli.py export subset.json --filter-type md --max 50
 ## 📈 Progress Reporting
 
 **Automatic for large batches (>5 files):**
+
 - Shows current file
 - Progress bar
 - Time remaining
 - Processing statistics
 
 **Summary after completion:**
+
 - Successful files
 - Failed files
 - Time elapsed
@@ -120,6 +132,7 @@ uv run python cli.py export subset.json --filter-type md --max 50
 ## 🎨 Visual Enhancements
 
 All commands use Rich library for:
+
 - ✅ Color-coded output
 - 📊 Formatted tables
 - 📦 Organized panels
@@ -152,18 +165,21 @@ uv run python cli.py stats --detailed
 ## 💡 Pro Tips
 
 ### Search
+
 - Use specific queries for better results
 - Apply filters to narrow down results
 - Adjust threshold for precision vs. recall
 - Use verbose mode for detailed content
 
 ### Stats
+
 - Use basic stats for quick checks
 - Use detailed stats for deep analysis
 - Run periodically to track collection growth
 - Export stats to file for historical tracking
 
 ### Export
+
 - Use JSON for full featured exports
 - Use CSV for spreadsheet analysis
 - Filter by type to focus exports
@@ -175,18 +191,21 @@ uv run python cli.py stats --detailed
 ## 🆘 Quick Troubleshooting
 
 **No search results?**
+
 ```bash
 uv run python cli.py count  # Check collection
 uv run python cli.py search "query" --threshold 0.0  # Lower threshold
 ```
 
 **Export empty?**
+
 ```bash
 uv run python cli.py list --max 10  # Verify documents
 uv run python cli.py export test.json --max 5  # Try small export
 ```
 
 **No progress bars?**
+
 ```bash
 uv add rich  # Install Rich library
 uv run python cli.py process ../many_docs  # Process >5 files

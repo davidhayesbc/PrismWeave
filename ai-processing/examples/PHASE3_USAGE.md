@@ -32,6 +32,7 @@ uv run python cli.py search "Python programming" --max 20
 ```
 
 **Example Output:**
+
 ```
 ╭─ Result 1: neural_networks.md ─────────────────────────────────╮
 │ 📁 File: neural_networks.md                                    │
@@ -71,6 +72,7 @@ uv run python cli.py search "database design" --verbose
 ```
 
 **Verbose Output Features:**
+
 - Full content display (up to 500 characters)
 - All metadata fields
 - Chunk information
@@ -133,6 +135,7 @@ uv run python cli.py stats
 ```
 
 **Example Output:**
+
 ```
 ╭─────────── Collection Overview ───────────╮
 │ Metric              │ Value              │
@@ -157,6 +160,7 @@ uv run python cli.py stats --detailed
 **Detailed Output Includes:**
 
 1. **File Type Distribution**
+
    ```
    ╭────── File Type Distribution ──────╮
    │ Extension │ Count │ Percentage    │
@@ -236,6 +240,7 @@ uv run python cli.py export full_backup.json --include-content
 ```
 
 **JSON Structure:**
+
 ```json
 {
   "export_date": "2025-11-03T16:45:30.123456",
@@ -265,6 +270,7 @@ uv run python cli.py export documents.csv --format csv
 ```
 
 **CSV Columns:**
+
 - id
 - source_file
 - chunk_index
@@ -346,12 +352,14 @@ uv run python cli.py export tag_analysis.json
 When processing more than 5 files, the CLI automatically shows rich progress bars:
 
 **Progress Bar Features:**
+
 ```
 Processing documents...
 ⠋ Processing: document_45.md ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 45/100 45% 0:00:25
 ```
 
 **Information Displayed:**
+
 - Spinner animation
 - Current file being processed
 - Progress bar
@@ -441,6 +449,7 @@ uv run python cli.py export backup_$(date +%Y%m%d).json --include-content
 **Problem**: Search query returns empty results
 
 **Solutions**:
+
 ```bash
 # 1. Check collection has documents
 uv run python cli.py count
@@ -460,6 +469,7 @@ curl http://localhost:11434/api/tags
 **Problem**: Export command fails or creates empty file
 
 **Solutions**:
+
 ```bash
 # 1. Check collection has documents
 uv run python cli.py count
@@ -482,6 +492,7 @@ uv run python cli.py export /tmp/export.json
 **Cause**: Processing fewer than 6 files or Rich not installed
 
 **Solutions**:
+
 ```bash
 # Install Rich
 uv add rich
@@ -498,6 +509,7 @@ uv run python cli.py process ../large_docs
 **Problem**: Statistics don't match expectations
 
 **Solutions**:
+
 ```bash
 # 1. List documents to verify contents
 uv run python cli.py list --max 50
