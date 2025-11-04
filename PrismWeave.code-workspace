@@ -12,30 +12,13 @@
 			"*": true
 		},
 		"github.copilot.chat.codeGeneration.useInstructionFiles": true,
-		"github.copilot.chat.testGeneration.instructions": [
-			{
-				"file": ".github/instructions/copilot-instructions-testing.md"
-			}
-		],
-		"github.copilot.chat.codeGeneration.instructions": [
-			{
-				"file": ".github/copilot-instructions.md"
-			},
-			{
-				"file": ".github/instructions/copilot-instructions-browser-extension.md"
-			},
-			{
-				"file": ".github/instructions/copilot-instructions-service-worker.md"
-			},
-			{
-				"file": ".github/instructions/copilot-instructions-content-script.md"
-			},
-			{
-				"file": ".github/instructions/copilot-instructions-typescript.md"
-			},
-			{
-				"file": "ai-processing/copilot-instructions.md"
-			}
+		"github.copilot.chat.codeGeneration.instructionsFiles": [
+			".github/copilot-instructions.md",
+			".github/instructions/copilot-instructions-browser-extension.md",
+			".github/instructions/copilot-instructions-service-worker.md",
+			".github/instructions/copilot-instructions-content-script.md",
+			".github/instructions/copilot-instructions-typescript.md",
+			"ai-processing/copilot-instructions.md"
 		],
 		"typescript.format.enable": false,
 		"javascript.format.enable": false,

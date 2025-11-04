@@ -124,6 +124,26 @@ class EmbeddingStore:
             print(f"Search failed: {e}")
             return []
     
+    def search_similar_with_scores(self, query: str, k: int = 5) -> List[tuple[Document, float]]:
+        """
+        Search for similar documents with relevance scores
+        
+        Args:
+            query: Search query
+            k: Number of results to return
+            
+        Returns:
+            List of tuples (Document, score) where higher score means more similar
+        """
+        
+        try:
+            results = self.vector_store.similarity_search_with_score(query, k=k)
+            return results
+            
+        except Exception as e:
+            print(f"Search with scores failed: {e}")
+            return []
+    
     def verify_embeddings(self) -> Dict[str, Any]:
         """
         Verify that embeddings are stored correctly

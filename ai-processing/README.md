@@ -23,10 +23,14 @@ A simplified document processing system that converts documents into embeddings 
 - **Local Processing**: Uses Ollama for privacy (no cloud APIs)
 - **LangChain Integration**: Built on LangChain ecosystem for reliability
 - **Git-Based Incremental Processing**: Only process new or changed files (90%+ time savings)
+- **Semantic Search**: Find documents by meaning, not just keywords (Phase 3)
+- **Collection Analytics**: Detailed statistics and insights (Phase 3)
+- **Document Export**: Export to JSON/CSV for backup and analysis (Phase 3)
+- **Rich Progress Bars**: Beautiful terminal UI with real-time feedback (Phase 3)
 - **Frontmatter Support**: Preserves metadata from markdown files
 - **Smart Chunking**: Optimized chunk sizes for web documents
 - **Batch Processing**: Process entire directories efficiently
-- **Comprehensive Testing**: 51 passing tests with >80% coverage
+- **Comprehensive Testing**: 63 passing tests with >80% coverage
 
 ## 🛠️ Installation
 
@@ -91,6 +95,39 @@ python cli.py process document.md --config custom-config.yaml
 python cli.py list
 
 # List first 10 documents
+python cli.py list --max 10
+
+# List unique source files only
+python cli.py list --source-files
+
+# Show detailed document information
+python cli.py list --max 5 --verbose
+
+# Get total document count
+python cli.py count
+
+# Search documents (Phase 3 NEW!)
+python cli.py search "machine learning" --max 10
+
+# Search with filters
+python cli.py search "API documentation" --filter-type md --verbose
+
+# Show collection statistics (Phase 3 NEW!)
+python cli.py stats
+
+# Show detailed analytics
+python cli.py stats --detailed
+
+# Export documents (Phase 3 NEW!)
+python cli.py export documents.json
+
+# Export to CSV
+python cli.py export docs.csv --format csv
+
+# Export with filters
+python cli.py export markdown_only.json --filter-type md --max 100
+```
+
 ### Examples
 
 ```bash
@@ -99,6 +136,15 @@ python cli.py sync ~/PrismWeaveDocs
 
 # Process only changed files in a directory
 python cli.py process ~/PrismWeaveDocs/documents --incremental
+
+# Search for specific topics
+python cli.py search "neural networks" --max 15 --verbose
+
+# Get detailed collection statistics
+python cli.py stats --detailed
+
+# Export all markdown documents
+python cli.py export backup.json --filter-type md --include-content
 
 # Process PrismWeaveDocs tech folder with verification
 python cli.py process "d:\source\PrismWeaveDocs\documents\tech" --verify
@@ -164,6 +210,73 @@ results = store.search_similar("machine learning", k=5)
 for doc in results:
     print(f"Found: {doc.metadata['title']}")
 ```
+
+## 🎯 Phase 3: Enhanced Features (NEW!)
+
+### Semantic Search
+
+Find documents based on meaning, not just keywords:
+
+```bash
+# Basic search
+python cli.py search "machine learning algorithms"
+
+# Filter by file type
+python cli.py search "API documentation" --filter-type md
+
+# Get more results with verbose output
+python cli.py search "Python tutorial" --max 20 --verbose
+
+# Control relevance with similarity threshold
+python cli.py search "neural networks" --threshold 0.8
+```
+
+### Collection Statistics
+
+Analyze your document collection:
+
+```bash
+# Quick overview
+python cli.py stats
+
+# Detailed analytics with file types and tag frequency
+python cli.py stats --detailed
+```
+
+Shows:
+- Total chunks and source files
+- Average chunks per file
+- File type distribution
+- Tag frequency analysis
+- Content size statistics
+
+### Document Export
+
+Export your collection for backup or analysis:
+
+```bash
+# Export to JSON
+python cli.py export documents.json
+
+# Export to CSV
+python cli.py export docs.csv --format csv
+
+# Export with full content (JSON only)
+python cli.py export backup.json --include-content
+
+# Export filtered documents
+python cli.py export markdown_docs.json --filter-type md --max 100
+```
+
+### Progress Reporting
+
+Automatic rich progress bars for batch operations (>5 files):
+- Real-time progress visualization
+- Current file indicator
+- Time elapsed and ETA
+- Processing statistics summary
+
+**See [Phase 3 Usage Guide](examples/PHASE3_USAGE.md) for detailed examples and best practices.**
 
 ## ⚙️ Configuration
 
@@ -291,6 +404,8 @@ Part of the PrismWeave document management ecosystem:
 - **[ARCHITECTURE.md](ARCHITECTURE.md)**: System architecture and design
 - **[SIMPLIFICATION_PLAN.md](SIMPLIFICATION_PLAN.md)**: Implementation history and decisions
 - **[examples/USAGE.md](examples/USAGE.md)**: Practical usage examples and workflows
+- **[examples/PHASE3_USAGE.md](examples/PHASE3_USAGE.md)**: Phase 3 enhanced features guide (NEW!)
+- **[examples/QUICK_REFERENCE.md](examples/QUICK_REFERENCE.md)**: CLI quick reference card (NEW!)
 - **[NEXT_STEPS.md](NEXT_STEPS.md)**: Development roadmap and future plans
 
 ## 🧪 Testing

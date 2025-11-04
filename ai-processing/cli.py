@@ -11,9 +11,24 @@ import click
 from pathlib import Path
 from typing import Optional, List
 import json
+from datetime import datetime
+import time
 
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent / 'src'))
+
+# Try to import rich for progress bars, fall back to basic output
+try:
+    from rich.console import Console
+    from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn, TimeRemainingColumn
+    from rich.table import Table
+    from rich.panel import Panel
+    RICH_AVAILABLE = True
+except ImportError:
+    RICH_AVAILABLE = False
+    
+if RICH_AVAILABLE:
+    console = Console()
 
 from src.core.config import Config
 from src.core.document_processor import DocumentProcessor
@@ -105,7 +120,7 @@ def process_single_file(file_path: Path, config: Config, git_tracker: Optional[G
 
 
 def process_directory(input_dir: Path, config: Config, git_tracker: Optional[GitTracker] = None, verbose: bool = False, incremental: bool = False, force: bool = False):
-    """Process all supported files in a directory"""
+    """Process all supported files in a directory with enhanced progress reporting"""
     
     # Supported file extensions
     supported_extensions = {'.md', '.txt', '.pdf', '.docx', '.html', '.htm'}
@@ -138,29 +153,82 @@ def process_directory(input_dir: Path, config: Config, git_tracker: Optional[Git
     if verbose:
         print()
     
-    # Process files
+    # Process files with progress bar if rich is available
     success_count = 0
     error_count = 0
     skipped_count = 0
+    start_time = time.time()
     
-    for file_path in files_to_process:
-        try:
-            if process_single_file(file_path, config, git_tracker, verbose=False, force=force):
-                success_count += 1
-            else:
+    if RICH_AVAILABLE and len(files_to_process) > 5:
+        # Use rich progress bar for large batches
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            BarColumn(),
+            TaskProgressColumn(),
+            TimeRemainingColumn(),
+            console=console
+        ) as progress:
+            task = progress.add_task("[cyan]Processing documents...", total=len(files_to_process))
+            
+            for file_path in files_to_process:
+                progress.update(task, description=f"[cyan]Processing: {file_path.name}")
+                try:
+                    if process_single_file(file_path, config, git_tracker, verbose=False, force=force):
+                        success_count += 1
+                    else:
+                        error_count += 1
+                except KeyboardInterrupt:
+                    console.print("\n[yellow]⏹️  Processing interrupted by user[/yellow]")
+                    break
+                except Exception as e:
+                    console.print(f"[red]❌ Error processing {file_path.name}: {e}[/red]")
+                    error_count += 1
+                finally:
+                    progress.update(task, advance=1)
+    else:
+        # Fallback to simple output
+        for i, file_path in enumerate(files_to_process, 1):
+            print(f"[{i}/{len(files_to_process)}] Processing: {file_path.name}")
+            try:
+                if process_single_file(file_path, config, git_tracker, verbose=False, force=force):
+                    success_count += 1
+                else:
+                    error_count += 1
+            except KeyboardInterrupt:
+                print("\n⏹️  Processing interrupted by user")
+                break
+            except Exception as e:
+                print(f"❌ Error processing {file_path.name}: {e}")
                 error_count += 1
-        except KeyboardInterrupt:
-            print("\n⏹️  Processing interrupted by user")
-            break
-        except Exception as e:
-            print(f"❌ Error processing {file_path.name}: {e}")
-            error_count += 1
     
-    # Summary
-    print(f"\n📊 Processing Summary:")
-    print(f"   ✅ Successfully processed: {success_count} files")
-    if error_count > 0:
-        print(f"   ❌ Failed to process: {error_count} files")
+    # Summary with timing
+    elapsed_time = time.time() - start_time
+    
+    if RICH_AVAILABLE:
+        # Rich formatted summary
+        summary_table = Table(title="Processing Summary")
+        summary_table.add_column("Metric", style="cyan")
+        summary_table.add_column("Value", style="green")
+        
+        summary_table.add_row("✅ Successful", str(success_count))
+        if error_count > 0:
+            summary_table.add_row("❌ Failed", str(error_count))
+        summary_table.add_row("⏱️  Time Elapsed", f"{elapsed_time:.1f}s")
+        if success_count > 0:
+            summary_table.add_row("📈 Avg Time/File", f"{elapsed_time/success_count:.2f}s")
+        
+        console.print("\n")
+        console.print(summary_table)
+    else:
+        # Simple text summary
+        print(f"\n📊 Processing Summary:")
+        print(f"   ✅ Successfully processed: {success_count} files")
+        if error_count > 0:
+            print(f"   ❌ Failed to process: {error_count} files")
+        print(f"   ⏱️  Time elapsed: {elapsed_time:.1f}s")
+        if success_count > 0:
+            print(f"   📈 Average time per file: {elapsed_time/success_count:.2f}s")
     
     # Update git tracker state if successful
     if success_count > 0 and git_tracker:
@@ -778,6 +846,497 @@ def count(config: Optional[Path]):
         
     except Exception as e:
         print(f"❌ Error getting document count: {e}")
+        sys.exit(1)
+
+
+@cli.command()
+@click.argument('query')
+@click.option('--config', '-c', type=click.Path(exists=True, path_type=Path), 
+              help='Configuration file path (default: config.yaml)')
+@click.option('--max', '-m', 'max_results', type=int, default=10,
+              help='Maximum number of results to return (default: 10)')
+@click.option('--threshold', '-t', type=float, default=0.0,
+              help='Minimum similarity threshold (0.0-1.0, default: 0.0)')
+@click.option('--verbose', '-v', is_flag=True,
+              help='Show detailed search results')
+@click.option('--filter-type', type=str,
+              help='Filter results by file type (e.g., md, txt, pdf)')
+def search(query: str, config: Optional[Path], max_results: int, threshold: float, verbose: bool, filter_type: Optional[str]):
+    """
+    Search documents using semantic similarity.
+    
+    Examples:
+    
+    \b
+        # Basic search
+        python cli.py search "machine learning concepts"
+        
+        # Search with more results
+        python cli.py search "Python programming" --max 20
+        
+        # Search with similarity threshold
+        python cli.py search "neural networks" --threshold 0.7
+        
+        # Filter by file type
+        python cli.py search "documentation" --filter-type md
+        
+        # Verbose output with full content
+        python cli.py search "API design" --verbose
+    """
+    
+    if RICH_AVAILABLE:
+        console.print(Panel("🔍 PrismWeave Semantic Search", style="bold cyan"))
+    else:
+        print("🔍 PrismWeave Semantic Search")
+        print("=" * 40)
+    
+    # Load configuration
+    try:
+        if config:
+            config_obj = Config.from_file(config)
+        else:
+            default_config = Path(__file__).parent / "config.yaml"
+            if default_config.exists():
+                config_obj = Config.from_file(default_config)
+            else:
+                config_obj = Config()
+        
+        validation_issues = config_obj.validate()
+        if validation_issues:
+            print("❌ Configuration issues:")
+            for issue in validation_issues:
+                print(f"   - {issue}")
+            sys.exit(1)
+            
+    except Exception as e:
+        print(f"❌ Configuration error: {e}")
+        sys.exit(1)
+    
+    # Initialize embedding store
+    store = EmbeddingStore(config_obj)
+    
+    try:
+        # Perform search
+        if RICH_AVAILABLE:
+            with console.status(f"[bold green]Searching for: {query}..."):
+                results = store.search_similar(query, k=max_results)
+        else:
+            print(f"\n🔎 Searching for: {query}")
+            results = store.search_similar(query, k=max_results)
+        
+        if not results:
+            print("\n❌ No results found")
+            return
+        
+        # Filter by file type if specified
+        if filter_type:
+            filter_ext = f".{filter_type.lstrip('.')}"  # Ensure dot prefix
+            filtered_results = []
+            for doc in results:
+                source_file = doc.metadata.get('source_file', '')
+                if Path(source_file).suffix == filter_ext:
+                    filtered_results.append(doc)
+            results = filtered_results
+            
+            if not results:
+                print(f"\n❌ No results found with file type: {filter_type}")
+                return
+        
+        # Display results
+        if RICH_AVAILABLE:
+            console.print(f"\n[bold green]Found {len(results)} results[/bold green]\n")
+            
+            for i, doc in enumerate(results, 1):
+                source_file = doc.metadata.get('source_file', 'Unknown')
+                file_name = Path(source_file).name if source_file != 'Unknown' else 'Unknown'
+                
+                # Create result panel
+                panel_title = f"Result {i}: {file_name}"
+                
+                content_lines = []
+                content_lines.append(f"[cyan]📁 File:[/cyan] {file_name}")
+                
+                if 'chunk_index' in doc.metadata and 'total_chunks' in doc.metadata:
+                    chunk_info = f"{doc.metadata['chunk_index'] + 1}/{doc.metadata['total_chunks']}"
+                    content_lines.append(f"[cyan]🔢 Chunk:[/cyan] {chunk_info}")
+                
+                if 'tags' in doc.metadata:
+                    content_lines.append(f"[cyan]🏷️  Tags:[/cyan] {doc.metadata['tags']}")
+                
+                # Content preview
+                preview_length = 500 if verbose else 200
+                content_preview = doc.page_content[:preview_length]
+                if len(doc.page_content) > preview_length:
+                    content_preview += "..."
+                content_lines.append(f"\n[yellow]📝 Content:[/yellow]\n{content_preview}")
+                
+                panel_content = "\n".join(content_lines)
+                console.print(Panel(panel_content, title=panel_title, border_style="green"))
+        else:
+            # Simple text output
+            print(f"\n✅ Found {len(results)} results\n")
+            
+            for i, doc in enumerate(results, 1):
+                source_file = doc.metadata.get('source_file', 'Unknown')
+                file_name = Path(source_file).name if source_file != 'Unknown' else 'Unknown'
+                
+                print(f"{i}. {file_name}")
+                print(f"   📁 File: {file_name}")
+                
+                if 'chunk_index' in doc.metadata and 'total_chunks' in doc.metadata:
+                    chunk_info = f"{doc.metadata['chunk_index'] + 1}/{doc.metadata['total_chunks']}"
+                    print(f"   🔢 Chunk: {chunk_info}")
+                
+                if 'tags' in doc.metadata:
+                    print(f"   🏷️  Tags: {doc.metadata['tags']}")
+                
+                # Content preview
+                preview_length = 500 if verbose else 200
+                content_preview = doc.page_content[:preview_length]
+                if len(doc.page_content) > preview_length:
+                    content_preview += "..."
+                print(f"   📝 Content: {content_preview}")
+                print()
+        
+    except Exception as e:
+        print(f"❌ Search failed: {e}")
+        if verbose:
+            import traceback
+            traceback.print_exc()
+        sys.exit(1)
+
+
+@cli.command()
+@click.option('--config', '-c', type=click.Path(exists=True, path_type=Path), 
+              help='Configuration file path (default: config.yaml)')
+@click.option('--detailed', '-d', is_flag=True,
+              help='Show detailed analytics')
+def stats(config: Optional[Path], detailed: bool):
+    """
+    Show collection statistics and analytics.
+    
+    Examples:
+    
+    \b
+        # Basic statistics
+        python cli.py stats
+        
+        # Detailed analytics
+        python cli.py stats --detailed
+    """
+    
+    if RICH_AVAILABLE:
+        console.print(Panel("📊 PrismWeave Collection Statistics", style="bold cyan"))
+    else:
+        print("📊 PrismWeave Collection Statistics")
+        print("=" * 40)
+    
+    # Load configuration
+    try:
+        if config:
+            config_obj = Config.from_file(config)
+        else:
+            default_config = Path(__file__).parent / "config.yaml"
+            if default_config.exists():
+                config_obj = Config.from_file(default_config)
+            else:
+                config_obj = Config()
+        
+        validation_issues = config_obj.validate()
+        if validation_issues:
+            print("❌ Configuration issues:")
+            for issue in validation_issues:
+                print(f"   - {issue}")
+            sys.exit(1)
+            
+    except Exception as e:
+        print(f"❌ Configuration error: {e}")
+        sys.exit(1)
+    
+    # Initialize embedding store
+    store = EmbeddingStore(config_obj)
+    
+    try:
+        # Get basic counts
+        total_chunks = store.get_document_count()
+        source_files = store.get_unique_source_files()
+        total_files = len(source_files)
+        
+        if total_chunks == 0:
+            print("\n❌ No documents in collection")
+            return
+        
+        # Calculate statistics
+        avg_chunks_per_file = total_chunks / total_files if total_files > 0 else 0
+        
+        # Get all documents for detailed analysis
+        all_docs = store.list_documents(None) if detailed else []
+        
+        # File type distribution
+        file_types = {}
+        total_content_length = 0
+        tag_frequency = {}
+        
+        if detailed:
+            for doc in all_docs:
+                source_file = doc['metadata'].get('source_file', '')
+                if source_file:
+                    ext = Path(source_file).suffix or 'no extension'
+                    file_types[ext] = file_types.get(ext, 0) + 1
+                
+                total_content_length += doc['content_length']
+                
+                # Tag frequency
+                tags_str = doc['metadata'].get('tags', '')
+                if tags_str:
+                    tags = [t.strip() for t in tags_str.split(',')]
+                    for tag in tags:
+                        if tag:
+                            tag_frequency[tag] = tag_frequency.get(tag, 0) + 1
+        
+        # Display statistics
+        if RICH_AVAILABLE:
+            # Basic statistics table
+            stats_table = Table(title="Collection Overview", show_header=True)
+            stats_table.add_column("Metric", style="cyan")
+            stats_table.add_column("Value", style="green")
+            
+            stats_table.add_row("📄 Total Chunks", f"{total_chunks:,}")
+            stats_table.add_row("📁 Source Files", f"{total_files:,}")
+            stats_table.add_row("📈 Avg Chunks/File", f"{avg_chunks_per_file:.1f}")
+            
+            if detailed and total_content_length > 0:
+                stats_table.add_row("📏 Total Content", f"{total_content_length:,} chars")
+                avg_content_per_chunk = total_content_length / total_chunks
+                stats_table.add_row("📊 Avg Chunk Size", f"{avg_content_per_chunk:.0f} chars")
+            
+            console.print("\n")
+            console.print(stats_table)
+            
+            if detailed and file_types:
+                # File type distribution table
+                console.print("\n")
+                type_table = Table(title="File Type Distribution", show_header=True)
+                type_table.add_column("Extension", style="cyan")
+                type_table.add_column("Count", style="green")
+                type_table.add_column("Percentage", style="yellow")
+                
+                for ext, count in sorted(file_types.items(), key=lambda x: x[1], reverse=True):
+                    percentage = (count / total_chunks) * 100
+                    type_table.add_row(ext, str(count), f"{percentage:.1f}%")
+                
+                console.print(type_table)
+            
+            if detailed and tag_frequency:
+                # Top tags table
+                console.print("\n")
+                tag_table = Table(title="Top 10 Tags", show_header=True)
+                tag_table.add_column("Tag", style="cyan")
+                tag_table.add_column("Frequency", style="green")
+                
+                sorted_tags = sorted(tag_frequency.items(), key=lambda x: x[1], reverse=True)[:10]
+                for tag, freq in sorted_tags:
+                    tag_table.add_row(tag, str(freq))
+                
+                console.print(tag_table)
+        else:
+            # Simple text output
+            print(f"\n📊 Collection Overview:")
+            print(f"   📄 Total chunks: {total_chunks:,}")
+            print(f"   📁 Source files: {total_files:,}")
+            print(f"   📈 Average chunks per file: {avg_chunks_per_file:.1f}")
+            
+            if detailed and total_content_length > 0:
+                print(f"   📏 Total content: {total_content_length:,} characters")
+                avg_content_per_chunk = total_content_length / total_chunks
+                print(f"   📊 Average chunk size: {avg_content_per_chunk:.0f} characters")
+            
+            if detailed and file_types:
+                print(f"\n📑 File Type Distribution:")
+                for ext, count in sorted(file_types.items(), key=lambda x: x[1], reverse=True):
+                    percentage = (count / total_chunks) * 100
+                    print(f"   {ext}: {count} ({percentage:.1f}%)")
+            
+            if detailed and tag_frequency:
+                print(f"\n🏷️  Top 10 Tags:")
+                sorted_tags = sorted(tag_frequency.items(), key=lambda x: x[1], reverse=True)[:10]
+                for tag, freq in sorted_tags:
+                    print(f"   {tag}: {freq}")
+        
+        # Collection info
+        verification = store.verify_embeddings()
+        if RICH_AVAILABLE:
+            console.print(f"\n[dim]Collection: {verification.get('collection_name', 'Unknown')}[/dim]")
+            console.print(f"[dim]Storage: {verification.get('persist_directory', 'Unknown')}[/dim]")
+        else:
+            print(f"\nCollection: {verification.get('collection_name', 'Unknown')}")
+            print(f"Storage: {verification.get('persist_directory', 'Unknown')}")
+        
+    except Exception as e:
+        print(f"❌ Failed to generate statistics: {e}")
+        if detailed:
+            import traceback
+            traceback.print_exc()
+        sys.exit(1)
+
+
+@cli.command()
+@click.argument('output_file', type=click.Path(path_type=Path))
+@click.option('--config', '-c', type=click.Path(exists=True, path_type=Path), 
+              help='Configuration file path (default: config.yaml)')
+@click.option('--format', '-f', type=click.Choice(['json', 'csv']), default='json',
+              help='Export format (default: json)')
+@click.option('--filter-type', type=str,
+              help='Filter by file type (e.g., md, txt, pdf)')
+@click.option('--include-content', is_flag=True,
+              help='Include full content in export (JSON only)')
+@click.option('--max', '-m', 'max_docs', type=int,
+              help='Maximum number of documents to export')
+def export(output_file: Path, config: Optional[Path], format: str, filter_type: Optional[str], 
+           include_content: bool, max_docs: Optional[int]):
+    """
+    Export documents and metadata to JSON or CSV.
+    
+    Examples:
+    
+    \b
+        # Export all documents to JSON
+        python cli.py export documents.json
+        
+        # Export to CSV
+        python cli.py export documents.csv --format csv
+        
+        # Export with full content
+        python cli.py export full_export.json --include-content
+        
+        # Export only markdown files
+        python cli.py export markdown_only.json --filter-type md
+        
+        # Export limited number of documents
+        python cli.py export sample.json --max 100
+    """
+    
+    if RICH_AVAILABLE:
+        console.print(Panel("💾 PrismWeave Document Export", style="bold cyan"))
+    else:
+        print("💾 PrismWeave Document Export")
+        print("=" * 40)
+    
+    # Load configuration
+    try:
+        if config:
+            config_obj = Config.from_file(config)
+        else:
+            default_config = Path(__file__).parent / "config.yaml"
+            if default_config.exists():
+                config_obj = Config.from_file(default_config)
+            else:
+                config_obj = Config()
+        
+        validation_issues = config_obj.validate()
+        if validation_issues:
+            print("❌ Configuration issues:")
+            for issue in validation_issues:
+                print(f"   - {issue}")
+            sys.exit(1)
+            
+    except Exception as e:
+        print(f"❌ Configuration error: {e}")
+        sys.exit(1)
+    
+    # Initialize embedding store
+    store = EmbeddingStore(config_obj)
+    
+    try:
+        # Get documents
+        print("\n📥 Retrieving documents...")
+        documents = store.list_documents(max_docs)
+        
+        if not documents:
+            print("❌ No documents to export")
+            return
+        
+        # Filter by file type if specified
+        if filter_type:
+            filter_ext = f".{filter_type.lstrip('.')}"  # Ensure dot prefix
+            filtered_docs = []
+            for doc in documents:
+                source_file = doc['metadata'].get('source_file', '')
+                if Path(source_file).suffix == filter_ext:
+                    filtered_docs.append(doc)
+            documents = filtered_docs
+            
+            if not documents:
+                print(f"❌ No documents found with file type: {filter_type}")
+                return
+            
+            print(f"🔍 Filtered to {len(documents)} documents with type: {filter_type}")
+        
+        # Prepare export data
+        export_data = {
+            'export_date': datetime.now().isoformat(),
+            'total_documents': len(documents),
+            'collection_name': config_obj.collection_name,
+            'documents': []
+        }
+        
+        for doc in documents:
+            doc_export = {
+                'id': doc['id'],
+                'source_file': doc['metadata'].get('source_file', 'Unknown'),
+                'chunk_index': doc['metadata'].get('chunk_index'),
+                'total_chunks': doc['metadata'].get('total_chunks'),
+                'tags': doc['metadata'].get('tags', ''),
+                'content_length': doc['content_length'],
+            }
+            
+            if include_content and format == 'json':
+                # Include full content for JSON export
+                collection = store.vector_store._collection
+                full_doc = collection.get(ids=[doc['id']], include=['documents'])
+                if full_doc['documents']:
+                    doc_export['content'] = full_doc['documents'][0]
+            else:
+                doc_export['content_preview'] = doc['content_preview']
+            
+            export_data['documents'].append(doc_export)
+        
+        # Export based on format
+        if format == 'json':
+            print(f"\n💾 Exporting to JSON: {output_file}")
+            with open(output_file, 'w', encoding='utf-8') as f:
+                json.dump(export_data, f, indent=2, ensure_ascii=False)
+        
+        elif format == 'csv':
+            print(f"\n💾 Exporting to CSV: {output_file}")
+            import csv
+            
+            with open(output_file, 'w', newline='', encoding='utf-8') as f:
+                fieldnames = ['id', 'source_file', 'chunk_index', 'total_chunks', 'tags', 
+                             'content_length', 'content_preview']
+                writer = csv.DictWriter(f, fieldnames=fieldnames)
+                
+                writer.writeheader()
+                for doc in export_data['documents']:
+                    # Flatten the document for CSV
+                    csv_row = {
+                        'id': doc['id'],
+                        'source_file': doc.get('source_file', ''),
+                        'chunk_index': doc.get('chunk_index', ''),
+                        'total_chunks': doc.get('total_chunks', ''),
+                        'tags': doc.get('tags', ''),
+                        'content_length': doc.get('content_length', 0),
+                        'content_preview': doc.get('content_preview', '')
+                    }
+                    writer.writerow(csv_row)
+        
+        print(f"✅ Exported {len(documents)} documents to {output_file}")
+        print(f"   File size: {output_file.stat().st_size / 1024:.1f} KB")
+        
+    except Exception as e:
+        print(f"❌ Export failed: {e}")
+        import traceback
+        traceback.print_exc()
         sys.exit(1)
 
 
