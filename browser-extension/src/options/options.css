@@ -142,6 +142,16 @@ body {
   box-sizing: border-box;
 }
 
+@media (prefers-color-scheme: dark) {
+  .pw-input,
+  .pw-select,
+  .pw-textarea {
+    background: rgba(10, 16, 26, 0.94) !important;
+    color: #e2e8f0 !important;
+    border-color: rgba(148, 163, 184, 0.2) !important;
+  }
+}
+
 .pw-input:focus,
 .pw-select:focus,
 .pw-textarea:focus {
@@ -190,17 +200,13 @@ select::placeholder {
 
 /* Dark mode improvements - ensure input text is light colored with dark backgrounds */
 @media (prefers-color-scheme: dark) {
-  .pw-input,
-  .pw-textarea,
-  .pw-select,
-  input[type="text"],
-  input[type="password"],
-  input[type="url"],
-  textarea,
-  select {
-    background: rgba(10, 16, 26, 0.94);
-    color: #e2e8f0;
-    border-color: rgba(148, 163, 184, 0.2);
+  :root {
+    /* Override CSS variables for dark mode */
+    --pw-bg-primary: rgba(10, 16, 26, 0.94);
+    --pw-bg-secondary: rgba(17, 25, 40, 0.78);
+    --pw-text-primary: #e2e8f0;
+    --pw-text-secondary: #94a3b8;
+    --pw-border-color: rgba(59, 130, 246, 0.18);
   }
 
   .pw-input:focus,
@@ -211,8 +217,8 @@ select::placeholder {
   input[type="url"]:focus,
   textarea:focus,
   select:focus {
-    background: rgba(15, 23, 42, 0.98);
-    border-color: var(--pw-primary-500);
+    background: rgba(15, 23, 42, 0.98) !important;
+    border-color: var(--pw-primary-500) !important;
   }
 
   .pw-input::placeholder,
@@ -256,6 +262,18 @@ select {
   background: var(--pw-bg-primary);
   color: var(--pw-text-primary);
   box-sizing: border-box;
+}
+
+@media (prefers-color-scheme: dark) {
+  input[type="text"],
+  input[type="password"],
+  input[type="url"],
+  textarea,
+  select {
+    background: rgba(10, 16, 26, 0.94) !important;
+    color: #e2e8f0 !important;
+    border-color: rgba(148, 163, 184, 0.2) !important;
+  }
 }
 
 input[type="text"]:focus,
