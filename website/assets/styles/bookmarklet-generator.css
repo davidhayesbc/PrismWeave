@@ -123,6 +123,26 @@ body {
   text-decoration: underline;
 }
 
+/* Ensure better contrast for placeholders in dark mode */
+.pw-input::placeholder,
+.pw-input::-webkit-input-placeholder,
+.pw-input::-moz-placeholder {
+  color: var(--muted-color);
+  opacity: 0.7;
+}
+
+[data-theme='dark'] .pw-input,
+[data-theme='dark'] select.pw-input {
+  color: #e2e8f0;
+}
+
+[data-theme='dark'] .pw-input::placeholder,
+[data-theme='dark'] .pw-input::-webkit-input-placeholder,
+[data-theme='dark'] .pw-input::-moz-placeholder {
+  color: #94a3b8;
+  opacity: 0.9;
+}
+
 .generator-status {
   min-height: 24px;
 }

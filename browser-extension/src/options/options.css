@@ -165,6 +165,71 @@ body {
   line-height: 1.4;
 }
 
+/* Ensure better contrast for placeholders and input text */
+.pw-input::placeholder,
+.pw-input::-webkit-input-placeholder,
+.pw-input::-moz-placeholder,
+.pw-textarea::placeholder,
+.pw-textarea::-webkit-input-placeholder,
+.pw-textarea::-moz-placeholder,
+.pw-select::placeholder,
+.pw-select::-webkit-input-placeholder,
+.pw-select::-moz-placeholder {
+  color: var(--pw-text-secondary);
+  opacity: 0.7;
+}
+
+input[type="text"]::placeholder,
+input[type="password"]::placeholder,
+input[type="url"]::placeholder,
+textarea::placeholder,
+select::placeholder {
+  color: var(--pw-text-secondary);
+  opacity: 0.7;
+}
+
+/* Dark mode improvements - ensure input text is light colored with dark backgrounds */
+@media (prefers-color-scheme: dark) {
+  .pw-input,
+  .pw-textarea,
+  .pw-select,
+  input[type="text"],
+  input[type="password"],
+  input[type="url"],
+  textarea,
+  select {
+    background: rgba(10, 16, 26, 0.94);
+    color: #e2e8f0;
+    border-color: rgba(148, 163, 184, 0.2);
+  }
+
+  .pw-input:focus,
+  .pw-textarea:focus,
+  .pw-select:focus,
+  input[type="text"]:focus,
+  input[type="password"]:focus,
+  input[type="url"]:focus,
+  textarea:focus,
+  select:focus {
+    background: rgba(15, 23, 42, 0.98);
+    border-color: var(--pw-primary-500);
+  }
+
+  .pw-input::placeholder,
+  .pw-input::-webkit-input-placeholder,
+  .pw-input::-moz-placeholder,
+  .pw-textarea::placeholder,
+  .pw-textarea::-webkit-input-placeholder,
+  .pw-textarea::-moz-placeholder,
+  input[type="text"]::placeholder,
+  input[type="password"]::placeholder,
+  input[type="url"]::placeholder,
+  textarea::placeholder {
+    color: #94a3b8;
+    opacity: 0.9;
+  }
+}
+
 .pw-validation-error {
   display: none;
   color: var(--pw-error-600);
