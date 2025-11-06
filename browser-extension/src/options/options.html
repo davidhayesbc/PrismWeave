@@ -38,12 +38,12 @@
 
     <div
       id="message"
-      class="message pw-alert pw-hidden"
+      class="pw-alert pw-hidden"
     ></div>
 
     <div
       id="status"
-      class="status pw-status"
+      class="pw-status"
     ></div>
 
     <div class="main-content">
@@ -53,7 +53,7 @@
           Repository Configuration
         </h2>
 
-        <div class="form-group pw-form-group">
+        <div class="pw-form-group">
           <label
             for="githubToken"
             class="pw-label"
@@ -66,16 +66,16 @@
             class="pw-input"
             placeholder="ghp_..."
           />
-          <div class="help-text pw-help-text">
+          <div class="pw-help-text">
             Required for Git operations. Create one at GitHub Settings > Developer settings > Personal access tokens
           </div>
           <div
-            class="validation-message pw-validation-error pw-hidden"
+            class="pw-validation-error pw-hidden"
             id="githubToken-validation"
           ></div>
         </div>
 
-        <div class="form-group pw-form-group">
+        <div class="pw-form-group">
           <label
             for="githubRepo"
             class="pw-label"
@@ -87,19 +87,21 @@
             id="githubRepo"
             class="pw-input"
             placeholder="username/repository-name"
+            autocomplete="off"
+            inputmode="text"
           />
-          <div class="help-text pw-help-text">Format: username/repository-name</div>
+          <div class="pw-help-text">Format: username/repository-name</div>
           <div
-            class="validation-message pw-validation-error pw-hidden"
+            class="pw-validation-error pw-hidden"
             id="githubRepo-validation"
           ></div>
         </div>
 
-        <div class="form-group pw-form-group">
+        <div class="pw-form-group">
           <div class="test-connection">
             <button
               type="button"
-              class="btn btn-secondary pw-button pw-button-secondary"
+              class="pw-button pw-button-secondary"
               id="test-connection"
             >
               <span class="pw-icon">🔍</span>
@@ -107,7 +109,7 @@
             </button>
             <div
               id="connection-test-result"
-              class="test-result pw-test-result pw-hidden"
+              class="pw-test-result pw-hidden"
             ></div>
           </div>
         </div>
@@ -119,7 +121,7 @@
           Capture Settings
         </h2>
 
-        <div class="form-group pw-form-group">
+        <div class="pw-form-group">
           <label
             for="defaultFolder"
             class="pw-label"
@@ -139,11 +141,11 @@
             <option value="business">Business</option>
             <option value="custom">Custom...</option>
           </select>
-          <div class="help-text pw-help-text">Where new captures are saved by default</div>
+          <div class="pw-help-text">Where new captures are saved by default</div>
         </div>
 
         <div
-          class="form-group pw-form-group pw-hidden"
+          class="pw-form-group pw-hidden"
           id="customFolderField"
         >
           <label
@@ -160,7 +162,7 @@
           />
         </div>
 
-        <div class="form-group pw-form-group">
+        <div class="pw-form-group">
           <label
             for="fileNamingPattern"
             class="pw-label"
@@ -176,10 +178,10 @@
             <option value="domain-YYYY-MM-DD-title">Domain-Date-Title</option>
             <option value="title-YYYY-MM-DD">Title-Date</option>
           </select>
-          <div class="help-text pw-help-text">How captured files are named</div>
+          <div class="pw-help-text">How captured files are named</div>
         </div>
 
-        <div class="checkbox-group pw-checkbox-group">
+        <div class="pw-checkbox-group">
           <input
             type="checkbox"
             id="autoCommit"
@@ -193,7 +195,7 @@
           </label>
         </div>
 
-        <div class="checkbox-group pw-checkbox-group">
+        <div class="pw-checkbox-group">
           <input
             type="checkbox"
             id="captureImages"
@@ -214,7 +216,7 @@
           Content Processing
         </h2>
 
-        <div class="checkbox-group pw-checkbox-group">
+        <div class="pw-checkbox-group">
           <input
             type="checkbox"
             id="removeAds"
@@ -228,7 +230,7 @@
           </label>
         </div>
 
-        <div class="checkbox-group pw-checkbox-group">
+        <div class="pw-checkbox-group">
           <input
             type="checkbox"
             id="removeNavigation"
@@ -242,7 +244,7 @@
           </label>
         </div>
 
-        <div class="form-group pw-form-group">
+        <div class="pw-form-group">
           <label
             for="customSelectors"
             class="pw-label"
@@ -254,7 +256,7 @@
             class="pw-textarea"
             placeholder=".sidebar, .comments, .related-articles"
           ></textarea>
-          <div class="help-text pw-help-text">Comma-separated CSS selectors for elements to remove during capture</div>
+          <div class="pw-help-text">Comma-separated CSS selectors for elements to remove during capture</div>
         </div>
       </div>
 
@@ -264,7 +266,7 @@
           Bookmarklet Integration
         </h2>
 
-        <div class="checkbox-group pw-checkbox-group">
+        <div class="pw-checkbox-group">
           <input
             type="checkbox"
             id="enableBookmarklet"
@@ -278,7 +280,7 @@
           </label>
         </div>
 
-        <div class="help-text bookmarklet-help pw-help-text">
+        <div class="bookmarklet-help pw-help-text">
           Generate a bookmarklet that allows you to capture content from any device without installing the extension.
           <a
             href="../bookmarklet/generator.html"
@@ -290,12 +292,12 @@
         </div>
 
         <div id="bookmarklet-quick-setup">
-          <div class="form-group pw-form-group">
+          <div class="pw-form-group">
             <label class="pw-label">Quick Setup</label>
             <div class="bookmarklet-actions pw-button-group">
               <button
                 type="button"
-                class="btn btn-secondary pw-button pw-button-secondary"
+                class="pw-button pw-button-secondary"
                 id="generate-bookmarklet"
               >
                 <span class="pw-icon">🔧</span>
@@ -303,7 +305,7 @@
               </button>
               <button
                 type="button"
-                class="btn btn-secondary pw-button pw-button-secondary"
+                class="pw-button pw-button-secondary"
                 id="copy-bookmarklet"
                 disabled
               >
@@ -312,7 +314,7 @@
               </button>
               <button
                 type="button"
-                class="btn btn-secondary pw-button pw-button-secondary"
+                class="pw-button pw-button-secondary"
                 id="open-bookmarklet-manager"
               >
                 <span class="pw-icon">⚙️</span>
@@ -325,7 +327,7 @@
             id="quick-bookmarklet-preview"
             class="pw-code-preview"
           >
-            <div class="help-text pw-help-text">
+            <div class="pw-help-text">
               Generated bookmarklet (drag to bookmarks bar or copy and paste as bookmark URL):
             </div>
             <div
@@ -342,7 +344,7 @@
           Advanced Options
         </h2>
 
-        <div class="form-group pw-form-group">
+        <div class="pw-form-group">
           <label
             for="commitMessageTemplate"
             class="pw-label"
@@ -355,10 +357,10 @@
             class="pw-input"
             value="Add: {domain} - {title}"
           />
-          <div class="help-text pw-help-text">Variables: {domain}, {title}, {date}, {filename}</div>
+          <div class="pw-help-text">Variables: {domain}, {title}, {date}, {filename}</div>
         </div>
 
-        <div class="checkbox-group pw-checkbox-group">
+        <div class="pw-checkbox-group">
           <input
             type="checkbox"
             id="enableKeyboardShortcuts"
@@ -372,7 +374,7 @@
           </label>
         </div>
 
-        <div class="checkbox-group pw-checkbox-group">
+        <div class="pw-checkbox-group">
           <input
             type="checkbox"
             id="showNotifications"
@@ -386,7 +388,7 @@
           </label>
         </div>
 
-        <div class="checkbox-group pw-checkbox-group">
+        <div class="pw-checkbox-group">
           <input
             type="checkbox"
             id="debugMode"
@@ -401,10 +403,10 @@
         </div>
       </div>
 
-      <div class="button-group pw-button-group-vertical">
+      <div class="pw-button-group-vertical">
         <button
           type="button"
-          class="btn btn-primary pw-button pw-button-primary"
+          class="pw-button pw-button-primary"
           id="save-settings"
         >
           <span class="pw-icon">💾</span>
@@ -412,7 +414,7 @@
         </button>
         <button
           type="button"
-          class="btn btn-secondary pw-button pw-button-secondary"
+          class="pw-button pw-button-secondary"
           id="reset-settings"
         >
           <span class="pw-icon">🔄</span>
@@ -420,7 +422,7 @@
         </button>
         <button
           type="button"
-          class="btn btn-secondary pw-button pw-button-secondary"
+          class="pw-button pw-button-secondary"
           id="export-settings"
         >
           <span class="pw-icon">📤</span>
@@ -428,7 +430,7 @@
         </button>
         <button
           type="button"
-          class="btn btn-secondary pw-button pw-button-secondary"
+          class="pw-button pw-button-secondary"
           id="import-settings"
         >
           <span class="pw-icon">📥</span>
