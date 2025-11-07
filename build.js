@@ -249,31 +249,7 @@ class PrismWeaveBuildSystem {
               const needsCopy = !fast || !prev || prev.sig !== sig || !fs.existsSync(destPath);
               if (needsCopy) {
                 this.ensureDirectory(path.dirname(destPath));
-
-                // Special handling for CSS files to fix @import paths
-                if (path.extname(absPath) === '.css') {
-                  let cssContent = fs.readFileSync(absPath, 'utf8');
-
-                  // Calculate the correct relative path to shared-styles from the destination
-                  // destPath is the final location, webDistPath is the root
-                  const destDir = path.dirname(destPath);
-                  const sharedStylesDest = path.join(webDistPath, 'shared-styles');
-                  const relativeToShared = path
-                    .relative(destDir, sharedStylesDest)
-                    .replace(/\\/g, '/');
-
-                  // Rewrite any @import paths that reference shared-styles to use correct relative path
-                  // Match various patterns: ../../shared-styles/, ../../../shared-styles/, etc.
-                  cssContent = cssContent.replace(
-                    /@import\s+url\(['"](?:\.\.\/)+shared-styles\//g,
-                    `@import url('${relativeToShared}/`,
-                  );
-
-                  fs.writeFileSync(destPath, cssContent, 'utf8');
-                } else {
-                  fs.copyFileSync(absPath, destPath);
-                }
-
+                fs.copyFileSync(absPath, destPath);
                 manifest.files[key] = { sig, dest: destPath };
                 manifest.destToSrc[destPath] = key;
                 copyStats.copied++;
