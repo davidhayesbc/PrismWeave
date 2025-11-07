@@ -1110,15 +1110,39 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
         if (info.linkUrl) {
           logger.info('Capturing link:', info.linkUrl, 'from tab:', tab?.url);
 
-          // Show notification that capture is starting
-          if (chrome.notifications) {
-            await showNotificationSafe({
-              iconUrl: 'icons/icon48.png',
-              title: 'PrismWeave',
-              message: `Capturing content from: ${new URL(info.linkUrl).hostname}`,
-            });
-            logger.debug('Start capture notification sent');
-          }
+          // Unified toast approach: attempt to show in-page toast first
+          const tabId = tab?.id;
+          const showToastInTab = async (
+            message: string,
+            opts: { type?: 'success' | 'error' | 'info'; duration?: number; clickUrl?: string } = {}
+          ) => {
+            if (!tabId) return;
+            try {
+              await chrome.tabs.sendMessage(tabId, {
+                type: 'SHOW_NOTIFICATION',
+                data: {
+                  message,
+                  type: opts.type || 'info',
+                  duration: opts.duration ?? 8000,
+                  ...(opts.clickUrl && { clickUrl: opts.clickUrl }),
+                },
+                timestamp: Date.now(),
+              });
+            } catch (err) {
+              // Fallback to browser notification if content script not available
+              logger.debug('Toast message failed, falling back to chrome.notifications:', err);
+              if (chrome.notifications) {
+                await showNotificationSafe({
+                  iconUrl: 'icons/icon48.png',
+                  title: 'PrismWeave',
+                  message,
+                });
+              }
+            }
+          };
+
+          // Initial "capturing" toast (match keyboard shortcut pattern)
+          await showToastInTab('Capturing content...', { type: 'info', duration: 0 }); // persistent until replaced
 
           try {
             logger.debug('Calling handleMessage for CAPTURE_LINK');
@@ -1136,43 +1160,63 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
             );
             logger.debug('handleMessage result:', result);
 
-            // Show success/failure notification
-            if (chrome.notifications) {
-              if (result.success) {
-                const domain = new URL(info.linkUrl).hostname;
-                await showNotificationSafe({
-                  iconUrl: 'icons/icon48.png',
-                  title: 'PrismWeave - Link Captured',
-                  message: `Successfully captured content from ${domain}`,
+            const commitUrl =
+              (result as any).commitUrl ||
+              (result as any)?.data?.commitUrl ||
+              (result as any)?.data?.url;
+
+            if (result.success) {
+              if (commitUrl) {
+                await showToastInTab('Link captured successfully! Click to view on GitHub.', {
+                  type: 'success',
+                  duration: 8000,
+                  clickUrl: commitUrl,
                 });
-                logger.info('Success notification sent for link capture');
+                logger.info('Success toast (with commit URL) sent for link capture');
               } else {
-                await showNotificationSafe({
-                  iconUrl: 'icons/icon48.png',
-                  title: 'PrismWeave - Capture Failed',
-                  message: `Failed to capture link: ${result.error || 'Unknown error'}`,
+                await showToastInTab('Link captured successfully!', {
+                  type: 'success',
+                  duration: 8000,
                 });
-                logger.warn('Failure notification sent for link capture:', result.error);
+                logger.info('Success toast (no commit URL) sent for link capture');
               }
+            } else {
+              await showToastInTab(
+                `Failed to capture link: ${(result as any).error || 'Unknown error'}`,
+                { type: 'error', duration: 8000 }
+              );
+              logger.warn('Failure toast sent for link capture:', (result as any).error);
             }
           } catch (error) {
             logger.error('Failed to capture link:', error);
-            if (chrome.notifications) {
-              await showNotificationSafe({
-                iconUrl: 'icons/icon48.png',
-                title: 'PrismWeave - Error',
-                message: `Error capturing link: ${error instanceof Error ? error.message : 'Unknown error'}`,
-              });
-            }
+            await showToastInTab(
+              `Error capturing link: ${error instanceof Error ? error.message : 'Unknown error'}`,
+              { type: 'error', duration: 8000 }
+            );
           }
         } else {
           logger.error('No link URL provided for link capture - info object:', info);
-          if (chrome.notifications) {
-            await showNotificationSafe({
-              iconUrl: 'icons/icon48.png',
-              title: 'PrismWeave - Error',
-              message: 'No link URL found. Please right-click directly on a link.',
-            });
+          const tabId = tab?.id;
+          if (tabId) {
+            try {
+              await chrome.tabs.sendMessage(tabId, {
+                type: 'SHOW_NOTIFICATION',
+                data: {
+                  message: 'No link URL found. Please right-click directly on a link.',
+                  type: 'error',
+                  duration: 8000,
+                },
+                timestamp: Date.now(),
+              });
+            } catch (err) {
+              if (chrome.notifications) {
+                await showNotificationSafe({
+                  iconUrl: 'icons/icon48.png',
+                  title: 'PrismWeave - Error',
+                  message: 'No link URL found. Please right-click directly on a link.',
+                });
+              }
+            }
           }
         }
         break;
@@ -1181,34 +1225,36 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
         logger.info('Processing capture-page command');
         if (tab?.id) {
           logger.info('Capturing current page via context menu - tab ID:', tab.id, 'URL:', tab.url);
-
-          // Show notification that capture is starting
-          if (chrome.notifications) {
-            await showNotificationSafe({
-              iconUrl: 'icons/icon48.png',
-              title: 'PrismWeave',
-              message: `Capturing current page: ${tab.title || 'Untitled'}`,
-            });
-          }
-
           try {
             // Ensure content script is injected before sending message
             await ensureContentScriptInjected(tab.id);
-
-            // Send message to content script to trigger capture
+            // Trigger same path as keyboard shortcut (content script handles toasts)
             await chrome.tabs.sendMessage(tab.id, {
               type: 'TRIGGER_CAPTURE_CONTEXT_MENU',
               timestamp: Date.now(),
             });
-            logger.info('Context menu capture message sent to content script');
+            logger.info('Context menu capture message sent to content script (toast path)');
           } catch (error) {
             logger.error('Failed to send context menu capture message:', error);
-            if (chrome.notifications) {
-              await showNotificationSafe({
-                iconUrl: 'icons/icon48.png',
-                title: 'PrismWeave',
-                message: 'Please reload the page and try again',
+            // Fallback: try in-page error toast, else notification
+            try {
+              await chrome.tabs.sendMessage(tab.id, {
+                type: 'SHOW_NOTIFICATION',
+                data: {
+                  message: 'Please reload the page and try again',
+                  type: 'error',
+                  duration: 8000,
+                },
+                timestamp: Date.now(),
               });
+            } catch (err) {
+              if (chrome.notifications) {
+                await showNotificationSafe({
+                  iconUrl: 'icons/icon48.png',
+                  title: 'PrismWeave',
+                  message: 'Please reload the page and try again',
+                });
+              }
             }
           }
         } else {
