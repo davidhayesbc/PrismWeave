@@ -249,7 +249,31 @@ class PrismWeaveBuildSystem {
               const needsCopy = !fast || !prev || prev.sig !== sig || !fs.existsSync(destPath);
               if (needsCopy) {
                 this.ensureDirectory(path.dirname(destPath));
-                fs.copyFileSync(absPath, destPath);
+
+                // Special handling for CSS files to fix @import paths
+                if (path.extname(absPath) === '.css') {
+                  let cssContent = fs.readFileSync(absPath, 'utf8');
+
+                  // Calculate the correct relative path to shared-styles from the destination
+                  // destPath is the final location, webDistPath is the root
+                  const destDir = path.dirname(destPath);
+                  const sharedStylesDest = path.join(webDistPath, 'shared-styles');
+                  const relativeToShared = path
+                    .relative(destDir, sharedStylesDest)
+                    .replace(/\\/g, '/');
+
+                  // Rewrite any @import paths that reference shared-styles to use correct relative path
+                  // Match various patterns: ../../shared-styles/, ../../../shared-styles/, etc.
+                  cssContent = cssContent.replace(
+                    /@import\s+url\(['"](?:\.\.\/)+shared-styles\//g,
+                    `@import url('${relativeToShared}/`,
+                  );
+
+                  fs.writeFileSync(destPath, cssContent, 'utf8');
+                } else {
+                  fs.copyFileSync(absPath, destPath);
+                }
+
                 manifest.files[key] = { sig, dest: destPath };
                 manifest.destToSrc[destPath] = key;
                 copyStats.copied++;
@@ -284,7 +308,9 @@ class PrismWeaveBuildSystem {
       // Copy any additional website files/folders (excluding index.html which is templated)
       const entries = fs.readdirSync(websiteSrcPath, { withFileTypes: true });
       for (const entry of entries) {
-        if (entry.name === 'assets' || entry.name === 'index.html') continue;
+        // Skip assets (handled separately), index.html (templated), and dist (bookmarklet build output)
+        if (entry.name === 'assets' || entry.name === 'index.html' || entry.name === 'dist')
+          continue;
         const src = path.join(websiteSrcPath, entry.name);
         const dest = path.join(webDistPath, entry.name);
         if (entry.isDirectory()) {
@@ -393,6 +419,9 @@ class PrismWeaveBuildSystem {
     console.log(
       `📊 Web Build Summary: copied=${copyStats.copied} skipped=${copyStats.skipped} removed=${copyStats.removed} bytes=${copyStats.bytesCopied} duration=${duration}ms${fast ? ' (fast)' : ''}`,
     );
+
+    // Verify critical files exist and CSS imports are correct
+    await this.verifyWebDeployment(webDistPath);
   }
 
   async createWebIndexPage(webDistPath) {
@@ -786,6 +815,88 @@ class PrismWeaveBuildSystem {
       path.join(webDistPath, 'deployment-manifest.json'),
       JSON.stringify(manifest, null, 2),
     );
+  }
+
+  async verifyWebDeployment(webDistPath) {
+    console.log('🔍 Verifying web deployment...');
+
+    const issues = [];
+
+    // Check critical files exist
+    const criticalFiles = [
+      'index.html',
+      'assets/styles.css',
+      'shared-styles/design-tokens.css',
+      'shared-styles/shared-ui.css',
+    ];
+
+    for (const file of criticalFiles) {
+      const filePath = path.join(webDistPath, file);
+      if (!fs.existsSync(filePath)) {
+        issues.push(`Missing critical file: ${file}`);
+      }
+    }
+
+    // Verify CSS imports are correct (no broken relative paths)
+    const cssFiles = this.findFiles(webDistPath, '.css');
+    for (const cssFile of cssFiles) {
+      const content = fs.readFileSync(cssFile, 'utf8');
+
+      // Check for problematic import patterns that go too far up
+      const badImports = content.match(/@import\s+url\(['"]\.\.\/\.\.\/\.\.\/[^'"]+['"]\)/g);
+      if (badImports) {
+        const relativePath = path.relative(webDistPath, cssFile);
+        issues.push(
+          `CSS file ${relativePath} has imports going too far up: ${badImports.join(', ')}`,
+        );
+      }
+
+      // Check for imports that reference non-existent files
+      const importMatches = content.matchAll(/@import\s+url\(['"]([^'"]+)['"]\)/g);
+      for (const match of importMatches) {
+        const importPath = match[1];
+        if (importPath.startsWith('http://') || importPath.startsWith('https://')) continue;
+
+        const cssDir = path.dirname(cssFile);
+        const resolvedPath = path.resolve(cssDir, importPath);
+        if (!fs.existsSync(resolvedPath)) {
+          const relativePath = path.relative(webDistPath, cssFile);
+          issues.push(`CSS file ${relativePath} imports non-existent file: ${importPath}`);
+        }
+      }
+    }
+
+    if (issues.length > 0) {
+      console.warn('⚠️  Web deployment verification found issues:');
+      issues.forEach((issue) => console.warn(`   - ${issue}`));
+      console.warn('⚠️  These issues may cause problems in production!');
+    } else {
+      console.log('✅ Web deployment verification passed');
+    }
+  }
+
+  findFiles(dir, extension) {
+    const files = [];
+
+    function traverse(currentDir) {
+      const items = fs.readdirSync(currentDir);
+      for (const item of items) {
+        const fullPath = path.join(currentDir, item);
+        const stats = fs.statSync(fullPath);
+
+        if (stats.isDirectory()) {
+          traverse(fullPath);
+        } else if (stats.isFile() && path.extname(fullPath) === extension) {
+          files.push(fullPath);
+        }
+      }
+    }
+
+    if (fs.existsSync(dir)) {
+      traverse(dir);
+    }
+
+    return files;
   }
 
   getDirectoryListing(dirPath) {
