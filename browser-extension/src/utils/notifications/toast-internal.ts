@@ -71,15 +71,15 @@ function getContainer(): HTMLElement | null {
  */
 export function dismissToasts(typeFilter?: ToastType): void {
   if (typeof document === 'undefined') return;
-  
+
   const toastsToDismiss: Array<() => void> = [];
-  
+
   activeToasts.forEach((toastInfo, toastElement) => {
     if (!typeFilter || toastInfo.type === typeFilter) {
       toastsToDismiss.push(toastInfo.dismiss);
     }
   });
-  
+
   toastsToDismiss.forEach(dismiss => dismiss());
 }
 
