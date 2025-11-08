@@ -100,11 +100,7 @@
   "python.analysis.extraPaths": ["./ai-processing/src"],
   "python.defaultInterpreterPath": "${workspaceFolder}/ai-processing/.venv/bin/python",
   "python.terminal.activateEnvironment": true,
-  "python.testing.pytestEnabled": true,
-  "python.testing.unittestEnabled": false,
-  "python.testing.pytestArgs": ["tests", "-v", "--tb=short"],
-  "python.testing.cwd": "${workspaceFolder}/ai-processing",
-  "python.testing.autoTestDiscoverOnSaveEnabled": true,
+  "python.envFile": "${workspaceFolder}/ai-processing/.env",
   "python.analysis.autoImportCompletions": true,
   "python.analysis.typeCheckingMode": "basic",
 
@@ -140,5 +136,9 @@
       "envManager": "ms-python.python:venv",
       "packageManager": "ms-python.python:pip"
     }
-  ]
+  ],
+  "python.testing.unittestArgs": ["-v", "-s", "./ai-processing", "-p", "*test*.py"],
+  "python.testing.pytestEnabled": true,
+  "python.testing.unittestEnabled": false,
+  "python.testing.pytestArgs": ["ai-processing"]
 }

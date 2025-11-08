@@ -4,7 +4,7 @@
     {
       "label": "AI Processing: Run Tests",
       "type": "shell",
-      "command": ".venv/Scripts/python.exe",
+      "command": ".venv/bin/python",
       "args": ["-m", "pytest", "tests/", "-v"],
       "group": "test",
       "presentation": {
@@ -21,7 +21,7 @@
     {
       "label": "AI Processing: Run Tests with Coverage",
       "type": "shell",
-      "command": ".venv/Scripts/python.exe",
+      "command": ".venv/bin/python",
       "args": ["-m", "pytest", "tests/", "--cov=src", "--cov-report=html", "--cov-report=term"],
       "group": "test",
       "presentation": {

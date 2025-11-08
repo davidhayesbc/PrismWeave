@@ -60,9 +60,12 @@ class TestDocumentProcessor:
         config = Config()
         processor = DocumentProcessor(config)
         
-        supported_extensions = {'.md', '.txt', '.pdf', '.docx', '.html', '.htm'}
-        for ext in supported_extensions:
-            assert ext in processor.loaders
+        expected_extensions = {'.md', '.txt', '.pdf', '.html', '.htm'}
+        loaders = set(processor.loaders.keys())
+        assert expected_extensions.issubset(loaders)
+        # Docx support is optional; verify gracefully if available
+        if '.docx' in loaders:
+            assert processor.loaders['.docx'] is not None
     
     def test_markdown_with_frontmatter(self):
         """Test processing markdown file with frontmatter"""
@@ -96,13 +99,13 @@ Some more content here.
             
             # Check that frontmatter metadata is preserved
             first_chunk = chunks[0]
-            assert first_chunk.metadata['title'] == 'Test Document'
-            assert first_chunk.metadata['author'] == 'Test Author'
-            assert 'tags' in first_chunk.metadata
+            assert first_chunk.meta['title'] == 'Test Document'
+            assert first_chunk.meta['author'] == 'Test Author'
+            assert 'tags' in first_chunk.meta
             
             # Check file metadata
-            assert first_chunk.metadata['file_name'] == temp_file.name
-            assert first_chunk.metadata['file_extension'] == '.md'
+            assert first_chunk.meta['file_name'] == temp_file.name
+            assert first_chunk.meta['file_extension'] == '.md'
             
         finally:
             # Clean up

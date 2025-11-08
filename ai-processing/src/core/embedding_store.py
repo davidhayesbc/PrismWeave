@@ -1,41 +1,51 @@
 """
-Embedding store using LangChain's ChromaDB integration
+Embedding store using Haystack's ChromaDB integration
 """
 
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 import uuid
 
-# LangChain imports
-from langchain_ollama import OllamaEmbeddings
-from langchain_chroma import Chroma
-from langchain_core.documents import Document
+# Haystack imports
+from haystack import Document
+from haystack_integrations.components.embedders.ollama import OllamaDocumentEmbedder, OllamaTextEmbedder
+from haystack_integrations.document_stores.chroma import ChromaDocumentStore
+from haystack_integrations.components.retrievers.chroma import ChromaEmbeddingRetriever
 
 from .config import Config
 from .git_tracker import GitTracker
 
 
 class EmbeddingStore:
-    """Store and retrieve document embeddings using ChromaDB via LangChain"""
+    """Store and retrieve document embeddings using ChromaDB via Haystack"""
     
     def __init__(self, config: Config, git_tracker: Optional[GitTracker] = None):
         self.config = config
         self.git_tracker = git_tracker
         
-        # Initialize Ollama embeddings
-        self.embeddings = OllamaEmbeddings(
-            base_url=config.ollama_host,
-            model=config.embedding_model
-        )
-        
-        # Initialize ChromaDB
+        # Initialize Haystack ChromaDB document store
         self.persist_directory = Path(config.chroma_db_path)
         self.persist_directory.mkdir(parents=True, exist_ok=True)
         
-        self.vector_store = Chroma(
+        self.document_store = ChromaDocumentStore(
             collection_name=config.collection_name,
-            embedding_function=self.embeddings,
-            persist_directory=str(self.persist_directory)
+            persist_path=str(self.persist_directory),
+        )
+        
+        # Initialize Ollama embedders for Haystack
+        self.document_embedder = OllamaDocumentEmbedder(
+            url=config.ollama_host,
+            model=config.embedding_model
+        )
+        
+        self.text_embedder = OllamaTextEmbedder(
+            url=config.ollama_host,
+            model=config.embedding_model
+        )
+        
+        # Initialize retriever for semantic search
+        self.retriever = ChromaEmbeddingRetriever(
+            document_store=self.document_store
         )
     
     def _clean_metadata(self, metadata: Dict[str, Any]) -> Dict[str, Any]:
@@ -56,7 +66,7 @@ class EmbeddingStore:
 
     def add_document(self, file_path: Path, chunks: List[Document]) -> None:
         """
-        Add document chunks to the vector store
+        Add document chunks to the document store with embeddings
         
         Args:
             file_path: Path to the original document file
@@ -67,30 +77,29 @@ class EmbeddingStore:
             print(f"No chunks to add for {file_path}")
             return
         
-        # Generate unique IDs for each chunk
-        chunk_ids = []
+        # Clean and prepare metadata for all chunks
         for i, chunk in enumerate(chunks):
-            # Create a unique ID based on file path and chunk index
-            chunk_id = f"{file_path.stem}_{i}_{uuid.uuid4().hex[:8]}"
-            chunk_ids.append(chunk_id)
-            
             # Clean the metadata to ensure ChromaDB compatibility
-            cleaned_metadata = self._clean_metadata(chunk.metadata)
+            cleaned_metadata = self._clean_metadata(chunk.meta)
             
             # Add additional metadata
             cleaned_metadata.update({
                 'chunk_index': i,
                 'total_chunks': len(chunks),
-                'chunk_id': chunk_id,
+                'chunk_id': f"{file_path.stem}_{i}_{uuid.uuid4().hex[:8]}",
                 'source_file': str(file_path),
             })
             
             # Update the chunk with cleaned metadata
-            chunk.metadata = cleaned_metadata
+            chunk.meta = cleaned_metadata
         
         try:
-            # Add chunks to vector store
-            self.vector_store.add_documents(chunks, ids=chunk_ids)
+            # Generate embeddings for chunks
+            embedded_result = self.document_embedder.run(documents=chunks)
+            embedded_documents = embedded_result.get('documents', chunks)
+            
+            # Write documents to store
+            self.document_store.write_documents(embedded_documents)
             print(f"Added {len(chunks)} chunks from {file_path.name}")
             
             # Mark file as processed in git tracker if available
@@ -117,8 +126,17 @@ class EmbeddingStore:
         """
         
         try:
-            results = self.vector_store.similarity_search(query, k=k)
-            return results
+            # Embed the query text
+            query_result = self.text_embedder.run(text=query)
+            query_embedding = query_result.get('embedding')
+            
+            # Retrieve similar documents
+            retrieval_result = self.retriever.run(
+                query_embedding=query_embedding,
+                top_k=k
+            )
+            
+            return retrieval_result.get('documents', [])
             
         except Exception as e:
             print(f"Search failed: {e}")
@@ -137,7 +155,20 @@ class EmbeddingStore:
         """
         
         try:
-            results = self.vector_store.similarity_search_with_score(query, k=k)
+            # Embed the query text
+            query_result = self.text_embedder.run(text=query)
+            query_embedding = query_result.get('embedding')
+            
+            # Retrieve similar documents with scores
+            # Note: Haystack ChromaEmbeddingRetriever returns documents with scores in meta
+            retrieval_result = self.retriever.run(
+                query_embedding=query_embedding,
+                top_k=k
+            )
+            
+            documents = retrieval_result.get('documents', [])
+            # Extract scores from metadata if available
+            results = [(doc, doc.meta.get('score', 0.0)) for doc in documents]
             return results
             
         except Exception as e:
@@ -153,13 +184,12 @@ class EmbeddingStore:
         """
         
         try:
-            # Get collection info
-            collection = self.vector_store._collection
-            count = collection.count()
+            # Get document count
+            count = self.document_store.count_documents()
             
-            # Try a simple similarity search to verify functionality
+            # Try a simple search to verify functionality
             if count > 0:
-                test_results = self.vector_store.similarity_search("test", k=1)
+                test_results = self.search_similar("test", k=1)
                 search_works = len(test_results) > 0
             else:
                 search_works = None
@@ -184,15 +214,14 @@ class EmbeddingStore:
         """Clear all documents from the collection"""
         
         try:
-            # Delete the collection and recreate it
-            self.vector_store.delete_collection()
+            # Get all document IDs and delete them
+            filters = {}  # Empty filter to get all documents
+            all_docs = self.document_store.filter_documents(filters=filters)
             
-            # Recreate the vector store
-            self.vector_store = Chroma(
-                collection_name=self.config.collection_name,
-                embedding_function=self.embeddings,
-                persist_directory=str(self.persist_directory)
-            )
+            if all_docs:
+                doc_ids = [doc.id for doc in all_docs if doc.id]
+                if doc_ids:
+                    self.document_store.delete_documents(doc_ids)
             
             print("Collection cleared successfully")
             
@@ -203,7 +232,7 @@ class EmbeddingStore:
         """Get the number of documents in the collection"""
         
         try:
-            return self.vector_store._collection.count()
+            return self.document_store.count_documents()
         except Exception:
             return 0
     
@@ -219,26 +248,21 @@ class EmbeddingStore:
         """
         
         try:
-            collection = self.vector_store._collection
+            # Get documents from the store
+            filters = {}  # Empty filter to get all documents
+            all_docs = self.document_store.filter_documents(filters=filters)
             
-            # Get all document IDs and metadata
-            # ChromaDB get() without specifying ids returns all documents
+            # Limit if requested
             if max_documents:
-                result = collection.get(limit=max_documents, include=['metadatas', 'documents'])
-            else:
-                result = collection.get(include=['metadatas', 'documents'])
+                all_docs = all_docs[:max_documents]
             
             documents = []
-            for i, (doc_id, metadata, content) in enumerate(zip(
-                result['ids'], 
-                result['metadatas'], 
-                result['documents']
-            )):
+            for doc in all_docs:
                 doc_info = {
-                    'id': doc_id,
-                    'metadata': metadata,
-                    'content_preview': content[:200] + '...' if len(content) > 200 else content,
-                    'content_length': len(content)
+                    'id': doc.id,
+                    'metadata': doc.meta,
+                    'content_preview': doc.content[:200] + '...' if len(doc.content) > 200 else doc.content,
+                    'content_length': len(doc.content)
                 }
                 documents.append(doc_info)
             
@@ -250,7 +274,7 @@ class EmbeddingStore:
     
     def remove_file_documents(self, file_path: Path) -> bool:
         """
-        Remove all document chunks for a specific file from the vector store
+        Remove all document chunks for a specific file from the document store
         
         Args:
             file_path: Path to the file whose chunks should be removed
@@ -259,19 +283,17 @@ class EmbeddingStore:
             True if documents were found and removed
         """
         try:
-            collection = self.vector_store._collection
-            
             # Find all chunks for this file
-            result = collection.get(
-                where={"source_file": str(file_path)},
-                include=['ids']
-            )
+            filters = {"source_file": str(file_path)}
+            matching_docs = self.document_store.filter_documents(filters=filters)
             
-            if result['ids']:
+            if matching_docs:
                 # Delete the chunks
-                collection.delete(ids=result['ids'])
-                print(f"Removed {len(result['ids'])} chunks for {file_path.name}")
-                return True
+                doc_ids = [doc.id for doc in matching_docs if doc.id]
+                if doc_ids:
+                    self.document_store.delete_documents(doc_ids)
+                    print(f"Removed {len(doc_ids)} chunks for {file_path.name}")
+                    return True
             else:
                 print(f"No existing chunks found for {file_path.name}")
                 return False
@@ -291,12 +313,9 @@ class EmbeddingStore:
             Number of chunks for this file
         """
         try:
-            collection = self.vector_store._collection
-            result = collection.get(
-                where={"source_file": str(file_path)},
-                include=['ids']
-            )
-            return len(result['ids'])
+            filters = {"source_file": str(file_path)}
+            matching_docs = self.document_store.filter_documents(filters=filters)
+            return len(matching_docs)
         except Exception:
             return 0
     
@@ -309,13 +328,14 @@ class EmbeddingStore:
         """
         
         try:
-            collection = self.vector_store._collection
-            result = collection.get(include=['metadatas'])
+            # Get all documents
+            filters = {}
+            all_docs = self.document_store.filter_documents(filters=filters)
             
             source_files = set()
-            for metadata in result['metadatas']:
-                if 'source_file' in metadata:
-                    source_files.add(metadata['source_file'])
+            for doc in all_docs:
+                if 'source_file' in doc.meta:
+                    source_files.add(doc.meta['source_file'])
             
             return sorted(list(source_files))
             

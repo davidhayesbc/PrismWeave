@@ -4,7 +4,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Tests](https://img.shields.io/badge/tests-pytest-green.svg)](https://pytest.org)
 
-A simplified document processing system that converts documents into embeddings for semantic search. Uses LangChain and local Ollama models for privacy-focused AI processing.
+A simplified document processing system that converts documents into embeddings for semantic search. Uses Haystack and local Ollama models for privacy-focused AI processing.
 
 ## 🎯 What This Does
 
@@ -21,7 +21,7 @@ A simplified document processing system that converts documents into embeddings 
 ### Key Features
 
 - **Local Processing**: Uses Ollama for privacy (no cloud APIs)
-- **LangChain Integration**: Built on LangChain ecosystem for reliability
+- **Haystack Integration**: Built on Haystack framework for reliability and modularity
 - **Git-Based Incremental Processing**: Only process new or changed files (90%+ time savings)
 - **Semantic Search**: Find documents by meaning, not just keywords (Phase 3)
 - **Collection Analytics**: Detailed statistics and insights (Phase 3)
@@ -353,8 +353,8 @@ pytest tests/
 
 ### Dependencies
 
-- **Core**: LangChain, ChromaDB, Ollama embeddings
-- **Documents**: python-frontmatter, pypdf, docx2txt
+- **Core**: Haystack, ChromaDB, Ollama embeddings
+- **Documents**: python-frontmatter, pypdf, python-docx
 
 ## ❓ Troubleshooting
 

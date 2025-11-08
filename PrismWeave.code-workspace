@@ -4,6 +4,9 @@
 			"path": "."
 		},
 		{
+			"path": "ai-processing"
+		},
+		{
 			"path": "../PrismWeaveDocs"
 		}
 	],
@@ -26,25 +29,6 @@
 			"*.json": "jsonc"
 		},
 		"powershell.cwd": "PrismWeave",
-		
-		// Python configuration for ai-processing
-		"python.defaultInterpreterPath": "./ai-processing/.venv/Scripts/python.exe",
-		"python.pythonPath": "./ai-processing/.venv/Scripts/python.exe",
-		"python.terminal.activateEnvironment": true,
-		"python.analysis.extraPaths": [
-			"./ai-processing/src"
-		],
-		"python.testing.pytestEnabled": true,
-		"python.testing.unittestEnabled": false,
-		"python.testing.pytestArgs": [
-			"ai-processing/tests",
-			"-v",
-			"--tb=short"
-		],
-		"python.testing.cwd": "./ai-processing",
-		"python.testing.autoTestDiscoverOnSaveEnabled": true,
-		"python.analysis.autoImportCompletions": true,
-		"python.analysis.typeCheckingMode": "basic",
 		
 		// Test configuration
 		"testing.automaticallyOpenPeekView": "never"

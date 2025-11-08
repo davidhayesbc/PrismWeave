@@ -14,7 +14,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 
 from src.core.config import Config
 from src.core.embedding_store import EmbeddingStore
-from langchain_core.documents import Document
+from haystack import Document
 
 
 class TestEmbeddingStoreInitialization:
@@ -31,8 +31,9 @@ class TestEmbeddingStoreInitialization:
             store = EmbeddingStore(config)
             
             assert store.config == config
-            assert store.embeddings is not None
-            assert store.vector_store is not None
+            assert store.document_embedder is not None
+            assert store.text_embedder is not None
+            assert store.document_store is not None
             assert Path(temp_dir).exists()
     
     def test_store_creates_directory(self):
@@ -151,12 +152,12 @@ class TestDocumentOperations:
             # Create test chunks
             chunks = [
                 Document(
-                    page_content="Test content chunk 1",
-                    metadata={"title": "Test Doc", "chunk_index": 0}
+                    content="Test content chunk 1",
+                    meta={"title": "Test Doc", "chunk_index": 0}
                 ),
                 Document(
-                    page_content="Test content chunk 2",
-                    metadata={"title": "Test Doc", "chunk_index": 1}
+                    content="Test content chunk 2",
+                    meta={"title": "Test Doc", "chunk_index": 1}
                 )
             ]
             

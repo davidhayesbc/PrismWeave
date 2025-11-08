@@ -49,9 +49,9 @@ Content for section 2.
             assert len(chunks) > 0, "Document should be split into chunks"
             
             # Verify metadata
-            assert chunks[0].metadata['title'] == 'Test Document'
-            assert chunks[0].metadata['category'] == 'test'
-            assert 'integration' in chunks[0].metadata['tags']
+            assert chunks[0].meta['title'] == 'Test Document'
+            assert chunks[0].meta['category'] == 'test'
+            assert 'integration' in chunks[0].meta['tags']
             
             # Store embeddings (requires Ollama)
             try:
@@ -149,10 +149,10 @@ Content for document {i}.
                 all_chunks.append((file, chunks))
             
             assert len(all_chunks) == 3, "Should process all 3 files"
-            
+
             # Verify each file's metadata
             for i, (file, chunks) in enumerate(all_chunks):
-                assert chunks[0].metadata['title'] == f'Document {i}'
+                assert chunks[0].meta['title'] == f'Document {i}'
     
     def test_handle_invalid_frontmatter(self):
         """Test handling documents with invalid frontmatter"""

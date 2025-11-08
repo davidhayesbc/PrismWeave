@@ -2,7 +2,7 @@
 """
 PrismWeave Document Processing CLI
 
-Process documents and generate embeddings using LangChain and Ollama.
+Process documents and generate embeddings using Haystack and Ollama.
 Supports markdown, PDF, DOCX, HTML, and text files.
 """
 
@@ -272,7 +272,7 @@ def cli():
 def process(path: Path, config: Optional[Path], verbose: bool, verify: bool, clear: bool, 
             incremental: bool, force: bool, repo_path: Optional[Path]):
     """
-    Process documents and generate embeddings using LangChain and Ollama.
+    Process documents and generate embeddings using Haystack and Ollama.
     
     PATH can be either a single file or a directory.
     

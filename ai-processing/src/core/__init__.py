@@ -2,7 +2,7 @@
 PrismWeave Core - Simplified Document Processing and Embedding Storage
 
 This module provides a simplified interface for processing documents and storing embeddings
-using LangChain and Ollama for local AI processing.
+using Haystack and Ollama for local AI processing.
 """
 
 from .document_processor import DocumentProcessor

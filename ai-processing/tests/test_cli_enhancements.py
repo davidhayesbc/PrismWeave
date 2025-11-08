@@ -16,7 +16,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from cli import cli, search, stats, export
 from src.core.config import Config
 from src.core.embedding_store import EmbeddingStore
-from langchain_core.documents import Document
+from haystack import Document
 
 
 @pytest.fixture
@@ -64,8 +64,8 @@ class TestSearchCommand:
         """Test basic search command"""
         # Mock search results
         mock_doc = Document(
-            page_content="This is test content about machine learning",
-            metadata={
+            content="This is test content about machine learning",
+            meta={
                 'source_file': '/docs/ml.md',
                 'chunk_index': 0,
                 'total_chunks': 3,
@@ -87,12 +87,12 @@ class TestSearchCommand:
     def test_search_with_filter(self, cli_runner, mock_config, mock_store):
         """Test search with file type filter"""
         mock_doc1 = Document(
-            page_content="MD content",
-            metadata={'source_file': '/docs/test.md'}
+            content="MD content",
+            meta={'source_file': '/docs/test.md'}
         )
         mock_doc2 = Document(
-            page_content="TXT content",
-            metadata={'source_file': '/docs/test.txt'}
+            content="TXT content",
+            meta={'source_file': '/docs/test.txt'}
         )
         mock_store.search_similar.return_value = [mock_doc1, mock_doc2]
         
