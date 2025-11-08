@@ -9,7 +9,7 @@ Supports markdown, PDF, DOCX, HTML, and text files.
 import sys
 import click
 from pathlib import Path
-from typing import Optional, List
+from typing import Optional
 import json
 from datetime import datetime
 import time
@@ -44,6 +44,22 @@ def check_ollama_connection(config: Config) -> bool:
         return response.status_code == 200
     except Exception:
         return False
+
+
+def find_git_repository(start_path: Path) -> Optional[Path]:
+    """Locate the nearest git repository root for the provided path."""
+
+    current = start_path.resolve()
+    if current.is_file():
+        current = current.parent
+
+    while True:
+        if (current / ".git").exists():
+            return current
+        if current == current.parent:
+            break
+        current = current.parent
+    return None
 
 
 def process_single_file(file_path: Path, config: Config, git_tracker: Optional[GitTracker] = None, verbose: bool = False, force: bool = False):
@@ -310,48 +326,52 @@ def process(path: Path, config: Optional[Path], verbose: bool, verify: bool, cle
         print("❌ Cannot use --incremental and --clear together")
         sys.exit(1)
     
-    # Initialize git tracker for incremental processing
-    git_tracker = None
-    if incremental or repo_path:
+    # Initialize git tracking if a repository is available
+    git_tracker: Optional[GitTracker] = None
+    repo_root: Optional[Path] = None
+
+    if repo_path:
+        repo_root = repo_path.resolve()
+    else:
+        repo_root = find_git_repository(path)
+
+    if repo_root:
         try:
-            # Determine repository path
-            if repo_path:
-                repo_root = repo_path
-            elif path.is_dir():
-                # Try to find git repo from the path
-                repo_root = path
-                while repo_root != repo_root.parent:
-                    if (repo_root / '.git').exists():
-                        break
-                    repo_root = repo_root.parent
-                else:
-                    raise ValueError("No git repository found")
-            else:
-                # For single file, find repo from parent directories
-                repo_root = path.parent
-                while repo_root != repo_root.parent:
-                    if (repo_root / '.git').exists():
-                        break
-                    repo_root = repo_root.parent
-                else:
-                    raise ValueError("No git repository found")
-            
             git_tracker = GitTracker(repo_root)
-            
+
             if verbose:
                 print(f"🔄 Git repository: {repo_root}")
                 summary = git_tracker.get_processing_summary()
                 print(f"📊 Processing state: {summary['processed_files']} processed, {summary['unprocessed_files']} unprocessed")
+
+            try:
+                if verbose:
+                    print("🔁 Pulling latest changes from remote...")
+                git_tracker.pull_latest()
+                if verbose:
+                    print("   ✅ Repository up to date")
+            except Exception as e:
+                print(f"⚠️  Warning: Failed to pull latest changes: {e}")
+
+            if verbose:
                 print()
-                
+
         except Exception as e:
-            if incremental:
+            if incremental or repo_path:
                 print(f"❌ Failed to initialize git tracking: {e}")
-                print("   Incremental processing requires a git repository")
+                if incremental:
+                    print("   Incremental processing requires a git repository")
                 sys.exit(1)
             else:
                 print(f"⚠️  Warning: Git tracking not available: {e}")
                 git_tracker = None
+    else:
+        if repo_path:
+            print(f"❌ Path is not a git repository: {repo_path}")
+            sys.exit(1)
+        if incremental:
+            print("❌ Incremental processing requires a git repository")
+            sys.exit(1)
     
     # Load configuration
     try:
@@ -439,6 +459,14 @@ def process(path: Path, config: Optional[Path], verbose: bool, verify: bool, cle
             store = EmbeddingStore(config_obj, git_tracker)
             verification = store.verify_embeddings()
             print(f"✅ Verification result: {verification}")
+
+        if git_tracker:
+            try:
+                git_tracker.commit_processing_state()
+                if verbose:
+                    print("📝 Committed processing state")
+            except Exception as e:
+                print(f"⚠️  Warning: Failed to commit processing state: {e}")
         
         print("\n✅ Processing completed successfully!")
         
@@ -564,16 +592,32 @@ def sync(repo_path: Optional[Path], config: Optional[Path], force: bool, verbose
     if verbose:
         print("✅ Ollama is running")
     
-    # Initialize git tracker for incremental processing
-    git_tracker = None
-    if not force:
+    # Initialize git tracker and pull latest changes
+    git_tracker: Optional[GitTracker] = None
+    try:
+        git_tracker = GitTracker(repo_path)
+        if verbose:
+            print("📝 Initialized git tracking for repository")
+            summary = git_tracker.get_processing_summary()
+            print(f"📊 Processing state: {summary['processed_files']} processed, {summary['unprocessed_files']} unprocessed")
+
         try:
-            git_tracker = GitTracker(repo_path)
             if verbose:
-                print("📝 Initialized git tracking for incremental processing")
+                print("🔁 Pulling latest changes from remote...")
+            git_tracker.pull_latest()
+            if verbose:
+                print("   ✅ Repository up to date")
         except Exception as e:
-            print(f"⚠️  Could not initialize git tracking: {e}")
+            print(f"⚠️  Warning: Failed to pull latest changes: {e}")
+
+        if verbose:
+            print()
+
+    except Exception as e:
+        print(f"⚠️  Could not initialize git tracking: {e}")
+        if not force:
             print("   Falling back to full processing mode")
+        git_tracker = None
     
     # Run incremental processing
     mode = "force" if force else "incremental"
@@ -593,6 +637,14 @@ def sync(repo_path: Optional[Path], config: Optional[Path], force: bool, verbose
         if not success:
             sys.exit(1)
         
+        if git_tracker:
+            try:
+                git_tracker.commit_processing_state()
+                if verbose:
+                    print("📝 Committed processing state")
+            except Exception as e:
+                print(f"⚠️  Warning: Failed to commit processing state: {e}")
+
         print("\n✅ Sync completed successfully!")
         
     except KeyboardInterrupt:

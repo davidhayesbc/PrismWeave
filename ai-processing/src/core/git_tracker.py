@@ -8,6 +8,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Set, Tuple
 import hashlib
+from urllib.parse import quote, urlparse, urlunparse
 
 
 class GitTracker:
@@ -30,6 +31,8 @@ class GitTracker:
         # Initialize git repository check
         if not self._is_git_repo():
             raise ValueError(f"Path {self.repo_path} is not a git repository")
+
+        self.github_username, self.github_pat = self._load_git_credentials()
     
     def _is_git_repo(self) -> bool:
         """Check if the path is a git repository"""
@@ -297,3 +300,166 @@ class GitTracker:
         state = self.load_processing_state()
         state["last_processed_commit"] = self.get_current_commit_hash()
         self.save_processing_state(state)
+
+    def _load_git_credentials(self) -> Tuple[Optional[str], Optional[str]]:
+        """Load GitHub credentials from a .env file within the repository."""
+
+        env_path = self.repo_path / ".env"
+
+        if not env_path.exists():
+            return None, None
+
+        credentials: Dict[str, str] = {}
+
+        try:
+            with env_path.open("r", encoding="utf-8") as env_file:
+                for raw_line in env_file:
+                    line = raw_line.strip()
+                    if not line or line.startswith("#"):
+                        continue
+
+                    if "=" not in line:
+                        continue
+
+                    key, value = line.split("=", 1)
+                    credentials[key.strip()] = value.strip()
+        except IOError:
+            return None, None
+
+        username = credentials.get("GITHUB_USERNAME") or credentials.get("GIT_USERNAME")
+        token = credentials.get("GITHUB_PAT") or credentials.get("GITHUB_TOKEN") or credentials.get("GIT_PAT")
+
+        return username or None, token or None
+
+    def _build_authenticated_remote(self, remote: str) -> Optional[str]:
+        """Return a remote URL injected with credentials when available."""
+
+        if not self.github_username or not self.github_pat:
+            return None
+
+        try:
+            result = subprocess.run(
+                ["git", "remote", "get-url", remote],
+                cwd=self.repo_path,
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+        except subprocess.CalledProcessError:
+            return None
+
+        remote_url = result.stdout.strip()
+        if not remote_url:
+            return None
+
+        parsed = urlparse(remote_url)
+
+        if parsed.scheme not in {"http", "https"}:
+            return None
+
+        hostname = parsed.hostname or ""
+        if not hostname:
+            return None
+
+        netloc = hostname
+        if parsed.port:
+            netloc = f"{netloc}:{parsed.port}"
+
+        username = quote(self.github_username, safe="")
+        token = quote(self.github_pat, safe="")
+
+        netloc = f"{username}:{token}@{netloc}"
+
+        return urlunparse(
+            (
+                parsed.scheme,
+                netloc,
+                parsed.path,
+                parsed.params,
+                parsed.query,
+                parsed.fragment,
+            )
+        )
+
+    def pull_latest(self, remote: Optional[str] = "origin", branch: Optional[str] = None, *, ff_only: bool = True) -> bool:
+        """Pull the latest changes from the remote repository."""
+
+        # If no branch specified, get the current branch
+        if not branch:
+            try:
+                branch_result = subprocess.run(
+                    ["git", "branch", "--show-current"],
+                    cwd=self.repo_path,
+                    capture_output=True,
+                    text=True,
+                    check=True,
+                )
+                branch = branch_result.stdout.strip()
+            except subprocess.CalledProcessError:
+                # If we can't get current branch, use 'main' as default
+                branch = "main"
+
+        cmd = ["git", "pull"]
+        if ff_only:
+            cmd.append("--ff-only")
+
+        if remote:
+            remote_arg = self._build_authenticated_remote(remote) or remote
+            cmd.append(remote_arg)
+            cmd.append(branch)
+
+        try:
+            subprocess.run(
+                cmd,
+                cwd=self.repo_path,
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+            return True
+        except subprocess.CalledProcessError as exc:
+            stderr = exc.stderr.strip() if exc.stderr else str(exc)
+            raise RuntimeError(f"Failed to pull latest changes: {stderr}")
+
+    def commit_processing_state(self, message: Optional[str] = None) -> bool:
+        """Commit the processing state file if it has changed."""
+
+        relative_state = str(self.state_file.relative_to(self.repo_path))
+
+        try:
+            status_result = subprocess.run(
+                ["git", "status", "--porcelain", "--", relative_state],
+                cwd=self.repo_path,
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+        except subprocess.CalledProcessError as exc:
+            stderr = exc.stderr.strip() if exc.stderr else str(exc)
+            raise RuntimeError(f"Failed to check processing state status: {stderr}")
+
+        if not status_result.stdout.strip():
+            return False  # No changes to commit
+
+        try:
+            subprocess.run(
+                ["git", "add", relative_state],
+                cwd=self.repo_path,
+                check=True,
+            )
+        except subprocess.CalledProcessError as exc:
+            stderr = exc.stderr.strip() if exc.stderr else str(exc)
+            raise RuntimeError(f"Failed to stage processing state: {stderr}")
+
+        commit_message = message or "chore: update processing state"
+
+        try:
+            subprocess.run(
+                ["git", "commit", "-m", commit_message],
+                cwd=self.repo_path,
+                check=True,
+            )
+            return True
+        except subprocess.CalledProcessError as exc:
+            stderr = exc.stderr.strip() if exc.stderr else str(exc)
+            raise RuntimeError(f"Failed to commit processing state: {stderr}")
