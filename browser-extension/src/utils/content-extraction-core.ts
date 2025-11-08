@@ -257,7 +257,17 @@ export class ContentExtractionCore {
       jsonLdScripts.forEach(script => {
         try {
           const data = JSON.parse(script.textContent || '');
-          structuredData.push(data);
+          // Filter out keywords arrays from structured data to prevent tag bloat
+          if (data && typeof data === 'object') {
+            const cleanedData = { ...data };
+            // Remove problematic fields that often contain link texts
+            delete cleanedData.keywords;
+            delete cleanedData.mentions;
+            delete cleanedData.relatedLink;
+            structuredData.push(cleanedData);
+          } else {
+            structuredData.push(data);
+          }
         } catch (error) {
           // Skip invalid JSON-LD
         }
@@ -545,9 +555,18 @@ export class ContentExtractionCore {
     const keywordsMeta = document.querySelector('[name="keywords"]')?.getAttribute('content');
     if (keywordsMeta) {
       return keywordsMeta
-        .split(',')
-        .map(keyword => keyword.trim())
-        .filter(keyword => keyword.length > 0);
+        .split(/[,;|]/)
+        .map(keyword => keyword.trim().toLowerCase())
+        .filter(keyword => {
+          // Filter out invalid keywords
+          if (keyword.length < 2 || keyword.length > 30) return false;
+          // Exclude sentences (more than 4 words)
+          if (keyword.split(/\s+/).length > 4) return false;
+          // Exclude URLs and special characters
+          if (keyword.includes('http') || keyword.includes('www.')) return false;
+          return true;
+        })
+        .slice(0, 10); // Limit to 10 keywords max
     }
     return [];
   }

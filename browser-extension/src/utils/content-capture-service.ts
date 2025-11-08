@@ -1710,8 +1710,8 @@ export class ContentCaptureService implements IContentExtractor, IDocumentProces
   private extractTagsFromMetadata(metadata: Record<string, unknown>): string[] {
     const tags: string[] = [];
 
-    // Extract keywords from common metadata fields
-    const keywordFields = ['keywords', 'description', 'author', 'category', 'tags'];
+    // Extract keywords ONLY from specific tag/category fields, not from description/author
+    const keywordFields = ['keywords', 'category', 'tags'];
 
     keywordFields.forEach(field => {
       const value = metadata[field];
@@ -1720,12 +1720,33 @@ export class ContentCaptureService implements IContentExtractor, IDocumentProces
         const extractedTags = value
           .split(/[,;|]/)
           .map(tag => tag.trim().toLowerCase())
-          .filter(tag => tag.length > 2 && tag.length < 30);
+          .filter(tag => {
+            // More strict filtering
+            if (tag.length < 2 || tag.length > 30) return false;
+            // Exclude long phrases (more than 4 words)
+            if (tag.split(/\s+/).length > 4) return false;
+            // Exclude URLs and click handlers
+            if (tag.includes('http') || tag.includes('click to') || tag.includes('window'))
+              return false;
+            return true;
+          });
+        tags.push(...extractedTags);
+      } else if (Array.isArray(value)) {
+        // Handle array of tags
+        const extractedTags = value
+          .map(tag => String(tag).trim().toLowerCase())
+          .filter(tag => {
+            if (tag.length < 2 || tag.length > 30) return false;
+            if (tag.split(/\s+/).length > 4) return false;
+            if (tag.includes('http') || tag.includes('click to')) return false;
+            return true;
+          });
         tags.push(...extractedTags);
       }
     });
 
-    return [...new Set(tags)]; // Remove duplicates
+    // Remove duplicates and limit to 10 tags
+    return [...new Set(tags)].slice(0, 10);
   }
 
   private extractDomain(url: string): string {

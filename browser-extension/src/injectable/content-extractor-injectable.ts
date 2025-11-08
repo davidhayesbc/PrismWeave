@@ -190,11 +190,38 @@ export class InjectableContentExtractor {
     }
 
     // Add keywords/tags if available
-    if (params.metadata.keywords && Array.isArray(params.metadata.keywords)) {
-      const tags = params.metadata.keywords
-        .map(k => `"${String(k).replace(/"/g, '\\"')}"`)
-        .join(', ');
-      frontmatterLines.push(`tags: [${tags}]`);
+    if (params.metadata.keywords) {
+      let keywordArray: string[] = [];
+
+      // Handle both string and array keywords
+      if (typeof params.metadata.keywords === 'string') {
+        keywordArray = (params.metadata.keywords as string)
+          .split(/[,;|]/)
+          .map(k => k.trim().toLowerCase());
+      } else if (Array.isArray(params.metadata.keywords)) {
+        keywordArray = params.metadata.keywords.map(k => String(k).trim().toLowerCase());
+      }
+
+      // Filter and validate tags
+      const validTags = keywordArray
+        .filter(tag => {
+          // Must be reasonable length
+          if (tag.length < 2 || tag.length > 30) return false;
+          // Exclude long phrases (more than 4 words)
+          if (tag.split(/\s+/).length > 4) return false;
+          // Exclude URLs and special patterns
+          if (tag.includes('http') || tag.includes('www.') || tag.includes('click to'))
+            return false;
+          // Exclude share buttons and common UI text
+          if (tag.match(/^(print|email|share|comment|#\w+)$/i)) return false;
+          return true;
+        })
+        .slice(0, 10); // Limit to 10 tags maximum
+
+      if (validTags.length > 0) {
+        const tags = validTags.map(k => `"${k.replace(/"/g, '\\"')}"`).join(', ');
+        frontmatterLines.push(`tags: [${tags}]`);
+      }
     }
 
     frontmatterLines.push('---', '');
