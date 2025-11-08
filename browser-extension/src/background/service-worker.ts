@@ -5,7 +5,7 @@
 import { IMessageData, IMessageResponse, MESSAGE_TYPES } from '../types/types';
 import { ContentCaptureService } from '../utils/content-capture-service';
 import { createLogger } from '../utils/logger';
-import { configureNotificationContext, notify } from '../utils/notifications';
+import { configureNotificationContext, notify } from '../utils/notifications/notify';
 import { PDFCaptureService } from '../utils/pdf-capture-service';
 import { SettingsManager } from '../utils/settings-manager';
 import { UnifiedCaptureService } from '../utils/unified-capture-service';

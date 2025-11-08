@@ -19,9 +19,10 @@ import {
 import { ContentExtractor, IImageInfo } from '../utils/content-extractor';
 import { createLogger } from '../utils/logger';
 import { MarkdownConverter } from '../utils/markdown-converter';
+import { configureNotificationContext, notification, notify } from '../utils/notifications/notify';
 
-// NOTE: We intentionally import the shared toast utility to guarantee visual parity
-// with the extension UI & bookmarklet. This replaces the prior bespoke notification block.
+// NOTE: We use the unified notification API that automatically selects the best implementation
+// based on execution environment (popup status UI → toast → Chrome notifications → console)
 // -----------------------------------------------------------------------------
 // Type & Interface Definitions (restored after refactor)
 // -----------------------------------------------------------------------------
@@ -80,6 +81,13 @@ const KEYBOARD_SHORTCUTS: IKeyboardShortcut[] = [
 async function initializeContentScript(): Promise<void> {
   try {
     logger.info('Initializing PrismWeave content script...');
+
+    // Configure notification context for content script environment
+    configureNotificationContext({
+      isContentScript: true,
+      isPopup: false,
+      isServiceWorker: false,
+    });
 
     // Load settings to check if keyboard shortcuts are enabled
     await loadKeyboardShortcutSettings();
@@ -243,7 +251,7 @@ async function handleShortcutAction(action: string): Promise<void> {
     }
   } catch (error) {
     logger.error('Error handling shortcut action:', error);
-    showToast('Failed to execute shortcut: ' + (error as Error).message, { type: 'error' });
+    notification.error('Failed to execute shortcut: ' + (error as Error).message);
   }
 }
 
@@ -298,7 +306,7 @@ async function handleCapturePageShortcut(): Promise<void> {
     contentScriptState.isCapturing = true;
 
     // Show "capturing" notification that stays until capture completes (no auto-hide)
-    showToast('Capturing content...', { type: 'info', duration: 0 }); // 0 duration = no auto-hide
+    notification.info('Capturing content...', { duration: 0 }); // 0 duration = no auto-hide
 
     // Check if current page is a PDF
     const isPDFPage = checkIfCurrentPageIsPDF();
@@ -322,8 +330,7 @@ async function handleCapturePageShortcut(): Promise<void> {
 
         if (commitUrl) {
           // Show success notification with GitHub link
-          showToast('PDF captured successfully! Click to view on GitHub.', {
-            type: 'success',
+          notification.success('PDF captured successfully! Click to view on GitHub.', {
             duration: 8000,
             clickUrl: commitUrl,
           });
@@ -333,7 +340,7 @@ async function handleCapturePageShortcut(): Promise<void> {
           });
         } else {
           // Show success notification without GitHub link
-          showToast('PDF captured successfully!', { type: 'success', duration: 8000 });
+          notification.success('PDF captured successfully!', { duration: 8000 });
           logger.warn('PDF capture completed but no commit URL found');
         }
       } else {
@@ -369,8 +376,7 @@ async function handleCapturePageShortcut(): Promise<void> {
 
         if (commitUrl) {
           // Show success notification with GitHub link
-          showToast('Page captured successfully! Click to view on GitHub.', {
-            type: 'success',
+          notification.success('Page captured successfully! Click to view on GitHub.', {
             duration: 8000,
             clickUrl: commitUrl,
           });
@@ -380,7 +386,7 @@ async function handleCapturePageShortcut(): Promise<void> {
           });
         } else {
           // Show success notification without GitHub link
-          showToast('Page captured successfully!', { type: 'success', duration: 8000 });
+          notification.success('Page captured successfully!', { duration: 8000 });
           logger.warn('Page capture completed but no commit URL found');
         }
       } else {
@@ -390,7 +396,7 @@ async function handleCapturePageShortcut(): Promise<void> {
   } catch (error) {
     logger.error('Keyboard shortcut capture failed:', error);
     // Hide the "capturing" notification and show error
-    showToast('Capture failed: ' + (error as Error).message, { type: 'error', duration: 8000 });
+    notification.error('Capture failed: ' + (error as Error).message, { duration: 8000 });
   } finally {
     contentScriptState.isCapturing = false;
   }
@@ -545,10 +551,10 @@ async function handleMessage(
         const duration = (message.data.duration as number) || 8000; // Increased default duration
         const clickUrl = (message.data.clickUrl || message.data.url) as string | undefined;
 
-        const options: any = { type: notificationType, duration };
+        const options: any = { duration };
         if (clickUrl) options.clickUrl = clickUrl;
 
-        showToast(message.data.message, options);
+        notify(message.data.message, { type: notificationType, ...options });
         logger.info('Notification shown:', message.data.message);
       }
       return { success: true };
@@ -594,7 +600,7 @@ async function extractPageContentWithUtilities(options?: any): Promise<IContentE
       // If utilities fail to initialize (e.g., extension context invalidated or other issues),
       // fall back to basic content extraction
       logger.warn('Utility initialization failed, falling back to basic extraction:', error);
-      showToast('Using basic capture mode', { type: 'info', duration: 3000 });
+      notification.info('Using basic capture mode', { duration: 3000 });
       return await basicContentExtraction();
     }
 
@@ -727,7 +733,7 @@ async function extractPageContentWithUtilities(options?: any): Promise<IContentE
     // If the main extraction failed, try basic fallback
     if (error instanceof Error && error.message.includes('Extension context invalidated')) {
       logger.warn('Falling back to basic content extraction due to extension context invalidation');
-      showToast('Extension reloaded - using basic capture mode', { type: 'info', duration: 3000 });
+      notification.info('Extension reloaded - using basic capture mode', { duration: 3000 });
       return await basicContentExtraction();
     }
 
@@ -885,8 +891,7 @@ if (typeof window !== 'undefined') {
     loadKeyboardShortcutSettings,
     testNotification: () => {
       // Test function to debug notification clicks
-      showToast('Test notification - Click me!', {
-        type: 'success',
+      notification.success('Test notification - Click me!', {
         duration: 10000,
         clickUrl: 'https://github.com/davidhayesbc/PrismWeaveDocs',
       });

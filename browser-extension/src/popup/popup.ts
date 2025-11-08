@@ -2,7 +2,7 @@
 
 import { IMessageData, IMessageResponse, ISettings, MESSAGE_TYPES } from '../types/types';
 import { createLogger } from '../utils/logger';
-import { configureNotificationContext } from '../utils/notifications';
+import { configureNotificationContext } from '../utils/notifications/notify';
 
 // Initialize logger
 const logger = createLogger('Popup');

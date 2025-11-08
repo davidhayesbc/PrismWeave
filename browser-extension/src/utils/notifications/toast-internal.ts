@@ -18,6 +18,9 @@ interface IToastOptions {
 const DEFAULT_DURATION = 4000;
 const STYLE_ID = 'prismweave-toast-styles';
 
+// Track active toasts for management
+const activeToasts = new Map<HTMLElement, { type: ToastType; dismiss: () => void }>();
+
 // Canonical toast styles extracted from shared-ui.css to ensure visual parity across extension, content scripts, and bookmarklet.
 // We inline only the variable subset actually referenced by the toast block to minimize payload while preserving themeability.
 // If the full shared stylesheet is already present these vars will simply be overridden (harmless duplication).
@@ -63,6 +66,23 @@ function getContainer(): HTMLElement | null {
   return el;
 }
 
+/**
+ * Dismiss all toasts of a specific type (or all toasts if no type specified)
+ */
+export function dismissToasts(typeFilter?: ToastType): void {
+  if (typeof document === 'undefined') return;
+  
+  const toastsToDismiss: Array<() => void> = [];
+  
+  activeToasts.forEach((toastInfo, toastElement) => {
+    if (!typeFilter || toastInfo.type === typeFilter) {
+      toastsToDismiss.push(toastInfo.dismiss);
+    }
+  });
+  
+  toastsToDismiss.forEach(dismiss => dismiss());
+}
+
 export function showToast(message: string, options: IToastOptions = {}): void {
   const {
     duration = DEFAULT_DURATION,
@@ -77,6 +97,11 @@ export function showToast(message: string, options: IToastOptions = {}): void {
 
   // If DOM not available (e.g., background worker) simply no-op per updated requirements.
   if (typeof document === 'undefined' || typeof window === 'undefined') return;
+
+  // Auto-dismiss info toasts when showing success or error (completion states)
+  if (type === 'success' || type === 'error') {
+    dismissToasts('info');
+  }
 
   ensureStyles();
   const container = getContainer();
@@ -172,9 +197,13 @@ export function showToast(message: string, options: IToastOptions = {}): void {
     toast.style.animation = 'pw-toast-out .25s ease forwards';
     window.setTimeout(() => {
       if (toast.parentElement) toast.parentElement.removeChild(toast);
+      activeToasts.delete(toast);
     }, 240);
     if (removalTimer) window.clearTimeout(removalTimer);
   }
+
+  // Track this toast
+  activeToasts.set(toast, { type, dismiss });
 }
 
 function deriveLinkLabel(url: string): string {

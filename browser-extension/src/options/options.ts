@@ -3,7 +3,7 @@
 
 import { IMessageData, IMessageResponse, ISettings } from '../types/types.js';
 import { createLogger } from '../utils/logger.js';
-import { notification } from '../utils/notifications/index.js';
+import { notification } from '../utils/notifications/notify.js';
 
 export class PrismWeaveOptions {
   private logger = createLogger('Options');
