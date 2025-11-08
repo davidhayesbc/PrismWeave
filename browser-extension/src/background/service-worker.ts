@@ -87,78 +87,82 @@ if (!chromeAPIs.scripting) {
 }
 
 /**
- * Create a Chrome notification with proper callback handling.
- * @param options - Notification options including type, title, message, and icon
- * @returns Promise that resolves with the notification ID
- * @throws Error if notifications API is not available or creation fails
+ * Show a notification by trying in-page toast first, falling back to browser notifications.
+ * This ensures consistent UX across all notification scenarios.
+ *
+ * @param message - The notification message to display
+ * @param options - Notification options
+ * @param tabId - Optional tab ID to show toast in (if not provided, uses active tab)
  */
-function createNotification(
-  options: chrome.notifications.NotificationOptions & {
-    type: 'basic' | 'image' | 'list' | 'progress';
-    title: string;
-    message: string;
-    iconUrl: string;
-  }
-): Promise<string> {
-  return new Promise((resolve, reject) => {
-    if (!chrome.notifications) {
-      reject(new Error('Notifications API not available'));
-      return;
-    }
-
-    // Ensure iconUrl is a full extension URL
-    const fullIconUrl = options.iconUrl.startsWith('chrome-extension://')
-      ? options.iconUrl
-      : chrome.runtime.getURL(options.iconUrl);
-
-    const notificationOptions = {
-      ...options,
-      iconUrl: fullIconUrl,
-    };
-
-    chrome.notifications.create(notificationOptions, notificationId => {
-      if (chrome.runtime.lastError) {
-        reject(new Error(chrome.runtime.lastError.message));
-      } else {
-        resolve(notificationId);
-      }
-    });
-  });
-}
-
-/**
- * Safely show a notification and handle any errors internally.
- * This function will not throw errors - it logs them instead since notifications are non-critical.
- * @param options - Notification options including title, message, and icon
- */
-async function showNotificationSafe(
-  options: chrome.notifications.NotificationOptions & {
-    title: string;
-    message: string;
-    iconUrl: string;
-  }
+async function showNotification(
+  message: string,
+  options: {
+    type?: 'success' | 'error' | 'info';
+    duration?: number;
+    clickUrl?: string;
+    linkLabel?: string;
+    tabId?: number;
+  } = {}
 ): Promise<void> {
-  try {
-    if (!chrome.notifications) {
-      logger.debug('Notifications API not available; skipping notification:', options.title);
-      return;
+  const { type = 'info', duration = 8000, clickUrl, linkLabel, tabId } = options;
+
+  // Try to get target tab ID
+  let targetTabId = tabId;
+  if (!targetTabId) {
+    try {
+      const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      targetTabId = activeTab?.id;
+    } catch (err) {
+      logger.debug('Could not get active tab for notification');
     }
+  }
 
-    // Ensure a notification type is present (createNotification requires it)
-    const fullOptions = {
-      type: (options as any).type || 'basic',
-      ...options,
-    } as chrome.notifications.NotificationOptions & {
-      type: 'basic' | 'image' | 'list' | 'progress';
-      title: string;
-      message: string;
-      iconUrl: string;
-    };
+  // First attempt: in-page toast notification (preferred)
+  if (targetTabId) {
+    try {
+      await chrome.tabs.sendMessage(targetTabId, {
+        type: 'SHOW_NOTIFICATION',
+        data: {
+          message,
+          type,
+          duration,
+          ...(clickUrl && { clickUrl }),
+          ...(linkLabel && { linkLabel }),
+        },
+        timestamp: Date.now(),
+      });
+      logger.debug('Toast notification shown successfully');
+      return; // Success - no need for fallback
+    } catch (err) {
+      logger.debug('Toast notification failed, will try fallback:', err);
+    }
+  }
 
-    await createNotification(fullOptions);
-  } catch (error) {
-    // Only log a warning: notifications are non-critical.
-    logger.warn('Failed to show notification:', options.title, (error as Error).message);
+  // Fallback: browser notification (only if toast failed)
+  if (chrome.notifications) {
+    try {
+      const notificationOptions: chrome.notifications.NotificationOptions = {
+        type: 'basic',
+        iconUrl: chrome.runtime.getURL('icons/icon48.png'),
+        title: 'PrismWeave',
+        message,
+      };
+
+      await new Promise<void>((resolve, reject) => {
+        chrome.notifications.create(notificationOptions, notificationId => {
+          if (chrome.runtime.lastError) {
+            reject(new Error(chrome.runtime.lastError.message));
+          } else {
+            resolve();
+          }
+        });
+      });
+      logger.debug('Browser notification shown as fallback');
+    } catch (error) {
+      logger.warn('All notification methods failed:', error);
+    }
+  } else {
+    logger.debug('No notification method available');
   }
 }
 
@@ -443,14 +447,10 @@ async function handleKeyboardShortcut(command: string): Promise<void> {
       logger.info('Capture shortcut message sent to content script');
     } catch (error) {
       logger.error('Failed to send capture shortcut message:', error);
-      // Show browser notification if content script communication fails
-      if (chrome.notifications) {
-        await showNotificationSafe({
-          iconUrl: 'icons/icon48.png',
-          title: 'PrismWeave',
-          message: 'Please reload the page and try again',
-        });
-      }
+      // Show notification (tries toast first, then browser notification)
+      await showNotification('Please reload the page and try again', {
+        type: 'error',
+      });
     }
   }
 }
@@ -1092,13 +1092,10 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
         'Service worker not initialized for context menu action - state:',
         serviceWorkerState
       );
-      if (chrome.notifications) {
-        await showNotificationSafe({
-          iconUrl: 'icons/icon48.png',
-          title: 'PrismWeave - Not Ready',
-          message: 'Extension is still starting up. Please try again in a moment.',
-        });
-      }
+      await showNotification('Extension is still starting up. Please try again in a moment.', {
+        type: 'info',
+        tabId: tab?.id,
+      });
       return;
     }
 
@@ -1110,35 +1107,16 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
         if (info.linkUrl) {
           logger.info('Capturing link:', info.linkUrl, 'from tab:', tab?.url);
 
-          // Unified toast approach: attempt to show in-page toast first
+          // Helper to show notifications in the current tab
           const tabId = tab?.id;
           const showToastInTab = async (
             message: string,
             opts: { type?: 'success' | 'error' | 'info'; duration?: number; clickUrl?: string } = {}
           ) => {
-            if (!tabId) return;
-            try {
-              await chrome.tabs.sendMessage(tabId, {
-                type: 'SHOW_NOTIFICATION',
-                data: {
-                  message,
-                  type: opts.type || 'info',
-                  duration: opts.duration ?? 8000,
-                  ...(opts.clickUrl && { clickUrl: opts.clickUrl }),
-                },
-                timestamp: Date.now(),
-              });
-            } catch (err) {
-              // Fallback to browser notification if content script not available
-              logger.debug('Toast message failed, falling back to chrome.notifications:', err);
-              if (chrome.notifications) {
-                await showNotificationSafe({
-                  iconUrl: 'icons/icon48.png',
-                  title: 'PrismWeave',
-                  message,
-                });
-              }
-            }
+            await showNotification(message, {
+              ...opts,
+              tabId,
+            });
           };
 
           // Initial "capturing" toast (match keyboard shortcut pattern)
@@ -1196,28 +1174,11 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
           }
         } else {
           logger.error('No link URL provided for link capture - info object:', info);
-          const tabId = tab?.id;
-          if (tabId) {
-            try {
-              await chrome.tabs.sendMessage(tabId, {
-                type: 'SHOW_NOTIFICATION',
-                data: {
-                  message: 'No link URL found. Please right-click directly on a link.',
-                  type: 'error',
-                  duration: 8000,
-                },
-                timestamp: Date.now(),
-              });
-            } catch (err) {
-              if (chrome.notifications) {
-                await showNotificationSafe({
-                  iconUrl: 'icons/icon48.png',
-                  title: 'PrismWeave - Error',
-                  message: 'No link URL found. Please right-click directly on a link.',
-                });
-              }
-            }
-          }
+          // Show error notification
+          await showNotification('No link URL found. Please right-click directly on a link.', {
+            type: 'error',
+            tabId: tab?.id,
+          });
         }
         break;
 
@@ -1236,26 +1197,11 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
             logger.info('Context menu capture message sent to content script (toast path)');
           } catch (error) {
             logger.error('Failed to send context menu capture message:', error);
-            // Fallback: try in-page error toast, else notification
-            try {
-              await chrome.tabs.sendMessage(tab.id, {
-                type: 'SHOW_NOTIFICATION',
-                data: {
-                  message: 'Please reload the page and try again',
-                  type: 'error',
-                  duration: 8000,
-                },
-                timestamp: Date.now(),
-              });
-            } catch (err) {
-              if (chrome.notifications) {
-                await showNotificationSafe({
-                  iconUrl: 'icons/icon48.png',
-                  title: 'PrismWeave',
-                  message: 'Please reload the page and try again',
-                });
-              }
-            }
+            // Show error notification
+            await showNotification('Please reload the page and try again', {
+              type: 'error',
+              tabId: tab.id,
+            });
           }
         } else {
           logger.error('No tab ID available for page capture');

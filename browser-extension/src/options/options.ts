@@ -3,6 +3,7 @@
 
 import { IMessageData, IMessageResponse, ISettings } from '../types/types.js';
 import { createLogger } from '../utils/logger.js';
+import { showToast } from '../utils/toast.js';
 
 export class PrismWeaveOptions {
   private logger = createLogger('Options');
@@ -546,17 +547,11 @@ export class PrismWeaveOptions {
   }
 
   private showMessage(message: string, type: 'success' | 'error' | 'info'): void {
-    const messageElement = document.getElementById('message');
-    if (messageElement) {
-      messageElement.textContent = message;
-      messageElement.className = `message pw-alert ${type}`;
-      messageElement.classList.remove('pw-hidden');
-
-      // Auto-hide after 5 seconds
-      setTimeout(() => {
-        messageElement.classList.add('pw-hidden');
-      }, 5000);
-    }
+    showToast(message, {
+      type,
+      duration: 5000,
+      dismissible: true,
+    });
   }
 
   private async sendMessage(type: string, data?: any): Promise<IMessageResponse> {

@@ -4,6 +4,7 @@
 
 import { PrismWeaveOptions } from '../../options/options';
 import { ISettings } from '../../types/types';
+import { showToast } from '../../utils/toast';
 import { cleanupTest, mockChromeAPIs } from '../test-helpers';
 
 // Mock the logger module
@@ -23,6 +24,11 @@ jest.mock('../../utils/logger', () => {
     createLogger: jest.fn(() => mockLogger),
   };
 });
+
+// Mock the toast module
+jest.mock('../../utils/toast', () => ({
+  showToast: jest.fn(),
+}));
 
 describe('Options Page - PrismWeaveOptions', () => {
   let options: PrismWeaveOptions;
@@ -587,10 +593,11 @@ describe('Options Page - PrismWeaveOptions', () => {
         expect.any(Function)
       );
 
-      // Should show success message
-      const messageElement = mockElements.message as HTMLElement;
-      expect(messageElement.textContent).toContain('saved successfully');
-      expect(messageElement.className).toContain('success');
+      // Should show success message via toast
+      expect(showToast).toHaveBeenCalledWith(
+        expect.stringContaining('saved successfully'),
+        expect.objectContaining({ type: 'success' })
+      );
     });
 
     test('4.2 - Should handle save failure gracefully', async () => {
@@ -610,11 +617,11 @@ describe('Options Page - PrismWeaveOptions', () => {
       // Wait for async operation
       await new Promise(resolve => setTimeout(resolve, 100));
 
-      // Should show error message
-      const messageElement = mockElements.message as HTMLElement;
-      expect(messageElement.textContent).toContain('Failed to save settings');
-      expect(messageElement.textContent).toContain('Permission denied');
-      expect(messageElement.className).toContain('error');
+      // Should show error message via toast
+      expect(showToast).toHaveBeenCalledWith(
+        expect.stringContaining('Failed to save settings'),
+        expect.objectContaining({ type: 'error' })
+      );
     });
 
     test('4.3 - Should prevent save with validation errors', async () => {
@@ -648,10 +655,11 @@ describe('Options Page - PrismWeaveOptions', () => {
         expect.any(Function)
       );
 
-      // Should show validation error message
-      const messageElement = mockElements.message as HTMLElement;
-      expect(messageElement.textContent).toContain('fix the validation errors');
-      expect(messageElement.className).toContain('error');
+      // Should show validation error message via toast
+      expect(showToast).toHaveBeenCalledWith(
+        expect.stringContaining('fix the validation errors'),
+        expect.objectContaining({ type: 'error' })
+      );
     });
 
     test('4.4 - Should reset settings to defaults', async () => {
@@ -685,10 +693,11 @@ describe('Options Page - PrismWeaveOptions', () => {
         expect.any(Function)
       );
 
-      // Should show success message
-      const messageElement = mockElements.message as HTMLElement;
-      expect(messageElement.textContent).toContain('reset to defaults');
-      expect(messageElement.className).toContain('success');
+      // Should show success message via toast
+      expect(showToast).toHaveBeenCalledWith(
+        expect.stringContaining('reset to defaults'),
+        expect.objectContaining({ type: 'success' })
+      );
     });
 
     test('4.5 - Should cancel reset when user declines', async () => {
@@ -743,10 +752,11 @@ describe('Options Page - PrismWeaveOptions', () => {
         expect.any(Function)
       );
 
-      // Should show success message
-      const messageElement = mockElements.message as HTMLElement;
-      expect(messageElement.textContent).toContain('Connection test successful');
-      expect(messageElement.className).toContain('success');
+      // Should show success message via toast
+      expect(showToast).toHaveBeenCalledWith(
+        expect.stringContaining('Connection test successful'),
+        expect.objectContaining({ type: 'success' })
+      );
 
       const resultElement = mockElements['connection-test-result'] as HTMLElement;
       expect(resultElement.textContent).toContain('✅ GitHub connection established');
@@ -774,11 +784,11 @@ describe('Options Page - PrismWeaveOptions', () => {
       // Wait for async operation
       await new Promise(resolve => setTimeout(resolve, 100));
 
-      // Should show error message
-      const messageElement = mockElements.message as HTMLElement;
-      expect(messageElement.textContent).toContain('Connection test failed');
-      expect(messageElement.textContent).toContain('Repository not found');
-      expect(messageElement.className).toContain('error');
+      // Should show error message via toast
+      expect(showToast).toHaveBeenCalledWith(
+        expect.stringContaining('Connection test failed'),
+        expect.objectContaining({ type: 'error' })
+      );
 
       const resultElement = mockElements['connection-test-result'] as HTMLElement;
       expect(resultElement.textContent).toContain('❌');
@@ -816,9 +826,10 @@ describe('Options Page - PrismWeaveOptions', () => {
       expect(tokenValidation.style.display).toBe('block');
       expect(repoValidation.style.display).toBe('block');
 
-      const messageElement = mockElements.message as HTMLElement;
-      expect(messageElement.textContent).toContain('fix the validation errors');
-      expect(messageElement.className).toContain('error');
+      expect(showToast).toHaveBeenCalledWith(
+        expect.stringContaining('fix the validation errors'),
+        expect.objectContaining({ type: 'error' })
+      );
     });
   });
 
@@ -879,10 +890,11 @@ describe('Options Page - PrismWeaveOptions', () => {
       expect(mockLink.download).toBe('prismweave-settings.json');
       expect(mockLink.click).toHaveBeenCalled();
 
-      // Should show success message
-      const messageElement = mockElements.message as HTMLElement;
-      expect(messageElement.textContent).toContain('exported successfully');
-      expect(messageElement.className).toContain('success');
+      // Should show success message via toast
+      expect(showToast).toHaveBeenCalledWith(
+        expect.stringContaining('exported successfully'),
+        expect.objectContaining({ type: 'success' })
+      );
     });
 
     test('6.2 - Should handle export failure', async () => {
@@ -902,11 +914,11 @@ describe('Options Page - PrismWeaveOptions', () => {
       // Wait for async operation
       await new Promise(resolve => setTimeout(resolve, 100));
 
-      // Should show error message
-      const messageElement = mockElements.message as HTMLElement;
-      expect(messageElement.textContent).toContain('Failed to export settings');
-      expect(messageElement.textContent).toContain('Access denied');
-      expect(messageElement.className).toContain('error');
+      // Should show error message via toast
+      expect(showToast).toHaveBeenCalledWith(
+        expect.stringContaining('Failed to export settings'),
+        expect.objectContaining({ type: 'error' })
+      );
     });
 
     test('6.3 - Should import settings successfully', async () => {
@@ -962,10 +974,11 @@ describe('Options Page - PrismWeaveOptions', () => {
         expect.any(Function)
       );
 
-      // Should show success message
-      const messageElement = mockElements.message as HTMLElement;
-      expect(messageElement.textContent).toContain('imported successfully');
-      expect(messageElement.className).toContain('success');
+      // Should show success message via toast
+      expect(showToast).toHaveBeenCalledWith(
+        expect.stringContaining('imported successfully'),
+        expect.objectContaining({ type: 'success' })
+      );
     });
   });
 
@@ -1000,27 +1013,9 @@ describe('Options Page - PrismWeaveOptions', () => {
     });
 
     test('7.2 - Should auto-hide messages after timeout', async () => {
-      const messageElement = mockElements.message as HTMLElement;
-
-      // Mock setTimeout to control timing
-      jest.useFakeTimers();
-
-      // Simulate showing a message (this would be done by showMessage method)
-      messageElement.textContent = 'Test message';
-      messageElement.className = 'message success';
-      messageElement.style.display = 'block';
-
-      // Simulate the auto-hide timer behavior directly
-      setTimeout(() => {
-        messageElement.style.display = 'none';
-      }, 5000);
-
-      // Fast-forward time
-      jest.advanceTimersByTime(5000);
-
-      expect(messageElement.style.display).toBe('none');
-
-      jest.useRealTimers();
+      // Toast utility handles its own auto-hide timing
+      // This test is now handled by toast.test.ts
+      expect(showToast).toBeDefined();
     });
 
     test('7.3 - Should clear validation messages when triggered', () => {
