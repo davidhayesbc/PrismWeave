@@ -4,7 +4,7 @@
 
 import { PrismWeaveOptions } from '../../options/options';
 import { ISettings } from '../../types/types';
-import { notification } from '../../utils/notifications/index.js';
+import { notification } from '../../utils/notifications/notify.js';
 import { cleanupTest, mockChromeAPIs } from '../test-helpers';
 
 // Mock the logger module
@@ -26,7 +26,7 @@ jest.mock('../../utils/logger', () => {
 });
 
 // Mock the notifications module
-jest.mock('../../utils/notifications/index.js', () => ({
+jest.mock('../../utils/notifications/notify.js', () => ({
   notify: jest.fn(),
   notification: {
     success: jest.fn(),

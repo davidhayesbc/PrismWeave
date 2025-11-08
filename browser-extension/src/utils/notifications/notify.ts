@@ -41,12 +41,14 @@ export interface INotificationContext {
   isPopup?: boolean; // Running in popup.html context
   isContentScript?: boolean; // Running in content script (has DOM)
   isServiceWorker?: boolean; // Running in service worker (no DOM)
-  popupStatusHandler?: (
-    title: string,
-    message: string | undefined,
-    type: NotificationType,
-    options: INotificationOptions
-  ) => void;
+  popupStatusHandler?:
+    | ((
+        title: string,
+        message: string | undefined,
+        type: NotificationType,
+        options: INotificationOptions
+      ) => void)
+    | undefined;
 }
 
 // Global context - can be updated by different environments
@@ -54,7 +56,14 @@ let notificationContext: INotificationContext = {
   isPopup: false,
   isContentScript: false,
   isServiceWorker: false,
-  popupStatusHandler: undefined,
+  popupStatusHandler: undefined as
+    | ((
+        title: string,
+        message: string | undefined,
+        type: NotificationType,
+        options: INotificationOptions
+      ) => void)
+    | undefined,
 };
 
 /**
@@ -111,15 +120,18 @@ export function notify(title: string, options: INotificationOptions = {}): void 
       // Combine title and message for toast
       const toastMessage = message ? `${title}: ${message}` : title;
 
-      showToast(toastMessage, {
+      // Only include properties if they are defined, to match IToastOptions
+      const toastOptions: any = {
         type: toastType,
         duration,
         dismissible,
-        clickUrl,
-        linkLabel,
-        openInNewTab,
-        onClick,
-      });
+      };
+      if (clickUrl !== undefined) toastOptions.clickUrl = clickUrl;
+      if (linkLabel !== undefined) toastOptions.linkLabel = linkLabel;
+      if (openInNewTab !== undefined) toastOptions.openInNewTab = openInNewTab;
+      if (onClick !== undefined) toastOptions.onClick = onClick;
+
+      showToast(toastMessage, toastOptions);
       return;
     } catch (error) {
       console.warn('Toast notification failed, falling back:', error);

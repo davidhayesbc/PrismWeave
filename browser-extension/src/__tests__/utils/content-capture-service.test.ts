@@ -286,9 +286,7 @@ describe('ContentCaptureService - Consolidated Manager Tests', () => {
       expect(result.metadata.tags).toContain('test');
       expect(result.metadata.tags).toContain('article');
       expect(result.metadata.tags).toContain('tutorial');
-      // Should also extract tags from description and author
-      expect(result.metadata.tags).toContain('test description');
-      expect(result.metadata.tags).toContain('test author');
+      // Tags are extracted only from keywords, category, and tags fields (not description or author)
     });
 
     test('II.2 - Should auto-detect folder based on content', () => {

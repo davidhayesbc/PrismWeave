@@ -133,5 +133,12 @@
   "testing.followRunningTest": true,
   "testing.openTesting": "neverOpen",
   "testing.automaticallyOpenTestResults": "neverOpen",
-  "python-envs.pythonProjects": []
+
+  "python-envs.pythonProjects": [
+    {
+      "path": "",
+      "envManager": "ms-python.python:venv",
+      "packageManager": "ms-python.python:pip"
+    }
+  ]
 }
