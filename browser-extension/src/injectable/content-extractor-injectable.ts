@@ -6,7 +6,7 @@
 import { ContentExtractionCore, ICoreExtractionOptions } from '../utils/content-extraction-core.js';
 import { createLogger } from '../utils/logger.js';
 import { MarkdownConverter } from '../utils/markdown-converter.js';
-import { showToast } from '../utils/toast.js';
+import { showToast } from '../utils/notifications/toast-internal.js';
 
 // Re-export and extend core options for injectable use
 export interface IInjectableExtractionOptions extends ICoreExtractionOptions {

@@ -4,7 +4,7 @@
 // in an injectable format that can be loaded dynamically into web pages
 
 import { createLogger } from '../utils/logger.js';
-import { showToast, type ToastType } from '../utils/toast.js';
+import { showToast, type ToastType } from '../utils/notifications/toast-internal.js';
 import {
   IInjectableContentResult,
   IInjectableExtractionOptions,

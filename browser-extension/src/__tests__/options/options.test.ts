@@ -4,7 +4,7 @@
 
 import { PrismWeaveOptions } from '../../options/options';
 import { ISettings } from '../../types/types';
-import { showToast } from '../../utils/toast';
+import { notification } from '../../utils/notifications/index.js';
 import { cleanupTest, mockChromeAPIs } from '../test-helpers';
 
 // Mock the logger module
@@ -25,9 +25,16 @@ jest.mock('../../utils/logger', () => {
   };
 });
 
-// Mock the toast module
-jest.mock('../../utils/toast', () => ({
-  showToast: jest.fn(),
+// Mock the notifications module
+jest.mock('../../utils/notifications/index.js', () => ({
+  notify: jest.fn(),
+  notification: {
+    success: jest.fn(),
+    error: jest.fn(),
+    info: jest.fn(),
+    warning: jest.fn(),
+  },
+  configureNotificationContext: jest.fn(),
 }));
 
 describe('Options Page - PrismWeaveOptions', () => {
@@ -593,10 +600,10 @@ describe('Options Page - PrismWeaveOptions', () => {
         expect.any(Function)
       );
 
-      // Should show success message via toast
-      expect(showToast).toHaveBeenCalledWith(
+      // Should show success message via notification
+      expect(notification.success).toHaveBeenCalledWith(
         expect.stringContaining('saved successfully'),
-        expect.objectContaining({ type: 'success' })
+        expect.objectContaining({ duration: 5000, dismissible: true })
       );
     });
 
@@ -617,10 +624,10 @@ describe('Options Page - PrismWeaveOptions', () => {
       // Wait for async operation
       await new Promise(resolve => setTimeout(resolve, 100));
 
-      // Should show error message via toast
-      expect(showToast).toHaveBeenCalledWith(
+      // Should show error message via notification
+      expect(notification.error).toHaveBeenCalledWith(
         expect.stringContaining('Failed to save settings'),
-        expect.objectContaining({ type: 'error' })
+        expect.objectContaining({ duration: 5000, dismissible: true })
       );
     });
 
@@ -655,10 +662,10 @@ describe('Options Page - PrismWeaveOptions', () => {
         expect.any(Function)
       );
 
-      // Should show validation error message via toast
-      expect(showToast).toHaveBeenCalledWith(
+      // Should show validation error message via notification
+      expect(notification.error).toHaveBeenCalledWith(
         expect.stringContaining('fix the validation errors'),
-        expect.objectContaining({ type: 'error' })
+        expect.objectContaining({ duration: 5000, dismissible: true })
       );
     });
 
@@ -693,10 +700,10 @@ describe('Options Page - PrismWeaveOptions', () => {
         expect.any(Function)
       );
 
-      // Should show success message via toast
-      expect(showToast).toHaveBeenCalledWith(
+      // Should show success message via notification
+      expect(notification.success).toHaveBeenCalledWith(
         expect.stringContaining('reset to defaults'),
-        expect.objectContaining({ type: 'success' })
+        expect.objectContaining({ duration: 5000, dismissible: true })
       );
     });
 
@@ -752,10 +759,10 @@ describe('Options Page - PrismWeaveOptions', () => {
         expect.any(Function)
       );
 
-      // Should show success message via toast
-      expect(showToast).toHaveBeenCalledWith(
+      // Should show success message via notification
+      expect(notification.success).toHaveBeenCalledWith(
         expect.stringContaining('Connection test successful'),
-        expect.objectContaining({ type: 'success' })
+        expect.objectContaining({ duration: 5000, dismissible: true })
       );
 
       const resultElement = mockElements['connection-test-result'] as HTMLElement;
@@ -784,10 +791,10 @@ describe('Options Page - PrismWeaveOptions', () => {
       // Wait for async operation
       await new Promise(resolve => setTimeout(resolve, 100));
 
-      // Should show error message via toast
-      expect(showToast).toHaveBeenCalledWith(
+      // Should show error message via notification
+      expect(notification.error).toHaveBeenCalledWith(
         expect.stringContaining('Connection test failed'),
-        expect.objectContaining({ type: 'error' })
+        expect.objectContaining({ duration: 5000, dismissible: true })
       );
 
       const resultElement = mockElements['connection-test-result'] as HTMLElement;
@@ -826,9 +833,9 @@ describe('Options Page - PrismWeaveOptions', () => {
       expect(tokenValidation.style.display).toBe('block');
       expect(repoValidation.style.display).toBe('block');
 
-      expect(showToast).toHaveBeenCalledWith(
+      expect(notification.error).toHaveBeenCalledWith(
         expect.stringContaining('fix the validation errors'),
-        expect.objectContaining({ type: 'error' })
+        expect.objectContaining({ duration: 5000, dismissible: true })
       );
     });
   });
@@ -890,10 +897,10 @@ describe('Options Page - PrismWeaveOptions', () => {
       expect(mockLink.download).toBe('prismweave-settings.json');
       expect(mockLink.click).toHaveBeenCalled();
 
-      // Should show success message via toast
-      expect(showToast).toHaveBeenCalledWith(
+      // Should show success message via notification
+      expect(notification.success).toHaveBeenCalledWith(
         expect.stringContaining('exported successfully'),
-        expect.objectContaining({ type: 'success' })
+        expect.objectContaining({ duration: 5000, dismissible: true })
       );
     });
 
@@ -914,10 +921,10 @@ describe('Options Page - PrismWeaveOptions', () => {
       // Wait for async operation
       await new Promise(resolve => setTimeout(resolve, 100));
 
-      // Should show error message via toast
-      expect(showToast).toHaveBeenCalledWith(
+      // Should show error message via notification
+      expect(notification.error).toHaveBeenCalledWith(
         expect.stringContaining('Failed to export settings'),
-        expect.objectContaining({ type: 'error' })
+        expect.objectContaining({ duration: 5000, dismissible: true })
       );
     });
 
@@ -974,10 +981,10 @@ describe('Options Page - PrismWeaveOptions', () => {
         expect.any(Function)
       );
 
-      // Should show success message via toast
-      expect(showToast).toHaveBeenCalledWith(
+      // Should show success message via notification
+      expect(notification.success).toHaveBeenCalledWith(
         expect.stringContaining('imported successfully'),
-        expect.objectContaining({ type: 'success' })
+        expect.objectContaining({ duration: 5000, dismissible: true })
       );
     });
   });
@@ -1015,7 +1022,7 @@ describe('Options Page - PrismWeaveOptions', () => {
     test('7.2 - Should auto-hide messages after timeout', async () => {
       // Toast utility handles its own auto-hide timing
       // This test is now handled by toast.test.ts
-      expect(showToast).toBeDefined();
+      expect(notification.success).toBeDefined();
     });
 
     test('7.3 - Should clear validation messages when triggered', () => {

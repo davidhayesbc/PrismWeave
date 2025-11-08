@@ -2,8 +2,8 @@
 // Test suite for toast notification utility with z-index handling
 
 // Mock the toast module before importing
-jest.mock('../../utils/toast', () => {
-  const originalModule = jest.requireActual('../../utils/toast');
+jest.mock('../../utils/notifications/toast-internal', () => {
+  const originalModule = jest.requireActual('../../utils/notifications/toast-internal');
 
   // Track container modifications for testing
   let containerZIndex: string | undefined;
@@ -26,12 +26,12 @@ jest.mock('../../utils/toast', () => {
   };
 });
 
-import { showToast } from '../../utils/toast';
+import { showToast } from '../../utils/notifications/toast-internal';
 
 describe('Toast Z-Index Configuration', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    require('../../utils/toast').__resetContainerZIndex();
+    require('../../utils/notifications/toast-internal').__resetContainerZIndex();
   });
 
   test('should use high z-index value in CSS', () => {

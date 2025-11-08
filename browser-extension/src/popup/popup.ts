@@ -2,6 +2,7 @@
 
 import { IMessageData, IMessageResponse, ISettings, MESSAGE_TYPES } from '../types/types';
 import { createLogger } from '../utils/logger';
+import { configureNotificationContext } from '../utils/notifications';
 
 // Initialize logger
 const logger = createLogger('Popup');
@@ -35,6 +36,12 @@ export class PrismWeavePopup {
     this.window = dependencies.window || (globalThis as any).window;
 
     logger.debug('PrismWeavePopup constructor called');
+
+    // Configure notification context for popup environment
+    configureNotificationContext({
+      isPopup: true,
+      popupStatusHandler: this.updateCaptureStatus.bind(this),
+    });
 
     // Allow tests to skip auto-initialization
     if (dependencies.autoInitialize !== false) {

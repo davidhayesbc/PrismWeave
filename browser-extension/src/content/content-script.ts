@@ -19,7 +19,6 @@ import {
 import { ContentExtractor, IImageInfo } from '../utils/content-extractor';
 import { createLogger } from '../utils/logger';
 import { MarkdownConverter } from '../utils/markdown-converter';
-import { showToast } from '../utils/toast';
 
 // NOTE: We intentionally import the shared toast utility to guarantee visual parity
 // with the extension UI & bookmarklet. This replaces the prior bespoke notification block.

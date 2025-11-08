@@ -3,7 +3,7 @@
 
 import { IMessageData, IMessageResponse, ISettings } from '../types/types.js';
 import { createLogger } from '../utils/logger.js';
-import { showToast } from '../utils/toast.js';
+import { notification } from '../utils/notifications/index.js';
 
 export class PrismWeaveOptions {
   private logger = createLogger('Options');
@@ -547,8 +547,8 @@ export class PrismWeaveOptions {
   }
 
   private showMessage(message: string, type: 'success' | 'error' | 'info'): void {
-    showToast(message, {
-      type,
+    // Use unified notification API - automatically handles environment detection
+    notification[type](message, {
       duration: 5000,
       dismissible: true,
     });

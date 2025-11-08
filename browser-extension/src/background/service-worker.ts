@@ -5,6 +5,7 @@
 import { IMessageData, IMessageResponse, MESSAGE_TYPES } from '../types/types';
 import { ContentCaptureService } from '../utils/content-capture-service';
 import { createLogger } from '../utils/logger';
+import { configureNotificationContext, notify } from '../utils/notifications';
 import { PDFCaptureService } from '../utils/pdf-capture-service';
 import { SettingsManager } from '../utils/settings-manager';
 import { UnifiedCaptureService } from '../utils/unified-capture-service';
@@ -57,13 +58,18 @@ let serviceWorkerState: IServiceWorkerState = {
 // =============================================================================
 // UTILITY FUNCTIONS
 // =============================================================================
-
 /**
  * Create logger and log service worker startup
  */
 const logger = createLogger('ServiceWorker');
 
+// Configure notification context for service worker environment
+configureNotificationContext({
+  isServiceWorker: true,
+});
+
 logger.info('=== SERVICE WORKER STARTING ===');
+logger.info('Service worker file loaded at:', new Date().toISOString());
 logger.info('Service worker file loaded at:', new Date().toISOString());
 
 // Log API availability (only warn if critical APIs are missing)
@@ -87,83 +93,27 @@ if (!chromeAPIs.scripting) {
 }
 
 /**
- * Show a notification by trying in-page toast first, falling back to browser notifications.
- * This ensures consistent UX across all notification scenarios.
+ * Show a notification using the unified notification API.
+ * Automatically selects the best method: in-page toast → browser notification → console
  *
  * @param message - The notification message to display
  * @param options - Notification options
- * @param tabId - Optional tab ID to show toast in (if not provided, uses active tab)
  */
 async function showNotification(
   message: string,
   options: {
-    type?: 'success' | 'error' | 'info';
+    type?: 'success' | 'error' | 'info' | 'warning';
     duration?: number;
     clickUrl?: string;
     linkLabel?: string;
     tabId?: number;
   } = {}
 ): Promise<void> {
-  const { type = 'info', duration = 8000, clickUrl, linkLabel, tabId } = options;
-
-  // Try to get target tab ID
-  let targetTabId = tabId;
-  if (!targetTabId) {
-    try {
-      const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
-      targetTabId = activeTab?.id;
-    } catch (err) {
-      logger.debug('Could not get active tab for notification');
-    }
-  }
-
-  // First attempt: in-page toast notification (preferred)
-  if (targetTabId) {
-    try {
-      await chrome.tabs.sendMessage(targetTabId, {
-        type: 'SHOW_NOTIFICATION',
-        data: {
-          message,
-          type,
-          duration,
-          ...(clickUrl && { clickUrl }),
-          ...(linkLabel && { linkLabel }),
-        },
-        timestamp: Date.now(),
-      });
-      logger.debug('Toast notification shown successfully');
-      return; // Success - no need for fallback
-    } catch (err) {
-      logger.debug('Toast notification failed, will try fallback:', err);
-    }
-  }
-
-  // Fallback: browser notification (only if toast failed)
-  if (chrome.notifications) {
-    try {
-      const notificationOptions: chrome.notifications.NotificationOptions = {
-        type: 'basic',
-        iconUrl: chrome.runtime.getURL('icons/icon48.png'),
-        title: 'PrismWeave',
-        message,
-      };
-
-      await new Promise<void>((resolve, reject) => {
-        chrome.notifications.create(notificationOptions, notificationId => {
-          if (chrome.runtime.lastError) {
-            reject(new Error(chrome.runtime.lastError.message));
-          } else {
-            resolve();
-          }
-        });
-      });
-      logger.debug('Browser notification shown as fallback');
-    } catch (error) {
-      logger.warn('All notification methods failed:', error);
-    }
-  } else {
-    logger.debug('No notification method available');
-  }
+  // For service worker context, notify() will automatically try:
+  // 1. Toast (if we can get a tabId)
+  // 2. Chrome notifications API
+  // 3. Console logging
+  notify(message, options);
 }
 
 /**
