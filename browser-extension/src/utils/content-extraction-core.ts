@@ -116,6 +116,14 @@ export class ContentExtractionCore {
     // Add blog-specific metadata if this looks like a blog
     if (this.isBlogPage()) {
       const blogMetadata = this.extractBlogMetadata();
+
+      // Merge tags instead of overwriting
+      if (blogMetadata.tags && blogMetadata.tags.length > 0) {
+        const combinedTags = [...metadata.tags, ...blogMetadata.tags];
+        metadata.tags = [...new Set(combinedTags)].slice(0, 10); // Dedupe and limit
+        delete blogMetadata.tags; // Remove to prevent overwrite
+      }
+
       Object.assign(metadata, blogMetadata);
     }
 
@@ -240,8 +248,8 @@ export class ContentExtractionCore {
       }
     });
 
-    // Standard meta tags
-    const metaTags = ['description', 'keywords', 'author', 'generator', 'theme-color'];
+    // Standard meta tags (excluding keywords - we'll handle those separately with filtering)
+    const metaTags = ['description', 'author', 'generator', 'theme-color'];
     metaTags.forEach(name => {
       const meta = document.querySelector(`[name="${name}"]`);
       if (meta) {
@@ -249,6 +257,12 @@ export class ContentExtractionCore {
         if (content) metadata[name] = content;
       }
     });
+
+    // Extract keywords with proper filtering
+    const filteredKeywords = this.extractKeywords();
+    if (filteredKeywords.length > 0) {
+      metadata.keywords = filteredKeywords;
+    }
 
     // Structured data (JSON-LD)
     try {
@@ -718,16 +732,27 @@ export class ContentExtractionCore {
     tagSelectors.forEach(selector => {
       const elements = document.querySelectorAll(selector);
       elements.forEach(el => {
-        const tagText = el.textContent?.trim();
-        if (tagText && tagText.length > 0 && tagText.length < 50) {
-          // Reasonable tag length
+        const tagText = el.textContent?.trim().toLowerCase();
+        if (tagText) {
+          // Apply same filtering as extractKeywords()
+          // Length validation
+          if (tagText.length < 2 || tagText.length > 30) return;
+          // Exclude long phrases (more than 4 words)
+          if (tagText.split(/\s+/).length > 4) return;
+          // Exclude URLs and UI text
+          if (tagText.includes('http') || tagText.includes('www.')) return;
+          if (tagText.includes('click to') || tagText.includes('share on')) return;
+          // Exclude common UI patterns
+          if (tagText.match(/^\d+\s+(comment|view|share|like)/i)) return;
+          if (tagText.match(/^(print|email|share|comment|#\w+)$/i)) return;
+
           tags.push(tagText);
         }
       });
     });
 
-    // Remove duplicates and return
-    return [...new Set(tags)];
+    // Remove duplicates, limit to 10, and return
+    return [...new Set(tags)].slice(0, 10);
   }
 
   private countWords(text: string): number {
