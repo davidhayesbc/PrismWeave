@@ -213,6 +213,13 @@ body {
   flex-wrap: wrap;
 }
 
+.bookmarklet-icon {
+  width: 20px;
+  height: 20px;
+  vertical-align: middle;
+  margin-right: 8px;
+}
+
 .generator-install {
   background: rgba(148, 163, 184, 0.1);
   border: 1px solid rgba(148, 163, 184, 0.18);
