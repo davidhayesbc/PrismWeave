@@ -2,8 +2,9 @@
 Tests for Processing MCP Tools
 """
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 from mcp.schemas.requests import GenerateEmbeddingsRequest, GenerateTagsRequest
 from mcp.tools.processing import ProcessingTools

@@ -2,8 +2,9 @@
 Tests for Search MCP Tools
 """
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 from mcp.schemas.requests import GetDocumentRequest, ListDocumentsRequest, SearchDocumentsRequest
 from mcp.tools.search import SearchTools
@@ -69,12 +70,10 @@ class TestSearchTools:
 
         result = await search_tools.search_documents(request)
 
-        assert result["results"] == [
-            {"document_id": "doc1", "title": "Test Doc", "score": 0.95, "snippet": "test content"}
-        ]
-        assert result["total_results"] == 1
+        assert result["success"] is True
+        assert len(result["results"]) == 1
+        assert result["total_found"] == 1
         assert result["query"] == "test query"
-        assert result["filters_applied"] == {"tags": ["python"]}
 
     async def test_search_documents_initialization(self, search_tools):
         """Test search documents initializes manager if needed"""
@@ -101,9 +100,11 @@ class TestSearchTools:
 
         result = await search_tools.search_documents(request)
 
-        assert "error_type" in result
-        assert result["error_type"] == "SearchError"
-        assert "Search failed" in result["message"]
+        assert result["success"] is False
+        assert "error" in result
+        assert "error_code" in result
+        assert result["error_code"] == "SEARCH_FAILED"
+        assert "Search failed" in result["error"]
 
     async def test_get_document_by_id_success(self, search_tools):
         """Test successful document retrieval by ID"""
@@ -123,10 +124,10 @@ class TestSearchTools:
 
         result = await search_tools.get_document(request)
 
-        assert result["document_id"] == "doc1"
-        assert result["title"] == "Test Document"
-        assert result["content"] == "Test content"
-        assert result["file_path"] == "/test/doc1.md"
+        assert result["success"] is True
+        assert result["document"]["id"] == "doc1"
+        assert result["document"]["path"] == "/test/doc1.md"
+        assert result["document"]["content"] == "Test content"
 
     async def test_get_document_by_path_success(self, search_tools):
         """Test successful document retrieval by path"""
@@ -144,8 +145,9 @@ class TestSearchTools:
 
         result = await search_tools.get_document(request)
 
-        assert result["document_id"] == "doc1"
-        assert result["file_path"] == "/test/doc1.md"
+        assert result["success"] is True
+        assert result["document"]["id"] == "doc1"
+        assert result["document"]["path"] == "/test/doc1.md"
 
     async def test_get_document_not_found(self, search_tools):
         """Test document not found"""
@@ -155,25 +157,36 @@ class TestSearchTools:
 
         result = await search_tools.get_document(request)
 
-        assert "error_type" in result
-        assert result["error_type"] == "NotFoundError"
-        assert "not found" in result["message"]
+        assert result["success"] is False
+        assert "error" in result
+        assert result["error_code"] == "DOCUMENT_NOT_FOUND"
+        assert "not found" in result["error"]
 
     async def test_get_document_no_identifier(self, search_tools):
-        """Test get document without ID or path"""
-        request = GetDocumentRequest()
-
-        result = await search_tools.get_document(request)
-
-        assert "error_type" in result
-        assert result["error_type"] == "RetrievalError"
+        """Test get document without ID or path - should fail validation"""
+        # This should fail at the Pydantic validation level before reaching the tool
+        with pytest.raises(Exception):  # Pydantic ValidationError
+            request = GetDocumentRequest()
+            await search_tools.get_document(request)
 
     async def test_list_documents_success(self, search_tools):
         """Test successful document listing"""
         search_tools.document_manager.list_documents = MagicMock(
             return_value=[
-                {"id": "doc1", "title": "Doc 1", "tags": ["python"]},
-                {"id": "doc2", "title": "Doc 2", "tags": ["javascript"]},
+                {
+                    "id": "doc1",
+                    "title": "Doc 1",
+                    "tags": ["python"],
+                    "file_path": "test/doc1.md",
+                    "size_bytes": 100,
+                },
+                {
+                    "id": "doc2",
+                    "title": "Doc 2",
+                    "tags": ["javascript"],
+                    "file_path": "test/doc2.md",
+                    "size_bytes": 200,
+                },
             ]
         )
 
@@ -181,10 +194,11 @@ class TestSearchTools:
 
         result = await search_tools.list_documents(request)
 
+        assert result["success"] is True
         assert result["total_count"] == 2
         assert len(result["documents"]) == 2
-        assert result["sort_by"] == "title"
-        assert result["filters_applied"]["directory"] == "test"
+        assert result["offset"] == 0
+        assert result["limit"] == 10
 
     async def test_list_documents_with_filters(self, search_tools):
         """Test document listing with multiple filters"""
@@ -193,7 +207,7 @@ class TestSearchTools:
         request = ListDocumentsRequest(
             directory="generated",
             pattern="*.md",
-            sort_by="created_at",
+            sort_by="date",  # Valid sort_by value
             sort_order="desc",
             limit=50,
         )
@@ -202,6 +216,7 @@ class TestSearchTools:
 
         # DocumentManager is called with compatible parameters
         search_tools.document_manager.list_documents.assert_called_once()
+        assert result["success"] is True
 
     async def test_list_documents_error(self, search_tools):
         """Test list documents error handling"""
@@ -211,9 +226,10 @@ class TestSearchTools:
 
         result = await search_tools.list_documents(request)
 
-        assert "error_type" in result
-        assert result["error_type"] == "ListError"
-        assert "Database error" in result["message"]
+        assert result["success"] is False
+        assert "error" in result
+        assert result["error_code"] == "DOCUMENT_LIST_FAILED"
+        assert "Database error" in result["error"]
 
     async def test_get_document_metadata_by_id(self, search_tools):
         """Test getting document metadata by ID"""
@@ -250,8 +266,8 @@ class TestSearchTools:
 
         result = await search_tools.get_document_metadata(request)
 
-        assert "error_type" in result
-        assert result["error_type"] == "NotFoundError"
+        assert "error" in result
+        assert result["error_code"] == "DOCUMENT_NOT_FOUND"
 
     async def test_get_document_metadata_error(self, search_tools):
         """Test metadata retrieval error handling"""
@@ -261,5 +277,5 @@ class TestSearchTools:
 
         result = await search_tools.get_document_metadata(request)
 
-        assert "error_type" in result
-        assert result["error_type"] == "MetadataError"
+        assert "error" in result
+        assert result["error_code"] == "METADATA_RETRIEVAL_FAILED"

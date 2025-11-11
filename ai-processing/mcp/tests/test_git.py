@@ -2,8 +2,9 @@
 Tests for Git MCP Tools
 """
 
-import pytest
 from unittest.mock import MagicMock
+
+import pytest
 
 from mcp.schemas.requests import CommitToGitRequest
 from mcp.tools.git import GitTools
@@ -41,7 +42,7 @@ class TestGitTools:
         git_tools.git_manager.commit_changes = MagicMock(
             return_value={
                 "success": True,
-                "commit_hash": "abc123def456",
+                "commit_sha": "abc123def456",  # git_manager returns commit_sha not commit_hash
                 "files_committed": 2,
                 "pushed": False,
             }
@@ -124,7 +125,7 @@ class TestGitTools:
     async def test_commit_to_git_single_file(self, git_tools):
         """Test git commit with single file"""
         git_tools.git_manager.commit_changes = MagicMock(
-            return_value={"success": True, "commit_hash": "single123", "files_committed": 1, "pushed": False}
+            return_value={"success": True, "commit_sha": "single123", "files_committed": 1, "pushed": False}
         )
 
         request = CommitToGitRequest(message="Update single doc", paths=["doc.md"], push=False)
@@ -132,7 +133,7 @@ class TestGitTools:
         result = await git_tools.commit_to_git(request)
 
         assert result["success"] is True
-        assert result["files_committed"] == ["doc.md"]
+        assert result["files_committed"] == 1  # files_committed is a count (int), not a list
 
     async def test_commit_to_git_detailed_error(self, git_tools):
         """Test git commit with detailed error information"""

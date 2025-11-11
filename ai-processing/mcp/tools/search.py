@@ -72,19 +72,35 @@ class SearchTools:
                 category_filter=category_filter,
             )
 
+            # Convert results to SearchResult objects
+            from mcp.schemas.responses import SearchResult
+
+            search_results = []
+            for result in results["results"]:
+                search_result = SearchResult(
+                    document_id=result.get("document_id", ""),
+                    path=result.get("path", ""),
+                    title=result.get("title", ""),
+                    similarity_score=result.get("score", result.get("similarity_score", 0.0)),
+                    snippet=result.get("snippet", ""),
+                    metadata=result.get("metadata"),
+                    content=result.get("content"),
+                )
+                search_results.append(search_result)
+
             # Convert to response format
             response = SearchDocumentsResponse(
-                results=results["results"],
-                total_results=results["total_results"],
+                success=True,
+                results=search_results,
+                total_found=results["total_results"],
                 query=request.query,
-                filters_applied=filters,
             )
 
             return response.model_dump()
 
         except Exception as e:
             error = ErrorResponse(
-                error_type="SearchError", message=f"Search failed: {str(e)}", details={"query": request.query}
+                error=f"Search failed: {str(e)}", error_code="SEARCH_FAILED", details={"query": request.query}
             )
             return error.model_dump()
 
@@ -109,29 +125,45 @@ class SearchTools:
 
             if not document:
                 error = ErrorResponse(
-                    error_type="NotFoundError",
-                    message="Document not found",
+                    error="Document not found",
+                    error_code="DOCUMENT_NOT_FOUND",
                     details={"document_id": request.document_id, "path": request.path},
                 )
                 return error.model_dump()
 
             # Convert to response format
-            response = GetDocumentResponse(
-                document_id=document["id"],
-                title=document["title"],
-                content=document["content"],
-                metadata=document["metadata"],
-                file_path=document["file_path"],
+            from mcp.schemas.responses import Document, DocumentMetadata
+
+            # Create DocumentMetadata from dict
+            doc_metadata = DocumentMetadata(
+                title=document.get("title", ""),
+                tags=document.get("tags", []),
+                category=document.get("category"),
                 created_at=document.get("created_at"),
-                updated_at=document.get("updated_at"),
+                modified_at=document.get("updated_at"),
+                word_count=document.get("metadata", {}).get("word_count"),
+                reading_time=document.get("metadata", {}).get("reading_time"),
+                source_url=document.get("metadata", {}).get("source_url"),
+                author=document.get("metadata", {}).get("author"),
             )
+
+            # Create Document
+            doc = Document(
+                id=document["id"],
+                path=document.get("file_path", ""),
+                content=document.get("content", ""),
+                metadata=doc_metadata,
+                has_embeddings=document.get("has_embeddings", False),
+            )
+
+            response = GetDocumentResponse(success=True, document=doc)
 
             return response.model_dump()
 
         except Exception as e:
             error = ErrorResponse(
-                error_type="RetrievalError",
-                message=f"Failed to get document: {str(e)}",
+                error=f"Failed to get document: {str(e)}",
+                error_code="DOCUMENT_RETRIEVAL_FAILED",
                 details={"document_id": request.document_id, "path": request.path},
             )
             return error.model_dump()
@@ -172,21 +204,37 @@ class SearchTools:
             if request.offset > 0:
                 documents = documents[request.offset :]
 
+            # Convert to DocumentSummary objects
+            from mcp.schemas.responses import DocumentSummary
+
+            doc_summaries = []
+            for doc in documents:
+                doc_summary = DocumentSummary(
+                    id=doc.get("id", ""),
+                    path=doc.get("file_path", ""),
+                    title=doc.get("title", ""),
+                    size_bytes=doc.get("size_bytes", 0),
+                    modified_at=doc.get("modified_at"),
+                    tags=doc.get("tags", []),
+                    category=doc.get("category"),
+                )
+                doc_summaries.append(doc_summary)
+
             # Convert to response format
             response = ListDocumentsResponse(
-                documents=documents,
-                total_count=len(documents),
-                filters_applied={"directory": request.directory, "pattern": request.pattern},
-                sort_by=request.sort_by,
-                sort_order=request.sort_order,
+                success=True,
+                documents=doc_summaries,
+                total_count=len(doc_summaries),
+                offset=request.offset,
+                limit=request.limit,
             )
 
             return response.model_dump()
 
         except Exception as e:
             error = ErrorResponse(
-                error_type="ListError",
-                message=f"Failed to list documents: {str(e)}",
+                error=f"Failed to list documents: {str(e)}",
+                error_code="DOCUMENT_LIST_FAILED",
                 details={"filters": request.model_dump()},
             )
             return error.model_dump()
@@ -212,8 +260,8 @@ class SearchTools:
 
             if not metadata:
                 error = ErrorResponse(
-                    error_type="NotFoundError",
-                    message="Document not found",
+                    error="Document not found",
+                    error_code="DOCUMENT_NOT_FOUND",
                     details={"document_id": request.document_id, "path": request.path},
                 )
                 return error.model_dump()
@@ -223,8 +271,8 @@ class SearchTools:
 
         except Exception as e:
             error = ErrorResponse(
-                error_type="MetadataError",
-                message=f"Failed to get metadata: {str(e)}",
+                error=f"Failed to get metadata: {str(e)}",
+                error_code="METADATA_RETRIEVAL_FAILED",
                 details={"document_id": request.document_id, "path": request.path},
             )
             return error.model_dump()
