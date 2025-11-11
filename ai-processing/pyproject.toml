@@ -5,9 +5,9 @@ build-backend = "hatchling.build"
 [project]
 name = "prismweave-ai"
 version = "0.1.0"
-description = "AI processing pipeline for PrismWeave document management system"
+description = "AI processing module for PrismWeave document management"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 license = {text = "MIT"}
 authors = [
     {name = "PrismWeave Team"},
@@ -49,6 +49,10 @@ dependencies = [
     "click>=8.1.8",
     "rich>=13.6.0",
     "trafilatura>=2.0.0",
+    # MCP Server
+    "mcp>=0.9.0",
+    "pydantic>=2.0.0",
+    "gitpython>=3.1.0",
 ]
 
 [project.optional-dependencies]

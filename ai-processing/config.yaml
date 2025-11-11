@@ -16,3 +16,38 @@ processing:
 vector:
   collection_name: 'documents'
   persist_directory: '../../PrismWeaveDocs/.prismweave/chroma_db'
+
+# MCP Server Configuration
+mcp:
+  # Paths configuration
+  paths:
+    documents_root: '../../PrismWeaveDocs'
+    documents_dir: 'documents'
+    generated_dir: 'generated'
+    images_dir: 'images'
+    tech_dir: 'tech'
+  
+  # Search configuration
+  search:
+    max_results: 20
+    similarity_threshold: 0.6
+    default_filters: {}
+  
+  # Document creation settings
+  creation:
+    auto_process: true  # Automatically generate tags and embeddings
+    auto_commit: false  # Don't auto-commit by default
+    default_category: 'general'
+  
+  # Git integration
+  git:
+    auto_push: false
+    commit_message_template: "Add document: {title}"
+    branch: 'main'
+  
+  # Rate limiting (requests per minute)
+  rate_limiting:
+    search: 60
+    create: 30
+    process: 20
+
