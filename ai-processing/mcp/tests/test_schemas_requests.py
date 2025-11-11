@@ -10,7 +10,6 @@ from mcp.schemas.requests import (
     CreateDocumentRequest,
     GenerateEmbeddingsRequest,
     GenerateTagsRequest,
-    GetDocumentMetadataRequest,
     GetDocumentRequest,
     ListDocumentsRequest,
     SearchDocumentsRequest,

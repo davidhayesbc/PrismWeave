@@ -4,8 +4,6 @@ Tests for document utility functions
 
 from datetime import datetime
 
-import pytest
-
 from mcp.utils.document_utils import (
     calculate_reading_time,
     count_words,

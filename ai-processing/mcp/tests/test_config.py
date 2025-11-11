@@ -5,7 +5,6 @@ Tests for MCP configuration loading and validation
 import tempfile
 from pathlib import Path
 
-import pytest
 import yaml
 
 from src.core.config import (

@@ -133,7 +133,7 @@ def load_config(config_path: Optional[Path] = None) -> Config:
         return Config()
 
     try:
-        with open(config_path, "r", encoding="utf-8") as f:
+        with open(config_path, encoding="utf-8") as f:
             config_data = yaml.safe_load(f)
 
         # Extract relevant values with fallbacks to defaults

@@ -2,10 +2,6 @@
 Tests for MCP response schemas
 """
 
-from datetime import datetime
-
-import pytest
-
 from mcp.schemas.responses import (
     CommitToGitResponse,
     CreateDocumentResponse,
@@ -107,7 +103,9 @@ class TestSearchDocumentsResponse:
 
     def test_error_response(self) -> None:
         """Test creating an error response"""
-        response = SearchDocumentsResponse(success=False, results=[], total_found=0, query="test", error="Search failed")
+        response = SearchDocumentsResponse(
+            success=False, results=[], total_found=0, query="test", error="Search failed"
+        )
 
         assert response.success is False
         assert len(response.results) == 0
@@ -139,9 +137,7 @@ class TestListDocumentsResponse:
             id="doc_123", path="test.md", title="Test", size_bytes=1024, tags=["test"], category="tech"
         )
 
-        response = ListDocumentsResponse(
-            success=True, documents=[doc_summary], total_count=1, offset=0, limit=100
-        )
+        response = ListDocumentsResponse(success=True, documents=[doc_summary], total_count=1, offset=0, limit=100)
 
         assert response.success is True
         assert len(response.documents) == 1

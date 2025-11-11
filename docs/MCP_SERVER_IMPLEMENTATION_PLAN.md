@@ -442,6 +442,7 @@ Phased implementation plan for building the PrismWeave MCP server. Each phase bu
 - ✅ **All 111 tests passing** (0 failures, 22 deprecation warnings)
 
 **Test Coverage Summary**:
+
 - `test_config.py`: 17/17 tests passing
 - `test_schemas_requests.py`: 25/25 tests passing
 - `test_schemas_responses.py`: 13/13 tests passing

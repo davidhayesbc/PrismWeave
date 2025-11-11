@@ -5,7 +5,6 @@ Provides functions for resolving paths, validating path safety,
 and determining document types and locations.
 """
 
-import os
 from pathlib import Path
 from typing import Optional
 

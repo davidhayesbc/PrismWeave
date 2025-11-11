@@ -5,8 +5,6 @@ Tests for path utility functions
 import tempfile
 from pathlib import Path
 
-import pytest
-
 from mcp.utils.path_utils import (
     ensure_directory_exists,
     get_document_category,

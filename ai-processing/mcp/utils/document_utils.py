@@ -37,7 +37,7 @@ def parse_frontmatter(content: str) -> tuple[dict[str, Any], str]:
     try:
         post = frontmatter.loads(content)
         return dict(post.metadata), post.content
-    except Exception as e:
+    except Exception:
         # If parsing fails, return empty metadata and original content
         return {}, content
 
@@ -208,7 +208,7 @@ def extract_title_from_content(content: str) -> Optional[str]:
         >>> extract_title_from_content("# My Title\\n\\nContent here")
         'My Title'
         >>> extract_title_from_content("No title here")
-        >>> 
+        >>>
     """
     # Remove frontmatter first
     _, clean_content = parse_frontmatter(content)
