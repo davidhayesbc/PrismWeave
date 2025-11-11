@@ -4,7 +4,7 @@ Git Operations MCP Tools
 MCP tool implementations for version control operations.
 """
 
-from typing import Any, Dict
+from typing import Any
 
 from mcp.managers.git_manager import GitManager
 from mcp.schemas.requests import CommitToGitRequest
@@ -25,7 +25,7 @@ class GitTools:
         self.config = config
         self.git_manager = GitManager(config)
 
-    async def commit_to_git(self, request: CommitToGitRequest) -> Dict[str, Any]:
+    async def commit_to_git(self, request: CommitToGitRequest) -> dict[str, Any]:
         """
         Commit changes to git repository
 

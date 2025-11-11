@@ -4,7 +4,7 @@ Search and Retrieval MCP Tools
 MCP tool implementations for searching and retrieving documents.
 """
 
-from typing import Any, Dict
+from typing import Any
 
 from mcp.managers.document_manager import DocumentManager
 from mcp.managers.search_manager import SearchManager
@@ -40,7 +40,7 @@ class SearchTools:
             await self.search_manager.initialize()
             self._initialized = True
 
-    async def search_documents(self, request: SearchDocumentsRequest) -> Dict[str, Any]:
+    async def search_documents(self, request: SearchDocumentsRequest) -> dict[str, Any]:
         """
         Search documents using semantic search
 
@@ -104,7 +104,7 @@ class SearchTools:
             )
             return error.model_dump()
 
-    async def get_document(self, request: GetDocumentRequest) -> Dict[str, Any]:
+    async def get_document(self, request: GetDocumentRequest) -> dict[str, Any]:
         """
         Get a single document by ID or path
 
@@ -168,7 +168,7 @@ class SearchTools:
             )
             return error.model_dump()
 
-    async def list_documents(self, request: ListDocumentsRequest) -> Dict[str, Any]:
+    async def list_documents(self, request: ListDocumentsRequest) -> dict[str, Any]:
         """
         List documents with optional filtering and sorting
 
@@ -239,7 +239,7 @@ class SearchTools:
             )
             return error.model_dump()
 
-    async def get_document_metadata(self, request: GetDocumentRequest) -> Dict[str, Any]:
+    async def get_document_metadata(self, request: GetDocumentRequest) -> dict[str, Any]:
         """
         Get document metadata only (no content)
 

@@ -4,7 +4,7 @@ Document Creation and Modification MCP Tools
 MCP tool implementations for creating and updating documents.
 """
 
-from typing import Any, Dict
+from typing import Any
 
 from mcp.managers.document_manager import DocumentManager
 from mcp.managers.git_manager import GitManager
@@ -46,7 +46,7 @@ class DocumentTools:
             self._git_initialized = True
         return self.git_manager
 
-    async def create_document(self, request: CreateDocumentRequest) -> Dict[str, Any]:
+    async def create_document(self, request: CreateDocumentRequest) -> dict[str, Any]:
         """
         Create a new document with optional auto-processing and git commit
 
@@ -135,7 +135,7 @@ class DocumentTools:
             )
             return error.model_dump()
 
-    async def update_document(self, request: UpdateDocumentRequest) -> Dict[str, Any]:
+    async def update_document(self, request: UpdateDocumentRequest) -> dict[str, Any]:
         """
         Update an existing document with optional embedding regeneration
 

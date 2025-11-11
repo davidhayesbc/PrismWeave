@@ -4,7 +4,7 @@ AI Processing MCP Tools
 MCP tool implementations for AI-powered document processing.
 """
 
-from typing import Any, Dict
+from typing import Any
 
 from mcp.managers.processing_manager import ProcessingManager
 from mcp.schemas.requests import GenerateEmbeddingsRequest, GenerateTagsRequest
@@ -33,7 +33,7 @@ class ProcessingTools:
             await self.processing_manager.initialize()
             self._initialized = True
 
-    async def generate_embeddings(self, request: GenerateEmbeddingsRequest) -> Dict[str, Any]:
+    async def generate_embeddings(self, request: GenerateEmbeddingsRequest) -> dict[str, Any]:
         """
         Generate embeddings for a document
 
@@ -78,7 +78,7 @@ class ProcessingTools:
             )
             return error.model_dump()
 
-    async def generate_tags(self, request: GenerateTagsRequest) -> Dict[str, Any]:
+    async def generate_tags(self, request: GenerateTagsRequest) -> dict[str, Any]:
         """
         Generate tags for a document using AI
 
