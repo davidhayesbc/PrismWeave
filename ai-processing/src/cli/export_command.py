@@ -66,11 +66,7 @@ def export(
 
         if filter_type:
             suffix = f".{filter_type.lstrip('.')}"
-            documents = [
-                doc
-                for doc in documents
-                if Path(doc["metadata"].get("source_file", "")).suffix == suffix
-            ]
+            documents = [doc for doc in documents if Path(doc["metadata"].get("source_file", "")).suffix == suffix]
             if not documents:
                 state.write(f"❌ No documents found with file type: {filter_type}")
                 return

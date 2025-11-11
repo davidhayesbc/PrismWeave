@@ -10,6 +10,7 @@ import click
 
 from src.cli_support import CliError, create_state
 from src.core.embedding_store import EmbeddingStore
+
 from .document_utils import get_document_content, get_document_metadata
 
 
@@ -63,14 +64,10 @@ def list_docs(
                 state.write(f"   {index:3d}. {Path(file_path).name}")
                 state.write_verbose(f"        📁 Full path: {file_path}")
 
-            state.write(
-                f"\n📊 Showing {len(files_to_show)} of {len(files)} unique source files"
-            )
+            state.write(f"\n📊 Showing {len(files_to_show)} of {len(files)} unique source files")
             return
 
-        state.write(
-            f"📄 {'Document chunks' if verbose else 'Source files'} in collection (max: {max_documents}):\n"
-        )
+        state.write(f"📄 {'Document chunks' if verbose else 'Source files'} in collection (max: {max_documents}):\n")
 
         documents = store.list_documents(max_documents)
         if not documents:
@@ -106,9 +103,7 @@ def list_docs(
             total_files = len(source_groups)
             total_chunks = sum(len(docs) for docs in source_groups.values())
             state.write(f"📊 Summary: {files_shown} files shown")
-            state.write(
-                f"   (Total in collection: {total_files} files, {total_chunks:,} chunks)"
-            )
+            state.write(f"   (Total in collection: {total_files} files, {total_chunks:,} chunks)")
             return
 
         for index, doc in enumerate(documents, start=1):
@@ -276,9 +271,7 @@ def search(
 
             if state.rich:
                 title = f"Result {index}: {file_name}"
-                state.rich.console.print(
-                    state.rich.Panel("\n".join(lines), title=title, border_style="green")
-                )
+                state.rich.console.print(state.rich.Panel("\n".join(lines), title=title, border_style="green"))
             else:
                 state.write(f"{index}. {file_name}")
                 for line in lines:
@@ -379,16 +372,12 @@ def stats(config: Optional[Path], detailed: bool) -> None:
                 tag_table = state.rich.Table(title="Top 10 Tags", show_header=True)
                 tag_table.add_column("Tag", style="cyan")
                 tag_table.add_column("Frequency", style="green")
-                for tag, freq in sorted(tag_frequency.items(), key=lambda item: item[1], reverse=True)[
-                    :10
-                ]:
+                for tag, freq in sorted(tag_frequency.items(), key=lambda item: item[1], reverse=True)[:10]:
                     tag_table.add_row(tag, str(freq))
                 state.rich.console.print(tag_table)
             elif tag_frequency:
                 state.write("\n🏷️  Top 10 Tags:")
-                for tag, freq in sorted(tag_frequency.items(), key=lambda item: item[1], reverse=True)[
-                    :10
-                ]:
+                for tag, freq in sorted(tag_frequency.items(), key=lambda item: item[1], reverse=True)[:10]:
                     state.write(f"   {tag}: {freq}")
 
             if total_content:
@@ -396,9 +385,7 @@ def stats(config: Optional[Path], detailed: bool) -> None:
                 state.write(f"📊 Average chunk size: {total_content / total_chunks:.0f} characters")
 
         verification = store.verify_embeddings()
-        state.write(
-            f"\nCollection: {verification.get('collection_name', 'Unknown')}"
-        )
+        state.write(f"\nCollection: {verification.get('collection_name', 'Unknown')}")
         state.write(f"Storage: {verification.get('persist_directory', 'Unknown')}")
 
     except CliError as exc:

@@ -11,6 +11,7 @@ import click
 from src.cli_support import CliError, create_state, ensure_ollama_available, resolve_repository
 from src.core.document_processor import DocumentProcessor
 from src.core.embedding_store import EmbeddingStore
+
 from .git_utils import auto_detect_repository, initialize_git_tracker, print_git_summary
 from .processing_utils import clear_embeddings, process_directory, process_single_file
 
@@ -158,9 +159,7 @@ def sync(repo_path: Optional[Path], config: Optional[Path], force: bool, verbose
     try:
         detected_repo = repo_path or auto_detect_repository()
         if not detected_repo:
-            raise CliError(
-                "No git repository found. Specify a repository path or run from within a repository."
-            )
+            raise CliError("No git repository found. Specify a repository path or run from within a repository.")
 
         repo_root = resolve_repository(detected_repo, repo_path)
         git_tracker = initialize_git_tracker(

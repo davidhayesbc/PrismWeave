@@ -106,12 +106,18 @@
 
   // Python file formatting
   "[python]": {
-    "editor.defaultFormatter": "ms-python.python",
+    "editor.defaultFormatter": "ms-python.black-formatter",
     "editor.formatOnSave": true,
     "editor.codeActionsOnSave": {
       "source.organizeImports": "explicit"
     }
   },
+
+  // Black formatter settings
+  "black-formatter.args": ["--line-length=120"],
+
+  // isort settings
+  "isort.args": ["--profile", "black", "--line-length=120"],
 
   // Jest Test Explorer Configuration
   "jest.disabledWorkspaceFolders": [],

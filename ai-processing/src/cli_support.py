@@ -113,9 +113,7 @@ def ensure_ollama_available(config: Config) -> None:
         raise CliError(f"Cannot connect to Ollama at {config.ollama_host}: {exc}") from exc
 
     if response.status_code != 200:
-        raise CliError(
-            f"Cannot connect to Ollama at {config.ollama_host}: status {response.status_code}"
-        )
+        raise CliError(f"Cannot connect to Ollama at {config.ollama_host}: status {response.status_code}")
 
 
 def resolve_repository(target_path: Path, repo_path: Optional[Path]) -> Optional[Path]:

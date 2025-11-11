@@ -7,9 +7,10 @@ import traceback
 from pathlib import Path
 from typing import List
 
-from src.cli_support import CliError, CliState, SUPPORTED_EXTENSIONS
+from src.cli_support import SUPPORTED_EXTENSIONS, CliError, CliState
 from src.core.document_processor import DocumentProcessor
 from src.core.embedding_store import EmbeddingStore
+
 from .document_utils import get_document_metadata
 
 
@@ -44,9 +45,7 @@ def process_single_file(
     try:
         existing_count = store.get_file_document_count(file_path)
         if existing_count > 0:
-            state.write_verbose(
-                f"🔄 Found {existing_count} existing chunks, removing for update..."
-            )
+            state.write_verbose(f"🔄 Found {existing_count} existing chunks, removing for update...")
             store.remove_file_documents(file_path)
 
         state.write_verbose("📄 Loading and processing document...")
@@ -97,11 +96,7 @@ def collect_directory_files(
         raise CliError("Incremental processing requires a git repository")
 
     if incremental and state.git_tracker:
-        files = list(
-            state.git_tracker.get_unprocessed_files(
-                file_extensions=set(SUPPORTED_EXTENSIONS)
-            )
-        )
+        files = list(state.git_tracker.get_unprocessed_files(file_extensions=set(SUPPORTED_EXTENSIONS)))
         state.write_verbose(f"📂 Incremental mode: Found {len(files)} unprocessed files")
         return files
 
