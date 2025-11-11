@@ -67,7 +67,8 @@ def process_single_file(
             for index, chunk in enumerate(chunks[:2], start=1):
                 metadata = get_document_metadata(chunk)
                 state.write_verbose(f"  Chunk {index}:")
-                state.write_verbose(f"    Content preview: {chunk.content[:100]}...")
+                content_preview = str(chunk.content or "")[:100]
+                state.write_verbose(f"    Content preview: {content_preview}...")
                 state.write_verbose(f"    Metadata keys: {list(metadata.keys())}")
                 if "tags" in metadata:
                     state.write_verbose(f"    Tags: {metadata['tags']}")

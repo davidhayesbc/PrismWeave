@@ -162,6 +162,10 @@ def sync(repo_path: Optional[Path], config: Optional[Path], force: bool, verbose
             raise CliError("No git repository found. Specify a repository path or run from within a repository.")
 
         repo_root = resolve_repository(detected_repo, repo_path)
+        if not repo_root:
+            # Fail early with a clear error so subsequent calls receive a proper Path
+            raise CliError(f"Failed to resolve repository path: {detected_repo}")
+
         git_tracker = initialize_git_tracker(
             repo_root,
             verbose=verbose,
