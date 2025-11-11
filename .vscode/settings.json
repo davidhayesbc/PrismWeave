@@ -104,6 +104,15 @@
   "python.analysis.autoImportCompletions": true,
   "python.analysis.typeCheckingMode": "basic",
 
+  // Pylance settings - disable line length warnings
+  "python.analysis.diagnosticSeverityOverrides": {
+    "reportLongLines": "none"
+  },
+
+  // DISABLE Pylint entirely - rely on Black for formatting
+  "python.linting.enabled": false,
+  "python.linting.pylintEnabled": false,
+
   // Python file formatting
   "[python]": {
     "editor.defaultFormatter": "ms-python.black-formatter",

@@ -15,15 +15,14 @@ from unittest.mock import Mock, patch
 
 import pytest
 from click.testing import CliRunner
-
-sys.path.insert(0, str(Path(__file__).parent.parent))
-
 from haystack import Document
 
 from src.cli.export_command import export
 from src.cli.query_commands import search, stats
 from src.core.config import Config
 from src.core.embedding_store import EmbeddingStore
+
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 
 @pytest.fixture
