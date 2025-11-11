@@ -5,6 +5,7 @@ This module provides a simplified interface for processing documents and storing
 using Haystack and Ollama for local AI processing.
 """
 
+from pathlib import Path
 from typing import Optional
 
 from .config import Config, load_config
@@ -23,7 +24,6 @@ def process_documents(input_dir: str, embeddings_dir: Optional[str] = None, conf
         embeddings_dir: Directory to store ChromaDB embeddings (optional)
         config_path: Path to config file (optional)
     """
-    from pathlib import Path
 
     # Load configuration
     if config_path:
