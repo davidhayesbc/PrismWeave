@@ -109,24 +109,15 @@
     "reportLongLines": "none"
   },
 
-  // DISABLE Pylint entirely - rely on Black for formatting
-  "python.linting.enabled": false,
-  "python.linting.pylintEnabled": false,
-
-  // Python file formatting
+  // Ruff linting (configured in pyproject.toml)
   "[python]": {
-    "editor.defaultFormatter": "ms-python.black-formatter",
+    "editor.defaultFormatter": "charliermarsh.ruff",
     "editor.formatOnSave": true,
     "editor.codeActionsOnSave": {
-      "source.organizeImports": "explicit"
+      "source.fixAll.ruff": "explicit",
+      "source.organizeImports.ruff": "explicit"
     }
   },
-
-  // Black formatter settings
-  "black-formatter.args": ["--line-length=120"],
-
-  // isort settings
-  "isort.args": ["--profile", "black", "--line-length=120"],
 
   // Jest Test Explorer Configuration
   "jest.disabledWorkspaceFolders": [],

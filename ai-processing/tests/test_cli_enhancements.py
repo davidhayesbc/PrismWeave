@@ -62,7 +62,7 @@ def mock_store():
 class TestSearchCommand:
     """Test search command functionality"""
 
-    def test_search_basic(self, cli_runner, mock_config, mock_store):
+    def test_search_basic(self, cli_runner: CliRunner, mock_config: Mock, mock_store: Mock):
         """Test basic search command"""
         # Mock search results
         mock_doc = Document(
@@ -76,14 +76,13 @@ class TestSearchCommand:
             patch("src.cli.query_commands.EmbeddingStore", return_value=mock_store),
             patch("pathlib.Path.exists", return_value=True),
         ):
-
             result = cli_runner.invoke(search, ["machine learning", "--max", "5"])
 
             # Should execute successfully (exit code 0 or None)
             assert result.exit_code in [0, None] or "Found" in result.output
             assert mock_store.search_similar.called
 
-    def test_search_with_filter(self, cli_runner, mock_config, mock_store):
+    def test_search_with_filter(self, cli_runner: CliRunner, mock_config: Mock, mock_store: Mock):
         """Test search with file type filter"""
         mock_doc1 = Document(content="MD content", meta={"source_file": "/docs/test.md"})
         mock_doc2 = Document(content="TXT content", meta={"source_file": "/docs/test.txt"})
@@ -94,13 +93,12 @@ class TestSearchCommand:
             patch("src.cli.query_commands.EmbeddingStore", return_value=mock_store),
             patch("pathlib.Path.exists", return_value=True),
         ):
-
             _result = cli_runner.invoke(search, ["test", "--filter-type", "md"])
 
             # Should filter to only .md files
             assert mock_store.search_similar.called
 
-    def test_search_no_results(self, cli_runner, mock_config, mock_store):
+    def test_search_no_results(self, cli_runner: CliRunner, mock_config: Mock, mock_store: Mock):
         """Test search with no results"""
         mock_store.search_similar.return_value = []
 
@@ -109,7 +107,6 @@ class TestSearchCommand:
             patch("src.cli.query_commands.EmbeddingStore", return_value=mock_store),
             patch("pathlib.Path.exists", return_value=True),
         ):
-
             result = cli_runner.invoke(search, ["nonexistent query"])
 
             assert "No results found" in result.output or result.exit_code in [0, None]
@@ -118,21 +115,20 @@ class TestSearchCommand:
 class TestStatsCommand:
     """Test stats command functionality"""
 
-    def test_stats_basic(self, cli_runner, mock_config, mock_store):
+    def test_stats_basic(self, cli_runner: CliRunner, mock_config: Mock, mock_store: Mock):
         """Test basic stats command"""
         with (
             patch("src.cli_support.Config.from_file", return_value=mock_config),
             patch("src.cli.query_commands.EmbeddingStore", return_value=mock_store),
             patch("pathlib.Path.exists", return_value=True),
         ):
-
             _result = cli_runner.invoke(stats)
 
             # Should show collection statistics
             assert mock_store.get_document_count.called
             assert mock_store.get_unique_source_files.called
 
-    def test_stats_detailed(self, cli_runner, mock_config, mock_store):
+    def test_stats_detailed(self, cli_runner: CliRunner, mock_config: Mock, mock_store: Mock):
         """Test detailed stats command"""
         # Mock detailed document data
         mock_docs = [
@@ -154,13 +150,12 @@ class TestStatsCommand:
             patch("src.cli.query_commands.EmbeddingStore", return_value=mock_store),
             patch("pathlib.Path.exists", return_value=True),
         ):
-
             _result = cli_runner.invoke(stats, ["--detailed"])
 
             # Should call list_documents for detailed analysis
             assert mock_store.list_documents.called
 
-    def test_stats_empty_collection(self, cli_runner, mock_config, mock_store):
+    def test_stats_empty_collection(self, cli_runner: CliRunner, mock_config: Mock, mock_store: Mock):
         """Test stats with empty collection"""
         mock_store.get_document_count.return_value = 0
         mock_store.get_unique_source_files.return_value = []
@@ -170,7 +165,6 @@ class TestStatsCommand:
             patch("src.cli.query_commands.EmbeddingStore", return_value=mock_store),
             patch("pathlib.Path.exists", return_value=True),
         ):
-
             result = cli_runner.invoke(stats)
 
             assert "No documents" in result.output or result.exit_code in [0, None]
@@ -179,7 +173,7 @@ class TestStatsCommand:
 class TestExportCommand:
     """Test export command functionality"""
 
-    def test_export_json(self, cli_runner, mock_config, mock_store):
+    def test_export_json(self, cli_runner: CliRunner, mock_config: Mock, mock_store: Mock):
         """Test JSON export"""
         mock_docs = [
             {
@@ -200,7 +194,6 @@ class TestExportCommand:
                 patch("src.cli.export_command.EmbeddingStore", return_value=mock_store),
                 patch("pathlib.Path.exists", return_value=True),
             ):
-
                 result = cli_runner.invoke(export, [str(temp_file), "--format", "json"])
 
                 # Should create export file
@@ -216,7 +209,7 @@ class TestExportCommand:
             if temp_file.exists():
                 temp_file.unlink()
 
-    def test_export_csv(self, cli_runner, mock_config, mock_store):
+    def test_export_csv(self, cli_runner: CliRunner, mock_config: Mock, mock_store: Mock):
         """Test CSV export"""
         mock_docs = [
             {
@@ -237,7 +230,6 @@ class TestExportCommand:
                 patch("src.cli.export_command.EmbeddingStore", return_value=mock_store),
                 patch("pathlib.Path.exists", return_value=True),
             ):
-
                 _result = cli_runner.invoke(export, [str(temp_file), "--format", "csv"])
 
                 # Should create CSV file
@@ -246,7 +238,7 @@ class TestExportCommand:
             if temp_file.exists():
                 temp_file.unlink()
 
-    def test_export_with_filter(self, cli_runner, mock_config, mock_store):
+    def test_export_with_filter(self, cli_runner: CliRunner, mock_config: Mock, mock_store: Mock):
         """Test export with file type filter"""
         mock_docs = [
             {
@@ -267,7 +259,6 @@ class TestExportCommand:
                 patch("src.cli.export_command.EmbeddingStore", return_value=mock_store),
                 patch("pathlib.Path.exists", return_value=True),
             ):
-
                 _result = cli_runner.invoke(export, [str(temp_file), "--filter-type", "md"])
 
                 assert mock_store.list_documents.called
@@ -275,7 +266,7 @@ class TestExportCommand:
             if temp_file.exists():
                 temp_file.unlink()
 
-    def test_export_with_max_limit(self, cli_runner, mock_config, mock_store):
+    def test_export_with_max_limit(self, cli_runner: CliRunner, mock_config: Mock, mock_store: Mock):
         """Test export with max documents limit"""
         mock_docs = [{"id": f"doc{i}"} for i in range(5)]
         mock_store.list_documents.return_value = mock_docs
@@ -289,7 +280,6 @@ class TestExportCommand:
                 patch("src.cli.query_commands.EmbeddingStore", return_value=mock_store),
                 patch("pathlib.Path.exists", return_value=True),
             ):
-
                 _result = cli_runner.invoke(export, [str(temp_file), "--max", "3"])
 
                 # Should call with max limit
@@ -315,7 +305,7 @@ class TestProgressReporting:
         except ImportError:
             pytest.skip("Rich library not available")
 
-    def test_progress_bar_with_large_batch(self, cli_runner, mock_config):  # noqa: ARG002
+    def test_progress_bar_with_large_batch(self, cli_runner: CliRunner, mock_config: Mock):  # noqa: ARG002
         """Test that progress bar is used for large batches"""
         # This tests that the code path for progress bars exists
         # Actual progress bar testing would require integration tests
