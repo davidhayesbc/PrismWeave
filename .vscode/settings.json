@@ -143,11 +143,6 @@
     "clearOnRun": "terminal"
   },
 
-  // Testing API configuration for built-in test explorer
-  "testing.automaticallyOpenPeekView": "failureInVisibleDocument",
-  "testing.followRunningTest": true,
-  "testing.openTesting": "neverOpen",
-
   "python-envs.pythonProjects": [
     {
       "path": "",
