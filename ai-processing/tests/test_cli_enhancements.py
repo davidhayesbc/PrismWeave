@@ -13,7 +13,9 @@ from click.testing import CliRunner
 import sys
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from cli import cli, search, stats, export
+from cli import cli
+from src.cli.query_commands import search, stats
+from src.cli.export_command import export
 from src.core.config import Config
 from src.core.embedding_store import EmbeddingStore
 from haystack import Document
@@ -74,9 +76,9 @@ class TestSearchCommand:
         )
         mock_store.search_similar.return_value = [mock_doc]
         
-        with patch('cli.Config.from_file', return_value=mock_config), \
-             patch('cli.EmbeddingStore', return_value=mock_store), \
-             patch('cli.Path.exists', return_value=True):
+        with patch('src.cli_support.Config.from_file', return_value=mock_config), \
+             patch('src.cli.query_commands.EmbeddingStore', return_value=mock_store), \
+             patch('pathlib.Path.exists', return_value=True):
             
             result = cli_runner.invoke(search, ['machine learning', '--max', '5'])
             
@@ -96,9 +98,9 @@ class TestSearchCommand:
         )
         mock_store.search_similar.return_value = [mock_doc1, mock_doc2]
         
-        with patch('cli.Config.from_file', return_value=mock_config), \
-             patch('cli.EmbeddingStore', return_value=mock_store), \
-             patch('cli.Path.exists', return_value=True):
+        with patch('src.cli_support.Config.from_file', return_value=mock_config), \
+             patch('src.cli.query_commands.EmbeddingStore', return_value=mock_store), \
+             patch('pathlib.Path.exists', return_value=True):
             
             result = cli_runner.invoke(search, ['test', '--filter-type', 'md'])
             
@@ -109,9 +111,9 @@ class TestSearchCommand:
         """Test search with no results"""
         mock_store.search_similar.return_value = []
         
-        with patch('cli.Config.from_file', return_value=mock_config), \
-             patch('cli.EmbeddingStore', return_value=mock_store), \
-             patch('cli.Path.exists', return_value=True):
+        with patch('src.cli_support.Config.from_file', return_value=mock_config), \
+             patch('src.cli.query_commands.EmbeddingStore', return_value=mock_store), \
+             patch('pathlib.Path.exists', return_value=True):
             
             result = cli_runner.invoke(search, ['nonexistent query'])
             
@@ -123,9 +125,9 @@ class TestStatsCommand:
     
     def test_stats_basic(self, cli_runner, mock_config, mock_store):
         """Test basic stats command"""
-        with patch('cli.Config.from_file', return_value=mock_config), \
-             patch('cli.EmbeddingStore', return_value=mock_store), \
-             patch('cli.Path.exists', return_value=True):
+        with patch('src.cli_support.Config.from_file', return_value=mock_config), \
+             patch('src.cli.query_commands.EmbeddingStore', return_value=mock_store), \
+             patch('pathlib.Path.exists', return_value=True):
             
             result = cli_runner.invoke(stats)
             
@@ -156,9 +158,9 @@ class TestStatsCommand:
         ]
         mock_store.list_documents.return_value = mock_docs
         
-        with patch('cli.Config.from_file', return_value=mock_config), \
-             patch('cli.EmbeddingStore', return_value=mock_store), \
-             patch('cli.Path.exists', return_value=True):
+        with patch('src.cli_support.Config.from_file', return_value=mock_config), \
+             patch('src.cli.query_commands.EmbeddingStore', return_value=mock_store), \
+             patch('pathlib.Path.exists', return_value=True):
             
             result = cli_runner.invoke(stats, ['--detailed'])
             
@@ -170,9 +172,9 @@ class TestStatsCommand:
         mock_store.get_document_count.return_value = 0
         mock_store.get_unique_source_files.return_value = []
         
-        with patch('cli.Config.from_file', return_value=mock_config), \
-             patch('cli.EmbeddingStore', return_value=mock_store), \
-             patch('cli.Path.exists', return_value=True):
+        with patch('src.cli_support.Config.from_file', return_value=mock_config), \
+             patch('src.cli.query_commands.EmbeddingStore', return_value=mock_store), \
+             patch('pathlib.Path.exists', return_value=True):
             
             result = cli_runner.invoke(stats)
             
@@ -203,9 +205,9 @@ class TestExportCommand:
             temp_file = Path(f.name)
         
         try:
-            with patch('cli.Config.from_file', return_value=mock_config), \
-                 patch('cli.EmbeddingStore', return_value=mock_store), \
-                 patch('cli.Path.exists', return_value=True):
+            with patch('src.cli_support.Config.from_file', return_value=mock_config), \
+                 patch('src.cli.export_command.EmbeddingStore', return_value=mock_store), \
+                 patch('pathlib.Path.exists', return_value=True):
                 
                 result = cli_runner.invoke(export, [str(temp_file), '--format', 'json'])
                 
@@ -243,9 +245,9 @@ class TestExportCommand:
             temp_file = Path(f.name)
         
         try:
-            with patch('cli.Config.from_file', return_value=mock_config), \
-                 patch('cli.EmbeddingStore', return_value=mock_store), \
-                 patch('cli.Path.exists', return_value=True):
+            with patch('src.cli_support.Config.from_file', return_value=mock_config), \
+                 patch('src.cli.export_command.EmbeddingStore', return_value=mock_store), \
+                 patch('pathlib.Path.exists', return_value=True):
                 
                 result = cli_runner.invoke(export, [str(temp_file), '--format', 'csv'])
                 
@@ -271,9 +273,9 @@ class TestExportCommand:
             temp_file = Path(f.name)
         
         try:
-            with patch('cli.Config.from_file', return_value=mock_config), \
-                 patch('cli.EmbeddingStore', return_value=mock_store), \
-                 patch('cli.Path.exists', return_value=True):
+            with patch('src.cli_support.Config.from_file', return_value=mock_config), \
+                 patch('src.cli.export_command.EmbeddingStore', return_value=mock_store), \
+                 patch('pathlib.Path.exists', return_value=True):
                 
                 result = cli_runner.invoke(export, [
                     str(temp_file),
@@ -294,9 +296,9 @@ class TestExportCommand:
             temp_file = Path(f.name)
         
         try:
-            with patch('cli.Config.from_file', return_value=mock_config), \
-                 patch('cli.EmbeddingStore', return_value=mock_store), \
-                 patch('cli.Path.exists', return_value=True):
+            with patch('src.cli_support.Config.from_file', return_value=mock_config), \
+                 patch('src.cli.query_commands.EmbeddingStore', return_value=mock_store), \
+                 patch('pathlib.Path.exists', return_value=True):
                 
                 result = cli_runner.invoke(export, [
                     str(temp_file),
