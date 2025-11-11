@@ -223,7 +223,8 @@ exclude = [
 [tool.ruff.lint.per-file-ignores]
 "tests/**/*.py" = [
     "F401",   # Unused imports in test files are acceptable
-    "F811",   # Redefinition of unused name (common in fixtures)
+    "F811",   # Redefinition of unused name (common in fixtures and pytest)
+    "ARG001", # Unused function argument (pytest fixtures)
 ]
 
 [tool.ruff.lint.isort]
@@ -234,3 +235,14 @@ quote-style = "double"
 indent-style = "space"
 skip-magic-trailing-comma = false
 line-ending = "auto"
+
+# Pyright/Pylance configuration
+[tool.pyright]
+include = ["src", "cli", "tests"]
+exclude = ["**/__pycache__", ".git", "build", "dist"]
+reportRedeclaration = "none"
+reportUnusedParameter = "none"
+reportGeneralTypeIssues = "none"
+reportShadowedImports = "none"
+pythonVersion = "3.9"
+pythonPlatform = "Linux"

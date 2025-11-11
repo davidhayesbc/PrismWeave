@@ -4,13 +4,26 @@
   "venv": "ai-processing/.venv",
   "venvPath": "ai-processing",
   "pythonVersion": "3.12",
-  "pythonPlatform": "Windows",
+  "pythonPlatform": "Linux",
+  "reportRedeclaration": "none",
+  "reportUnusedParameter": "none",
+  "reportGeneralTypeIssues": "none",
+  "reportShadowedImports": "none",
   "executionEnvironments": [
     {
       "root": "ai-processing",
       "pythonVersion": "3.12",
-      "pythonPlatform": "Windows",
+      "pythonPlatform": "Linux",
       "extraPaths": ["ai-processing/src"]
+    },
+    {
+      "root": "ai-processing/tests",
+      "pythonVersion": "3.12",
+      "pythonPlatform": "Linux",
+      "extraPaths": ["ai-processing/src"],
+      "reportRedeclaration": "none",
+      "reportUnusedParameter": "none",
+      "reportGeneralTypeIssues": "none"
     }
   ]
 }

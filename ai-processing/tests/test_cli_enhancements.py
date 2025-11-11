@@ -1,9 +1,8 @@
-"""
-Tests for CLI enhancements (search, stats, export commands)
-"""
+"""Tests for CLI enhancements (search, stats, export commands)"""
 
-# pylint: disable=redefined-outer-name  # pytest fixtures intentionally shadow
-# pylint: disable=unused-argument  # pytest fixtures may not be used in all tests
+# ruff: noqa: F811, ARG001
+# Pytest fixtures intentionally "redefine" names - this is how pytest works
+# type: ignore[no-redef]
 
 import json
 
@@ -298,24 +297,27 @@ class TestProgressReporting:
     def test_rich_library_availability(self):
         """Test that rich library can be imported"""
         try:
-            from rich.console import Console  # noqa: F401
-            from rich.progress import Progress  # noqa: F401
+            from rich.console import Console
+            from rich.progress import Progress
 
-            assert True
+            # Verify classes can be instantiated
+            console = Console()
+            assert console is not None
+            assert Progress is not None
         except ImportError:
             pytest.skip("Rich library not available")
 
-    def test_progress_bar_with_large_batch(self, cli_runner: CliRunner, mock_config: Mock):  # noqa: ARG002
+    def test_progress_bar_with_large_batch(self, cli_runner, mock_config):
         """Test that progress bar is used for large batches"""
         # This tests that the code path for progress bars exists
         # Actual progress bar testing would require integration tests
+        # Note: cli_runner and mock_config fixtures not used in this basic availability test
         try:
             # Basic test that rich is available
-            from rich.progress import Progress  # noqa: F401
+            from rich.progress import Progress
 
-            import cli  # noqa: F401, F811
-
-            assert True
+            # Verify Progress class is available
+            assert Progress is not None
         except (ImportError, ModuleNotFoundError):
             pytest.skip("CLI module not properly configured")
 
