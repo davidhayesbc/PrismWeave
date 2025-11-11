@@ -9,10 +9,6 @@ ignore=CVS,.git,__pycache__,*.pyc,build,dist,venv,env
 # Use multiple processes to speed up Pylint.
 jobs=1
 
-# When enabled, pylint would attempt to guess common patterns and suggest
-# fixes
-suggestion-mode=yes
-
 [MESSAGES CONTROL]
 # Disable specific warnings that are too strict for this project
 disable=

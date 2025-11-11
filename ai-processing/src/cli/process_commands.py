@@ -49,6 +49,7 @@ def process(
     config: Optional[Path],
     verbose: bool,
     verify: bool,
+    *,
     clear: bool,
     incremental: bool,
     force: bool,
@@ -126,14 +127,14 @@ def process(
             try:
                 state.git_tracker.commit_processing_state()
                 state.write_verbose("📝 Committed processing state")
-            except Exception as exc:  # pragma: no cover - external git state
+            except (OSError, RuntimeError) as exc:
                 state.write(f"⚠️  Warning: Failed to commit processing state: {exc}")
 
         state.write("\n✅ Processing completed successfully!")
 
     except CliError as exc:
         handle_cli_error(exc)
-    except KeyboardInterrupt:  # pragma: no cover - user interaction
+    except KeyboardInterrupt:
         print("\n⏹️  Processing interrupted by user")
         sys.exit(0)
 
@@ -198,7 +199,7 @@ def sync(repo_path: Optional[Path], config: Optional[Path], force: bool, verbose
             try:
                 state.git_tracker.commit_processing_state()
                 state.write_verbose("📝 Committed processing state")
-            except Exception as exc:  # pragma: no cover - external git state
+            except (OSError, RuntimeError) as exc:  # pragma: no cover - external git state
                 state.write(f"⚠️  Warning: Failed to commit processing state: {exc}")
 
         state.write("\n✅ Sync completed successfully!")

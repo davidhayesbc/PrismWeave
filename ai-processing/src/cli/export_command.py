@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import csv
 import json
 import sys
 from datetime import datetime
@@ -42,6 +43,7 @@ def export(
     output_file: Path,
     config: Optional[Path],
     format: str,
+    *,
     filter_type: Optional[str],
     include_content: bool,
     max_docs: Optional[int],
@@ -98,7 +100,7 @@ def export(
                         payload["content"] = full_docs[0].content
                     else:
                         payload["content_preview"] = doc["content_preview"]
-                except Exception as exc:  # pragma: no cover - external dependency
+                except (OSError, ValueError, RuntimeError) as exc:  # pragma: no cover - external dependency
                     state.write(f"⚠️  Warning: Failed to fetch full content: {exc}")
                     payload["content_preview"] = doc["content_preview"]
             else:
@@ -112,8 +114,6 @@ def export(
                 json.dump(export_data, handle, indent=2, ensure_ascii=False)
         else:
             state.write(f"\n💾 Exporting to CSV: {output_file}")
-            import csv
-
             with output_file.open("w", newline="", encoding="utf-8") as handle:
                 fieldnames = [
                     "id",

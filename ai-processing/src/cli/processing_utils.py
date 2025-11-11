@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import time
+import traceback
 from pathlib import Path
 from typing import List
 
@@ -77,11 +78,9 @@ def process_single_file(
 
         return True
 
-    except Exception as exc:  # pragma: no cover - relies on environment interaction
+    except (OSError, ValueError, RuntimeError) as exc:  # pragma: no cover - relies on environment interaction
         state.write(f"❌ Error processing {file_path.name}: {exc}")
         if state.verbose:
-            import traceback
-
             traceback.print_exc()
         return False
 
@@ -182,10 +181,10 @@ def process_directory(
             resources.TimeRemainingColumn(),
             console=resources.console,
         )
-        with progress as bar:
-            task = bar.add_task("[cyan]Processing documents...", total=len(files))
+        with progress as progress_bar:
+            task = progress_bar.add_task("[cyan]Processing documents...", total=len(files))
             for file_path in files:
-                bar.update(task, description=f"[cyan]Processing: {file_path.name}")
+                progress_bar.update(task, description=f"[cyan]Processing: {file_path.name}")
                 try:
                     if process_single_file(
                         file_path,
@@ -201,7 +200,7 @@ def process_directory(
                     state.write("\n⏹️  Processing interrupted by user")
                     break
                 finally:
-                    bar.update(task, advance=1)
+                    progress_bar.update(task, advance=1)
     else:
         for index, file_path in enumerate(files, start=1):
             state.write(f"[{index}/{len(files)}] Processing: {file_path.name}")
@@ -232,7 +231,7 @@ def process_directory(
         try:
             state.git_tracker.update_last_processed_commit()
             state.write_verbose("   🔄 Updated processing state")
-        except Exception as exc:  # pragma: no cover - external git state
+        except (OSError, RuntimeError) as exc:  # pragma: no cover - external git state
             state.write(f"   ⚠️  Warning: Failed to update processing state: {exc}")
 
     return success_count > 0

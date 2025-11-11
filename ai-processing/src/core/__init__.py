@@ -77,9 +77,9 @@ def process_documents(input_dir: str, embeddings_dir: str = None, config_path: s
             print(f"Error processing {doc_path.name}: {e}")
             error_count += 1
     
-    print(f"\nProcessing complete:")
-    print(f"  Successfully processed: {processed_count}")
-    print(f"  Errors: {error_count}")
+    print("\nProcessing complete:")
+    print("  Successfully processed: {processed_count}")
+    print("  Errors: {error_count}")
     
     # Verify embeddings
     print("\nVerifying embeddings...")

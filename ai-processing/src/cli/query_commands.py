@@ -199,6 +199,7 @@ def search(
     config: Optional[Path],
     max_results: int,
     threshold: float,
+    *,
     verbose: bool,
     filter_type: Optional[str],
 ) -> None:
@@ -366,13 +367,13 @@ def stats(config: Optional[Path], detailed: bool) -> None:
                 table.add_column("Extension", style="cyan")
                 table.add_column("Count", style="green")
                 table.add_column("Percentage", style="yellow")
-                for ext, count in sorted(file_types.items(), key=lambda item: item[1], reverse=True):
-                    table.add_row(ext, str(count), f"{(count / total_chunks) * 100:.1f}%")
+                for ext, file_count in sorted(file_types.items(), key=lambda item: item[1], reverse=True):
+                    table.add_row(ext, str(file_count), f"{(file_count / total_chunks) * 100:.1f}%")
                 state.rich.console.print(table)
             elif file_types:
                 state.write("\n📑 File Type Distribution:")
-                for ext, count in sorted(file_types.items(), key=lambda item: item[1], reverse=True):
-                    state.write(f"   {ext}: {count} ({(count / total_chunks) * 100:.1f}%)")
+                for ext, file_count in sorted(file_types.items(), key=lambda item: item[1], reverse=True):
+                    state.write(f"   {ext}: {file_count} ({(file_count / total_chunks) * 100:.1f}%)")
 
             if state.rich and tag_frequency:
                 tag_table = state.rich.Table(title="Top 10 Tags", show_header=True)

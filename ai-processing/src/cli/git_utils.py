@@ -38,7 +38,7 @@ def initialize_git_tracker(
 
     try:
         tracker = GitTracker(repo_root)
-    except Exception as exc:  # pragma: no cover - depends on git setup
+    except (OSError, ValueError, RuntimeError) as exc:  # pragma: no cover - depends on git setup
         if strict:
             raise CliError(f"Failed to initialize git tracking: {exc}") from exc
         print(f"⚠️  Warning: Git tracking not available: {exc}")
@@ -50,7 +50,7 @@ def initialize_git_tracker(
         tracker.pull_latest()
         if verbose:
             print("   ✅ Repository up to date")
-    except Exception as exc:  # pragma: no cover - depends on git setup
+    except (OSError, RuntimeError) as exc:  # pragma: no cover - depends on git setup
         print(f"⚠️  Warning: Failed to pull latest changes: {exc}")
 
     return tracker

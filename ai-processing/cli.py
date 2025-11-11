@@ -13,12 +13,9 @@ from src.cli.export_command import export
 # Backwards compatibility for tests that patch cli.Config
 Config = _ConfigAlias
 
-
-
 @click.group()
 def cli() -> None:
     """PrismWeave Document Processing CLI."""
-
 
 # Add commands to the CLI group
 cli.add_command(process)
@@ -29,11 +26,9 @@ cli.add_command(search)
 cli.add_command(stats)
 cli.add_command(export)
 
-
 def main() -> None:
     """Entry point for the CLI when executed directly."""
     cli()
-
 
 if __name__ == "__main__":
     main()
