@@ -32,6 +32,7 @@ def handle_cli_error(exc: CliError) -> None:
 @click.option(
     "--format",
     "-f",
+    "output_format",
     type=click.Choice(["json", "csv"]),
     default="json",
     help="Export format (default: json)",
@@ -42,7 +43,7 @@ def handle_cli_error(exc: CliError) -> None:
 def export(
     output_file: Path,
     config: Optional[Path],
-    format: str,
+    output_format: str,
     *,
     filter_type: Optional[str],
     include_content: bool,
@@ -93,9 +94,9 @@ def export(
                 "content_length": doc["content_length"],
             }
 
-            if include_content and format == "json":
+            if include_content and output_format == "json":
                 try:
-                    full_docs = store.document_store.get_documents(ids=[doc["id"]])
+                    full_docs = store.document_store.filter_documents(filters={"id": doc["id"]})
                     if full_docs:
                         payload["content"] = full_docs[0].content
                     else:
@@ -108,7 +109,7 @@ def export(
 
             export_data["documents"].append(payload)
 
-        if format == "json":
+        if output_format == "json":
             state.write(f"\n💾 Exporting to JSON: {output_file}")
             with output_file.open("w", encoding="utf-8") as handle:
                 json.dump(export_data, handle, indent=2, ensure_ascii=False)
