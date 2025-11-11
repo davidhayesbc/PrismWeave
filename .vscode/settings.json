@@ -147,7 +147,6 @@
   "testing.automaticallyOpenPeekView": "failureInVisibleDocument",
   "testing.followRunningTest": true,
   "testing.openTesting": "neverOpen",
-  "testing.automaticallyOpenTestResults": "neverOpen",
 
   "python-envs.pythonProjects": [
     {
