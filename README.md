@@ -43,8 +43,33 @@ Local AI integration with Ollama for content processing and generation.
 - NPU acceleration (AI HX 370)
 - Document analysis and categorization
 - Content generation from captured sources
+- **MCP Server:** Model Context Protocol integration for VS Code
+- **Semantic Search:** ChromaDB vector database for intelligent document retrieval
 
 **Location:** `ai-processing/`
+
+#### MCP Server (NEW!)
+
+The PrismWeave MCP server enables AI-powered document management directly in VS Code through the Model Context Protocol.
+
+**Key Capabilities:**
+- Semantic search across all captured documents
+- AI-powered tag generation and categorization
+- Create synthesized documents from multiple sources
+- Automatic vector embeddings for similarity search
+- Git integration for version control
+
+**Quick Start:**
+```bash
+cd ai-processing
+uv sync
+# Configure VS Code (see ai-processing/prismweave_mcp/VS_CODE_INTEGRATION.md)
+```
+
+**Documentation:**
+- [MCP Server README](ai-processing/prismweave_mcp/README.md) - Complete guide
+- [VS Code Integration](ai-processing/prismweave_mcp/VS_CODE_INTEGRATION.md) - Setup instructions
+- [Troubleshooting](ai-processing/prismweave_mcp/TROUBLESHOOTING.md) - Common issues
 
 ### 🔧 VS Code Extension
 
@@ -87,7 +112,12 @@ For detailed instructions, see [cli/README.md](cli/README.md) or [cli/QUICKSTART
 cd ai-processing
 uv sync
 source .venv/bin/activate  # or .venv\Scripts\activate on Windows
+
+# Use CLI tool
 python cli.py --help
+
+# Or start MCP server for VS Code integration
+# See ai-processing/prismweave_mcp/VS_CODE_INTEGRATION.md
 ```
 
 ## Architecture
@@ -95,11 +125,23 @@ python cli.py --help
 ```
 PrismWeave/
 ├── browser-extension/   # Chrome/Edge extension
-├── cli/                 # Command-line tool (NEW!)
+├── cli/                 # Command-line tool
 ├── ai-processing/       # Local AI integration
+│   ├── prismweave_mcp/ # MCP server for VS Code (NEW!)
+│   ├── src/            # Core AI processing modules
+│   └── cli/            # AI processing CLI
 ├── vscode-extension/    # VS Code extension
 ├── shared-styles/       # Shared UI styles
 └── website/            # Project website
+```
+
+**Document Repository:**
+```
+PrismWeaveDocs/
+├── documents/          # Captured web pages
+├── generated/          # AI-synthesized content
+├── images/             # Captured images
+└── .prismweave/       # Vector database & metadata
 ```
 
 ## Shared Code
@@ -157,6 +199,8 @@ pytest
 - **CLI Tool**: [cli/README.md](cli/README.md)
 - **CLI Quick Start**: [cli/QUICKSTART.md](cli/QUICKSTART.md)
 - **AI Processing**: [ai-processing/README.md](ai-processing/README.md)
+- **MCP Server**: [ai-processing/prismweave_mcp/README.md](ai-processing/prismweave_mcp/README.md)
+- **VS Code MCP Integration**: [ai-processing/prismweave_mcp/VS_CODE_INTEGRATION.md](ai-processing/prismweave_mcp/VS_CODE_INTEGRATION.md)
 - **Implementation Plan**: [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md)
 - **Requirements**: [docs/REQUIREMENTS.md](docs/REQUIREMENTS.md)
 
