@@ -54,45 +54,21 @@ class SearchTools:
             if not self._initialized or not self.search_manager:
                 await self.initialize()
 
-            # Extract filters from generic filters dict
-            filters = request.filters or {}
-            tag_filter = filters.get("tags")
-            date_filter = filters.get("date_range")
-            generated_only = filters.get("generated_only", False)
-            category_filter = filters.get("category")
-
             # Perform search using SearchManager
-            results = await self.search_manager.search_documents(
+            # SearchManager.search_documents returns tuple: (results, total)
+            search_results_list, total_found = self.search_manager.search_documents(
                 query=request.query,
                 max_results=request.max_results,
                 similarity_threshold=request.similarity_threshold,
-                tag_filter=tag_filter,
-                date_filter=date_filter,
-                generated_only=generated_only,
-                category_filter=category_filter,
+                filters=None,  # No advanced filtering for now
             )
 
-            # Convert results to SearchResult objects
-            from prismweave_mcp.schemas.responses import SearchResult
-
-            search_results = []
-            for result in results["results"]:
-                search_result = SearchResult(
-                    document_id=result.get("document_id", ""),
-                    path=result.get("path", ""),
-                    title=result.get("title", ""),
-                    similarity_score=result.get("score", result.get("similarity_score", 0.0)),
-                    snippet=result.get("snippet", ""),
-                    metadata=result.get("metadata"),
-                    content=result.get("content"),
-                )
-                search_results.append(search_result)
-
+            # search_results_list is already a list of SearchResult objects with correct schema
             # Convert to response format
             response = SearchDocumentsResponse(
                 success=True,
-                results=search_results,
-                total_found=results["total_results"],
+                results=search_results_list,
+                total_results=total_found,
                 query=request.query,
             )
 
@@ -116,18 +92,13 @@ class SearchTools:
         """
         try:
             # Get document using DocumentManager
-            if request.document_id:
-                document = self.document_manager.get_document_by_id(request.document_id)
-            elif request.path:
-                document = self.document_manager.get_document_by_path(request.path)
-            else:
-                raise ValueError("Either document_id or path must be provided")
+            document = self.document_manager.get_document_by_id(request.document_id)
 
             if not document:
                 error = ErrorResponse(
                     error="Document not found",
                     error_code="DOCUMENT_NOT_FOUND",
-                    details={"document_id": request.document_id, "path": request.path},
+                    details={"document_id": request.document_id},
                 )
                 return error.model_dump()
 
@@ -164,7 +135,7 @@ class SearchTools:
             error = ErrorResponse(
                 error=f"Failed to get document: {str(e)}",
                 error_code="DOCUMENT_RETRIEVAL_FAILED",
-                details={"document_id": request.document_id, "path": request.path},
+                details={"document_id": request.document_id},
             )
             return error.model_dump()
 
