@@ -53,6 +53,7 @@ Local AI integration with Ollama for content processing and generation.
 The PrismWeave MCP server enables AI-powered document management directly in VS Code through the Model Context Protocol.
 
 **Key Capabilities:**
+
 - Semantic search across all captured documents
 - AI-powered tag generation and categorization
 - Create synthesized documents from multiple sources
@@ -60,6 +61,7 @@ The PrismWeave MCP server enables AI-powered document management directly in VS 
 - Git integration for version control
 
 **Quick Start:**
+
 ```bash
 cd ai-processing
 uv sync
@@ -67,6 +69,7 @@ uv sync
 ```
 
 **Documentation:**
+
 - [MCP Server README](ai-processing/prismweave_mcp/README.md) - Complete guide
 - [VS Code Integration](ai-processing/prismweave_mcp/VS_CODE_INTEGRATION.md) - Setup instructions
 - [Troubleshooting](ai-processing/prismweave_mcp/TROUBLESHOOTING.md) - Common issues
@@ -136,6 +139,7 @@ PrismWeave/
 ```
 
 **Document Repository:**
+
 ```
 PrismWeaveDocs/
 ├── documents/          # Captured web pages

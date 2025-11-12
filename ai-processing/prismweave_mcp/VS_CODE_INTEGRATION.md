@@ -46,11 +46,13 @@ Documents + AI Processing
 ### Required Software
 
 1. **Visual Studio Code** (version 1.85+)
+
    ```bash
    code --version
    ```
 
 2. **Python 3.10+** with PrismWeave environment
+
    ```bash
    cd /home/dhayes/Source/PrismWeave/ai-processing
    source .venv/bin/activate
@@ -58,6 +60,7 @@ Documents + AI Processing
    ```
 
 3. **Ollama** running locally
+
    ```bash
    curl http://localhost:11434/api/tags
    ```
@@ -81,6 +84,7 @@ Documents + AI Processing
 Currently, MCP support is available through:
 
 **Option A: GitHub Copilot** (recommended)
+
 ```
 1. Open VS Code
 2. Go to Extensions (Ctrl+Shift+X)
@@ -89,6 +93,7 @@ Currently, MCP support is available through:
 ```
 
 **Option B: Claude for VS Code**
+
 ```
 1. Open VS Code
 2. Go to Extensions (Ctrl+Shift+X)
@@ -124,10 +129,7 @@ Add MCP server configuration to VS Code settings:
   "mcp.servers": {
     "prismweave": {
       "command": "python",
-      "args": [
-        "-m",
-        "prismweave_mcp.server"
-      ],
+      "args": ["-m", "prismweave_mcp.server"],
       "cwd": "/home/dhayes/Source/PrismWeave/ai-processing",
       "env": {
         "PYTHONPATH": "/home/dhayes/Source/PrismWeave/ai-processing",
@@ -145,10 +147,7 @@ Add MCP server configuration to VS Code settings:
   "mcp.servers": {
     "prismweave": {
       "command": "/home/dhayes/Source/PrismWeave/ai-processing/.venv/bin/python",
-      "args": [
-        "-m",
-        "prismweave_mcp.server"
-      ],
+      "args": ["-m", "prismweave_mcp.server"],
       "cwd": "/home/dhayes/Source/PrismWeave/ai-processing"
     }
   }
@@ -209,8 +208,8 @@ mcp:
 
   # Creation Settings
   creation:
-    auto_process: true   # Auto-generate tags/embeddings
-    auto_commit: false   # Auto-commit to git
+    auto_process: true # Auto-generate tags/embeddings
+    auto_commit: false # Auto-commit to git
 
   # Git Settings
   git:
@@ -229,17 +228,17 @@ mcp:
       "command": "/home/dhayes/Source/PrismWeave/ai-processing/.venv/bin/python",
       "args": ["-m", "prismweave_mcp.server"],
       "cwd": "/home/dhayes/Source/PrismWeave/ai-processing",
-      
+
       // Optional: Enable detailed logging
       "env": {
         "PRISMWEAVE_LOG_LEVEL": "DEBUG"
       }
     }
   },
-  
+
   // Optional: Auto-restart server on file changes
   "mcp.autoRestart": true,
-  
+
   // Optional: Show server output
   "mcp.showServerOutput": true
 }
@@ -256,11 +255,13 @@ mcp:
 Use AI assistant to search documents:
 
 **Prompt**:
+
 ```
 Search PrismWeave documents for "machine learning fundamentals"
 ```
 
 **Behind the scenes**:
+
 ```json
 {
   "tool": "search_documents",
@@ -272,6 +273,7 @@ Search PrismWeave documents for "machine learning fundamentals"
 ```
 
 **Result**:
+
 - AI assistant receives search results
 - Can reference found documents in response
 - Provides relevant context from your knowledge base
@@ -281,11 +283,13 @@ Search PrismWeave documents for "machine learning fundamentals"
 #### 2. Retrieve Documents
 
 **Prompt**:
+
 ```
 Get the full content of document "2025-01-15-ml-basics.md"
 ```
 
 **Behind the scenes**:
+
 ```json
 {
   "tool": "get_document",
@@ -297,6 +301,7 @@ Get the full content of document "2025-01-15-ml-basics.md"
 ```
 
 **Result**:
+
 - Full document content retrieved
 - AI can quote, summarize, or analyze
 - Metadata available for context
@@ -306,11 +311,13 @@ Get the full content of document "2025-01-15-ml-basics.md"
 #### 3. Create Synthesized Content
 
 **Prompt**:
+
 ```
 Create a new document summarizing the top 3 articles about neural networks
 ```
 
 **Behind the scenes**:
+
 ```
 1. search_documents(query="neural networks")
 2. get_document() for top 3 results
@@ -320,6 +327,7 @@ Create a new document summarizing the top 3 articles about neural networks
 ```
 
 **Result**:
+
 - New document created in `generated/` folder
 - Automatically tagged and embedded
 - Ready for search and retrieval
@@ -329,11 +337,13 @@ Create a new document summarizing the top 3 articles about neural networks
 #### 4. Version Control
 
 **Prompt**:
+
 ```
 Commit the new article with message "Add neural networks summary"
 ```
 
 **Behind the scenes**:
+
 ```json
 {
   "tool": "commit_to_git",
@@ -346,6 +356,7 @@ Commit the new article with message "Add neural networks summary"
 ```
 
 **Result**:
+
 - Changes committed to git
 - Optionally pushed to remote
 - Version history maintained
@@ -357,11 +368,13 @@ Commit the new article with message "Add neural networks summary"
 #### Batch Processing
 
 **Prompt**:
+
 ```
 Find all documents about "databases" and generate embeddings for any that don't have them
 ```
 
 **Workflow**:
+
 ```
 1. search_documents(query="databases")
 2. For each result:
@@ -376,11 +389,13 @@ Find all documents about "databases" and generate embeddings for any that don't 
 #### Content Updates
 
 **Prompt**:
+
 ```
 Update the document "intro-to-ai.md" with new information about GPT-4, then regenerate its tags and embeddings
 ```
 
 **Workflow**:
+
 ```
 1. get_document(path="generated/intro-to-ai.md")
 2. AI modifies content
@@ -395,11 +410,13 @@ Update the document "intro-to-ai.md" with new information about GPT-4, then rege
 #### Research Synthesis
 
 **Prompt**:
+
 ```
 Create a comprehensive article on "transformer architecture" by synthesizing information from all my captured articles on the topic
 ```
 
 **Workflow**:
+
 ```
 1. search_documents(query="transformer architecture")
 2. get_document() for all relevant results
@@ -418,6 +435,7 @@ Create a comprehensive article on "transformer architecture" by synthesizing inf
 **User**: "Search my documents for articles about Python async programming"
 
 **AI Assistant Uses**:
+
 ```json
 {
   "tool": "search_documents",
@@ -432,6 +450,7 @@ Create a comprehensive article on "transformer architecture" by synthesizing inf
 ```
 
 **AI Response**:
+
 ```
 I found 8 documents about Python async programming:
 
@@ -457,6 +476,7 @@ Would you like me to retrieve the full content of any of these?
 **AI Assistant Process**:
 
 **Step 1 - Search**:
+
 ```json
 {
   "tool": "search_documents",
@@ -468,6 +488,7 @@ Would you like me to retrieve the full content of any of these?
 ```
 
 **Step 2 - Retrieve**:
+
 ```json
 {
   "tool": "get_document",
@@ -476,9 +497,11 @@ Would you like me to retrieve the full content of any of these?
   }
 }
 ```
+
 (Repeated for top 3 results)
 
 **Step 3 - Create**:
+
 ```json
 {
   "tool": "create_document",
@@ -493,6 +516,7 @@ Would you like me to retrieve the full content of any of these?
 ```
 
 **AI Response**:
+
 ```
 I've created a new blog post synthesizing your top 3 machine learning articles:
 
@@ -516,6 +540,7 @@ Would you like me to commit this to git?
 **User**: "Show me all generated documents about AI from the last month"
 
 **AI Assistant Uses**:
+
 ```json
 {
   "tool": "search_documents",
@@ -543,17 +568,19 @@ Would you like me to commit this to git?
 **AI Assistant Process**:
 
 **Step 1 - Find Document**:
+
 ```json
 {
   "tool": "search_documents",
   "parameters": {
     "query": "neural networks",
-    "filters": {"is_generated": true}
+    "filters": { "is_generated": true }
   }
 }
 ```
 
 **Step 2 - Get Content**:
+
 ```json
 {
   "tool": "get_document",
@@ -564,6 +591,7 @@ Would you like me to commit this to git?
 ```
 
 **Step 3 - Update**:
+
 ```json
 {
   "tool": "update_document",
@@ -576,6 +604,7 @@ Would you like me to commit this to git?
 ```
 
 **Step 4 - Commit**:
+
 ```json
 {
   "tool": "commit_to_git",
@@ -595,6 +624,7 @@ Would you like me to commit this to git?
 **Symptom**: VS Code shows "MCP server prismweave disconnected"
 
 **Checks**:
+
 ```bash
 # 1. Verify Python path
 /home/dhayes/Source/PrismWeave/ai-processing/.venv/bin/python --version
@@ -608,6 +638,7 @@ cd /home/dhayes/Source/PrismWeave/ai-processing
 ```
 
 **Solutions**:
+
 1. Check VS Code `settings.json` paths are absolute
 2. Ensure virtual environment is activated
 3. Verify `prismweave_mcp` module is installed
@@ -621,16 +652,19 @@ cd /home/dhayes/Source/PrismWeave/ai-processing
 **Solutions**:
 
 1. **Restart MCP Server**:
+
    ```
    Command Palette > MCP: Restart Server > prismweave
    ```
 
 2. **Check Server Status**:
+
    ```
    Command Palette > MCP: Show Servers
    ```
 
 3. **View Server Logs**:
+
    ```
    View > Output > MCP > prismweave
    ```
@@ -653,11 +687,13 @@ cd /home/dhayes/Source/PrismWeave/ai-processing
 **Solutions**:
 
 1. **Check Ollama**:
+
    ```bash
    curl http://localhost:11434/api/tags
    ```
 
 2. **Monitor Resource Usage**:
+
    ```bash
    top -p $(pgrep python | grep prismweave)
    ```
@@ -666,7 +702,7 @@ cd /home/dhayes/Source/PrismWeave/ai-processing
    ```yaml
    mcp:
      search:
-       max_results: 10  # Reduce from 20
+       max_results: 10 # Reduce from 20
      rate_limiting:
        enabled: true
        requests_per_minute: 30
@@ -679,6 +715,7 @@ cd /home/dhayes/Source/PrismWeave/ai-processing
 **Symptom**: "Cannot create document: permission denied"
 
 **Solution**:
+
 ```bash
 # Check permissions
 ls -la ../../PrismWeaveDocs/generated/
@@ -716,7 +753,7 @@ For generated documents, enable auto-processing:
 ```yaml
 mcp:
   creation:
-    auto_process: true  # Auto-generate tags and embeddings
+    auto_process: true # Auto-generate tags and embeddings
 ```
 
 ### 4. Regular Commits
@@ -811,7 +848,8 @@ Add keyboard shortcuts for common MCP operations:
 **A**: Not directly, but you can modify `server.py` to comment out unwanted `@mcp.tool()` decorators.
 
 **Q: How do I update the MCP server?**  
-**A**: 
+**A**:
+
 ```bash
 cd /home/dhayes/Source/PrismWeave
 git pull
