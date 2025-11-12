@@ -6,10 +6,10 @@ MCP tool implementations for searching and retrieving documents.
 
 from typing import Any
 
-from mcp.managers.document_manager import DocumentManager
-from mcp.managers.search_manager import SearchManager
-from mcp.schemas.requests import GetDocumentRequest, ListDocumentsRequest, SearchDocumentsRequest
-from mcp.schemas.responses import (
+from prismweave_mcp.managers.document_manager import DocumentManager
+from prismweave_mcp.managers.search_manager import SearchManager
+from prismweave_mcp.schemas.requests import GetDocumentRequest, ListDocumentsRequest, SearchDocumentsRequest
+from prismweave_mcp.schemas.responses import (
     ErrorResponse,
     GetDocumentResponse,
     ListDocumentsResponse,
@@ -73,7 +73,7 @@ class SearchTools:
             )
 
             # Convert results to SearchResult objects
-            from mcp.schemas.responses import SearchResult
+            from prismweave_mcp.schemas.responses import SearchResult
 
             search_results = []
             for result in results["results"]:
@@ -132,7 +132,7 @@ class SearchTools:
                 return error.model_dump()
 
             # Convert to response format
-            from mcp.schemas.responses import Document, DocumentMetadata
+            from prismweave_mcp.schemas.responses import Document, DocumentMetadata
 
             # Create DocumentMetadata from dict
             doc_metadata = DocumentMetadata(
@@ -205,7 +205,7 @@ class SearchTools:
                 documents = documents[request.offset :]
 
             # Convert to DocumentSummary objects
-            from mcp.schemas.responses import DocumentSummary
+            from prismweave_mcp.schemas.responses import DocumentSummary
 
             doc_summaries = []
             for doc in documents:

@@ -9,7 +9,7 @@ from unittest.mock import Mock
 import pytest
 from haystack import Document as HaystackDocument
 
-from mcp.managers.search_manager import SearchManager
+from prismweave_mcp.managers.search_manager import SearchManager
 from src.core.config import Config, MCPConfig, MCPPathsConfig, MCPSearchConfig
 
 

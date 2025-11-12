@@ -6,8 +6,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from mcp.schemas.requests import GenerateEmbeddingsRequest, GenerateTagsRequest
-from mcp.tools.processing import ProcessingTools
+from prismweave_mcp.schemas.requests import GenerateEmbeddingsRequest, GenerateTagsRequest
+from prismweave_mcp.tools.processing import ProcessingTools
 from src.core.config import Config
 
 
@@ -39,7 +39,7 @@ class TestProcessingTools:
 
     async def test_initialize(self, processing_tools):
         """Test initialization of processing manager"""
-        with patch("mcp.tools.processing.ProcessingManager") as MockProcessingManager:
+        with patch("prismweave_mcp.tools.processing.ProcessingManager") as MockProcessingManager:
             mock_manager = AsyncMock()
             mock_manager.initialize = AsyncMock()
             MockProcessingManager.return_value = mock_manager
@@ -109,7 +109,7 @@ class TestProcessingTools:
 
     async def test_generate_embeddings_initialization(self, processing_tools):
         """Test embeddings generation initializes manager if needed"""
-        with patch("mcp.tools.processing.ProcessingManager") as MockProcessingManager:
+        with patch("prismweave_mcp.tools.processing.ProcessingManager") as MockProcessingManager:
             mock_manager = AsyncMock()
             mock_manager.initialize = AsyncMock()
             mock_manager.generate_embeddings = AsyncMock(
@@ -233,7 +233,7 @@ class TestProcessingTools:
 
     async def test_generate_tags_initialization(self, processing_tools):
         """Test tag generation initializes manager if needed"""
-        with patch("mcp.tools.processing.ProcessingManager") as MockProcessingManager:
+        with patch("prismweave_mcp.tools.processing.ProcessingManager") as MockProcessingManager:
             mock_manager = AsyncMock()
             mock_manager.initialize = AsyncMock()
             mock_manager.generate_tags = AsyncMock(

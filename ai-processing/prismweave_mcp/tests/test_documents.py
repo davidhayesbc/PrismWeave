@@ -6,8 +6,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from mcp.schemas.requests import CreateDocumentRequest, UpdateDocumentRequest
-from mcp.tools.documents import DocumentTools
+from prismweave_mcp.schemas.requests import CreateDocumentRequest, UpdateDocumentRequest
+from prismweave_mcp.tools.documents import DocumentTools
 from src.core.config import Config
 
 

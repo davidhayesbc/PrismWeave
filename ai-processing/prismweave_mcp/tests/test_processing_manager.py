@@ -9,7 +9,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 import pytest_asyncio
 
-from mcp.managers.processing_manager import ProcessingManager
+from prismweave_mcp.managers.processing_manager import ProcessingManager
 from src.core.config import Config, MCPConfig, MCPPathsConfig
 
 

@@ -7,8 +7,8 @@ from pathlib import Path
 
 import pytest
 
-from mcp.managers.document_manager import DocumentManager
-from mcp.schemas.responses import DocumentMetadata
+from prismweave_mcp.managers.document_manager import DocumentManager
+from prismweave_mcp.schemas.responses import DocumentMetadata
 from src.core.config import Config, MCPConfig, MCPCreationConfig, MCPPathsConfig
 
 
@@ -287,7 +287,7 @@ class TestCreateDocument:
         )
 
         # Read back the file to verify metadata was saved
-        from mcp.utils.document_utils import parse_frontmatter
+        from prismweave_mcp.utils.document_utils import parse_frontmatter
 
         content = file_path.read_text()
         meta, _ = parse_frontmatter(content)
@@ -359,7 +359,7 @@ class TestUpdateDocument:
         )
 
         # Read back to verify both old and new metadata exist
-        from mcp.utils.document_utils import parse_frontmatter
+        from prismweave_mcp.utils.document_utils import parse_frontmatter
 
         content = file_path.read_text()
         meta, _ = parse_frontmatter(content)
@@ -376,7 +376,7 @@ class TestUpdateDocument:
         )
 
         # Read back to verify only new metadata exists
-        from mcp.utils.document_utils import parse_frontmatter
+        from prismweave_mcp.utils.document_utils import parse_frontmatter
 
         content = file_path.read_text()
         meta, _ = parse_frontmatter(content)

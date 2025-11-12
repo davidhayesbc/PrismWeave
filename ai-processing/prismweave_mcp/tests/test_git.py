@@ -6,8 +6,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from mcp.schemas.requests import CommitToGitRequest
-from mcp.tools.git import GitTools
+from prismweave_mcp.schemas.requests import CommitToGitRequest
+from prismweave_mcp.tools.git import GitTools
 from src.core.config import Config
 
 

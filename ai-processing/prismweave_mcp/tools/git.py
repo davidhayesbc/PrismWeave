@@ -6,9 +6,9 @@ MCP tool implementations for version control operations.
 
 from typing import Any
 
-from mcp.managers.git_manager import GitManager
-from mcp.schemas.requests import CommitToGitRequest
-from mcp.schemas.responses import CommitToGitResponse, ErrorResponse
+from prismweave_mcp.managers.git_manager import GitManager
+from prismweave_mcp.schemas.requests import CommitToGitRequest
+from prismweave_mcp.schemas.responses import CommitToGitResponse, ErrorResponse
 from src.core.config import Config
 
 

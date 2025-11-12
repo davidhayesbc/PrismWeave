@@ -6,8 +6,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from mcp.schemas.requests import GetDocumentRequest, ListDocumentsRequest, SearchDocumentsRequest
-from mcp.tools.search import SearchTools
+from prismweave_mcp.schemas.requests import GetDocumentRequest, ListDocumentsRequest, SearchDocumentsRequest
+from prismweave_mcp.tools.search import SearchTools
 from src.core.config import Config
 
 
@@ -41,7 +41,7 @@ class TestSearchTools:
 
     async def test_initialize(self, search_tools):
         """Test initialization of search manager"""
-        with patch("mcp.tools.search.SearchManager") as MockSearchManager:
+        with patch("prismweave_mcp.tools.search.SearchManager") as MockSearchManager:
             mock_manager = AsyncMock()
             mock_manager.initialize = AsyncMock()
             MockSearchManager.return_value = mock_manager
@@ -77,7 +77,7 @@ class TestSearchTools:
 
     async def test_search_documents_initialization(self, search_tools):
         """Test search documents initializes manager if needed"""
-        with patch("mcp.tools.search.SearchManager") as MockSearchManager:
+        with patch("prismweave_mcp.tools.search.SearchManager") as MockSearchManager:
             mock_manager = AsyncMock()
             mock_manager.initialize = AsyncMock()
             mock_manager.search_documents = AsyncMock(return_value={"results": [], "total_results": 0})

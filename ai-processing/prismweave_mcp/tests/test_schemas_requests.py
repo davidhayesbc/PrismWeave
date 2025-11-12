@@ -5,7 +5,7 @@ Tests for MCP request schemas
 import pytest
 from pydantic import ValidationError
 
-from mcp.schemas.requests import (
+from prismweave_mcp.schemas.requests import (
     CommitToGitRequest,
     CreateDocumentRequest,
     GenerateEmbeddingsRequest,

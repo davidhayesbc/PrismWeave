@@ -4,7 +4,7 @@ Tests for document utility functions
 
 from datetime import datetime
 
-from mcp.utils.document_utils import (
+from prismweave_mcp.utils.document_utils import (
     calculate_reading_time,
     count_words,
     extract_title_from_content,

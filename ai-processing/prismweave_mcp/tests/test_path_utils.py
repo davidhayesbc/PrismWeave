@@ -5,7 +5,7 @@ Tests for path utility functions
 import tempfile
 from pathlib import Path
 
-from mcp.utils.path_utils import (
+from prismweave_mcp.utils.path_utils import (
     ensure_directory_exists,
     get_document_category,
     get_documents_root,

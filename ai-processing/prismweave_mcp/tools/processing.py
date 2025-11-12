@@ -6,9 +6,9 @@ MCP tool implementations for AI-powered document processing.
 
 from typing import Any
 
-from mcp.managers.processing_manager import ProcessingManager
-from mcp.schemas.requests import GenerateEmbeddingsRequest, GenerateTagsRequest
-from mcp.schemas.responses import ErrorResponse, GenerateEmbeddingsResponse, GenerateTagsResponse
+from prismweave_mcp.managers.processing_manager import ProcessingManager
+from prismweave_mcp.schemas.requests import GenerateEmbeddingsRequest, GenerateTagsRequest
+from prismweave_mcp.schemas.responses import ErrorResponse, GenerateEmbeddingsResponse, GenerateTagsResponse
 from src.core.config import Config
 
 

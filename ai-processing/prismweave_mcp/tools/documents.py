@@ -6,11 +6,11 @@ MCP tool implementations for creating and updating documents.
 
 from typing import Any
 
-from mcp.managers.document_manager import DocumentManager
-from mcp.managers.git_manager import GitManager
-from mcp.managers.processing_manager import ProcessingManager
-from mcp.schemas.requests import CreateDocumentRequest, UpdateDocumentRequest
-from mcp.schemas.responses import CreateDocumentResponse, ErrorResponse, UpdateDocumentResponse
+from prismweave_mcp.managers.document_manager import DocumentManager
+from prismweave_mcp.managers.git_manager import GitManager
+from prismweave_mcp.managers.processing_manager import ProcessingManager
+from prismweave_mcp.schemas.requests import CreateDocumentRequest, UpdateDocumentRequest
+from prismweave_mcp.schemas.responses import CreateDocumentResponse, ErrorResponse, UpdateDocumentResponse
 from src.core.config import Config
 
 

@@ -8,7 +8,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 import pytest_asyncio
 
-from mcp.managers.git_manager import GitManager
+from prismweave_mcp.managers.git_manager import GitManager
 from src.core.config import Config
 
 

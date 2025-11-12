@@ -2,7 +2,7 @@
 Tests for MCP response schemas
 """
 
-from mcp.schemas.responses import (
+from prismweave_mcp.schemas.responses import (
     CommitToGitResponse,
     CreateDocumentResponse,
     Document,
