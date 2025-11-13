@@ -68,7 +68,7 @@ class SearchResult(BaseModel):
     document_id: str = Field(..., description="Document ID")
     score: float = Field(..., description="Similarity score (0-1)")
     excerpt: str = Field(..., description="Relevant excerpt from document")
-    metadata: DocumentMetadata = Field(..., description="Document metadata")
+    metadata: Optional[DocumentMetadata] = Field(default=None, description="Document metadata (optional)")
 
     class Config:
         json_schema_extra = {

@@ -53,9 +53,11 @@ class ProcessingManager:
             RuntimeError: If initialization fails
         """
         try:
-            # Initialize embedding store
-            await self.embedding_store.initialize()
-            logger.info("Processing manager initialized successfully")
+            # EmbeddingStore doesn't require async initialization
+            # It initializes synchronously in __init__
+            # Verify it's working by checking document count
+            count = self.embedding_store.get_document_count()
+            logger.info(f"Processing manager initialized successfully - {count} documents in store")
         except Exception as e:
             logger.error(f"Failed to initialize processing manager: {e}")
             raise RuntimeError(f"Processing manager initialization failed: {e}")

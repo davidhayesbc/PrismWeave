@@ -37,7 +37,7 @@ class GitTools:
         """
         try:
             # Commit changes using GitManager (use correct field names from schema)
-            result = self.git_manager.commit_changes(
+            result = await self.git_manager.commit_changes(
                 message=request.commit_message, files=request.file_paths or None, push=request.push
             )
 
