@@ -151,12 +151,21 @@ class EmbeddingStore:
             query_embedding = query_result.get("embedding")
 
             # Retrieve similar documents with scores
-            # Note: Haystack ChromaEmbeddingRetriever returns documents with scores in meta
+            # Note: Haystack ChromaEmbeddingRetriever returns documents with scores as doc.score attribute
             retrieval_result = self.retriever.run(query_embedding=query_embedding, top_k=k)
 
             documents = retrieval_result.get("documents", [])
-            # Extract scores from metadata if available
-            results = [(doc, doc.meta.get("score", 0.0)) for doc in documents]
+            # ChromaDB returns squared L2 distance (lower is more similar)
+            # Typical range: 0-1000+ for 768-dimensional vectors
+            # Convert to similarity score (0-1 range, higher is better)
+            results = []
+            for doc in documents:
+                distance = doc.score if hasattr(doc, "score") else 1000.0
+                # Convert distance to similarity using exponential decay
+                # This maps small distances (good matches) to scores near 1.0
+                # and large distances to scores near 0.0
+                similarity = 1.0 - min(distance / 1000.0, 1.0)  # Normalize to 0-1 range
+                results.append((doc, similarity))
             return results
 
         except Exception as e:
