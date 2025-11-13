@@ -92,12 +92,6 @@ async def search_documents(
         query=query,
         max_results=max_results,
         similarity_threshold=similarity_threshold,
-        tags=tags,
-        date_from=date_from,
-        date_to=date_to,
-        include_generated=include_generated,
-        include_captured=include_captured,
-        category=category,
     )
     return await search_tools.search_documents(request)
 
@@ -122,7 +116,6 @@ async def get_document(
     await ensure_initialized()
     request = GetDocumentRequest(
         document_id=document_id,
-        path=path,
         include_content=include_content,
     )
     return await search_tools.get_document(request)
@@ -159,10 +152,6 @@ async def list_documents(
     request = ListDocumentsRequest(
         category=category,
         tags=tags,
-        date_from=date_from,
-        date_to=date_to,
-        include_generated=include_generated,
-        include_captured=include_captured,
         limit=limit,
         offset=offset,
     )
@@ -187,7 +176,6 @@ async def get_document_metadata(
     await ensure_initialized()
     request = GetDocumentRequest(
         document_id=document_id,
-        path=path,
         include_content=False,
     )
     return await search_tools.get_document_metadata(request)
@@ -224,34 +212,30 @@ async def create_document(
         content=content,
         category=category,
         tags=tags,
-        metadata=metadata,
-        auto_process=auto_process,
-        auto_commit=auto_commit,
+        additional_metadata=metadata,
     )
     return await document_tools.create_document(request)
 
 
 @mcp.tool()
 async def update_document(
-    document_id: str | None = None,
-    path: str | None = None,
+    document_id: str,
     title: str | None = None,
     content: str | None = None,
     tags: list[str] | None = None,
-    metadata: dict[str, Any] | None = None,
-    regenerate_embeddings: bool = False,
+    category: str | None = None,
+    additional_metadata: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """
     Update an existing generated document.
 
     Args:
-        document_id: Document ID
-        path: Document path (alternative to document_id)
+        document_id: Document ID to update
         title: New document title
         content: New document content
         tags: New tags
-        metadata: Metadata to update
-        regenerate_embeddings: Regenerate embeddings after update (default: False)
+        category: New category
+        additional_metadata: Additional metadata to update
 
     Returns:
         Updated document information
@@ -259,29 +243,28 @@ async def update_document(
     await ensure_initialized()
     request = UpdateDocumentRequest(
         document_id=document_id,
-        path=path,
         title=title,
         content=content,
         tags=tags,
-        metadata=metadata,
-        regenerate_embeddings=regenerate_embeddings,
+        category=category,
+        additional_metadata=additional_metadata,
     )
     return await document_tools.update_document(request)
 
 
 @mcp.tool()
 async def generate_embeddings(
-    document_id: str | None = None,
-    path: str | None = None,
-    force: bool = False,
+    document_id: str,
+    model: str = "nomic-embed-text",
+    force_regenerate: bool = False,
 ) -> dict[str, Any]:
     """
     Generate embeddings for a document.
 
     Args:
-        document_id: Document ID
-        path: Document path (alternative to document_id)
-        force: Force regeneration even if embeddings exist (default: False)
+        document_id: Document ID to generate embeddings for
+        model: Embedding model to use (default: nomic-embed-text)
+        force_regenerate: Force regeneration even if embeddings exist (default: False)
 
     Returns:
         Embedding generation results
@@ -289,27 +272,25 @@ async def generate_embeddings(
     await ensure_initialized()
     request = GenerateEmbeddingsRequest(
         document_id=document_id,
-        path=path,
-        force=force,
+        model=model,
+        force_regenerate=force_regenerate,
     )
     return await processing_tools.generate_embeddings(request)
 
 
 @mcp.tool()
 async def generate_tags(
-    document_id: str | None = None,
-    path: str | None = None,
-    merge_existing: bool = True,
-    max_tags: int = 10,
+    document_id: str,
+    max_tags: int = 5,
+    force_regenerate: bool = False,
 ) -> dict[str, Any]:
     """
     Generate tags for a document using AI.
 
     Args:
-        document_id: Document ID
-        path: Document path (alternative to document_id)
-        merge_existing: Merge with existing tags (default: True)
-        max_tags: Maximum number of tags to generate (default: 10)
+        document_id: Document ID to generate tags for
+        max_tags: Maximum number of tags to generate (default: 5)
+        force_regenerate: Force regeneration even if tags exist (default: False)
 
     Returns:
         Generated tags
@@ -317,25 +298,24 @@ async def generate_tags(
     await ensure_initialized()
     request = GenerateTagsRequest(
         document_id=document_id,
-        path=path,
-        merge_existing=merge_existing,
         max_tags=max_tags,
+        force_regenerate=force_regenerate,
     )
     return await processing_tools.generate_tags(request)
 
 
 @mcp.tool()
 async def commit_to_git(
-    message: str,
-    paths: list[str] | None = None,
+    commit_message: str,
+    file_paths: list[str],
     push: bool = False,
 ) -> dict[str, Any]:
     """
     Commit changes to git repository.
 
     Args:
-        message: Commit message
-        paths: Specific paths to commit (empty for all changes)
+        commit_message: Commit message
+        file_paths: List of file paths to commit
         push: Push to remote after commit (default: False)
 
     Returns:
@@ -343,8 +323,8 @@ async def commit_to_git(
     """
     await ensure_initialized()
     request = CommitToGitRequest(
-        message=message,
-        paths=paths,
+        commit_message=commit_message,
+        file_paths=file_paths,
         push=push,
     )
     return await git_tools.commit_to_git(request)

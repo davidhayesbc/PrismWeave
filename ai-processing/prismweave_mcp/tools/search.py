@@ -64,12 +64,11 @@ class SearchTools:
             )
 
             # search_results_list is already a list of SearchResult objects with correct schema
-            # Convert to response format
+            # Convert to response format (schema: query, results, total_results)
             response = SearchDocumentsResponse(
-                success=True,
+                query=request.query,
                 results=search_results_list,
                 total_results=total_found,
-                query=request.query,
             )
 
             return response.model_dump()
@@ -127,7 +126,8 @@ class SearchTools:
                 has_embeddings=document.get("has_embeddings", False),
             )
 
-            response = GetDocumentResponse(success=True, document=doc)
+            # GetDocumentResponse schema only has: document
+            response = GetDocumentResponse(document=doc)
 
             return response.model_dump()
 
@@ -153,7 +153,7 @@ class SearchTools:
             # List documents using DocumentManager (returns tuple: documents, total_count)
             # Calculate limit to fetch enough for offset pagination
             fetch_limit = request.limit + request.offset if request.limit else None
-            
+
             documents, total_count = self.document_manager.list_documents(
                 tags=request.tags,
                 category=request.category,
@@ -181,8 +181,9 @@ class SearchTools:
                 if not doc_id:
                     # Fallback: generate ID from title
                     from prismweave_mcp.utils.document_utils import generate_document_id
+
                     doc_id = generate_document_id()
-                
+
                 # Create Document object (with empty content for listing - just metadata)
                 doc = Document(
                     id=doc_id,
