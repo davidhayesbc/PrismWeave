@@ -47,24 +47,17 @@ class ProcessingTools:
             if not self._initialized or not self.processing_manager:
                 await self.initialize()
 
-            # Get document path from request
-            from pathlib import Path
-
-            document_path = Path(request.path) if request.path else Path(request.document_id)
-
             # Generate embeddings using ProcessingManager
             result = await self.processing_manager.generate_embeddings(
-                document_path=document_path,
+                document_id=request.document_id,
                 force_regenerate=request.force_regenerate,
             )
 
             # Convert to response format
             response = GenerateEmbeddingsResponse(
                 success=result["success"],
-                document_id=result["document_id"],
-                path=str(document_path),
+                document_id=request.document_id,
                 embeddings_count=result.get("chunks_processed", 0),
-                chunks_processed=result.get("chunks_processed", 0),
                 error=result.get("message") if not result["success"] else None,
             )
 
@@ -74,7 +67,7 @@ class ProcessingTools:
             error = ErrorResponse(
                 error=f"Failed to generate embeddings: {str(e)}",
                 error_code="EMBEDDING_GENERATION_FAILED",
-                details={"document_id": request.document_id, "path": request.path},
+                details={"document_id": request.document_id},
             )
             return error.model_dump()
 
@@ -95,7 +88,8 @@ class ProcessingTools:
             # Get document path from request
             from pathlib import Path
 
-            document_path = Path(request.path) if request.path else Path(request.document_id)
+            # Use document_id directly from request (no path field in schema)
+            document_path = Path(request.document_id)
 
             # Generate tags using ProcessingManager
             result = await self.processing_manager.generate_tags(
@@ -103,14 +97,20 @@ class ProcessingTools:
                 max_tags=request.max_tags,
             )
 
-            # Convert to response format
+            # Check if processing succeeded
+            if not result["success"]:
+                error = ErrorResponse(
+                    error=result.get("message", "Tag generation failed"),
+                    error_code="TAG_GENERATION_FAILED",
+                    details={"document_id": request.document_id},
+                )
+                return error.model_dump()
+
+            # Convert to response format (schema only has: document_id, tags, confidence)
             response = GenerateTagsResponse(
-                success=result["success"],
                 document_id=result["document_id"],
-                path=str(document_path),
                 tags=result.get("tags", []),
-                merged=request.merge_with_existing,
-                error=result.get("message") if not result["success"] else None,
+                confidence=result.get("confidence", 0.0),
             )
 
             return response.model_dump()
@@ -119,6 +119,6 @@ class ProcessingTools:
             error = ErrorResponse(
                 error=f"Failed to generate tags: {str(e)}",
                 error_code="TAG_GENERATION_FAILED",
-                details={"document_id": request.document_id, "path": request.path},
+                details={"document_id": request.document_id},
             )
             return error.model_dump()

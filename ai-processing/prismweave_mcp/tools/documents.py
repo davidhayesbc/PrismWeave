@@ -48,7 +48,7 @@ class DocumentTools:
 
     async def create_document(self, request: CreateDocumentRequest) -> dict[str, Any]:
         """
-        Create a new document with optional auto-processing and git commit
+        Create a new document
 
         Args:
             request: Document creation request
@@ -57,11 +57,11 @@ class DocumentTools:
             CreateDocumentResponse dict or ErrorResponse dict
         """
         try:
-            # Create the document
+            # Create the document (use additional_metadata from schema, not metadata)
             result = self.document_manager.create_document(
                 title=request.title,
                 content=request.content,
-                metadata=request.metadata or {},
+                metadata=request.additional_metadata or {},
                 tags=request.tags or [],
                 category=request.category,
             )
@@ -75,54 +75,10 @@ class DocumentTools:
             document_id = result["document_id"]
             file_path = result["file_path"]
 
-            # Track processing results
-            embeddings_generated = False
-            tags_generated = False
-
-            # Optional: Generate embeddings and tags
-            if request.auto_process:
-                try:
-                    processing_manager = await self._ensure_processing_manager()
-
-                    # Generate embeddings
-                    embedding_result = await processing_manager.generate_embeddings(
-                        document_id=document_id, force_regenerate=False
-                    )
-                    embeddings_generated = embedding_result.get("success", False)
-
-                    # Generate tags
-                    tag_result = await processing_manager.generate_tags(document_id=document_id)
-                    tags_generated = tag_result.get("success", False)
-
-                except Exception:
-                    # Log but don't fail the entire operation
-                    pass
-
-            # Track commit results
-            committed = False
-
-            # Optional: Commit to git
-            if request.auto_commit:
-                try:
-                    git_manager = await self._ensure_git_manager()
-
-                    commit_msg = f"Create document: {request.title}"
-                    commit_response = git_manager.commit_changes(message=commit_msg, files=[file_path], push=False)
-
-                    committed = commit_response.get("success", False)
-
-                except Exception:
-                    # Log but don't fail the entire operation
-                    pass
-
-            # Build response using proper schema
+            # Build response using proper schema (only document_id and path)
             response = CreateDocumentResponse(
-                success=True,
                 document_id=document_id,
                 path=file_path,
-                embeddings_generated=embeddings_generated,
-                tags_generated=tags_generated,
-                committed=committed,
             )
 
             return response.model_dump()
@@ -137,7 +93,7 @@ class DocumentTools:
 
     async def update_document(self, request: UpdateDocumentRequest) -> dict[str, Any]:
         """
-        Update an existing document with optional embedding regeneration
+        Update an existing document
 
         Args:
             request: Document update request
@@ -146,81 +102,43 @@ class DocumentTools:
             UpdateDocumentResponse dict or ErrorResponse dict
         """
         try:
-            # Prepare updates dict and track fields
+            # Prepare updates dict and track fields (use additional_metadata from schema)
             updates = {}
-            fields_updated = []
+            updated_fields = []
 
             if request.title is not None:
                 updates["title"] = request.title
-                fields_updated.append("title")
+                updated_fields.append("title")
             if request.content is not None:
                 updates["content"] = request.content
-                fields_updated.append("content")
+                updated_fields.append("content")
             if request.tags is not None:
                 updates["tags"] = request.tags
-                fields_updated.append("tags")
-            if request.metadata is not None:
-                updates["metadata"] = request.metadata
-                fields_updated.append("metadata")
+                updated_fields.append("tags")
+            if request.category is not None:
+                updates["category"] = request.category
+                updated_fields.append("category")
+            if request.additional_metadata is not None:
+                updates["metadata"] = request.additional_metadata
+                updated_fields.append("metadata")
 
-            # Update the document
+            # Update the document (no path in schema - use document_id only)
             result = self.document_manager.update_document(
-                document_id=request.document_id, document_path=request.path, updates=updates
+                document_id=request.document_id, document_path=None, updates=updates
             )
 
             if not result["success"]:
                 error = ErrorResponse(
                     error=result.get("error", "Failed to update document"),
                     error_code="DOCUMENT_UPDATE_FAILED",
-                    details={"document_id": request.document_id, "path": request.path},
+                    details={"document_id": request.document_id},
                 )
                 return error.model_dump()
 
-            # Track embeddings regeneration
-            embeddings_regenerated = False
-
-            # Optional: Regenerate embeddings if content changed
-            if request.regenerate_embeddings and request.content is not None:
-                try:
-                    processing_manager = await self._ensure_processing_manager()
-
-                    embedding_response = await processing_manager.generate_embeddings(
-                        document_id=request.document_id,
-                        document_path=request.path,
-                        force_regenerate=True,
-                    )
-
-                    embeddings_regenerated = embedding_response.get("success", False)
-                except Exception:
-                    # Log but don't fail the entire operation
-                    pass
-
-            # Track commit results
-            committed = False
-
-            # Optional: Commit to git
-            if request.auto_commit:
-                try:
-                    git_manager = await self._ensure_git_manager()
-
-                    commit_msg = f"Update document: {request.document_id}"
-                    file_path = result.get("file_path", request.path)
-                    commit_response = git_manager.commit_changes(message=commit_msg, files=[file_path], push=False)
-
-                    committed = commit_response.get("success", False)
-
-                except Exception:
-                    # Log but don't fail the entire operation
-                    pass
-
-            # Build response using proper schema
+            # Build response using proper schema (only document_id and updated_fields)
             response = UpdateDocumentResponse(
-                success=True,
-                document_id=result.get("document_id"),
-                path=result.get("file_path"),
-                fields_updated=fields_updated,
-                embeddings_regenerated=embeddings_regenerated,
-                committed=committed,
+                document_id=result.get("document_id", request.document_id),
+                updated_fields=updated_fields,
             )
 
             return response.model_dump()
@@ -229,6 +147,6 @@ class DocumentTools:
             error = ErrorResponse(
                 error=f"Failed to update document: {str(e)}",
                 error_code="DOCUMENT_UPDATE_EXCEPTION",
-                details={"document_id": request.document_id, "path": request.path},
+                details={"document_id": request.document_id},
             )
             return error.model_dump()

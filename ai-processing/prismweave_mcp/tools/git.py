@@ -36,26 +36,24 @@ class GitTools:
             CommitToGitResponse dict or ErrorResponse dict
         """
         try:
-            # Commit changes using GitManager
+            # Commit changes using GitManager (use correct field names from schema)
             result = self.git_manager.commit_changes(
-                message=request.message, files=request.paths or None, push=request.push
+                message=request.commit_message, files=request.file_paths or None, push=request.push
             )
 
             if not result["success"]:
                 error = ErrorResponse(
                     error=result.get("error", "Failed to commit changes"),
                     error_code="GIT_COMMIT_FAILED",
-                    details={"message": request.message, "paths": request.paths},
+                    details={"commit_message": request.commit_message, "file_paths": request.file_paths},
                 )
                 return error.model_dump()
 
-            # Convert to response format
+            # Convert to response format (schema: success, commit_hash, message)
             response = CommitToGitResponse(
                 success=True,
                 commit_hash=result.get("commit_sha"),
-                files_committed=result.get("files_committed", 0),
-                pushed=result.get("pushed", False),
-                branch=result.get("branch"),
+                message=request.commit_message,
             )
 
             return response.model_dump()
@@ -64,6 +62,6 @@ class GitTools:
             error = ErrorResponse(
                 error=f"Failed to commit changes: {str(e)}",
                 error_code="GIT_OPERATION_EXCEPTION",
-                details={"message": request.message, "paths": request.paths},
+                details={"commit_message": request.commit_message, "file_paths": request.file_paths},
             )
             return error.model_dump()

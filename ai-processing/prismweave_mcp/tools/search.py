@@ -150,54 +150,54 @@ class SearchTools:
             ListDocumentsResponse dict or ErrorResponse dict
         """
         try:
-            # List documents using DocumentManager
-            # Note: DocumentManager has different parameters, so we pass what's compatible
-            documents = self.document_manager.list_documents(
-                tag_filter=None,  # Schema uses directory/pattern, not tag_filter
-                category_filter=None,
+            # List documents using DocumentManager (returns tuple: documents, total_count)
+            # Calculate limit to fetch enough for offset pagination
+            fetch_limit = request.limit + request.offset if request.limit else None
+            
+            documents, total_count = self.document_manager.list_documents(
+                tags=request.tags,
+                category=request.category,
                 generated_only=False,
-                sort_by=request.sort_by,
-                sort_order=request.sort_order,
-                limit=request.limit,
+                sort_by="modified_at",  # Default sort
+                sort_order="desc",
+                limit=fetch_limit,
             )
-
-            # Filter by directory/pattern if provided (client-side filtering)
-            if request.directory:
-                documents = [doc for doc in documents if request.directory in doc.get("file_path", "")]
-            if request.pattern:
-                import fnmatch
-
-                documents = [
-                    doc for doc in documents if fnmatch.fnmatch(doc.get("file_path", ""), f"*{request.pattern}*")
-                ]
 
             # Apply pagination offset
             if request.offset > 0:
                 documents = documents[request.offset :]
 
-            # Convert to DocumentSummary objects
-            from prismweave_mcp.schemas.responses import DocumentSummary
+            # Trim to limit
+            if request.limit:
+                documents = documents[: request.limit]
 
-            doc_summaries = []
-            for doc in documents:
-                doc_summary = DocumentSummary(
-                    id=doc.get("id", ""),
-                    path=doc.get("file_path", ""),
-                    title=doc.get("title", ""),
-                    size_bytes=doc.get("size_bytes", 0),
-                    modified_at=doc.get("modified_at"),
-                    tags=doc.get("tags", []),
-                    category=doc.get("category"),
+            # Convert DocumentMetadata objects to Document objects (without full content for efficiency)
+            from prismweave_mcp.schemas.responses import Document
+
+            doc_list = []
+            for doc_metadata in documents:
+                # Get document ID from additional metadata
+                doc_id = doc_metadata.additional.get("id", "") if doc_metadata.additional else ""
+                if not doc_id:
+                    # Fallback: generate ID from title
+                    from prismweave_mcp.utils.document_utils import generate_document_id
+                    doc_id = generate_document_id()
+                
+                # Create Document object (with empty content for listing - just metadata)
+                doc = Document(
+                    id=doc_id,
+                    path="",  # Path not available in metadata
+                    content="",  # Don't load full content for listing
+                    metadata=doc_metadata,
+                    has_embeddings=False,  # Would need to check embedding store
                 )
-                doc_summaries.append(doc_summary)
+                doc_list.append(doc)
 
-            # Convert to response format
+            # Convert to response format (use total_count from manager)
             response = ListDocumentsResponse(
-                success=True,
-                documents=doc_summaries,
-                total_count=len(doc_summaries),
-                offset=request.offset,
-                limit=request.limit,
+                documents=doc_list,
+                total_count=total_count,
+                category=request.category,
             )
 
             return response.model_dump()
@@ -221,19 +221,14 @@ class SearchTools:
             Dict with metadata or ErrorResponse dict
         """
         try:
-            # Get metadata using DocumentManager
-            if request.document_id:
-                metadata = self.document_manager.get_document_metadata(document_id=request.document_id)
-            elif request.path:
-                metadata = self.document_manager.get_document_metadata(document_path=request.path)
-            else:
-                raise ValueError("Either document_id or path must be provided")
+            # Get metadata using DocumentManager (schema only has document_id, no path)
+            metadata = self.document_manager.get_document_metadata(document_id=request.document_id)
 
             if not metadata:
                 error = ErrorResponse(
                     error="Document not found",
                     error_code="DOCUMENT_NOT_FOUND",
-                    details={"document_id": request.document_id, "path": request.path},
+                    details={"document_id": request.document_id},
                 )
                 return error.model_dump()
 
@@ -244,6 +239,6 @@ class SearchTools:
             error = ErrorResponse(
                 error=f"Failed to get metadata: {str(e)}",
                 error_code="METADATA_RETRIEVAL_FAILED",
-                details={"document_id": request.document_id, "path": request.path},
+                details={"document_id": request.document_id},
             )
             return error.model_dump()
