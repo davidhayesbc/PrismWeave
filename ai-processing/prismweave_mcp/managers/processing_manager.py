@@ -83,19 +83,22 @@ class ProcessingManager:
             logger.info(f"Generating embeddings for: {document_path}")
 
             # Check if embeddings already exist
-            if not force_regenerate:
-                existing_chunks = await self.embedding_store.get_document_chunks(str(document_path))
-                if existing_chunks:
-                    logger.info(f"Embeddings already exist for {document_path}")
+            existing_chunk_count = self.embedding_store.get_file_document_count(document_path)
+            if existing_chunk_count and existing_chunk_count > 0:
+                logger.info(f"Embeddings already exist for {document_path}")
+                if not force_regenerate:
                     return {
                         "success": True,
-                        "chunks_processed": len(existing_chunks),
+                        "chunks_processed": existing_chunk_count,
                         "document_id": str(document_path),
                         "message": "Embeddings already exist (use force_regenerate=True to recreate)",
                     }
 
+                # Remove existing chunks before regeneration
+                self.embedding_store.remove_file_documents(document_path)
+
             # Load and chunk document
-            chunks = await self.document_processor.load_and_chunk_document(document_path)
+            chunks = self.document_processor.process_document(document_path)
 
             if not chunks:
                 logger.warning(f"No chunks generated for {document_path}")
@@ -107,7 +110,7 @@ class ProcessingManager:
                 }
 
             # Add to embedding store (this generates embeddings automatically)
-            await self.embedding_store.add_documents(chunks, source_file=str(document_path))
+            self.embedding_store.add_document(document_path, chunks)
 
             logger.info(f"Successfully generated {len(chunks)} embeddings for {document_path}")
 
@@ -279,14 +282,13 @@ class ProcessingManager:
             }
         """
         try:
-            # Check embedding status
-            chunks = await self.embedding_store.get_document_chunks(str(document_path))
+            chunk_count = self.embedding_store.get_file_document_count(document_path)
 
             return {
                 "document_id": str(document_path),
-                "has_embeddings": len(chunks) > 0,
-                "embedding_count": len(chunks),
-                "last_processed": datetime.now().isoformat() if chunks else None,
+                "has_embeddings": chunk_count > 0,
+                "embedding_count": chunk_count,
+                "last_processed": datetime.now().isoformat() if chunk_count > 0 else None,
             }
 
         except Exception as e:
@@ -319,19 +321,21 @@ class ProcessingManager:
             logger.info(f"Removing embeddings for: {document_path}")
 
             # Get current chunks count
-            chunks = await self.embedding_store.get_document_chunks(str(document_path))
-            chunk_count = len(chunks)
+            chunk_count = self.embedding_store.get_file_document_count(document_path)
 
             # Delete from embedding store
-            await self.embedding_store.delete_by_source_file(str(document_path))
+            removed = self.embedding_store.remove_file_documents(document_path)
 
-            logger.info(f"Removed {chunk_count} embeddings for {document_path}")
+            if removed:
+                logger.info(f"Removed {chunk_count} embeddings for {document_path}")
+            else:
+                logger.info(f"No embeddings found to remove for {document_path}")
 
             return {
-                "success": True,
+                "success": removed,
                 "document_id": str(document_path),
                 "chunks_removed": chunk_count,
-                "message": f"Removed {chunk_count} embedding chunks",
+                "message": f"Removed {chunk_count} embedding chunks" if removed else "No embedding chunks found",
             }
 
         except Exception as e:

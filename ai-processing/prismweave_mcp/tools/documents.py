@@ -58,27 +58,17 @@ class DocumentTools:
         """
         try:
             # Create the document (use additional_metadata from schema, not metadata)
-            result = self.document_manager.create_document(
+            document, file_path = self.document_manager.create_document(
                 title=request.title,
                 content=request.content,
-                metadata=request.additional_metadata or {},
                 tags=request.tags or [],
                 category=request.category,
+                metadata=request.additional_metadata or {},
             )
 
-            if not result["success"]:
-                error = ErrorResponse(
-                    error=result.get("error", "Failed to create document"), error_code="DOCUMENT_CREATION_FAILED"
-                )
-                return error.model_dump()
-
-            document_id = result["document_id"]
-            file_path = result["file_path"]
-
-            # Build response using proper schema (only document_id and path)
             response = CreateDocumentResponse(
-                document_id=document_id,
-                path=file_path,
+                document_id=document.id,
+                path=str(file_path),
             )
 
             return response.model_dump()
@@ -115,29 +105,29 @@ class DocumentTools:
             if request.tags is not None:
                 updates["tags"] = request.tags
                 updated_fields.append("tags")
-            if request.category is not None:
-                updates["category"] = request.category
-                updated_fields.append("category")
             if request.additional_metadata is not None:
                 updates["metadata"] = request.additional_metadata
                 updated_fields.append("metadata")
 
-            # Update the document (no path in schema - use document_id only)
-            result = self.document_manager.update_document(
-                document_id=request.document_id, document_path=None, updates=updates
+            metadata_updates = updates.get("metadata", {}).copy() if "metadata" in updates else {}
+            if request.category is not None:
+                metadata_updates["category"] = request.category
+                if "category" not in updated_fields:
+                    updated_fields.append("category")
+                if "metadata" not in updated_fields:
+                    updated_fields.append("metadata")
+            metadata_param = metadata_updates or None
+
+            self.document_manager.update_document(
+                document_id=request.document_id,
+                content=updates.get("content"),
+                title=updates.get("title"),
+                tags=updates.get("tags"),
+                metadata=metadata_param,
             )
 
-            if not result["success"]:
-                error = ErrorResponse(
-                    error=result.get("error", "Failed to update document"),
-                    error_code="DOCUMENT_UPDATE_FAILED",
-                    details={"document_id": request.document_id},
-                )
-                return error.model_dump()
-
-            # Build response using proper schema (only document_id and updated_fields)
             response = UpdateDocumentResponse(
-                document_id=result.get("document_id", request.document_id),
+                document_id=request.document_id,
                 updated_fields=updated_fields,
             )
 

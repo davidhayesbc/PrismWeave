@@ -6,6 +6,7 @@ MCP tool implementations for AI-powered document processing.
 
 from typing import Any
 
+from prismweave_mcp.managers.document_manager import DocumentManager
 from prismweave_mcp.managers.processing_manager import ProcessingManager
 from prismweave_mcp.schemas.requests import GenerateEmbeddingsRequest, GenerateTagsRequest
 from prismweave_mcp.schemas.responses import ErrorResponse, GenerateEmbeddingsResponse, GenerateTagsResponse
@@ -24,6 +25,7 @@ class ProcessingTools:
         """
         self.config = config
         self.processing_manager: ProcessingManager | None = None
+        self.document_manager = DocumentManager(config)
         self._initialized = False
 
     async def initialize(self) -> None:
@@ -47,18 +49,42 @@ class ProcessingTools:
             if not self._initialized or not self.processing_manager:
                 await self.initialize()
 
-            # Generate embeddings using ProcessingManager
+            document = self.document_manager.get_document_by_id(request.document_id)
+            if not document:
+                error = ErrorResponse(
+                    error="Document not found",
+                    error_code="DOCUMENT_NOT_FOUND",
+                    details={"document_id": request.document_id},
+                )
+                return error.model_dump()
+
+            document_path = (self.document_manager.docs_root / document.path).resolve()
+
+            if not document_path.exists():
+                error = ErrorResponse(
+                    error="Document path not found",
+                    error_code="DOCUMENT_PATH_NOT_FOUND",
+                    details={"document_id": request.document_id, "path": str(document_path)},
+                )
+                return error.model_dump()
+
             result = await self.processing_manager.generate_embeddings(
-                document_id=request.document_id,
+                document_path=document_path,
                 force_regenerate=request.force_regenerate,
             )
 
-            # Convert to response format
+            if not result.get("success", False):
+                error = ErrorResponse(
+                    error=result.get("message", "Failed to generate embeddings"),
+                    error_code="EMBEDDING_GENERATION_FAILED",
+                    details={"document_id": request.document_id},
+                )
+                return error.model_dump()
+
             response = GenerateEmbeddingsResponse(
-                success=result["success"],
                 document_id=request.document_id,
-                embeddings_count=result.get("chunks_processed", 0),
-                error=result.get("message") if not result["success"] else None,
+                embedding_count=result.get("chunks_processed", 0),
+                model=request.model,
             )
 
             return response.model_dump()
@@ -85,13 +111,25 @@ class ProcessingTools:
             if not self._initialized or not self.processing_manager:
                 await self.initialize()
 
-            # Get document path from request
-            from pathlib import Path
+            document = self.document_manager.get_document_by_id(request.document_id)
+            if not document:
+                error = ErrorResponse(
+                    error="Document not found",
+                    error_code="DOCUMENT_NOT_FOUND",
+                    details={"document_id": request.document_id},
+                )
+                return error.model_dump()
 
-            # Use document_id directly from request (no path field in schema)
-            document_path = Path(request.document_id)
+            document_path = (self.document_manager.docs_root / document.path).resolve()
 
-            # Generate tags using ProcessingManager
+            if not document_path.exists():
+                error = ErrorResponse(
+                    error="Document path not found",
+                    error_code="DOCUMENT_PATH_NOT_FOUND",
+                    details={"document_id": request.document_id, "path": str(document_path)},
+                )
+                return error.model_dump()
+
             result = await self.processing_manager.generate_tags(
                 document_path=document_path,
                 max_tags=request.max_tags,
@@ -108,7 +146,7 @@ class ProcessingTools:
 
             # Convert to response format (schema only has: document_id, tags, confidence)
             response = GenerateTagsResponse(
-                document_id=result["document_id"],
+                document_id=request.document_id,
                 tags=result.get("tags", []),
                 confidence=result.get("confidence", 0.0),
             )

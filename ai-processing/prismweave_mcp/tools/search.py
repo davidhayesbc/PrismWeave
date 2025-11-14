@@ -90,7 +90,7 @@ class SearchTools:
             GetDocumentResponse dict or ErrorResponse dict
         """
         try:
-            # Get document using DocumentManager
+            # Get document using DocumentManager (returns Document model)
             document = self.document_manager.get_document_by_id(request.document_id)
 
             if not document:
@@ -101,32 +101,11 @@ class SearchTools:
                 )
                 return error.model_dump()
 
-            # Convert to response format
-            from prismweave_mcp.schemas.responses import Document, DocumentMetadata
+            # Respect include_content flag by omitting body when not requested
+            doc = document
+            if not request.include_content:
+                doc = document.model_copy(update={"content": ""})
 
-            # Create DocumentMetadata from dict
-            doc_metadata = DocumentMetadata(
-                title=document.get("title", ""),
-                tags=document.get("tags", []),
-                category=document.get("category"),
-                created_at=document.get("created_at"),
-                modified_at=document.get("updated_at"),
-                word_count=document.get("metadata", {}).get("word_count"),
-                reading_time=document.get("metadata", {}).get("reading_time"),
-                source_url=document.get("metadata", {}).get("source_url"),
-                author=document.get("metadata", {}).get("author"),
-            )
-
-            # Create Document
-            doc = Document(
-                id=document["id"],
-                path=document.get("file_path", ""),
-                content=document.get("content", ""),
-                metadata=doc_metadata,
-                has_embeddings=document.get("has_embeddings", False),
-            )
-
-            # GetDocumentResponse schema only has: document
             response = GetDocumentResponse(document=doc)
 
             return response.model_dump()
@@ -176,21 +155,24 @@ class SearchTools:
 
             doc_list = []
             for doc_metadata in documents:
-                # Get document ID from additional metadata
-                doc_id = doc_metadata.additional.get("id", "") if doc_metadata.additional else ""
+                doc_id = ""
+                doc_path = ""
+
+                if doc_metadata.additional:
+                    doc_id = doc_metadata.additional.get("id", "")
+                    doc_path = doc_metadata.additional.get("path", "")
+
                 if not doc_id:
-                    # Fallback: generate ID from title
                     from prismweave_mcp.utils.document_utils import generate_document_id
 
                     doc_id = generate_document_id()
 
-                # Create Document object (with empty content for listing - just metadata)
                 doc = Document(
                     id=doc_id,
-                    path="",  # Path not available in metadata
-                    content="",  # Don't load full content for listing
+                    path=doc_path,
+                    content="",
                     metadata=doc_metadata,
-                    has_embeddings=False,  # Would need to check embedding store
+                    has_embeddings=False,
                 )
                 doc_list.append(doc)
 

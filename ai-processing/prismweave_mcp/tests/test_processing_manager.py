@@ -4,7 +4,7 @@ Tests for Processing Manager
 
 import tempfile
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import MagicMock
 
 import pytest
 import pytest_asyncio
@@ -49,13 +49,11 @@ def mock_document_processor():
     from haystack import Document as HaystackDocument
 
     mock = MagicMock()
-    # Mock load_and_chunk_document to return Haystack Documents
-    mock.load_and_chunk_document = AsyncMock(
-        return_value=[
-            HaystackDocument(content="chunk 1", meta={"source": "test.md"}),
-            HaystackDocument(content="chunk 2", meta={"source": "test.md"}),
-        ]
-    )
+    # Mock process_document to return Haystack Documents
+    mock.process_document.return_value = [
+        HaystackDocument(content="chunk 1", meta={"source": "test.md"}),
+        HaystackDocument(content="chunk 2", meta={"source": "test.md"}),
+    ]
     return mock
 
 
@@ -64,11 +62,10 @@ def mock_embedding_store():
     """Create mock EmbeddingStore"""
 
     mock = MagicMock()
-    # Mock async methods properly
-    mock.initialize = AsyncMock()
-    mock.add_documents = AsyncMock()
-    mock.get_document_chunks = AsyncMock(return_value=[])
-    mock.delete_by_source_file = AsyncMock()
+    mock.get_document_count.return_value = 0
+    mock.add_document = MagicMock()
+    mock.get_file_document_count = MagicMock(return_value=0)
+    mock.remove_file_documents = MagicMock(return_value=True)
     return mock
 
 
@@ -102,20 +99,19 @@ This is test content.""",
         )
 
         # Mock that no embeddings exist yet
-        mock_embedding_store.get_document_chunks.return_value = []
+        mock_embedding_store.get_file_document_count.return_value = 0
 
         # Generate embeddings
         result = await processing_manager.generate_embeddings(doc_path)
 
         assert result["success"] is True
         assert result["chunks_processed"] == 2  # Mock returns 2 chunks
-        # Verify add_documents was called
-        mock_embedding_store.add_documents.assert_called_once()
+        # Verify add_document was called
+        mock_embedding_store.add_document.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_generate_embeddings_force_regenerate(self, processing_manager, temp_docs_dir, mock_embedding_store):
         """Test force regenerating existing embeddings"""
-        from haystack import Document as HaystackDocument
 
         doc_path = temp_docs_dir / "documents" / "test.md"
         doc_path.write_text(
@@ -129,31 +125,24 @@ Content.""",
         )
 
         # Mock that embeddings already exist
-        existing_chunks = [HaystackDocument(content="old chunk", meta={"source": str(doc_path)})]
-        mock_embedding_store.get_document_chunks.side_effect = [existing_chunks, []]
+        mock_embedding_store.get_file_document_count.return_value = 3
 
         # Force regenerate
         result = await processing_manager.generate_embeddings(doc_path, force_regenerate=True)
 
         assert result["success"] is True
-        # When force_regenerate is True, it should delete and re-add
-        # Note: Current implementation doesn't delete, it just re-adds
-        mock_embedding_store.add_documents.assert_called_once()
+        mock_embedding_store.remove_file_documents.assert_called_once_with(doc_path)
+        mock_embedding_store.add_document.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_generate_embeddings_skip_existing(self, processing_manager, temp_docs_dir, mock_embedding_store):
         """Test skipping when embeddings already exist"""
-        from haystack import Document as HaystackDocument
 
         doc_path = temp_docs_dir / "documents" / "test.md"
         doc_path.write_text("---\nid: doc_1\n---\nContent.", encoding="utf-8")
 
         # Mock that embeddings exist
-        existing_chunks = [
-            HaystackDocument(content="chunk1", meta={"source": str(doc_path)}),
-            HaystackDocument(content="chunk2", meta={"source": str(doc_path)}),
-        ]
-        mock_embedding_store.get_document_chunks.return_value = existing_chunks
+        mock_embedding_store.get_file_document_count.return_value = 2
 
         # Generate without force
         result = await processing_manager.generate_embeddings(doc_path, force_regenerate=False)
@@ -162,7 +151,8 @@ Content.""",
         assert result["chunks_processed"] == 2
         assert "already exist" in result["message"]
         # Should not add documents
-        mock_embedding_store.add_documents.assert_not_called()
+        mock_embedding_store.add_document.assert_not_called()
+        mock_embedding_store.remove_file_documents.assert_not_called()
 
     @pytest.mark.asyncio
     async def test_generate_embeddings_nonexistent_file(self, processing_manager, mock_document_processor):
@@ -170,7 +160,7 @@ Content.""",
         nonexistent_path = Path("documents/nonexistent.md")
 
         # Mock processor to raise error for nonexistent file
-        mock_document_processor.load_and_chunk_document.side_effect = FileNotFoundError("File not found")
+        mock_document_processor.process_document.side_effect = FileNotFoundError("File not found")
 
         result = await processing_manager.generate_embeddings(nonexistent_path)
 
@@ -183,7 +173,7 @@ Content.""",
         invalid_path = Path("../../etc/passwd")
 
         # Mock processor to raise error
-        mock_document_processor.load_and_chunk_document.side_effect = ValueError("Invalid path")
+        mock_document_processor.process_document.side_effect = ValueError("Invalid path")
 
         result = await processing_manager.generate_embeddings(invalid_path)
 
@@ -256,7 +246,7 @@ Content.""",
             encoding="utf-8",
         )
 
-        mock_embedding_store.get_document_chunks.return_value = []
+        mock_embedding_store.get_file_document_count.return_value = 0
 
         result = await processing_manager.auto_process_document(
             doc_path, generate_embeddings=True, generate_tags=True, update_metadata=True
@@ -274,7 +264,7 @@ Content.""",
         doc_path = temp_docs_dir / "documents" / "test.md"
         doc_path.write_text("---\nid: doc_1\n---\nContent.", encoding="utf-8")
 
-        mock_embedding_store.get_document_chunks.return_value = []
+        mock_embedding_store.get_file_document_count.return_value = 0
 
         result = await processing_manager.auto_process_document(doc_path, generate_embeddings=True, generate_tags=False)
 
@@ -304,7 +294,7 @@ Content.""",
         doc_path = temp_docs_dir / "documents" / "test.md"
         doc_path.write_text("---\nid: doc_1\ntags: [test]\n---\nContent.", encoding="utf-8")
 
-        mock_embedding_store.get_document_chunks.return_value = []
+        mock_embedding_store.get_file_document_count.return_value = 0
 
         result = await processing_manager.auto_process_document(
             doc_path, generate_embeddings=True, generate_tags=True, update_metadata=False
@@ -324,17 +314,12 @@ class TestGetProcessingStatus:
     @pytest.mark.asyncio
     async def test_get_status_with_embeddings(self, processing_manager, temp_docs_dir, mock_embedding_store):
         """Test getting status for document with embeddings"""
-        from haystack import Document as HaystackDocument
 
         doc_path = temp_docs_dir / "documents" / "test.md"
         doc_path.write_text("---\nid: doc_1\n---\nContent.", encoding="utf-8")
 
         # Mock existing embeddings
-        existing_chunks = [
-            HaystackDocument(content="chunk1", meta={"source": str(doc_path)}),
-            HaystackDocument(content="chunk2", meta={"source": str(doc_path)}),
-        ]
-        mock_embedding_store.get_document_chunks.return_value = existing_chunks
+        mock_embedding_store.get_file_document_count.return_value = 2
 
         status = await processing_manager.get_processing_status(doc_path)
 
@@ -348,7 +333,7 @@ class TestGetProcessingStatus:
         doc_path = temp_docs_dir / "documents" / "test.md"
         doc_path.write_text("---\nid: doc_1\n---\nContent.", encoding="utf-8")
 
-        mock_embedding_store.get_document_chunks.return_value = []
+        mock_embedding_store.get_file_document_count.return_value = 0
 
         status = await processing_manager.get_processing_status(doc_path)
 
@@ -362,7 +347,7 @@ class TestGetProcessingStatus:
         nonexistent_path = Path("documents/nonexistent.md")
 
         # Mock error for nonexistent document
-        mock_embedding_store.get_document_chunks.side_effect = Exception("Document not found")
+        mock_embedding_store.get_file_document_count.side_effect = Exception("Document not found")
 
         status = await processing_manager.get_processing_status(nonexistent_path)
 
@@ -377,23 +362,17 @@ class TestRemoveEmbeddings:
     @pytest.mark.asyncio
     async def test_remove_embeddings_success(self, processing_manager, temp_docs_dir, mock_embedding_store):
         """Test successful embedding removal"""
-        from haystack import Document as HaystackDocument
-
         doc_path = temp_docs_dir / "documents" / "test.md"
         doc_path.write_text("---\nid: doc_1\n---\nContent.", encoding="utf-8")
 
-        # Mock existing embeddings
-        existing_chunks = [
-            HaystackDocument(content="chunk1", meta={"source": str(doc_path)}),
-            HaystackDocument(content="chunk2", meta={"source": str(doc_path)}),
-        ]
-        mock_embedding_store.get_document_chunks.return_value = existing_chunks
+        mock_embedding_store.get_file_document_count.return_value = 2
+        mock_embedding_store.remove_file_documents.return_value = True
 
         result = await processing_manager.remove_embeddings(doc_path)
 
         assert result["success"] is True
         assert result["chunks_removed"] == 2
-        mock_embedding_store.delete_by_source_file.assert_called_once_with(str(doc_path))
+        mock_embedding_store.remove_file_documents.assert_called_once_with(doc_path)
 
     @pytest.mark.asyncio
     async def test_remove_embeddings_no_embeddings(self, processing_manager, temp_docs_dir, mock_embedding_store):
@@ -401,13 +380,14 @@ class TestRemoveEmbeddings:
         doc_path = temp_docs_dir / "documents" / "test.md"
         doc_path.write_text("---\nid: doc_1\n---\nContent.", encoding="utf-8")
 
-        mock_embedding_store.get_document_chunks.return_value = []
+        mock_embedding_store.get_file_document_count.return_value = 0
+        mock_embedding_store.remove_file_documents.return_value = False
 
         result = await processing_manager.remove_embeddings(doc_path)
 
-        assert result["success"] is True
+        assert result["success"] is False
         assert result["chunks_removed"] == 0
-        mock_embedding_store.delete_by_source_file.assert_called_once()
+        mock_embedding_store.remove_file_documents.assert_called_once_with(doc_path)
 
     @pytest.mark.asyncio
     async def test_remove_embeddings_nonexistent_file(self, processing_manager, mock_embedding_store):
@@ -415,7 +395,7 @@ class TestRemoveEmbeddings:
         nonexistent_path = Path("documents/nonexistent.md")
 
         # Mock error
-        mock_embedding_store.get_document_chunks.side_effect = Exception("Document not found")
+        mock_embedding_store.get_file_document_count.side_effect = Exception("Document not found")
 
         result = await processing_manager.remove_embeddings(nonexistent_path)
 

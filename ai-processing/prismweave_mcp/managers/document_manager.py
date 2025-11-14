@@ -514,6 +514,18 @@ class DocumentManager:
             if key not in excluded_keys:
                 additional[key] = value
 
+        document_id = metadata.get("id") or metadata.get("document_id")
+        if document_id:
+            additional["id"] = document_id
+
+        # Store relative path for downstream consumers that need it
+        try:
+            rel_path = get_relative_path(file_path, self.docs_root)
+            additional["path"] = str(rel_path)
+        except Exception:
+            # Fallback: use absolute path if relative resolution fails
+            additional["path"] = str(file_path)
+
         return DocumentMetadata(
             title=metadata.get("title", file_path.stem),
             created_at=created_at,

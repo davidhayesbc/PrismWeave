@@ -14,7 +14,7 @@ class SearchDocumentsRequest(BaseModel):
 
     query: str = Field(..., description="Search query text")
     max_results: int = Field(20, description="Maximum number of results to return")
-    similarity_threshold: float = Field(0.6, description="Minimum similarity score (0-1)")
+    similarity_threshold: float = Field(0.45, description="Minimum similarity score (0-1)")
 
     class Config:
         json_schema_extra = {

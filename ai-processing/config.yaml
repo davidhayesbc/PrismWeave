@@ -30,7 +30,7 @@ mcp:
   # Search configuration
   search:
     max_results: 20
-    similarity_threshold: 0.6
+    similarity_threshold: 0.45
     default_filters: {}
 
   # Document creation settings

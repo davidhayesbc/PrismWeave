@@ -215,6 +215,27 @@ def load_config(config_path: Optional[Path] = None) -> Config:
                     process=rate_data.get("process", config.mcp.rate_limiting.process),
                 )
 
+        # Normalize path-based settings to absolute paths relative to config file
+        try:
+            base_dir = config_path.parent.resolve()
+
+            documents_root_path = Path(config.mcp.paths.documents_root)
+            if not documents_root_path.is_absolute():
+                documents_root_path = (base_dir / documents_root_path).resolve()
+            else:
+                documents_root_path = documents_root_path.resolve()
+            config.mcp.paths.documents_root = str(documents_root_path)
+
+            chroma_path = Path(config.chroma_db_path)
+            if not chroma_path.is_absolute():
+                chroma_path = (base_dir / chroma_path).resolve()
+            else:
+                chroma_path = chroma_path.resolve()
+            config.chroma_db_path = str(chroma_path)
+        except Exception:
+            # If normalization fails, keep existing relative paths
+            pass
+
         return config
 
     except Exception as e:

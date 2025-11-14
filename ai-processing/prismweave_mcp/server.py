@@ -61,8 +61,8 @@ async def ensure_initialized():
 @mcp.tool()
 async def search_documents(
     query: str,
-    max_results: int = 20,
-    similarity_threshold: float = 0.6,
+    max_results: int = config.mcp.search.max_results,
+    similarity_threshold: float = config.mcp.search.similarity_threshold,
     tags: list[str] | None = None,
     date_from: str | None = None,
     date_to: str | None = None,
