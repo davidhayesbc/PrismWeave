@@ -212,8 +212,7 @@ class EmbeddingStore:
 
         try:
             # Get all document IDs and delete them
-            filters = {}  # Empty filter to get all documents
-            all_docs = self.document_store.filter_documents(filters=filters)
+            all_docs = self.document_store.filter_documents()
 
             if all_docs:
                 doc_ids = [doc.id for doc in all_docs if doc.id]
@@ -246,8 +245,7 @@ class EmbeddingStore:
 
         try:
             # Get documents from the store
-            filters = {}  # Empty filter to get all documents
-            all_docs = self.document_store.filter_documents(filters=filters)
+            all_docs = self.document_store.filter_documents()
 
             # Limit if requested
             if max_documents:
@@ -281,7 +279,7 @@ class EmbeddingStore:
         """
         try:
             # Find all chunks for this file
-            filters = {"source_file": str(file_path)}
+            filters = {"field": "meta.source_file", "operator": "==", "value": str(file_path)}
             matching_docs = self.document_store.filter_documents(filters=filters)
 
             if matching_docs:
@@ -310,7 +308,7 @@ class EmbeddingStore:
             Number of chunks for this file
         """
         try:
-            filters = {"source_file": str(file_path)}
+            filters = {"field": "meta.source_file", "operator": "==", "value": str(file_path)}
             matching_docs = self.document_store.filter_documents(filters=filters)
             return len(matching_docs)
         except Exception:
@@ -326,8 +324,7 @@ class EmbeddingStore:
 
         try:
             # Get all documents
-            filters = {}
-            all_docs = self.document_store.filter_documents(filters=filters)
+            all_docs = self.document_store.filter_documents()
 
             source_files = set()
             for doc in all_docs:

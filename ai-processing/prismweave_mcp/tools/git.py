@@ -36,6 +36,10 @@ class GitTools:
             CommitToGitResponse dict or ErrorResponse dict
         """
         try:
+            # Ensure git manager is initialized before committing
+            if getattr(self.git_manager, "_git_tracker", None) is None:
+                await self.git_manager.initialize()
+
             # Commit changes using GitManager (use correct field names from schema)
             result = await self.git_manager.commit_changes(
                 message=request.commit_message, files=request.file_paths or None, push=request.push
