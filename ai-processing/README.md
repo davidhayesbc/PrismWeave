@@ -90,9 +90,14 @@ source .venv/bin/activate  # Linux/Mac
 
 ```bash
 # Installed commands via [project.scripts]
-uv run prismweave-mcp           # Run MCP server
-uv run prismweave-mcp-inspector # Run server + inspector together
-uv run prismweave-process       # Run document processor CLI
+uv run prismweave-mcp                   # Run MCP server
+uv run prismweave-mcp-inspector         # Run server + inspector together
+uv run prismweave-cli -- --help         # Inspect CLI subcommands
+uv run prismweave-cli -- process docs/  # Run CLI (same as python cli.py ...)
+uv run prismweave-cli -- rebuild-db --yes  # Clean + rebuild embeddings
+
+# `prismweave-process` remains as a legacy alias for prismweave-cli
+uv run prismweave-process -- stats
 ```
 
 ### Command Line Interface
@@ -127,6 +132,9 @@ python cli.py process /path/to/documents --clear
 
 # Use custom config file
 python cli.py process document.md --config custom-config.yaml
+
+# Clean and rebuild the entire embedding store (deletes ChromaDB + processing_state.json)
+python cli.py rebuild-db --yes
 
 # List documents in the collection (max 50 by default)
 python cli.py list

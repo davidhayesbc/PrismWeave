@@ -63,7 +63,8 @@ dev = [
 ]
 
 [project.scripts]
-prismweave-process = "main:main"
+prismweave-cli = "cli:main"
+prismweave-process = "cli:main"  # Backwards-compatible alias
 prismweave-mcp = "prismweave_mcp.server:main"
 prismweave-mcp-inspector = "launch_mcp_with_inspector:main"
 mcp = "launch_mcp_with_inspector:main"

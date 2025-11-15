@@ -1,12 +1,20 @@
 #!/usr/bin/env python3
-"""PrismWeave Document Processing CLI."""
+"""PrismWeave Document Processing CLI.
+
+Run via UV entry points:
+
+    uv run prismweave-cli -- --help
+    uv run prismweave-cli -- rebuild-db --yes
+
+The legacy ``prismweave-process`` alias still invokes the same CLI.
+"""
 
 from __future__ import annotations
 
 import click
 
 from src.cli.export_command import export
-from src.cli.process_commands import process, sync
+from src.cli.process_commands import process, rebuild_db, sync
 from src.cli.query_commands import count, list_docs, search, stats
 from src.core.config import Config as _ConfigAlias
 
@@ -27,6 +35,7 @@ cli.add_command(count)
 cli.add_command(search)
 cli.add_command(stats)
 cli.add_command(export)
+cli.add_command(rebuild_db)
 
 
 def main() -> None:

@@ -14,7 +14,8 @@ Entry points create **installed commands** that become available after installin
 
 ```toml
 [project.scripts]
-prismweave-process = "main:main"
+prismweave-cli = "cli:main"
+prismweave-process = "cli:main" # Legacy alias
 prismweave-mcp = "prismweave_mcp.server:main"
 prismweave-mcp-inspector = "launch_mcp_with_inspector:main"
 ```
@@ -25,7 +26,10 @@ prismweave-mcp-inspector = "launch_mcp_with_inspector:main"
 # After uv sync, these commands are available
 uv run prismweave-mcp              # Run MCP server
 uv run prismweave-mcp-inspector    # Run server + inspector
-uv run prismweave-process          # Run document processor
+uv run prismweave-cli -- --help    # Same CLI as python cli.py --help
+uv run prismweave-cli -- process PrismWeaveDocs/documents --incremental
+uv run prismweave-cli -- rebuild-db --yes
+uv run prismweave-process -- stats # Backwards-compatible alias
 ```
 
 **Best for**:
