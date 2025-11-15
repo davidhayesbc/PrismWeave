@@ -1,0 +1,81 @@
+#!/usr/bin/env bash
+# Simple task runner for PrismWeave AI Processing
+# Usage: ./run <command>
+
+set -e
+
+case "$1" in
+    mcp)
+        python launch_mcp_with_inspector.py
+        ;;
+    mcp-server)
+        python -m prismweave_mcp.server --transport sse
+        ;;
+    mcp-stdio)
+        python -m prismweave_mcp.server --transport stdio
+        ;;
+    mcp-debug)
+        LOG_LEVEL=DEBUG python -m prismweave_mcp.server --debug --transport sse
+        ;;
+    inspector-only)
+        npx @modelcontextprotocol/inspector python -m prismweave_mcp.server --transport stdio
+        ;;
+    dev)
+        watchmedo auto-restart --directory=./prismweave_mcp --pattern=*.py --recursive -- python -m prismweave_mcp.server --transport sse
+        ;;
+    test)
+        pytest tests/ -v
+        ;;
+    test-cov)
+        pytest tests/ --cov=src --cov-report=html --cov-report=term
+        ;;
+    test-mcp)
+        python test_mcp_tools.py
+        ;;
+    lint)
+        ruff check src/ prismweave_mcp/ tests/
+        ;;
+    lint-fix)
+        ruff check --fix src/ prismweave_mcp/ tests/
+        ;;
+    format)
+        ruff format src/ prismweave_mcp/ tests/
+        ;;
+    type-check)
+        mypy src/ prismweave_mcp/
+        ;;
+    verify)
+        python -c 'from src.utils.config_simplified import get_config; print("✓ Config loaded"); from src.models.ollama_client import OllamaClient; print("✓ Ollama client loaded")'
+        ;;
+    *)
+        echo "PrismWeave AI Processing Task Runner"
+        echo ""
+        echo "Usage: ./run <command>"
+        echo ""
+        echo "Available commands:"
+        echo ""
+        echo "  MCP Server:"
+        echo "    mcp              Launch server + inspector together"
+        echo "    mcp-server       Start server only (SSE transport)"
+        echo "    mcp-stdio        Start server only (stdio transport)"
+        echo "    mcp-debug        Start with debug logging"
+        echo "    inspector-only   Launch inspector only"
+        echo "    dev              Auto-restart on code changes"
+        echo ""
+        echo "  Testing:"
+        echo "    test             Run all tests"
+        echo "    test-cov         Run tests with coverage"
+        echo "    test-mcp         Test MCP server tools"
+        echo ""
+        echo "  Code Quality:"
+        echo "    lint             Check code quality"
+        echo "    lint-fix         Fix linting issues"
+        echo "    format           Format code with ruff"
+        echo "    type-check       Run mypy type checking"
+        echo ""
+        echo "  Setup:"
+        echo "    verify           Verify installation"
+        echo ""
+        exit 1
+        ;;
+esac

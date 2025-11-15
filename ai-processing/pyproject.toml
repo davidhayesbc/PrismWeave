@@ -65,6 +65,8 @@ dev = [
 [project.scripts]
 prismweave-process = "main:main"
 prismweave-mcp = "prismweave_mcp.server:main"
+prismweave-mcp-inspector = "launch_mcp_with_inspector:main"
+mcp = "launch_mcp_with_inspector:main"
 
 [project.urls]
 Homepage = "https://github.com/davidhayesbc/PrismWeave"

@@ -50,13 +50,50 @@ ollama pull nomic-embed-text:latest
 cd ai-processing
 uv sync
 
-# Activate virtual environment
-.venv\Scripts\activate  # Windows
-# or
+# Activate virtual environment (optional - uv run handles this automatically)
 source .venv/bin/activate  # Linux/Mac
+.venv\Scripts\activate     # Windows
 ```
 
-## 🚀 Usage
+## Quick Start
+
+### Using Task Runner (./run script)
+
+```bash
+# Run MCP server + inspector together (recommended for testing)
+./run mcp
+
+# Run server only (SSE transport for production)
+./run mcp-server
+
+# Run server with stdio transport (for inspector)
+./run mcp-stdio
+
+# Run with debug logging
+./run mcp-debug
+
+# Run tests
+./run test
+./run test-cov
+./run test-mcp
+
+# Code quality
+./run lint
+./run format
+./run type-check
+
+# Show all available commands
+./run --help
+```
+
+### Using UV with Entry Points
+
+```bash
+# Installed commands via [project.scripts]
+uv run prismweave-mcp           # Run MCP server
+uv run prismweave-mcp-inspector # Run server + inspector together
+uv run prismweave-process       # Run document processor CLI
+```
 
 ### Command Line Interface
 
@@ -412,18 +449,29 @@ Part of the PrismWeave document management ecosystem:
 
 ## 🧪 Testing
 
+### Automated Testing
+
+Use UV's built-in script runner (equivalent to `npm run`):
+
+```bash
+# Run all tests
+uv run test
+
+# Run with coverage report
+uv run test-cov
+
+# Run MCP tools test suite
+uv run test-mcp
+```
+
+Or use pytest directly:
+
 ```bash
 # Run all tests
 pytest tests/ -v
 
-# Run with coverage
-pytest tests/ --cov=src --cov-report=html
-
 # Run specific test file
 pytest tests/test_embedding_store.py -v
-
-# Quick smoke test
-pytest tests/test_core.py -v
 ```
 
 **Test Coverage**: 51 passing tests across 5 test suites
@@ -433,6 +481,61 @@ pytest tests/test_core.py -v
 - EmbeddingStore: 17 tests
 - GitTracker: 21 tests
 - Integration: 5 tests
+
+### Manual Testing with MCP Inspector
+
+For interactive testing of the MCP server tools:
+
+```bash
+# Launch BOTH server and inspector (recommended)
+uv run mcp
+
+# Or launch inspector only (starts its own server instance)
+uv run inspector-only
+
+# Or press F5 in VS Code (launches both)
+```
+
+The inspector opens at **http://localhost:6274** with a web UI for testing all MCP tools.
+
+📖 **See [INSPECTOR_GUIDE.md](INSPECTOR_GUIDE.md) for detailed usage instructions**
+
+### VS Code Integration
+
+**Press F5** to launch both the MCP server and inspector together for instant testing!
+
+The default launch configuration "MCP Server + Inspector" is now first in the list, so F5 launches both:
+
+- MCP Server (SSE transport on http://127.0.0.1:3000/sse)
+- MCP Inspector (Web UI on http://localhost:6274)
+
+Other launch configurations available:
+
+- "Debug MCP Server" - Server only with breakpoints
+- "Debug Current Python File" - Run any Python file with debugging
+
+### MCP Tools Testing
+
+Test all 9 MCP server tools programmatically:
+
+```bash
+# Run MCP tools test suite
+python test_mcp_tools.py
+```
+
+**All MCP Tools**: 9/9 passing (100% success rate)
+
+- ✓ search_documents
+- ✓ list_documents
+- ✓ get_document
+- ✓ get_document_metadata
+- ✓ create_document
+- ✓ update_document
+- ✓ generate_embeddings
+- ✓ generate_tags
+- ✓ commit_to_git
+
+📊 **See [MCP_TOOLS_TEST_RESULTS.md](MCP_TOOLS_TEST_RESULTS.md) for detailed test results**
 
 ---
 
