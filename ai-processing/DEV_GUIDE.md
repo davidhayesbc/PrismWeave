@@ -14,7 +14,7 @@ uv sync
 #### Option A: Hot Reload Development (Recommended)
 
 ```bash
-./dev.sh
+./run dev
 ```
 
 Changes to Python files will automatically restart the server.
@@ -58,7 +58,7 @@ Example configuration:
 
 ### Hot Reload Mode
 
-The `dev.sh` script uses `watchdog` to monitor file changes and automatically restart the server:
+The `./run dev` command uses `watchdog` to monitor file changes and automatically restart the server:
 
 - Watches: `prismweave_mcp/` and `src/` directories
 - Auto-restarts on `.py` file changes
@@ -103,7 +103,7 @@ logger.error("Error message")
 Run with debug logging:
 
 ```bash
-./dev.sh  # Already has debug mode enabled
+./run dev  # Already has debug mode enabled
 ```
 
 ## Testing
@@ -148,7 +148,7 @@ ai-processing/
 ├── src/                     # Core AI processing
 ├── tests/                   # Test suite
 ├── config.yaml              # Configuration
-└── dev.sh                   # Hot reload script
+└── run                      # Task runner script
 ```
 
 ## Configuration
@@ -178,8 +178,8 @@ python -m prismweave_mcp.server --port 8001
 # Ensure watchdog is installed
 uv sync
 
-# Check dev.sh is executable
-chmod +x dev.sh
+# Check run script is executable
+chmod +x run
 
 # Run manually to see errors
 uv run watchmedo auto-restart --directory=./prismweave_mcp --pattern="*.py" --recursive -- python -m prismweave_mcp.server

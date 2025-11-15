@@ -6,7 +6,7 @@
 
 ```bash
 cd ai-processing
-./dev.sh
+./run dev
 ```
 
 Auto-restarts when you save Python files. Perfect for development!
@@ -125,7 +125,7 @@ Location: `~/.config/Code - Insiders/User/mcp.json`
 
 ## Development Tips
 
-✅ Use `./dev.sh` for instant feedback  
+✅ Use `./run dev` for instant feedback  
 ✅ Set breakpoints and use F5 for debugging  
 ✅ Check `DEV_GUIDE.md` for detailed info  
 ✅ Use smaller models (phi3:mini) for faster testing  

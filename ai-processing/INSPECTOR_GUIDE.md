@@ -18,9 +18,6 @@ cd ai-processing
 **Alternative methods**:
 
 ```bash
-# Launch inspector only (starts its own server instance)
-./run inspector-only
-
 # Run server only with different transports
 ./run mcp-server  # SSE transport (production)
 ./run mcp-stdio   # stdio transport (for inspector)

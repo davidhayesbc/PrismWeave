@@ -194,19 +194,6 @@ python cli.py sync ~/PrismWeaveDocs --force
 
 # Enumerate first 20 documents with details
 python cli.py list --max 20 --verbose
-````
-
-### Examples
-
-```bash
-# Process PrismWeaveDocs tech folder with verification
-python cli.py process "d:\source\PrismWeaveDocs\documents\tech" --verify
-
-# Process single document with verbose output
-python cli.py process "d:\source\PrismWeaveDocs\documents\tech\example.md" --verbose
-
-# Enumerate first 20 documents with details
-python cli.py list --max 20 --verbose
 ```
 
 ### Python API
@@ -451,17 +438,17 @@ Part of the PrismWeave document management ecosystem:
 
 ### Automated Testing
 
-Use UV's built-in script runner (equivalent to `npm run`):
+Use the task runner for testing:
 
 ```bash
 # Run all tests
-uv run test
+./run test
 
 # Run with coverage report
-uv run test-cov
+./run test-cov
 
-# Run MCP tools test suite
-uv run test-mcp
+# Test MCP server tools
+./run test-mcp
 ```
 
 Or use pytest directly:
@@ -488,10 +475,7 @@ For interactive testing of the MCP server tools:
 
 ```bash
 # Launch BOTH server and inspector (recommended)
-uv run mcp
-
-# Or launch inspector only (starts its own server instance)
-uv run inspector-only
+./run mcp
 
 # Or press F5 in VS Code (launches both)
 ```
@@ -506,7 +490,7 @@ The inspector opens at **http://localhost:6274** with a web UI for testing all M
 
 The default launch configuration "MCP Server + Inspector" is now first in the list, so F5 launches both:
 
-- MCP Server (SSE transport on http://127.0.0.1:3000/sse)
+- MCP Server (SSE transport on http://127.0.0.1:8000/sse)
 - MCP Inspector (Web UI on http://localhost:6274)
 
 Other launch configurations available:
@@ -520,7 +504,7 @@ Test all 9 MCP server tools programmatically:
 
 ```bash
 # Run MCP tools test suite
-python test_mcp_tools.py
+./run test-mcp
 ```
 
 **All MCP Tools**: 9/9 passing (100% success rate)
