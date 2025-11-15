@@ -253,6 +253,7 @@ class SearchManager:
 
         return SearchResult(
             document_id=metadata.get("id") or metadata.get("document_id", f"chunk_{haystack_doc.id}"),
+            path=str(relative_path),
             score=score,
             excerpt=snippet,
             metadata=doc_metadata,

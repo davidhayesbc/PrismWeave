@@ -99,14 +99,22 @@ class SearchTools:
             GetDocumentResponse dict or ErrorResponse dict
         """
         try:
-            # Get document using DocumentManager (returns Document model)
-            document = self.document_manager.get_document_by_id(request.document_id)
+            # Try to get document by ID first
+            document = self.document_manager.get_document_by_id(request.document_id) if request.document_id else None
+
+            # If not found by ID, try by path as fallback
+            if not document and request.path:
+                try:
+                    document = self.document_manager.get_document_by_path(request.path)
+                except ValueError:
+                    # Path validation failed
+                    pass
 
             if not document:
                 error = ErrorResponse(
                     error="Document not found",
                     error_code="DOCUMENT_NOT_FOUND",
-                    details={"document_id": request.document_id},
+                    details={"document_id": request.document_id, "path": request.path},
                 )
                 return error.model_dump(mode="json")
 

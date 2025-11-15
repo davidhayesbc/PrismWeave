@@ -55,6 +55,7 @@ class SearchResult(BaseModel):
     """Single search result item"""
 
     document_id: str = Field(..., description="Document ID")
+    path: str = Field(..., description="Relative path to source document")
     score: float = Field(..., description="Similarity score (0-1)")
     excerpt: str = Field(..., description="Relevant excerpt from document")
     metadata: Optional[DocumentMetadata] = Field(default=None, description="Document metadata (optional)")
@@ -63,6 +64,7 @@ class SearchResult(BaseModel):
         json_schema_extra = {
             "example": {
                 "document_id": "doc_abc123",
+                "path": "documents/tech/ml-basics.md",
                 "score": 0.92,
                 "excerpt": "Machine learning is a subset of artificial intelligence...",
                 "metadata": {

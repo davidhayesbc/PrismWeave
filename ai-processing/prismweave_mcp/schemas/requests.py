@@ -48,21 +48,11 @@ class SearchDocumentsRequest(BaseModel):
 
 
 class GetDocumentRequest(BaseModel):
-    """Get document by ID request"""
+    """Request to get a document by ID or path"""
 
-    document_id: str = Field(..., description="(Required) Document ID to retrieve.")
-    include_content: bool = Field(
-        True,
-        description="(Optional) When False, omit the Markdown body and return metadata only. Defaults to True.",
-    )
-
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "document_id": "doc_abc123",
-                "include_content": True,
-            }
-        }
+    document_id: Optional[str] = Field(default=None, description="Document ID")
+    path: Optional[str] = Field(default=None, description="Document path (relative to docs root)")
+    include_content: bool = Field(default=True, description="Include document content")
 
 
 class ListDocumentsRequest(BaseModel):
