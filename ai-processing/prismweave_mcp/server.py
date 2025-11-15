@@ -330,6 +330,41 @@ async def commit_to_git(
     return await git_tools.commit_to_git(request)
 
 
+def main():
+    """Main entry point for the MCP server"""
+    import argparse
+
+    parser = argparse.ArgumentParser(description="PrismWeave MCP Server")
+    parser.add_argument("--debug", action="store_true", help="Enable debug logging")
+    parser.add_argument("--port", type=int, default=8000, help="Port to bind to")
+    parser.add_argument("--host", type=str, default="127.0.0.1", help="Host to bind to")
+    parser.add_argument(
+        "--transport",
+        type=str,
+        default="sse",
+        choices=["sse", "stdio"],
+        help="Transport type (default: sse for HTTP server)",
+    )
+    args = parser.parse_args()
+
+    if args.debug:
+        logging.getLogger().setLevel(logging.DEBUG)
+        logger.setLevel(logging.DEBUG)
+
+    logger.info("Starting PrismWeave MCP Server")
+    logger.info(f"Transport: {args.transport}")
+    logger.info(f"Debug mode: {args.debug}")
+
+    if args.transport == "sse":
+        logger.info(f"HTTP Server: http://{args.host}:{args.port}")
+        logger.info(f"SSE endpoint: http://{args.host}:{args.port}/sse")
+        # Run with SSE transport (HTTP server)
+        mcp.run(transport="sse", host=args.host, port=args.port)
+    else:
+        logger.info("Running with stdio transport")
+        # Run with stdio transport
+        mcp.run(transport="stdio")
+
+
 if __name__ == "__main__":
-    # Run the server
-    mcp.run()
+    main()

@@ -64,6 +64,7 @@ dev = [
 
 [project.scripts]
 prismweave-process = "main:main"
+prismweave-mcp = "prismweave_mcp.server:main"
 
 [project.urls]
 Homepage = "https://github.com/davidhayesbc/PrismWeave"
@@ -91,6 +92,8 @@ dev-dependencies = [
     "ruff>=0.1.0",
     "mypy>=1.6.0",
     "pre-commit>=3.5.0",
+    "watchdog>=6.0.0",
+    "pytest-watch>=4.2.0",
 ]
 
 # MyPy configuration
@@ -223,3 +226,8 @@ reportGeneralTypeIssues = "none"
 reportShadowedImports = "none"
 pythonVersion = "3.9"
 pythonPlatform = "Linux"
+
+[dependency-groups]
+dev = [
+    "watchdog>=6.0.0",
+]

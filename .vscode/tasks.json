@@ -218,6 +218,59 @@
         "focus": false,
         "panel": "shared"
       }
+    },
+    {
+      "label": "MCP Server: Run",
+      "type": "shell",
+      "command": ".venv/bin/python",
+      "args": ["-m", "prismweave_mcp.server", "--transport", "sse"],
+      "options": {
+        "cwd": "${workspaceFolder}/ai-processing"
+      },
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "dedicated"
+      },
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "MCP Server: Run with Hot Reload",
+      "type": "shell",
+      "command": "./dev.sh",
+      "options": {
+        "cwd": "${workspaceFolder}/ai-processing"
+      },
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "dedicated"
+      },
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "MCP Server: Run with Debug Logging",
+      "type": "shell",
+      "command": ".venv/bin/python",
+      "args": ["-m", "prismweave_mcp.server", "--debug", "--transport", "sse"],
+      "options": {
+        "cwd": "${workspaceFolder}/ai-processing",
+        "env": {
+          "LOG_LEVEL": "DEBUG"
+        }
+      },
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "dedicated"
+      },
+      "isBackground": true,
+      "problemMatcher": []
     }
   ]
 }
