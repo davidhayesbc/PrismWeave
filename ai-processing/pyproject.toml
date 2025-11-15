@@ -84,20 +84,6 @@ include = [
     "/config.yaml",
 ]
 
-# UV configuration
-[tool.uv]
-dev-dependencies = [
-    "pytest>=7.4.0",
-    "pytest-asyncio>=0.21.0",
-    "pytest-mock>=3.11.0",
-    "pytest-cov>=4.1.0",
-    "ruff>=0.1.0",
-    "mypy>=1.6.0",
-    "pre-commit>=3.5.0",
-    "watchdog>=6.0.0",
-    "pytest-watch>=4.2.0",
-]
-
 # MyPy configuration
 [tool.mypy]
 python_version = "3.9"
@@ -231,5 +217,13 @@ pythonPlatform = "Linux"
 
 [dependency-groups]
 dev = [
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-mock>=3.11.0",
+    "pytest-cov>=4.1.0",
+    "ruff>=0.1.0",
+    "mypy>=1.6.0",
+    "pre-commit>=3.5.0",
     "watchdog>=6.0.0",
+    "pytest-watch>=4.2.0",
 ]

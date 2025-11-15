@@ -8,6 +8,7 @@ import logging
 from typing import Any
 
 from fastmcp import FastMCP
+from starlette.middleware.cors import CORSMiddleware
 
 from prismweave_mcp.schemas.requests import (
     CommitToGitRequest,
@@ -358,8 +359,33 @@ def main():
     if args.transport == "sse":
         logger.info(f"HTTP Server: http://{args.host}:{args.port}")
         logger.info(f"SSE endpoint: http://{args.host}:{args.port}/sse")
-        # Run with SSE transport (HTTP server)
-        mcp.run(transport="sse", host=args.host, port=args.port)
+        # Run with SSE transport (HTTP server) with CORS enabled for Inspector
+        # CORS configuration for MCP Inspector
+        uvicorn_config = {
+            "app": None,  # Will be set by FastMCP
+            "host": args.host,
+            "port": args.port,
+        }
+
+        # Use uvicorn_config to add CORS headers
+        from starlette.middleware import Middleware
+
+        middleware = [
+            Middleware(
+                CORSMiddleware,
+                allow_origins=["http://localhost:6274", "http://127.0.0.1:6274", "*"],
+                allow_credentials=True,
+                allow_methods=["*"],
+                allow_headers=["*"],
+            )
+        ]
+
+        mcp.run(
+            transport="sse",
+            host=args.host,
+            port=args.port,
+            middleware=middleware,
+        )
     else:
         logger.info("Running with stdio transport")
         # Run with stdio transport
