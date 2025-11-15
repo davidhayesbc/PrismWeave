@@ -24,17 +24,6 @@ class DocumentMetadata(BaseModel):
     author: Optional[str] = Field(default=None, description="Document author")
     additional: Optional[dict[str, Any]] = Field(default=None, description="Additional metadata fields")
 
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "title": "Machine Learning Basics",
-                "tags": ["ml", "ai", "python"],
-                "category": "tech",
-                "word_count": 1500,
-                "reading_time": 7,
-            }
-        }
-
 
 class Document(BaseModel):
     """Complete document schema"""

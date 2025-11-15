@@ -71,13 +71,13 @@ class SearchTools:
                 total_results=total_found,
             )
 
-            return response.model_dump()
+            return response.model_dump(mode="json")
 
         except Exception as e:
             error = ErrorResponse(
                 error=f"Search failed: {str(e)}", error_code="SEARCH_FAILED", details={"query": request.query}
             )
-            return error.model_dump()
+            return error.model_dump(mode="json")
 
     async def get_document(self, request: GetDocumentRequest) -> dict[str, Any]:
         """
@@ -99,7 +99,7 @@ class SearchTools:
                     error_code="DOCUMENT_NOT_FOUND",
                     details={"document_id": request.document_id},
                 )
-                return error.model_dump()
+                return error.model_dump(mode="json")
 
             # Respect include_content flag by omitting body when not requested
             doc = document
@@ -108,7 +108,7 @@ class SearchTools:
 
             response = GetDocumentResponse(document=doc)
 
-            return response.model_dump()
+            return response.model_dump(mode="json")
 
         except Exception as e:
             error = ErrorResponse(
@@ -116,7 +116,7 @@ class SearchTools:
                 error_code="DOCUMENT_RETRIEVAL_FAILED",
                 details={"document_id": request.document_id},
             )
-            return error.model_dump()
+            return error.model_dump(mode="json")
 
     async def list_documents(self, request: ListDocumentsRequest) -> dict[str, Any]:
         """
@@ -183,7 +183,7 @@ class SearchTools:
                 category=request.category,
             )
 
-            return response.model_dump()
+            return response.model_dump(mode="json")
 
         except Exception as e:
             error = ErrorResponse(
@@ -191,7 +191,7 @@ class SearchTools:
                 error_code="DOCUMENT_LIST_FAILED",
                 details={"filters": request.model_dump()},
             )
-            return error.model_dump()
+            return error.model_dump(mode="json")
 
     async def get_document_metadata(self, request: GetDocumentRequest) -> dict[str, Any]:
         """
@@ -213,10 +213,12 @@ class SearchTools:
                     error_code="DOCUMENT_NOT_FOUND",
                     details={"document_id": request.document_id},
                 )
-                return error.model_dump()
+                return error.model_dump(mode="json")
 
-            # Return metadata directly (no specific schema for this)
-            return {"metadata": metadata, "success": True}
+            # Return metadata directly - convert to dict properly
+            # metadata is a DocumentMetadata Pydantic model, convert using model_dump(mode='json')
+            metadata_dict = metadata.model_dump(mode="json") if hasattr(metadata, "model_dump") else metadata
+            return {"metadata": metadata_dict, "success": True}
 
         except Exception as e:
             error = ErrorResponse(
@@ -224,4 +226,4 @@ class SearchTools:
                 error_code="METADATA_RETRIEVAL_FAILED",
                 details={"document_id": request.document_id},
             )
-            return error.model_dump()
+            return error.model_dump(mode="json")
