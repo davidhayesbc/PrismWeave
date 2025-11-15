@@ -71,22 +71,33 @@ async def search_documents(
     include_captured: bool = True,
     category: str | None = None,
 ) -> dict[str, Any]:
-    """
-    Search documents using semantic search with optional filters.
+    """Search for documents by semantic similarity.
 
-    Args:
-        query: Search query text
-        max_results: Maximum number of results to return (default: 20)
-        similarity_threshold: Minimum similarity score 0-1 (default: 0.6)
-        tags: Filter by tags
-        date_from: Filter documents from this date (ISO format)
-        date_to: Filter documents to this date (ISO format)
-        include_generated: Include generated documents (default: True)
-        include_captured: Include captured documents (default: True)
-        category: Filter by category
+    Use this tool when the caller asks to *find* or *search for* documents related to a
+    natural-language query. The tool performs vector search and optional metadata filtering.
+
+    Parameters:
+        query (str, required): Natural-language text describing what to look for.
+            Example: "summaries of Ollama model management".
+        max_results (int, optional): Maximum number of hits to return. Defaults to
+            ``config.mcp.search.max_results`` (20 in the standard configuration).
+        similarity_threshold (float, optional): Minimum cosine similarity the match must
+            meet. Accept values between 0 and 1. Defaults to
+            ``config.mcp.search.similarity_threshold`` (0.45 by default).
+        tags (list[str], optional): Only return documents containing *all* of these tags.
+        date_from (str, optional): ISO-8601 date (``YYYY-MM-DD``). Results earlier than this
+            date are excluded. Currently reserved for future filtering support.
+        date_to (str, optional): ISO-8601 date (``YYYY-MM-DD``). Results after this date are
+            excluded. Currently reserved for future filtering support.
+        include_generated (bool, optional): When False, prefer captured documents. This flag
+            is accepted for forward compatibility and presently has no effect.
+        include_captured (bool, optional): When False, prefer generated documents. This flag
+            is accepted for forward compatibility and presently has no effect.
+        category (str, optional): Restrict results to a single category when available.
 
     Returns:
-        Search results with documents, scores, and snippets
+        dict[str, Any]: JSON-serializable payload containing matched documents, similarity
+        scores, and the original query.
     """
     await ensure_initialized()
     request = SearchDocumentsRequest(
@@ -103,16 +114,21 @@ async def get_document(
     path: str | None = None,
     include_content: bool = True,
 ) -> dict[str, Any]:
-    """
-    Get a document by ID or path.
+    """Retrieve a single document for reading or inspection.
 
-    Args:
-        document_id: Document ID
-        path: Document path (alternative to document_id)
-        include_content: Include full document content (default: True)
+    Use this tool when the caller references a specific document they already know about
+    (usually after ``search_documents`` or ``list_documents``).
+
+    Parameters:
+        document_id (str, required): Stable identifier stored in the document frontmatter.
+            Provide this whenever available for deterministic retrieval.
+        path (str, optional): Repository-relative path (e.g., ``documents/my-note.md``).
+            Reserved for future support; current implementation requires ``document_id``.
+        include_content (bool, optional): When False, omit the Markdown body and return only
+            metadata. Defaults to True.
 
     Returns:
-        Document with metadata and optionally content
+        dict[str, Any]: Document metadata and, when requested, Markdown content.
     """
     await ensure_initialized()
     request = GetDocumentRequest(
@@ -133,21 +149,26 @@ async def list_documents(
     limit: int | None = None,
     offset: int = 0,
 ) -> dict[str, Any]:
-    """
-    List documents with optional filters.
+    """Browse available documents without performing semantic ranking.
 
-    Args:
-        category: Filter by category
-        tags: Filter by tags
-        date_from: Filter documents from this date (ISO format)
-        date_to: Filter documents to this date (ISO format)
-        include_generated: Include generated documents (default: True)
-        include_captured: Include captured documents (default: True)
-        limit: Maximum number of documents to return
-        offset: Number of documents to skip (default: 0)
+    Use this tool when the caller requests an overview or needs to iterate through
+    documents by category or tag (for example, "show me all AI-generated documents").
+
+    Parameters:
+        category (str, optional): Restrict results to this category folder.
+        tags (list[str], optional): Only return documents that contain all listed tags.
+        date_from (str, optional): ISO-8601 date string. Reserved for future support.
+        date_to (str, optional): ISO-8601 date string. Reserved for future support.
+        include_generated (bool, optional): Future option to exclude generated documents.
+            Accepted for compatibility; currently ignored.
+        include_captured (bool, optional): Future option to exclude captured documents.
+            Accepted for compatibility; currently ignored.
+        limit (int, optional): Maximum number of entries to return. Defaults to the
+            repository setting ``ListDocumentsRequest.limit`` (50 by default).
+        offset (int, optional): Number of entries to skip for pagination. Defaults to 0.
 
     Returns:
-        List of documents with metadata
+        dict[str, Any]: Collection of document metadata plus total count statistics.
     """
     await ensure_initialized()
     request = ListDocumentsRequest(
@@ -164,15 +185,17 @@ async def get_document_metadata(
     document_id: str | None = None,
     path: str | None = None,
 ) -> dict[str, Any]:
-    """
-    Get document metadata without full content.
+    """Fetch metadata for a document while omitting the Markdown body.
 
-    Args:
-        document_id: Document ID
-        path: Document path (alternative to document_id)
+    Use this tool when only frontmatter-derived fields are required (e.g., title, tags,
+    timestamps) and the caller does not need the full content payload.
+
+    Parameters:
+        document_id (str, required): Unique identifier stored in frontmatter.
+        path (str, optional): Placeholder for future path-based lookups (currently unused).
 
     Returns:
-        Document metadata only
+        dict[str, Any]: Metadata dictionary plus a success flag, or an error structure.
     """
     await ensure_initialized()
     request = GetDocumentRequest(
@@ -192,20 +215,25 @@ async def create_document(
     auto_process: bool = True,
     auto_commit: bool = False,
 ) -> dict[str, Any]:
-    """
-    Create a new generated document.
+    """Create and store a new Markdown document inside the generated collection.
 
-    Args:
-        title: Document title
-        content: Document content in markdown
-        category: Document category
-        tags: Document tags
-        metadata: Additional metadata
-        auto_process: Auto-generate tags and embeddings (default: True)
-        auto_commit: Auto-commit to git (default: False)
+    Use this after the caller supplies draft content that should be persisted.
+
+    Parameters:
+        title (str, required): Human-readable document title. Used to derive the filename.
+        content (str, required): Markdown-formatted body text.
+        category (str, optional): Category folder to place the document in. Defaults to the
+            ``config.mcp.creation.default_category`` setting when omitted.
+        tags (list[str], optional): Tags to include in frontmatter. Defaults to an empty list.
+        metadata (dict[str, Any], optional): Additional frontmatter fields. Keys must be
+            JSON-serializable.
+        auto_process (bool, optional): When True (default), downstream workflows should
+            enqueue tag and embedding generation.
+        auto_commit (bool, optional): When True, follow-up automation should commit the
+            created file to Git. Defaults to False.
 
     Returns:
-        Created document information
+        dict[str, Any]: Details about the newly created document, including its ID and path.
     """
     await ensure_initialized()
     request = CreateDocumentRequest(
@@ -227,19 +255,22 @@ async def update_document(
     category: str | None = None,
     additional_metadata: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """
-    Update an existing generated document.
+    """Modify an existing generated document.
 
-    Args:
-        document_id: Document ID to update
-        title: New document title
-        content: New document content
-        tags: New tags
-        category: New category
-        additional_metadata: Additional metadata to update
+    Use when the caller requests edits to content or frontmatter of a document that resides
+    in the generated collection. Captured documents remain read-only.
+
+    Parameters:
+        document_id (str, required): Identifier of the generated document to update.
+        title (str, optional): Replacement title.
+        content (str, optional): Replacement Markdown body.
+        tags (list[str], optional): Replacement tag list. Provide the full desired set.
+        category (str, optional): Updated category destination.
+        additional_metadata (dict[str, Any], optional): Frontmatter fields to merge with
+            existing metadata.
 
     Returns:
-        Updated document information
+        dict[str, Any]: Updated document representation or an error payload.
     """
     await ensure_initialized()
     request = UpdateDocumentRequest(
@@ -259,16 +290,20 @@ async def generate_embeddings(
     model: str = "nomic-embed-text",
     force_regenerate: bool = False,
 ) -> dict[str, Any]:
-    """
-    Generate embeddings for a document.
+    """Produce vector embeddings for semantic search and clustering.
 
-    Args:
-        document_id: Document ID to generate embeddings for
-        model: Embedding model to use (default: nomic-embed-text)
-        force_regenerate: Force regeneration even if embeddings exist (default: False)
+    Use when downstream actions require updated embeddings (e.g., after updates) or when
+    embeddings are missing.
+
+    Parameters:
+        document_id (str, required): Identifier of the document to embed.
+        model (str, optional): Embedding model name compatible with the local Ollama setup.
+            Defaults to ``"nomic-embed-text"``.
+        force_regenerate (bool, optional): When True, re-create embeddings even if cached.
+            Defaults to False.
 
     Returns:
-        Embedding generation results
+        dict[str, Any]: Information about the embedding job and success status.
     """
     await ensure_initialized()
     request = GenerateEmbeddingsRequest(
@@ -285,16 +320,18 @@ async def generate_tags(
     max_tags: int = 5,
     force_regenerate: bool = False,
 ) -> dict[str, Any]:
-    """
-    Generate tags for a document using AI.
+    """Suggest topical tags for a document using the local AI pipeline.
 
-    Args:
-        document_id: Document ID to generate tags for
-        max_tags: Maximum number of tags to generate (default: 5)
-        force_regenerate: Force regeneration even if tags exist (default: False)
+    Use when the caller wants automatic tagging support for organization or search.
+
+    Parameters:
+        document_id (str, required): Identifier of the document to tag.
+        max_tags (int, optional): Maximum number of tags to return. Defaults to 5.
+        force_regenerate (bool, optional): When True, ignore cached tags and produce a fresh
+            set. Defaults to False.
 
     Returns:
-        Generated tags
+        dict[str, Any]: Collection of generated tags with confidence metadata if available.
     """
     await ensure_initialized()
     request = GenerateTagsRequest(
@@ -311,16 +348,19 @@ async def commit_to_git(
     file_paths: list[str],
     push: bool = False,
 ) -> dict[str, Any]:
-    """
-    Commit changes to git repository.
+    """Create a Git commit containing document or metadata changes.
 
-    Args:
-        commit_message: Commit message
-        file_paths: List of file paths to commit
-        push: Push to remote after commit (default: False)
+    Use this tool after writing or updating files when the caller explicitly asks to save or
+    publish changes.
+
+    Parameters:
+        commit_message (str, required): Concise message describing the change.
+        file_paths (list[str], required): Repository-relative paths to include in the commit.
+        push (bool, optional): When True, push the resulting commit to the configured remote.
+            Defaults to False; only enable when instructed.
 
     Returns:
-        Commit results
+        dict[str, Any]: Commit identifier, affected files, and optional push status.
     """
     await ensure_initialized()
     request = CommitToGitRequest(

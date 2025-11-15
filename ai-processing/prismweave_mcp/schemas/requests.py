@@ -12,14 +12,27 @@ from pydantic import BaseModel, Field
 class SearchDocumentsRequest(BaseModel):
     """Search documents request"""
 
-    query: str = Field(..., description="Search query text")
-    max_results: int = Field(20, description="Maximum number of results to return")
-    similarity_threshold: float = Field(0.45, description="Minimum similarity score (0-1)")
-    tags: Optional[list[str]] = Field(
-        default=None, description="Filter by tags (documents must have all specified tags)"
+    query: str = Field(..., description="(Required) Natural-language search query text.")
+    max_results: int = Field(
+        20,
+        description="(Optional) Maximum number of results to return. Defaults to 20 if not provided.",
     )
-    category: Optional[str] = Field(default=None, description="Filter by category")
-    generated_only: bool = Field(default=False, description="Filter to show only AI-generated documents")
+    similarity_threshold: float = Field(
+        0.45,
+        description="(Optional) Minimum cosine similarity score between 0 and 1. Defaults to 0.45.",
+    )
+    tags: Optional[list[str]] = Field(
+        default=None,
+        description="(Optional) Filter by tags; documents must contain every tag in this list.",
+    )
+    category: Optional[str] = Field(
+        default=None,
+        description="(Optional) Filter by category folder (e.g., 'tech').",
+    )
+    generated_only: bool = Field(
+        default=False,
+        description="(Optional) When True, only return AI-generated documents. Defaults to False.",
+    )
 
     class Config:
         json_schema_extra = {
@@ -37,8 +50,11 @@ class SearchDocumentsRequest(BaseModel):
 class GetDocumentRequest(BaseModel):
     """Get document by ID request"""
 
-    document_id: str = Field(..., description="Document ID to retrieve")
-    include_content: bool = Field(True, description="Whether to include full content")
+    document_id: str = Field(..., description="(Required) Document ID to retrieve.")
+    include_content: bool = Field(
+        True,
+        description="(Optional) When False, omit the Markdown body and return metadata only. Defaults to True.",
+    )
 
     class Config:
         json_schema_extra = {
@@ -52,10 +68,19 @@ class GetDocumentRequest(BaseModel):
 class ListDocumentsRequest(BaseModel):
     """List documents request"""
 
-    category: Optional[str] = Field(default=None, description="Filter by category")
-    tags: Optional[list[str]] = Field(default=None, description="Filter by tags (AND logic)")
-    limit: int = Field(50, description="Maximum number of documents to return")
-    offset: int = Field(0, description="Pagination offset")
+    category: Optional[str] = Field(
+        default=None,
+        description="(Optional) Restrict results to this category folder (e.g., 'tech').",
+    )
+    tags: Optional[list[str]] = Field(
+        default=None,
+        description="(Optional) Filter by tags using AND logic; all tags must be present.",
+    )
+    limit: int = Field(
+        50,
+        description="(Optional) Maximum number of documents to return. Defaults to 50 when omitted.",
+    )
+    offset: int = Field(0, description="(Optional) Number of documents to skip for pagination. Defaults to 0.")
 
     class Config:
         json_schema_extra = {
@@ -71,7 +96,7 @@ class ListDocumentsRequest(BaseModel):
 class GetMetadataRequest(BaseModel):
     """Get document metadata request"""
 
-    document_id: str = Field(..., description="Document ID")
+    document_id: str = Field(..., description="(Required) Document ID for the metadata lookup.")
 
     class Config:
         json_schema_extra = {
@@ -84,13 +109,28 @@ class GetMetadataRequest(BaseModel):
 class CreateDocumentRequest(BaseModel):
     """Create new document request"""
 
-    title: str = Field(..., description="Document title")
-    content: str = Field(..., description="Markdown content")
-    tags: list[str] = Field(default_factory=list, description="Document tags")
-    category: Optional[str] = Field(default=None, description="Document category")
-    source_url: Optional[str] = Field(default=None, description="Source URL if captured from web")
-    author: Optional[str] = Field(default=None, description="Document author")
-    additional_metadata: Optional[dict[str, Any]] = Field(default=None, description="Additional metadata")
+    title: str = Field(..., description="(Required) Human-readable document title.")
+    content: str = Field(
+        ...,
+        description="(Required) Markdown-formatted content string.",
+    )
+    tags: list[str] = Field(
+        default_factory=list,
+        description="(Optional) Ordered list of tags to store in frontmatter. Defaults to empty list.",
+    )
+    category: Optional[str] = Field(
+        default=None,
+        description="(Optional) Category folder; when omitted, defaults to configuration default.",
+    )
+    source_url: Optional[str] = Field(
+        default=None,
+        description="(Optional) Absolute source URL when content is derived from the web.",
+    )
+    author: Optional[str] = Field(default=None, description="(Optional) Document author name.")
+    additional_metadata: Optional[dict[str, Any]] = Field(
+        default=None,
+        description="(Optional) Additional frontmatter fields as a JSON-serializable dictionary.",
+    )
 
     class Config:
         json_schema_extra = {
@@ -108,12 +148,18 @@ class CreateDocumentRequest(BaseModel):
 class UpdateDocumentRequest(BaseModel):
     """Update existing document request"""
 
-    document_id: str = Field(..., description="Document ID to update")
-    title: Optional[str] = Field(default=None, description="New title")
-    content: Optional[str] = Field(default=None, description="New content")
-    tags: Optional[list[str]] = Field(default=None, description="New tags")
-    category: Optional[str] = Field(default=None, description="New category")
-    additional_metadata: Optional[dict[str, Any]] = Field(default=None, description="Additional metadata to update")
+    document_id: str = Field(..., description="(Required) Document ID of the generated file to update.")
+    title: Optional[str] = Field(default=None, description="(Optional) Replacement title.")
+    content: Optional[str] = Field(default=None, description="(Optional) Replacement Markdown content.")
+    tags: Optional[list[str]] = Field(
+        default=None,
+        description="(Optional) Replacement tag list; supply the full desired set.",
+    )
+    category: Optional[str] = Field(default=None, description="(Optional) Updated category value.")
+    additional_metadata: Optional[dict[str, Any]] = Field(
+        default=None,
+        description="(Optional) Metadata fields to merge with the document's existing frontmatter.",
+    )
 
     class Config:
         json_schema_extra = {
@@ -128,9 +174,15 @@ class UpdateDocumentRequest(BaseModel):
 class GenerateEmbeddingsRequest(BaseModel):
     """Generate embeddings request"""
 
-    document_id: str = Field(..., description="Document ID to generate embeddings for")
-    model: str = Field("nomic-embed-text", description="Embedding model to use")
-    force_regenerate: bool = Field(False, description="Force regeneration even if embeddings exist")
+    document_id: str = Field(..., description="(Required) Document ID to generate embeddings for.")
+    model: str = Field(
+        "nomic-embed-text",
+        description="(Optional) Embedding model identifier. Defaults to 'nomic-embed-text'.",
+    )
+    force_regenerate: bool = Field(
+        False,
+        description="(Optional) When True, re-create embeddings even if they already exist. Defaults to False.",
+    )
 
     class Config:
         json_schema_extra = {
@@ -145,9 +197,15 @@ class GenerateEmbeddingsRequest(BaseModel):
 class GenerateTagsRequest(BaseModel):
     """Generate tags for document request"""
 
-    document_id: str = Field(..., description="Document ID to generate tags for")
-    max_tags: int = Field(5, description="Maximum number of tags to generate")
-    force_regenerate: bool = Field(False, description="Force regeneration even if tags exist")
+    document_id: str = Field(..., description="(Required) Document ID to generate tags for.")
+    max_tags: int = Field(
+        5,
+        description="(Optional) Maximum number of tags to generate. Defaults to 5.",
+    )
+    force_regenerate: bool = Field(
+        False,
+        description="(Optional) When True, generate new tags even if tags already exist. Defaults to False.",
+    )
 
     class Config:
         json_schema_extra = {
@@ -162,9 +220,15 @@ class GenerateTagsRequest(BaseModel):
 class CommitToGitRequest(BaseModel):
     """Commit changes to Git repository request"""
 
-    file_paths: list[str] = Field(..., description="List of file paths to commit")
-    commit_message: str = Field(..., description="Commit message")
-    push: bool = Field(False, description="Whether to push after committing")
+    file_paths: list[str] = Field(
+        ...,
+        description="(Required) Repository-relative file paths to include in the commit.",
+    )
+    commit_message: str = Field(..., description="(Required) Commit message summarizing the change.")
+    push: bool = Field(
+        False,
+        description="(Optional) When True, push the commit to the remote repository after creation. Defaults to False.",
+    )
 
     class Config:
         json_schema_extra = {
