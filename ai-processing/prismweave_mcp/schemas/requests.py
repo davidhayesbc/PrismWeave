@@ -15,6 +15,11 @@ class SearchDocumentsRequest(BaseModel):
     query: str = Field(..., description="Search query text")
     max_results: int = Field(20, description="Maximum number of results to return")
     similarity_threshold: float = Field(0.45, description="Minimum similarity score (0-1)")
+    tags: Optional[list[str]] = Field(
+        default=None, description="Filter by tags (documents must have all specified tags)"
+    )
+    category: Optional[str] = Field(default=None, description="Filter by category")
+    generated_only: bool = Field(default=False, description="Filter to show only AI-generated documents")
 
     class Config:
         json_schema_extra = {
@@ -22,6 +27,9 @@ class SearchDocumentsRequest(BaseModel):
                 "query": "machine learning concepts",
                 "max_results": 10,
                 "similarity_threshold": 0.7,
+                "tags": ["ml", "python"],
+                "category": "tech",
+                "generated_only": False,
             }
         }
 

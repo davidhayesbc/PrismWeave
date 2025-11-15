@@ -72,6 +72,8 @@ async def test_search_documents():
         request2 = SearchDocumentsRequest(
             query="programming",
             max_results=3,
+            tags=["python"],  # Test tag filtering
+            generated_only=False,  # Test generated filter
         )
         result2 = await search_tools.search_documents(request2)
         success2 = not result2.get("error")

@@ -54,13 +54,22 @@ class SearchTools:
             if not self._initialized or not self.search_manager:
                 await self.initialize()
 
+            # Build filters dictionary from request parameters
+            filters = {}
+            if request.tags:
+                filters["tags"] = request.tags
+            if request.category:
+                filters["category"] = request.category
+            if request.generated_only:
+                filters["generated"] = True
+
             # Perform search using SearchManager
             # SearchManager.search_documents returns tuple: (results, total)
             search_results_list, total_found = self.search_manager.search_documents(
                 query=request.query,
                 max_results=request.max_results,
                 similarity_threshold=request.similarity_threshold,
-                filters=None,  # No advanced filtering for now
+                filters=filters if filters else None,
             )
 
             # search_results_list is already a list of SearchResult objects with correct schema
