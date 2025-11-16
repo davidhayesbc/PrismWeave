@@ -206,7 +206,7 @@ class PersonalBookmarkletBuilder {
 // Consolidated configuration for bookmarklet components
 
 export const BOOKMARKLET_CONFIG = {
-  DEFAULT_INJECTABLE_BASE: 'https://davidhayesbc.github.io/PrismWeave/injectable',
+  DEFAULT_INJECTABLE_BASE: 'https://raw.githubusercontent.com/davidhayesbc/PrismWeave/main/injectable',
   LOCAL_INJECTABLE_BASE: 'http://localhost:3000/injectable',
   DEFAULT_BRANCH: 'main',
   DEFAULT_FOLDER: 'documents',
