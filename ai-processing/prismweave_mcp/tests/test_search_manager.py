@@ -133,7 +133,8 @@ This is test content.""",
         assert len(results) == 1
         assert total == 1
         assert results[0].title == "Test Document"
-        assert results[0].similarity_score == 0.85
+        # The SearchResult schema exposes "score" as the similarity value
+        assert results[0].score == 0.85
 
     def test_search_with_similarity_threshold(self, search_manager, mock_embedding_store, temp_docs_dir):
         """Test search respects similarity threshold"""

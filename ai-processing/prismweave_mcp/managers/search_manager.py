@@ -256,6 +256,7 @@ class SearchManager:
             path=str(relative_path),
             score=score,
             excerpt=snippet,
+            title=title,
             metadata=doc_metadata,
         )
 
