@@ -56,7 +56,7 @@ class GitTools:
             # Convert to response format (schema: success, commit_hash, message)
             response = CommitToGitResponse(
                 success=True,
-                commit_hash=result.get("commit_sha"),
+                commit_hash=result.get("commit_hash"),
                 message=request.commit_message,
             )
 

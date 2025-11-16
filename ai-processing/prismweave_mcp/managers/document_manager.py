@@ -73,6 +73,17 @@ class DocumentManager:
                     if metadata.get("id") == document_id or metadata.get("document_id") == document_id:
                         return self._build_document(doc_path, metadata, content)
 
+        # Fallback: scan all documents if embedding store unavailable or didn't find it
+        all_docs = list_markdown_files(self.docs_root)
+        for doc_path in all_docs:
+            try:
+                file_content = doc_path.read_text(encoding="utf-8")
+                metadata, content = parse_frontmatter(file_content)
+                if metadata.get("id") == document_id or metadata.get("document_id") == document_id:
+                    return self._build_document(doc_path, metadata, content)
+            except Exception:
+                continue
+
         return None
 
     def _get_path_from_embedding_store(self, document_id: str) -> Optional[str]:
