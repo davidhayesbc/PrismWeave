@@ -6,8 +6,7 @@
   "type": "commonjs",
   "workspaces": [
     "browser-extension",
-    "browser-extension/dev-tools",
-    "ai-processing"
+    "browser-extension/dev-tools"
   ],
   "scripts": {
     "build": "node build.js build",

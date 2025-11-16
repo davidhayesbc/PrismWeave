@@ -6,9 +6,6 @@
     {
       "path": "ai-processing",
     },
-    {
-      "path": "ai-processing/prismweave_mcp",
-    },
   ],
   "settings": {
     "typescript.format.enable": false,
@@ -19,6 +16,11 @@
     "powershell.cwd": "PrismWeave",
     "testing.automaticallyOpenPeekView": "never",
     "python.testing.pytestEnabled": false,
+    "jest.disabledWorkspaceFolders": [
+      "ai-processing",
+      "ai-processing/prismweave_mcp",
+      "PrismWeaveDocs",
+    ],
   },
   "extensions": {
     "recommendations": [

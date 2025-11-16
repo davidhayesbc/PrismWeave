@@ -133,10 +133,15 @@
   "ruff.fixAll": true,
 
   // Jest Test Explorer Configuration
-  "jest.disabledWorkspaceFolders": ["ai-processing", "PrismWeaveDocs"],
+  "jest.disabledWorkspaceFolders": [
+    "ai-processing",
+    "ai-processing/prismweave_mcp",
+    "PrismWeaveDocs"
+  ],
   "jest.enable": true,
   "jest.rootPath": "browser-extension",
   "jest.jestCommandLine": "npm test --",
+  "jest.autoRun": "off",
   "jest.outputConfig": {
     "revealOn": "run",
     "revealWithFocus": false,
