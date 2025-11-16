@@ -38,6 +38,9 @@ class SearchTools:
         if not self._initialized:
             self.search_manager = SearchManager(config=self.config)
             await self.search_manager.initialize()
+            # Update document manager with embedding store for efficient lookups
+            if self.search_manager.embedding_store:
+                self.document_manager.embedding_store = self.search_manager.embedding_store
             self._initialized = True
 
     async def search_documents(self, request: SearchDocumentsRequest) -> dict[str, Any]:

@@ -1,5 +1,5 @@
 {
-  "include": ["ai-processing/src", "ai-processing/tests"],
+  "include": ["ai-processing/src", "ai-processing/prismweave_mcp", "ai-processing/tests"],
   "exclude": ["**/node_modules", "**/__pycache__", ".git"],
   "venv": "ai-processing/.venv",
   "venvPath": "ai-processing",
@@ -14,13 +14,13 @@
       "root": "ai-processing",
       "pythonVersion": "3.12",
       "pythonPlatform": "Linux",
-      "extraPaths": ["ai-processing/src"]
+      "extraPaths": ["ai-processing/src", "ai-processing/prismweave_mcp"]
     },
     {
       "root": "ai-processing/tests",
       "pythonVersion": "3.12",
       "pythonPlatform": "Linux",
-      "extraPaths": ["ai-processing/src"],
+      "extraPaths": ["ai-processing/src", "ai-processing/prismweave_mcp"],
       "reportRedeclaration": "none",
       "reportUnusedParameter": "none",
       "reportGeneralTypeIssues": "none"

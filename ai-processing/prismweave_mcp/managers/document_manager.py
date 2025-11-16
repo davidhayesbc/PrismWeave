@@ -7,15 +7,13 @@ document management system. Works with both captured documents and generated con
 
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Optional
 
-from src.core.config import Config
-
-from ..schemas.responses import (
+from prismweave_mcp.schemas.responses import (
     Document,
     DocumentMetadata,
 )
-from ..utils.document_utils import (
+from prismweave_mcp.utils.document_utils import (
     calculate_reading_time,
     count_words,
     generate_document_id,
@@ -24,7 +22,7 @@ from ..utils.document_utils import (
     parse_frontmatter,
     validate_markdown,
 )
-from ..utils.path_utils import (
+from prismweave_mcp.utils.path_utils import (
     ensure_directory_exists,
     get_document_category,
     get_documents_root,
@@ -34,20 +32,24 @@ from ..utils.path_utils import (
     resolve_document_path,
     validate_path_safety,
 )
+from src.core.config import Config
+from src.core.embedding_store import EmbeddingStore
 
 
 class DocumentManager:
     """Manage document CRUD operations"""
 
-    def __init__(self, config: Config):
+    def __init__(self, config: Config, embedding_store: Optional[EmbeddingStore] = None):
         """
         Initialize Document Manager
 
         Args:
             config: Application configuration
+            embedding_store: Optional EmbeddingStore for efficient ID lookups
         """
         self.config = config
         self.docs_root = get_documents_root(config.mcp.paths.documents_root)
+        self.embedding_store = embedding_store
 
     def get_document_by_id(self, document_id: str) -> Optional[Document]:
         """
@@ -59,19 +61,40 @@ class DocumentManager:
         Returns:
             Document if found, None otherwise
         """
-        # Search all markdown files for matching ID
-        all_docs = list_markdown_files(self.docs_root)
+        # Get path from embedding store for efficiency
+        if self.embedding_store:
+            source_file = self._get_path_from_embedding_store(document_id)
+            if source_file:
+                doc_path = Path(source_file)
+                if doc_path.exists() and validate_path_safety(doc_path, self.docs_root):
+                    # Read and parse the document
+                    file_content = doc_path.read_text(encoding="utf-8")
+                    metadata, content = parse_frontmatter(file_content)
+                    if metadata.get("id") == document_id or metadata.get("document_id") == document_id:
+                        return self._build_document(doc_path, metadata, content)
 
-        for doc_path in all_docs:
-            try:
-                # Read file and parse frontmatter
-                file_content = doc_path.read_text(encoding="utf-8")
-                metadata, content = parse_frontmatter(file_content)
-                if metadata.get("id") == document_id or metadata.get("document_id") == document_id:
-                    return self._build_document(doc_path, metadata, content)
-            except Exception:
-                # Skip files that can't be parsed
-                continue
+        return None
+
+    def _get_path_from_embedding_store(self, document_id: str) -> Optional[str]:
+        """
+        Get document path from embedding store by ID
+
+        Args:
+            document_id: Document ID to look up
+
+        Returns:
+            Path to the document file if found, None otherwise
+        """
+        try:
+            # Query ChromaDB for documents with matching ID
+            filters = {"field": "meta.id", "operator": "==", "value": document_id}
+            if self.embedding_store and hasattr(self.embedding_store, "document_store"):
+                matching_docs = self.embedding_store.document_store.filter_documents(filters=filters)
+                if matching_docs:
+                    # Return the source_file from the first matching document
+                    return matching_docs[0].meta.get("source_file")
+        except Exception:
+            pass
 
         return None
 
@@ -96,7 +119,7 @@ class DocumentManager:
             try:
                 path_obj.relative_to(self.docs_root)
             except ValueError:
-                raise ValueError(f"Path is not safe or outside documents root: {path}")
+                raise ValueError(f"Path is not safe or outside documents root: {path}") from None
         elif ".." in str(path) or path.startswith("/"):
             # Detect path traversal attempts in relative paths
             # Try to resolve it to check safety
@@ -104,10 +127,10 @@ class DocumentManager:
             try:
                 test_path.relative_to(self.docs_root.resolve())
             except ValueError:
-                raise ValueError(f"Path is not safe or outside documents root: {path}")
+                raise ValueError(f"Path is not safe or outside documents root: {path}") from None
 
         # Resolve the path
-        doc_path = resolve_document_path(path, self.docs_root, self.config.mcp.paths)
+        doc_path = resolve_document_path(path, self.docs_root)
 
         if doc_path is None:
             return None
@@ -128,18 +151,18 @@ class DocumentManager:
             metadata, content = parse_frontmatter(file_content)
             return self._build_document(doc_path, metadata, content)
         except Exception as e:
-            raise ValueError(f"Failed to parse document: {e}")
+            raise ValueError(f"Failed to parse document: {e}") from e
 
     def list_documents(
         self,
         category: Optional[str] = None,
         generated_only: bool = False,
         captured_only: bool = False,
-        tags: Optional[List[str]] = None,
+        tags: Optional[list[str]] = None,
         sort_by: str = "created_date",
         sort_order: str = "desc",
         limit: Optional[int] = None,
-    ) -> Tuple[List[DocumentMetadata], int]:
+    ) -> tuple[list[DocumentMetadata], int]:
         """
         List documents with filtering and sorting
 
@@ -214,11 +237,11 @@ class DocumentManager:
         self,
         title: str,
         content: str,
-        tags: Optional[List[str]] = None,
+        tags: Optional[list[str]] = None,
         category: Optional[str] = None,
-        metadata: Optional[Dict] = None,
+        metadata: Optional[dict] = None,
         custom_filename: Optional[str] = None,
-    ) -> Tuple[Document, Path]:
+    ) -> tuple[Document, Path]:
         """
         Create a new document in the generated/ folder
 
@@ -243,10 +266,7 @@ class DocumentManager:
 
         # Determine target directory
         generated_dir = self.docs_root / self.config.mcp.paths.generated_dir
-        if category:
-            target_dir = generated_dir / category
-        else:
-            target_dir = generated_dir
+        target_dir = generated_dir / category if category else generated_dir
 
         # Ensure directory exists
         ensure_directory_exists(target_dir)
@@ -292,7 +312,7 @@ class DocumentManager:
         try:
             file_path.write_text(full_content, encoding="utf-8")
         except Exception as e:
-            raise ValueError(f"Failed to write document: {e}")
+            raise ValueError(f"Failed to write document: {e}") from e
 
         # Build and return document object
         document = self._build_document(file_path, full_metadata, content)
@@ -305,10 +325,10 @@ class DocumentManager:
         path: Optional[str] = None,
         content: Optional[str] = None,
         title: Optional[str] = None,
-        tags: Optional[List[str]] = None,
-        metadata: Optional[Dict] = None,
+        tags: Optional[list[str]] = None,
+        metadata: Optional[dict] = None,
         merge_metadata: bool = True,
-    ) -> Tuple[Document, Path]:
+    ) -> tuple[Document, Path]:
         """
         Update an existing document (generated documents only)
 
@@ -346,7 +366,7 @@ class DocumentManager:
                 raise ValueError(f"Document not found with ID: {document_id}")
 
         elif path:
-            doc_path = resolve_document_path(path, self.docs_root, self.config.mcp.paths)
+            doc_path = resolve_document_path(path, self.docs_root)
             if doc_path is None:
                 raise ValueError(f"Document not found at path: {path}")
         else:
@@ -404,7 +424,7 @@ class DocumentManager:
         try:
             doc_path.write_text(full_content, encoding="utf-8")
         except Exception as e:
-            raise ValueError(f"Failed to update document: {e}")
+            raise ValueError(f"Failed to update document: {e}") from e
 
         # Build and return updated document object
         document = self._build_document(doc_path, new_metadata, new_content)
@@ -436,7 +456,7 @@ class DocumentManager:
 
         return doc.metadata
 
-    def _build_document(self, file_path: Path, metadata: Dict, content: str) -> Document:
+    def _build_document(self, file_path: Path, metadata: dict, content: str) -> Document:
         """Build a Document object from file data"""
         doc_metadata = self._build_document_metadata(file_path, metadata, content)
 
@@ -450,23 +470,21 @@ class DocumentManager:
             metadata=doc_metadata,
         )
 
-    def _build_document_metadata(self, file_path: Path, metadata: Dict, content: str) -> DocumentMetadata:
+    def _build_document_metadata(self, file_path: Path, metadata: dict, content: str) -> DocumentMetadata:
         """Build DocumentMetadata from file data"""
         # Get file stats
         file_stat = file_path.stat()
 
         # Parse dates - support both created_date/created_at for compatibility
+        import contextlib
+
         created_at = None
         if "created_at" in metadata:
-            try:
+            with contextlib.suppress(ValueError, TypeError):
                 created_at = datetime.fromisoformat(metadata["created_at"])
-            except (ValueError, TypeError):
-                pass
         elif "created_date" in metadata:
-            try:
+            with contextlib.suppress(ValueError, TypeError):
                 created_at = datetime.fromisoformat(metadata["created_date"])
-            except (ValueError, TypeError):
-                pass
 
         modified_at = None
         if "modified_at" in metadata:
