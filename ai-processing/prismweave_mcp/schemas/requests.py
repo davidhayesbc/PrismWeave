@@ -104,7 +104,7 @@ class CreateDocumentRequest(BaseModel):
         ...,
         description="(Required) Markdown-formatted content string.",
     )
-    tags: list[str] = Field(
+    tags: Optional[list[str]] = Field(
         default_factory=list,
         description="(Optional) Ordered list of tags to store in frontmatter. Defaults to empty list.",
     )
