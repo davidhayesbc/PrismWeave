@@ -4,9 +4,6 @@
 			"path": "."
 		},
 		{
-			"path": "ai-processing"
-		},
-		{
 			"path": "../PrismWeaveDocs"
 		}
 	],
@@ -15,22 +12,12 @@
 			"*": true
 		},
 		"github.copilot.chat.codeGeneration.useInstructionFiles": true,
-		"github.copilot.chat.codeGeneration.instructionsFiles": [
-			".github/copilot-instructions.md",
-			".github/instructions/copilot-instructions-browser-extension.md",
-			".github/instructions/copilot-instructions-service-worker.md",
-			".github/instructions/copilot-instructions-content-script.md",
-			".github/instructions/copilot-instructions-typescript.md",
-			"ai-processing/copilot-instructions.md"
-		],
 		"typescript.format.enable": false,
 		"javascript.format.enable": false,
 		"files.associations": {
 			"*.json": "jsonc"
 		},
 		"powershell.cwd": "PrismWeave",
-		
-		// Test configuration
 		"testing.automaticallyOpenPeekView": "never"
 	},
 	"extensions": {
