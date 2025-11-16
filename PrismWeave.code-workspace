@@ -1,29 +1,39 @@
 {
-	"folders": [
-		{
-			"path": "."
-		},
-		{
-			"path": "../PrismWeaveDocs"
-		}
-	],
-	"settings": {
-		"github.copilot.enable": {
-			"*": true
-		},
-		"github.copilot.chat.codeGeneration.useInstructionFiles": true,
-		"typescript.format.enable": false,
-		"javascript.format.enable": false,
-		"files.associations": {
-			"*.json": "jsonc"
-		},
-		"powershell.cwd": "PrismWeave",
-		"testing.automaticallyOpenPeekView": "never"
-	},
-	"extensions": {
-		"recommendations": [
-			"ms-python.python",
-			"ms-python.pylint",
-			"ms-toolsai.jupyter"
-		]
-	}
+  "folders": [
+    {
+      "path": ".",
+    },
+    {
+      "path": "ai-processing",
+    },
+    {
+      "path": "ai-processing/prismweave_mcp",
+    },
+  ],
+  "settings": {
+    "github.copilot.enable": {
+      "*": true,
+    },
+    "github.copilot.chat.codeGeneration.useInstructionFiles": true,
+    "typescript.format.enable": false,
+    "javascript.format.enable": false,
+    "files.associations": {
+      "*.json": "jsonc",
+    },
+    "powershell.cwd": "PrismWeave",
+    "testing.automaticallyOpenPeekView": "never",
+    "python.testing.pytestEnabled": false,
+  },
+  "extensions": {
+    "recommendations": [
+      "ms-python.python",
+      "charliermarsh.ruff",
+      "esbenp.prettier-vscode",
+      "Orta.vscode-jest",
+      "redhat.vscode-yaml",
+      "GitHub.copilot",
+      "ms-python.vscode-pylance",
+      "ms-python.debugpy",
+    ],
+  },
+}
