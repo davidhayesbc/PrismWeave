@@ -52,12 +52,19 @@ class Document(BaseModel):
 
 
 class SearchResult(BaseModel):
-    """Single search result item"""
+    """Single search result item.
+
+    Note: tests expect a top-level "title" attribute as a convenient
+    shortcut in addition to the richer nested ``metadata`` structure.
+    """
 
     document_id: str = Field(..., description="Document ID")
     path: str = Field(..., description="Relative path to source document")
     score: float = Field(..., description="Similarity score (0-1)")
     excerpt: str = Field(..., description="Relevant excerpt from document")
+    # Convenience field surfaced for callers/tests; kept in sync with
+    # ``metadata.title`` by the search manager when available.
+    title: Optional[str] = Field(default=None, description="Document title for this result")
     metadata: Optional[DocumentMetadata] = Field(default=None, description="Document metadata (optional)")
 
     class Config:
@@ -67,6 +74,7 @@ class SearchResult(BaseModel):
                 "path": "documents/tech/ml-basics.md",
                 "score": 0.92,
                 "excerpt": "Machine learning is a subset of artificial intelligence...",
+                "title": "ML Basics",
                 "metadata": {
                     "title": "ML Basics",
                     "tags": ["ml", "ai"],

@@ -11,10 +11,6 @@
     },
   ],
   "settings": {
-    "github.copilot.enable": {
-      "*": true,
-    },
-    "github.copilot.chat.codeGeneration.useInstructionFiles": true,
     "typescript.format.enable": false,
     "javascript.format.enable": false,
     "files.associations": {
@@ -31,7 +27,6 @@
       "esbenp.prettier-vscode",
       "Orta.vscode-jest",
       "redhat.vscode-yaml",
-      "GitHub.copilot",
       "ms-python.vscode-pylance",
       "ms-python.debugpy",
     ],
