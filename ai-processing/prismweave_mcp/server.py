@@ -236,13 +236,18 @@ async def create_document(
         dict[str, Any]: Details about the newly created document, including its ID and path.
     """
     await ensure_initialized()
-    request = CreateDocumentRequest(
-        title=title,
-        content=content,
-        category=category,
-        tags=tags,
-        additional_metadata=metadata,
-    )
+    # Build kwargs conditionally to allow default_factory to work
+    kwargs = {
+        "title": title,
+        "content": content,
+    }
+    if category is not None:
+        kwargs["category"] = category
+    if tags is not None:
+        kwargs["tags"] = tags
+    if metadata is not None:
+        kwargs["additional_metadata"] = metadata
+    request = CreateDocumentRequest(**kwargs)
     return await document_tools.create_document(request)
 
 
