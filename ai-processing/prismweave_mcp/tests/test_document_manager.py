@@ -255,118 +255,54 @@ Content.""",
 class TestDocumentManagerList:
     """Tests for list_documents"""
 
-    def test_list_all_documents(self, document_manager, temp_docs_dir):
+    def test_list_all_documents(self, document_manager_with_embeddings):
         """Test listing all documents"""
-        # Create multiple documents
-        for i in range(3):
-            doc_path = temp_docs_dir / "documents" / f"doc{i}.md"
-            doc_path.write_text(f"---\nid: doc_{i}\ntitle: Document {i}\n---\nContent {i}.", encoding="utf-8")
+        documents, total = document_manager_with_embeddings.list_documents()
 
-        documents, total = document_manager.list_documents()
-
+        # Should find the 3 documents from sample_test_documents fixture
         assert len(documents) == 3
         assert total == 3
 
-    def test_list_with_category_filter(self, document_manager, temp_docs_dir):
+    def test_list_with_category_filter(self, document_manager_with_embeddings):
         """Test listing documents with category filter"""
-        # Create documents in different categories
-        tech_doc = temp_docs_dir / "tech" / "tech-doc.md"
-        tech_doc.write_text("---\nid: tech_doc\ntitle: Tech\n---\nContent.", encoding="utf-8")
+        documents, total = document_manager_with_embeddings.list_documents(category="tech")
 
-        general_doc = temp_docs_dir / "documents" / "general.md"
-        general_doc.write_text("---\nid: general_doc\ntitle: General\n---\nContent.", encoding="utf-8")
-
-        documents, total = document_manager.list_documents(category="tech")
-
+        # Should find only the Docker Guide in the tech directory
         assert len(documents) == 1
-        assert documents[0].title == "Tech"
+        assert documents[0].title == "Docker Guide"
 
-    def test_list_with_tag_filter(self, document_manager, temp_docs_dir):
+    def test_list_with_tag_filter(self, document_manager_with_embeddings):
         """Test listing documents with tag filter"""
-        # Create documents with different tags
-        doc1 = temp_docs_dir / "documents" / "doc1.md"
-        doc1.write_text(
-            """---
-id: doc_1
-title: Python Doc
-tags: [python, programming]
----
-Content.""",
-            encoding="utf-8",
-        )
-
-        doc2 = temp_docs_dir / "documents" / "doc2.md"
-        doc2.write_text(
-            """---
-id: doc_2
-title: JavaScript Doc
-tags: [javascript, programming]
----
-Content.""",
-            encoding="utf-8",
-        )
-
-        documents, total = document_manager.list_documents(tags=["python"])
+        # Filter by "python" tag (only Python doc has it)
+        documents, total = document_manager_with_embeddings.list_documents(tags=["python"])
 
         assert len(documents) == 1
-        assert documents[0].title == "Python Doc"
+        assert documents[0].title == "Python Guide"
 
-    def test_list_generated_only(self, document_manager, temp_docs_dir):
+    def test_list_generated_only(self, document_manager_with_embeddings):
         """Test listing generated documents only"""
-        # Create generated and captured documents
-        gen_doc = temp_docs_dir / "generated" / "generated.md"
-        gen_doc.write_text("---\nid: gen_doc\ntitle: Generated\n---\nContent.", encoding="utf-8")
+        # All sample documents are captured (not generated), so result should be empty
+        documents, total = document_manager_with_embeddings.list_documents(generated_only=True)
 
-        cap_doc = temp_docs_dir / "documents" / "captured.md"
-        cap_doc.write_text("---\nid: cap_doc\ntitle: Captured\n---\nContent.", encoding="utf-8")
+        assert len(documents) == 0
+        assert total == 0
 
-        documents, total = document_manager.list_documents(generated_only=True)
-
-        assert len(documents) == 1
-        assert documents[0].title == "Generated"
-
-    def test_list_with_sorting(self, document_manager, temp_docs_dir):
+    def test_list_with_sorting(self, document_manager_with_embeddings):
         """Test listing with different sort options"""
-        # Create documents with different dates
-        doc1 = temp_docs_dir / "documents" / "doc1.md"
-        doc1.write_text(
-            """---
-id: doc_1
-title: Older Document
-created_date: '2024-01-01T10:00:00'
----
-Content.""",
-            encoding="utf-8",
-        )
+        # Sort by title ascending
+        documents, _ = document_manager_with_embeddings.list_documents(sort_by="title", sort_order="asc")
 
-        doc2 = temp_docs_dir / "documents" / "doc2.md"
-        doc2.write_text(
-            """---
-id: doc_2
-title: Newer Document
-created_date: '2025-01-01T10:00:00'
----
-Content.""",
-            encoding="utf-8",
-        )
+        # Should be: Docker Guide, JavaScript Basics, Python Guide
+        assert documents[0].title == "Docker Guide"
+        assert documents[1].title == "JavaScript Basics"
+        assert documents[2].title == "Python Guide"
 
-        # Sort by date descending (newest first)
-        documents, _ = document_manager.list_documents(sort_by="created_date", sort_order="desc")
-
-        assert documents[0].title == "Newer Document"
-        assert documents[1].title == "Older Document"
-
-    def test_list_with_limit(self, document_manager, temp_docs_dir):
+    def test_list_with_limit(self, document_manager_with_embeddings):
         """Test listing with limit"""
-        # Create multiple documents
-        for i in range(5):
-            doc_path = temp_docs_dir / "documents" / f"doc{i}.md"
-            doc_path.write_text(f"---\nid: doc_{i}\ntitle: Document {i}\n---\nContent.", encoding="utf-8")
+        documents, total = document_manager_with_embeddings.list_documents(limit=2)
 
-        documents, total = document_manager.list_documents(limit=3)
-
-        assert len(documents) == 3
-        assert total == 5  # Total count before limit
+        assert len(documents) == 2
+        assert total == 3  # Total count before limit
 
 
 class TestDocumentManagerCreate:

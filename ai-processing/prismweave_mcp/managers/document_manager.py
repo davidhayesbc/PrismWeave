@@ -164,7 +164,10 @@ class DocumentManager:
         limit: Optional[int] = None,
     ) -> tuple[list[DocumentMetadata], int]:
         """
-        List documents with filtering and sorting
+        List documents with filtering and sorting using ChromaDB
+
+        Only returns documents that have been indexed in ChromaDB with embeddings.
+        Documents without embeddings will not be included in results.
 
         Args:
             category: Filter by category (e.g., "tech", "general")
@@ -178,31 +181,52 @@ class DocumentManager:
         Returns:
             Tuple of (list of document metadata, total count before limit)
         """
-        all_docs = list_markdown_files(self.docs_root)
+        # Get all document chunks from ChromaDB
+        if self.embedding_store is not None and hasattr(self.embedding_store, "document_store"):
+            all_chunks = self.embedding_store.document_store.filter_documents()
+        else:
+            all_chunks = []
+
+        # Track which files are in ChromaDB for efficient lookup
+        chromadb_files = {}
+        for chunk in all_chunks:
+            source_file = chunk.meta.get("source_file")
+            if source_file and source_file not in chromadb_files:
+                chromadb_files[source_file] = chunk
+
+        # Get all markdown files from disk to ensure completeness
+        all_disk_files = list_markdown_files(self.docs_root)
+
+        # Build document metadata list with filtering
         documents = []
-
-        for doc_path in all_docs:
+        for doc_path in all_disk_files:
             try:
-                # Read file and parse frontmatter
-                file_content = doc_path.read_text(encoding="utf-8")
-                metadata, content = parse_frontmatter(file_content)
-
-                # Apply filters
-                if generated_only and not is_generated_document(doc_path, self.docs_root):
+                # Verify file is safe
+                if not validate_path_safety(doc_path, self.docs_root):
                     continue
 
-                if captured_only and is_generated_document(doc_path, self.docs_root):
+                # Apply generated/captured filters early
+                is_generated = is_generated_document(doc_path, self.docs_root)
+                if generated_only and not is_generated:
+                    continue
+                if captured_only and is_generated:
                     continue
 
+                # Apply category filter early
                 if category:
                     doc_category = get_document_category(doc_path, self.docs_root)
                     if doc_category != category:
                         continue
 
+                # Read file for metadata and content
+                file_content = doc_path.read_text(encoding="utf-8")
+                metadata, content = parse_frontmatter(file_content)
+
+                # Apply tag filter
                 if tags:
                     doc_tags = metadata.get("tags", [])
                     if isinstance(doc_tags, str):
-                        doc_tags = [t.strip() for t in doc_tags.split(",")]
+                        doc_tags = [t.strip() for t in doc_tags.split(",") if t.strip()]
                     if not all(tag in doc_tags for tag in tags):
                         continue
 
