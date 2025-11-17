@@ -223,13 +223,18 @@ class SearchManager:
                 tags = [t.strip() for t in tags.split(",") if t.strip()]
 
             # Get category
-            category = get_document_category(source_path, self.docs_root, self.config.mcp.paths)
+            category = get_document_category(source_path, self.docs_root)
 
             # Parse dates if available
             created_at = None
             if "created_date" in metadata:
                 with contextlib.suppress(ValueError, TypeError):
                     created_at = datetime.fromisoformat(metadata["created_date"])
+                    pass
+            modified_at = None
+            if "modified_date" in metadata:
+                with contextlib.suppress(ValueError, TypeError):
+                    modified_at = datetime.fromisoformat(metadata["modified_date"])
                     pass
 
             doc_metadata = DocumentMetadata(
@@ -256,12 +261,12 @@ class SearchManager:
             metadata=doc_metadata,
         )
 
-    def _generate_snippet(self, content: str, query: str, max_length: int = 200) -> str:
+    def _generate_snippet(self, content: Optional[str], query: str, max_length: int = 200) -> str:
         """
         Generate a snippet from content centered around query terms
 
         Args:
-            content: Full content text
+            content: Full content text (may be None)
             query: Search query
             max_length: Maximum snippet length
 
