@@ -33,6 +33,9 @@ class ProcessingTools:
         if not self._initialized:
             self.processing_manager = ProcessingManager(config=self.config)
             await self.processing_manager.initialize()
+            # Update document manager with embedding store for efficient ID lookups
+            if self.processing_manager.embedding_store:
+                self.document_manager.embedding_store = self.processing_manager.embedding_store
             self._initialized = True
 
     async def generate_embeddings(self, request: GenerateEmbeddingsRequest) -> dict[str, Any]:

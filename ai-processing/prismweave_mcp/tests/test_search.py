@@ -61,9 +61,7 @@ class TestSearchTools:
         """
         search_tools.search_manager = AsyncMock()
         search_tools._initialized = True
-        search_tools.search_manager.search_documents = AsyncMock(
-            return_value=([], 0)
-        )
+        search_tools.search_manager.search_documents = AsyncMock(return_value=([], 0))
 
         request = SearchDocumentsRequest(query="test query")
 
@@ -104,14 +102,15 @@ class TestSearchTools:
 
     async def test_get_document_by_id_success(self, search_tools):
         """Test successful document retrieval by ID"""
+        # Mark as initialized to avoid initialization call
+        search_tools._initialized = True
+
         # DocumentManager currently returns a Pydantic Document model; for this
         # test we only care that SearchTools converts it into the expected
         # GetDocumentResponse JSON structure. To keep the test aligned with the
         # implementation, we bypass the internal representation and simply
         # assert on the response structure for a minimal stub.
-        search_tools.document_manager.get_document_by_id = MagicMock(
-            return_value=None
-        )
+        search_tools.document_manager.get_document_by_id = MagicMock(return_value=None)
 
         request = GetDocumentRequest(document_id="doc1")
 
@@ -123,9 +122,10 @@ class TestSearchTools:
 
     async def test_get_document_by_path_success(self, search_tools):
         """Test successful document retrieval by path"""
-        search_tools.document_manager.get_document_by_path = MagicMock(
-            return_value=None
-        )
+        # Mark as initialized to avoid initialization call
+        search_tools._initialized = True
+
+        search_tools.document_manager.get_document_by_path = MagicMock(return_value=None)
 
         request = GetDocumentRequest(path="/test/doc1.md")
 
@@ -136,6 +136,9 @@ class TestSearchTools:
 
     async def test_get_document_not_found(self, search_tools):
         """Test document not found"""
+        # Mark as initialized to avoid initialization call
+        search_tools._initialized = True
+
         search_tools.document_manager.get_document_by_id = MagicMock(return_value=None)
 
         request = GetDocumentRequest(document_id="nonexistent")
@@ -147,13 +150,15 @@ class TestSearchTools:
         assert "not found" in result["error"]
 
     async def test_get_document_no_identifier(self, search_tools):
-        """Test get document without ID or path - should fail validation"""
-        # Current schema allows creating an empty request; the tool then
-        # returns a not-found error when neither identifier is provided.
+        """Test get document without ID or path"""
+        # Mark as initialized to avoid initialization call
+        search_tools._initialized = True
+
+        # Neither ID nor path provided should return INVALID_REQUEST
         request = GetDocumentRequest()
         result = await search_tools.get_document(request)
         assert "error" in result
-        assert result["error_code"] == "DOCUMENT_NOT_FOUND"
+        assert result["error_code"] == "INVALID_REQUEST"
 
     async def test_list_documents_success(self, search_tools):
         """Test successful document listing"""
@@ -161,9 +166,7 @@ class TestSearchTools:
         # (documents, total_count); the SearchTools wrapper adapts this to a
         # ListDocumentsResponse JSON dict. Here we simply assert that the call
         # succeeds and returns the expected top-level keys.
-        search_tools.document_manager.list_documents = MagicMock(
-            return_value=([], 0)
-        )
+        search_tools.document_manager.list_documents = MagicMock(return_value=([], 0))
 
         request = ListDocumentsRequest()
 
@@ -174,9 +177,7 @@ class TestSearchTools:
 
     async def test_list_documents_with_filters(self, search_tools):
         """Test document listing with multiple filters"""
-        search_tools.document_manager.list_documents = MagicMock(
-            return_value=([], 0)
-        )
+        search_tools.document_manager.list_documents = MagicMock(return_value=([], 0))
 
         request = ListDocumentsRequest()
 

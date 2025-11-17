@@ -6,14 +6,13 @@ and document lifecycle management.
 """
 
 import tempfile
-from datetime import datetime
 from pathlib import Path
-from unittest.mock import MagicMock
 
 import pytest
 
 from prismweave_mcp.managers.document_manager import DocumentManager
-from src.core.config import Config, MCPConfig, MCPPathsConfig, MCPCreationConfig
+from src.core.config import Config, MCPConfig, MCPCreationConfig, MCPPathsConfig
+from src.core.embedding_store import EmbeddingStore
 
 
 @pytest.fixture
@@ -50,71 +49,165 @@ def temp_docs_dir():
 
 
 @pytest.fixture
+def test_chroma_db_dir():
+    """Create temporary ChromaDB directory"""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        yield tmpdir
+
+
+@pytest.fixture
+def test_embedding_store(test_config, test_chroma_db_dir, temp_docs_dir):
+    """Create test embedding store with ChromaDB"""
+    # Update config to use test ChromaDB path
+    test_config.chroma_db_path = test_chroma_db_dir
+    test_config.collection_name = "test_documents"
+    test_config.ollama_host = "http://localhost:11434"
+    test_config.embedding_model = "nomic-embed-text"
+
+    # Create embedding store
+    embedding_store = EmbeddingStore(test_config)
+
+    # Populate with test documents
+    from haystack import Document
+
+    test_docs = [
+        Document(
+            content="This is a test document about Python programming.",
+            meta={
+                "id": "test_doc_1",
+                "title": "Python Guide",
+                "source_file": str(temp_docs_dir / "documents" / "python-guide.md"),
+                "tags": "python, programming",
+            },
+        ),
+        Document(
+            content="This document covers JavaScript fundamentals.",
+            meta={
+                "id": "test_doc_2",
+                "title": "JavaScript Basics",
+                "source_file": str(temp_docs_dir / "documents" / "js-basics.md"),
+                "tags": "javascript, programming",
+            },
+        ),
+        Document(
+            content="A comprehensive guide to Docker containers.",
+            meta={
+                "id": "test_doc_3",
+                "title": "Docker Guide",
+                "source_file": str(temp_docs_dir / "tech" / "docker-guide.md"),
+                "tags": "docker, devops",
+            },
+        ),
+    ]
+
+    # Write documents directly to the store without embeddings for faster tests
+    try:
+        embedding_store.document_store.write_documents(test_docs)
+    except Exception as e:
+        # If write fails (e.g., ChromaDB not available), continue with empty store
+        print(f"Warning: Failed to populate test embedding store: {e}")
+
+    yield embedding_store
+
+    # Cleanup
+    try:
+        embedding_store.clear_collection()
+    except Exception:
+        pass
+
+
+@pytest.fixture
+def sample_test_documents(temp_docs_dir):
+    """Create sample test documents on disk"""
+    # Document 1: Python guide
+    doc1_path = temp_docs_dir / "documents" / "python-guide.md"
+    doc1_path.write_text(
+        """---
+id: test_doc_1
+title: Python Guide
+tags: [python, programming]
+created_date: '2025-01-01T10:00:00'
+word_count: 10
+---
+
+This is a test document about Python programming.""",
+        encoding="utf-8",
+    )
+
+    # Document 2: JavaScript basics
+    doc2_path = temp_docs_dir / "documents" / "js-basics.md"
+    doc2_path.write_text(
+        """---
+id: test_doc_2
+title: JavaScript Basics
+tags: [javascript, programming]
+created_date: '2025-01-02T10:00:00'
+word_count: 7
+---
+
+This document covers JavaScript fundamentals.""",
+        encoding="utf-8",
+    )
+
+    # Document 3: Docker guide (in tech folder)
+    doc3_path = temp_docs_dir / "tech" / "docker-guide.md"
+    doc3_path.write_text(
+        """---
+id: test_doc_3
+title: Docker Guide
+tags: [docker, devops]
+created_date: '2025-01-03T10:00:00'
+word_count: 7
+category: tech
+---
+
+A comprehensive guide to Docker containers.""",
+        encoding="utf-8",
+    )
+
+    return [doc1_path, doc2_path, doc3_path]
+
+
+@pytest.fixture
 def document_manager(test_config, temp_docs_dir):
-    """Create document manager with temp directory"""
+    """Create document manager with temp directory (no embedding store)"""
     test_config.mcp.paths.documents_root = str(temp_docs_dir)
     return DocumentManager(test_config)
+
+
+@pytest.fixture
+def document_manager_with_embeddings(test_config, temp_docs_dir, test_embedding_store, sample_test_documents):
+    """Create document manager with embedding store and sample documents"""
+    test_config.mcp.paths.documents_root = str(temp_docs_dir)
+    return DocumentManager(test_config, embedding_store=test_embedding_store)
 
 
 class TestDocumentManagerGetByID:
     """Tests for get_document_by_id"""
 
-    def test_get_existing_document(self, document_manager, temp_docs_dir):
-        """Test getting an existing document by ID"""
-        # Create test document
-        doc_path = temp_docs_dir / "documents" / "test.md"
-        doc_path.write_text(
-            """---
-id: doc_test_123
-title: Test Document
-tags: [test, sample]
-created_date: '2025-01-01T10:00:00'
----
-
-This is test content.""",
-            encoding="utf-8",
-        )
-
-        document = document_manager.get_document_by_id("doc_test_123")
+    def test_get_existing_document_with_embedding_store(self, document_manager_with_embeddings):
+        """Test getting an existing document by ID using embedding store"""
+        document = document_manager_with_embeddings.get_document_by_id("test_doc_1")
 
         assert document is not None
-        assert document.id == "doc_test_123"
-        assert document.metadata.title == "Test Document"
-        assert "test" in document.metadata.tags
-        assert "This is test content." in document.content
+        assert document.id == "test_doc_1"
+        assert document.metadata.title == "Python Guide"
+        assert "python" in document.metadata.tags
+        assert "This is a test document about Python programming." in document.content
 
-    def test_get_nonexistent_document(self, document_manager):
+    def test_get_nonexistent_document(self, document_manager_with_embeddings):
         """Test getting a document that doesn't exist"""
-        document = document_manager.get_document_by_id("nonexistent_id")
+        document = document_manager_with_embeddings.get_document_by_id("nonexistent_id")
 
         assert document is None
 
-    def test_get_document_with_embedding_store(self, document_manager, temp_docs_dir):
-        """Test getting document when embedding store is available"""
-        # Create mock embedding store
-        mock_store = MagicMock()
-        mock_store.document_store.filter_documents.return_value = [
-            MagicMock(meta={"source_file": str(temp_docs_dir / "documents" / "test.md")})
-        ]
+    def test_get_document_without_embedding_store(self, document_manager, temp_docs_dir, sample_test_documents):
+        """Test getting document when embedding store is not available returns None"""
+        # Without embedding store, get_document_by_id should return None
+        # Users should use get_document_by_path instead
+        document = document_manager.get_document_by_id("test_doc_2")
 
-        document_manager.embedding_store = mock_store
-
-        # Create test document
-        doc_path = temp_docs_dir / "documents" / "test.md"
-        doc_path.write_text(
-            """---
-id: doc_embed_123
-title: Embedded Document
----
-
-Content.""",
-            encoding="utf-8",
-        )
-
-        document = document_manager.get_document_by_id("doc_embed_123")
-
-        assert document is not None
-        assert document.id == "doc_embed_123"
+        assert document is None
 
 
 class TestDocumentManagerGetByPath:
@@ -310,11 +403,15 @@ class TestDocumentManagerCreate:
     def test_create_duplicate_raises_error(self, document_manager, temp_docs_dir):
         """Test creating duplicate document raises error"""
         # Create first document
-        document_manager.create_document(title="Test", content="This is test content for duplicate test.", custom_filename="duplicate.md")
+        document_manager.create_document(
+            title="Test", content="This is test content for duplicate test.", custom_filename="duplicate.md"
+        )
 
         # Try to create duplicate
         with pytest.raises(ValueError, match="already exists"):
-            document_manager.create_document(title="Test2", content="This is more test content.", custom_filename="duplicate.md")
+            document_manager.create_document(
+                title="Test2", content="This is more test content.", custom_filename="duplicate.md"
+            )
 
     def test_create_with_invalid_markdown(self, document_manager):
         """Test creating document with invalid markdown raises error"""
@@ -415,24 +512,13 @@ Content.""",
 class TestDocumentManagerGetMetadata:
     """Tests for get_document_metadata"""
 
-    def test_get_metadata_by_id(self, document_manager, temp_docs_dir):
+    def test_get_metadata_by_id(self, document_manager_with_embeddings):
         """Test getting metadata by ID"""
-        doc_path = temp_docs_dir / "documents" / "test.md"
-        doc_path.write_text(
-            """---
-id: meta_doc_1
-title: Metadata Test
-tags: [test]
----
-Content.""",
-            encoding="utf-8",
-        )
-
-        metadata = document_manager.get_document_metadata(document_id="meta_doc_1")
+        metadata = document_manager_with_embeddings.get_document_metadata(document_id="test_doc_1")
 
         assert metadata is not None
-        assert metadata.title == "Metadata Test"
-        assert "test" in metadata.tags
+        assert metadata.title == "Python Guide"
+        assert "python" in metadata.tags
 
     def test_get_metadata_by_path(self, document_manager, temp_docs_dir):
         """Test getting metadata by path"""

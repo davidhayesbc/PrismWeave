@@ -10,11 +10,7 @@ from pathlib import Path
 from unittest.mock import MagicMock
 
 import pytest
-import pytest_asyncio
 
-from prismweave_mcp.managers.document_manager import DocumentManager
-from prismweave_mcp.managers.git_manager import GitManager
-from prismweave_mcp.managers.processing_manager import ProcessingManager
 from prismweave_mcp.schemas.requests import (
     CommitToGitRequest,
     CreateDocumentRequest,
@@ -81,6 +77,9 @@ class TestCreateSearchWorkflow:
         """Test complete workflow: create document, generate embeddings, search"""
         test_config.mcp.paths.documents_root = str(temp_git_repo)
 
+        # Set ChromaDB path to temp directory to avoid conflicts
+        test_config.chroma_db_path = str(temp_git_repo / ".prismweave" / "chroma_db")
+
         # Step 1: Create document
         doc_tools = DocumentTools(test_config)
         create_request = CreateDocumentRequest(
@@ -101,9 +100,23 @@ Machine learning is a subset of artificial intelligence that enables systems to 
         processing_tools = ProcessingTools(test_config)
         await processing_tools.initialize()
 
+        # Index the created document in the embedding store for ID lookup
+        if processing_tools.processing_manager and processing_tools.processing_manager.embedding_store:
+            from src.core.document_processor import DocumentProcessor
+
+            doc_file_path = temp_git_repo / "generated" / "tech" / f"{create_response['path'].split('/')[-1]}"
+
+            # Use DocumentProcessor to properly generate chunks with embeddings
+            processor = DocumentProcessor(test_config)
+            try:
+                chunks = processor.process_document(doc_file_path)
+                processing_tools.processing_manager.embedding_store.add_document(doc_file_path, chunks)
+            except Exception as e:
+                print(f"Warning: Failed to index document in embedding store: {e}")
+
         async def mock_generate_embeddings(*args, **kwargs):
             return {"success": True, "chunks_processed": 2, "message": "Success"}
-        
+
         processing_tools.processing_manager.generate_embeddings = mock_generate_embeddings
 
         embed_request = GenerateEmbeddingsRequest(document_id=doc_id)
@@ -146,9 +159,7 @@ class TestCreateCommitWorkflow:
 
         # Step 1: Create document
         doc_tools = DocumentTools(test_config)
-        create_request = CreateDocumentRequest(
-            title="Test Article", content="# Test\n\nContent here.", tags=["test"]
-        )
+        create_request = CreateDocumentRequest(title="Test Article", content="# Test\n\nContent here.", tags=["test"])
 
         create_response = await doc_tools.create_document(create_request)
 
@@ -178,8 +189,11 @@ class TestFullDocumentLifecycle:
 
     @pytest.mark.asyncio
     async def test_full_lifecycle(self, test_config, temp_git_repo):
-        """Test complete document lifecycle: create, update, process, commit"""
+        """Test full document lifecycle: create, update, embed, tag, commit"""
         test_config.mcp.paths.documents_root = str(temp_git_repo)
+
+        # Set ChromaDB path to temp directory to avoid conflicts
+        test_config.chroma_db_path = str(temp_git_repo / ".prismweave" / "chroma_db")
 
         # Initialize tools
         doc_tools = DocumentTools(test_config)
@@ -198,12 +212,24 @@ class TestFullDocumentLifecycle:
         assert "error" not in create_response
         doc_id = create_response["document_id"]
 
+        # Index the created document in the embedding store for ID lookup
+        if processing_tools.processing_manager and processing_tools.processing_manager.embedding_store:
+            from src.core.document_processor import DocumentProcessor
+
+            doc_file_path = temp_git_repo / create_response["path"]
+
+            # Use DocumentProcessor to properly generate chunks with embeddings
+            processor = DocumentProcessor(test_config)
+            try:
+                chunks = processor.process_document(doc_file_path)
+                processing_tools.processing_manager.embedding_store.add_document(doc_file_path, chunks)
+            except Exception as e:
+                print(f"Warning: Failed to index document in embedding store: {e}")
+
         # Step 2: Update document
         from prismweave_mcp.schemas.requests import UpdateDocumentRequest
 
-        update_request = UpdateDocumentRequest(
-            document_id=doc_id, title="Updated Title", tags=["final", "published"]
-        )
+        update_request = UpdateDocumentRequest(document_id=doc_id, title="Updated Title", tags=["final", "published"])
 
         update_response = await doc_tools.update_document(update_request)
         assert "error" not in update_response
@@ -212,7 +238,7 @@ class TestFullDocumentLifecycle:
         # Step 3: Generate embeddings (mocked)
         async def mock_generate_embeddings(*args, **kwargs):
             return {"success": True, "chunks_processed": 3, "message": "Success"}
-        
+
         processing_tools.processing_manager.generate_embeddings = mock_generate_embeddings
 
         embed_request = GenerateEmbeddingsRequest(document_id=doc_id)
@@ -224,7 +250,7 @@ class TestFullDocumentLifecycle:
 
         async def mock_generate_tags(*args, **kwargs):
             return {"success": True, "tags": ["article", "content"], "confidence": 0.8}
-        
+
         processing_tools.processing_manager.generate_tags = mock_generate_tags
 
         tag_request = GenerateTagsRequest(document_id=doc_id, max_tags=5)

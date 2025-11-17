@@ -48,11 +48,61 @@ def temp_docs_dir():
 
 @pytest_asyncio.fixture
 async def processing_tools(test_config, temp_docs_dir):
-    """Create processing tools with temp directory"""
+    """Create processing tools with temp directory and real embeddings"""
     test_config.mcp.paths.documents_root = str(temp_docs_dir)
+
+    # Set ChromaDB path to temp directory to avoid conflicts between tests
+    test_config.chroma_db_path = str(temp_docs_dir / ".prismweave" / "chroma_db")
+
+    # Create test documents on disk first
+    test_docs_data = [
+        ("embed_test_1", "Test Document", "documents/test.md", "This is test content for embeddings."),
+        ("embed_test_2", "Regenerate Test", "documents/test2.md", "Content for regeneration test."),
+        ("tag_test_1", "Tag Test Document", "documents/tag_test.md", "Test content for tag generation."),
+        ("tag_test_2", "Tag Limit Test", "documents/tag_test2.md", "Content for tag limit test."),
+        # Documents for error/exception tests (created but will be overwritten by tests)
+        ("embed_fail", "Fail Test", "documents/fail_test.md", "Placeholder for failure test."),
+        ("embed_exc", "Exception Test", "documents/exc_test.md", "Placeholder for exception test."),
+        ("tag_fail", "Tag Fail Test", "documents/tag_fail_test.md", "Placeholder for tag failure test."),
+        ("tag_exc", "Tag Exception Test", "documents/tag_exc_test.md", "Placeholder for tag exception test."),
+    ]
+
+    for doc_id, title, rel_path, content in test_docs_data:
+        doc_path = temp_docs_dir / rel_path
+        doc_path.parent.mkdir(parents=True, exist_ok=True)
+        doc_path.write_text(
+            f"""---
+id: {doc_id}
+title: {title}
+---
+
+{content}""",
+            encoding="utf-8",
+        )
+
     tools = ProcessingTools(test_config)
-    # Initialize with mock processing manager to avoid actual AI processing
     await tools.initialize()
+
+    # Generate embeddings for test documents using DocumentProcessor
+    if tools.processing_manager and tools.processing_manager.embedding_store:
+        from src.core.document_processor import DocumentProcessor
+
+        processor = DocumentProcessor(test_config)
+        embedding_store = tools.processing_manager.embedding_store
+
+        # Process all test documents and add to embedding store
+        for doc_id, title, rel_path, content in test_docs_data:
+            doc_path = temp_docs_dir / rel_path
+            try:
+                # Process document to generate chunks
+                chunks = processor.process_document(doc_path)
+
+                # Add chunks to embedding store (this generates and stores embeddings)
+                embedding_store.add_document(doc_path, chunks)
+
+            except Exception as e:
+                print(f"Warning: Failed to generate embeddings for {doc_id}: {e}")
+
     return tools
 
 
@@ -77,7 +127,7 @@ This is test content for embeddings.""",
         # Mock processing manager - async method needs to return coroutine
         async def mock_generate_embeddings(*args, **kwargs):
             return {"success": True, "chunks_processed": 5, "message": "Success"}
-        
+
         processing_tools.processing_manager.generate_embeddings = mock_generate_embeddings
 
         request = GenerateEmbeddingsRequest(document_id="embed_test_1", model="nomic-embed-text")
@@ -97,7 +147,7 @@ This is test content for embeddings.""",
 
         async def mock_generate_embeddings(*args, **kwargs):
             return {"success": True, "chunks_processed": 3, "message": "Regenerated"}
-        
+
         mock_func = MagicMock(side_effect=mock_generate_embeddings)
         processing_tools.processing_manager.generate_embeddings = mock_func
 
@@ -131,7 +181,7 @@ This is test content for embeddings.""",
         # Mock processing failure
         async def mock_generate_embeddings(*args, **kwargs):
             return {"success": False, "message": "Processing failed", "chunks_processed": 0}
-        
+
         processing_tools.processing_manager.generate_embeddings = mock_generate_embeddings
 
         request = GenerateEmbeddingsRequest(document_id="embed_fail")
@@ -150,7 +200,7 @@ This is test content for embeddings.""",
         # Mock exception
         async def mock_generate_embeddings(*args, **kwargs):
             raise Exception("Test error")
-        
+
         processing_tools.processing_manager.generate_embeddings = mock_generate_embeddings
 
         request = GenerateEmbeddingsRequest(document_id="embed_exc")
@@ -206,7 +256,7 @@ This article discusses neural networks and deep learning.""",
                 "tags": ["machine-learning", "neural-networks", "ai"],
                 "confidence": 0.85,
             }
-        
+
         processing_tools.processing_manager.generate_tags = mock_generate_tags
 
         request = GenerateTagsRequest(document_id="tag_test_1", max_tags=5)
@@ -227,7 +277,7 @@ This article discusses neural networks and deep learning.""",
 
         async def mock_generate_tags(*args, **kwargs):
             return {"success": True, "tags": ["ai", "ml"], "confidence": 0.8}
-        
+
         mock_func = MagicMock(side_effect=mock_generate_tags)
         processing_tools.processing_manager.generate_tags = mock_func
 
@@ -260,7 +310,7 @@ This article discusses neural networks and deep learning.""",
         # Mock processing failure
         async def mock_generate_tags(*args, **kwargs):
             return {"success": False, "message": "Tag generation failed", "tags": []}
-        
+
         processing_tools.processing_manager.generate_tags = mock_generate_tags
 
         request = GenerateTagsRequest(document_id="tag_fail")
@@ -278,7 +328,7 @@ This article discusses neural networks and deep learning.""",
 
         async def mock_generate_tags(*args, **kwargs):
             raise Exception("Tag error")
-        
+
         processing_tools.processing_manager.generate_tags = mock_generate_tags
 
         request = GenerateTagsRequest(document_id="tag_exc")

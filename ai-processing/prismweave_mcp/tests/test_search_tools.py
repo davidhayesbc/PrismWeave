@@ -10,10 +10,9 @@ from unittest.mock import MagicMock
 
 import pytest
 import pytest_asyncio
-from haystack import Document as HaystackDocument
 
 from prismweave_mcp.schemas.requests import GetDocumentRequest, ListDocumentsRequest, SearchDocumentsRequest
-from prismweave_mcp.schemas.responses import DocumentMetadata, SearchResult
+from prismweave_mcp.schemas.responses import SearchResult
 from prismweave_mcp.tools.search import SearchTools
 from src.core.config import Config, MCPConfig, MCPPathsConfig, MCPSearchConfig
 
@@ -51,10 +50,55 @@ def temp_docs_dir():
 
 @pytest_asyncio.fixture
 async def search_tools(test_config, temp_docs_dir):
-    """Create search tools with temp directory"""
+    """Create search tools with temp directory and real embeddings"""
     test_config.mcp.paths.documents_root = str(temp_docs_dir)
+
+    # Set ChromaDB path to temp directory to avoid conflicts between tests
+    test_config.chroma_db_path = str(temp_docs_dir / ".prismweave" / "chroma_db")
+
+    # Create test documents on disk
+    test_docs_data = [
+        ("get_test_1", "Get Test Document", "documents/get_test.md", "This is test content."),
+        ("get_test_2", "Get Test 2", "documents/get_test2.md", "Content without inclusion test."),
+        ("meta_test_1", "Metadata Test", "documents/meta_test.md", "Metadata test content."),
+    ]
+
+    for doc_id, title, rel_path, content in test_docs_data:
+        doc_path = temp_docs_dir / rel_path
+        doc_path.parent.mkdir(parents=True, exist_ok=True)
+        doc_path.write_text(
+            f"""---
+id: {doc_id}
+title: {title}
+tags: [test]
+---
+
+{content}""",
+            encoding="utf-8",
+        )
+
     tools = SearchTools(test_config)
-    # Don't initialize - let tests do it as needed
+    await tools.initialize()
+
+    # Generate real embeddings for test documents
+    if tools.search_manager and tools.search_manager.embedding_store:
+        from src.core.document_processor import DocumentProcessor
+
+        processor = DocumentProcessor(test_config)
+        embedding_store = tools.search_manager.embedding_store
+
+        for doc_id, title, rel_path, content in test_docs_data:
+            doc_path = temp_docs_dir / rel_path
+            try:
+                # Process document to generate chunks
+                chunks = processor.process_document(doc_path)
+
+                # Add chunks to embedding store (this generates and stores embeddings)
+                embedding_store.add_document(doc_path, chunks)
+
+            except Exception as e:
+                print(f"Warning: Failed to generate embeddings for {doc_id}: {e}")
+
     return tools
 
 
@@ -210,38 +254,26 @@ class TestGetDocument:
     @pytest.mark.asyncio
     async def test_get_document_by_id(self, search_tools, temp_docs_dir):
         """Test getting document by ID"""
-        doc_path = temp_docs_dir / "documents" / "test.md"
-        doc_path.write_text(
-            """---
-id: get_test_1
-title: Test Document
----
-
-Content here.""",
-            encoding="utf-8",
-        )
-
+        # Document already indexed in fixture with id: get_test_1, title: "Get Test Document"
         request = GetDocumentRequest(document_id="get_test_1", include_content=True)
 
         response = await search_tools.get_document(request)
 
         assert "error" not in response
         assert response["document"]["id"] == "get_test_1"
-        assert response["document"]["metadata"]["title"] == "Test Document"
-        assert "Content here." in response["document"]["content"]
+        assert response["document"]["metadata"]["title"] == "Get Test Document"
+        assert "This is test content." in response["document"]["content"]
 
     @pytest.mark.asyncio
     async def test_get_document_without_content(self, search_tools, temp_docs_dir):
         """Test getting document without content"""
-        doc_path = temp_docs_dir / "documents" / "test.md"
-        doc_path.write_text("---\nid: get_test_2\ntitle: No Content\n---\nSome content.", encoding="utf-8")
-
+        # Document already indexed in fixture with id: get_test_2, title: "Get Test 2"
         request = GetDocumentRequest(document_id="get_test_2", include_content=False)
 
         response = await search_tools.get_document(request)
 
         assert "error" not in response
-        assert response["document"]["metadata"]["title"] == "No Content"
+        assert response["document"]["metadata"]["title"] == "Get Test 2"
         assert response["document"]["content"] == ""  # Content should be empty
 
     @pytest.mark.asyncio

@@ -93,42 +93,61 @@ class SearchTools:
 
     async def get_document(self, request: GetDocumentRequest) -> dict[str, Any]:
         """
-        Get a single document by ID or path
+        Retrieve a specific document by ID or path
 
         Args:
-            request: Get document request
+            request: Document retrieval request
 
         Returns:
             GetDocumentResponse dict or ErrorResponse dict
         """
         try:
-            # Try to get document by ID first
-            document = self.document_manager.get_document_by_id(request.document_id) if request.document_id else None
+            if not self._initialized:
+                await self.initialize()
 
-            # If not found by ID, try by path as fallback
-            if not document and request.path:
+            # Get document by ID (most efficient)
+            if request.document_id:
+                document = self.document_manager.get_document_by_id(request.document_id)
+                if not document:
+                    error = ErrorResponse(
+                        error="Document not found",
+                        error_code="DOCUMENT_NOT_FOUND",
+                        details={"document_id": request.document_id},
+                    )
+                    return error.model_dump()
+
+            # Get by path if provided instead of ID
+            elif request.path:
                 try:
                     document = self.document_manager.get_document_by_path(request.path)
+                    if not document:
+                        error = ErrorResponse(
+                            error="Document not found",
+                            error_code="DOCUMENT_NOT_FOUND",
+                            details={"path": request.path},
+                        )
+                        return error.model_dump()
                 except ValueError:
-                    # Path validation failed
-                    pass
-
-            if not document:
+                    error = ErrorResponse(
+                        error="Document not found",
+                        error_code="DOCUMENT_NOT_FOUND",
+                        details={"path": request.path},
+                    )
+                    return error.model_dump()
+            else:
                 error = ErrorResponse(
-                    error="Document not found",
-                    error_code="DOCUMENT_NOT_FOUND",
-                    details={"document_id": request.document_id, "path": request.path},
+                    error="Either document_id or path must be provided",
+                    error_code="INVALID_REQUEST",
+                    details={},
                 )
-                return error.model_dump(mode="json")
+                return error.model_dump()
 
-            # Respect include_content flag by omitting body when not requested
-            doc = document
+            # Respect include_content flag
             if not request.include_content:
-                doc = document.model_copy(update={"content": ""})
+                document = document.model_copy(update={"content": ""})
 
-            response = GetDocumentResponse(document=doc)
-
-            return response.model_dump(mode="json")
+            response = GetDocumentResponse(document=document)
+            return response.model_dump()
 
         except Exception as e:
             error = ErrorResponse(
@@ -136,7 +155,7 @@ class SearchTools:
                 error_code="DOCUMENT_RETRIEVAL_FAILED",
                 details={"document_id": request.document_id},
             )
-            return error.model_dump(mode="json")
+            return error.model_dump()
 
     async def list_documents(self, request: ListDocumentsRequest) -> dict[str, Any]:
         """

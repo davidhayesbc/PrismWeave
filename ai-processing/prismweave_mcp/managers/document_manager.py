@@ -73,17 +73,6 @@ class DocumentManager:
                     if metadata.get("id") == document_id or metadata.get("document_id") == document_id:
                         return self._build_document(doc_path, metadata, content)
 
-        # Fallback: scan all documents if embedding store unavailable or didn't find it
-        all_docs = list_markdown_files(self.docs_root)
-        for doc_path in all_docs:
-            try:
-                file_content = doc_path.read_text(encoding="utf-8")
-                metadata, content = parse_frontmatter(file_content)
-                if metadata.get("id") == document_id or metadata.get("document_id") == document_id:
-                    return self._build_document(doc_path, metadata, content)
-            except Exception:
-                continue
-
         return None
 
     def _get_path_from_embedding_store(self, document_id: str) -> Optional[str]:
@@ -97,13 +86,13 @@ class DocumentManager:
             Path to the document file if found, None otherwise
         """
         try:
-            # Query ChromaDB for documents with matching ID
-            filters = {"field": "meta.id", "operator": "==", "value": document_id}
             if self.embedding_store and hasattr(self.embedding_store, "document_store"):
-                matching_docs = self.embedding_store.document_store.filter_documents(filters=filters)
-                if matching_docs:
-                    # Return the source_file from the first matching document
-                    return matching_docs[0].meta.get("source_file")
+                # Get all documents and filter in memory
+                # This is efficient enough for document lookup since we only need metadata
+                all_docs = self.embedding_store.document_store.filter_documents()
+                for doc in all_docs:
+                    if doc.meta.get("id") == document_id:
+                        return doc.meta.get("source_file")
         except Exception:
             pass
 
