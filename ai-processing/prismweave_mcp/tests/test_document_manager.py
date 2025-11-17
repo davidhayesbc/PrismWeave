@@ -68,7 +68,7 @@ def test_embedding_store(test_config, test_chroma_db_dir, temp_docs_dir):
     embedding_store = EmbeddingStore(test_config)
 
     # Populate with test documents
-    from haystack import Document
+    from haystack.dataclasses import Document
 
     test_docs = [
         Document(

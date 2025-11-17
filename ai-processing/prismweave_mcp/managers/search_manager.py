@@ -5,17 +5,17 @@ Handles semantic search operations using ChromaDB and the existing EmbeddingStor
 Provides filtering, ranking, and snippet generation for search results.
 """
 
+import contextlib
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Optional
 
 from haystack import Document as HaystackDocument
 
+from prismweave_mcp.schemas.responses import DocumentMetadata, SearchResult
+from prismweave_mcp.utils.path_utils import get_document_category, get_documents_root, is_generated_document
 from src.core.config import Config
 from src.core.embedding_store import EmbeddingStore
-
-from ..schemas.responses import DocumentMetadata, SearchResult
-from ..utils.path_utils import get_document_category, get_documents_root, is_generated_document
 
 
 class SearchManager:
@@ -54,8 +54,8 @@ class SearchManager:
         query: str,
         max_results: Optional[int] = None,
         similarity_threshold: Optional[float] = None,
-        filters: Optional[Dict] = None,
-    ) -> Tuple[List[SearchResult], int]:
+        filters: Optional[dict] = None,
+    ) -> tuple[list[SearchResult], int]:
         """
         Search documents semantically with filtering
 
@@ -124,7 +124,7 @@ class SearchManager:
 
         return search_results, total_matches
 
-    def _apply_filters(self, source_path: Path, haystack_doc: HaystackDocument, filters: Dict) -> bool:
+    def _apply_filters(self, source_path: Path, haystack_doc: HaystackDocument, filters: dict) -> bool:
         """
         Apply filters to a search result
 
@@ -227,13 +227,9 @@ class SearchManager:
 
             # Parse dates if available
             created_at = None
-            modified_at = None
             if "created_date" in metadata:
-                from datetime import datetime
-
-                try:
+                with contextlib.suppress(ValueError, TypeError):
                     created_at = datetime.fromisoformat(metadata["created_date"])
-                except (ValueError, TypeError):
                     pass
 
             doc_metadata = DocumentMetadata(
@@ -311,7 +307,7 @@ class SearchManager:
 
         return snippet.strip()
 
-    def get_search_stats(self) -> Dict:
+    def get_search_stats(self) -> dict:
         """
         Get statistics about the search index
 
