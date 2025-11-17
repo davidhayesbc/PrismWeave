@@ -10,7 +10,7 @@ Handles AI-powered document processing including:
 import logging
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Optional
 
 from src.core.config import Config
 from src.core.document_processor import DocumentProcessor
@@ -60,9 +60,9 @@ class ProcessingManager:
             logger.info(f"Processing manager initialized successfully - {count} documents in store")
         except Exception as e:
             logger.error(f"Failed to initialize processing manager: {e}")
-            raise RuntimeError(f"Processing manager initialization failed: {e}")
+            raise RuntimeError(f"Processing manager initialization failed: {e}") from e
 
-    async def generate_embeddings(self, document_path: Path, force_regenerate: bool = False) -> Dict:
+    async def generate_embeddings(self, document_path: Path, force_regenerate: bool = False) -> dict:
         """
         Generate embeddings for a document
 
@@ -130,7 +130,7 @@ class ProcessingManager:
                 "message": f"Error: {str(e)}",
             }
 
-    async def generate_tags(self, document_path: Path, max_tags: int = 10) -> Dict:
+    async def generate_tags(self, document_path: Path, max_tags: int = 10) -> dict:
         """
         Generate tags for a document using AI
 
@@ -167,7 +167,7 @@ class ProcessingManager:
             logger.error(f"Failed to generate tags for {document_path}: {e}")
             return {"success": False, "tags": [], "document_id": str(document_path), "message": f"Error: {str(e)}"}
 
-    async def _extract_tags_from_document(self, document_path: Path, max_tags: int) -> List[str]:
+    async def _extract_tags_from_document(self, document_path: Path, max_tags: int) -> list[str]:
         """
         Extract tags from document (placeholder implementation)
 
@@ -199,7 +199,7 @@ class ProcessingManager:
         generate_embeddings: bool = True,
         generate_tags: bool = True,
         update_metadata: bool = True,
-    ) -> Dict:
+    ) -> dict:
         """
         Automatically process a document with multiple AI operations
 
@@ -265,7 +265,7 @@ class ProcessingManager:
                 "message": f"Error: {str(e)}",
             }
 
-    async def get_processing_status(self, document_path: Path) -> Dict:
+    async def get_processing_status(self, document_path: Path) -> dict:
         """
         Get processing status for a document
 
@@ -301,7 +301,7 @@ class ProcessingManager:
                 "error": str(e),
             }
 
-    async def remove_embeddings(self, document_path: Path) -> Dict:
+    async def remove_embeddings(self, document_path: Path) -> dict:
         """
         Remove embeddings for a document
 
