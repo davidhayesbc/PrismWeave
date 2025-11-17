@@ -146,7 +146,7 @@ async def list_documents(
     date_to: str | None = None,
     include_generated: bool = True,
     include_captured: bool = True,
-    limit: int | None = None,
+    limit: int = 20,
     offset: int = 0,
 ) -> dict[str, Any]:
     """Browse available documents without performing semantic ranking.
@@ -237,7 +237,7 @@ async def create_document(
     """
     await ensure_initialized()
     # Build kwargs conditionally to allow default_factory to work
-    kwargs = {
+    kwargs: dict[str, Any] = {
         "title": title,
         "content": content,
     }
@@ -405,14 +405,7 @@ def main():
         logger.info(f"HTTP Server: http://{args.host}:{args.port}")
         logger.info(f"SSE endpoint: http://{args.host}:{args.port}/sse")
         # Run with SSE transport (HTTP server) with CORS enabled for Inspector
-        # CORS configuration for MCP Inspector
-        uvicorn_config = {
-            "app": None,  # Will be set by FastMCP
-            "host": args.host,
-            "port": args.port,
-        }
-
-        # Use uvicorn_config to add CORS headers
+        # Configure CORS middleware for MCP Inspector
         from starlette.middleware import Middleware
 
         middleware = [
