@@ -7,7 +7,7 @@ Wraps GitTracker functionality with MCP-compatible interface for version control
 import subprocess
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Optional
 
 from src.core.config import Config
 from src.core.git_tracker import GitTracker
@@ -55,18 +55,53 @@ class GitManager:
             return False
 
     def _ensure_initialized(self) -> None:
-        """Ensure git tracker is initialized"""
-        if not self._git_tracker or not self._repo_path:
+        """
+        Ensure git tracker is initialized
+
+        Raises:
+            RuntimeError: If git manager has not been initialized
+        """
+        if self._git_tracker is None or self._repo_path is None:
             raise RuntimeError("Git manager not initialized. Call initialize() first.")
+
+    @property
+    def git_tracker(self) -> GitTracker:
+        """
+        Get the initialized git tracker
+
+        Returns:
+            GitTracker instance
+
+        Raises:
+            RuntimeError: If git manager has not been initialized
+        """
+        if self._git_tracker is None:
+            raise RuntimeError("Git manager not initialized. Call initialize() first.")
+        return self._git_tracker
+
+    @property
+    def repo_path(self) -> Path:
+        """
+        Get the repository path
+
+        Returns:
+            Path to the git repository
+
+        Raises:
+            RuntimeError: If git manager has not been initialized
+        """
+        if self._repo_path is None:
+            raise RuntimeError("Git manager not initialized. Call initialize() first.")
+        return self._repo_path
 
     async def commit_changes(
         self,
-        files: Optional[List[str]] = None,
+        files: Optional[list[str]] = None,
         message: Optional[str] = None,
         push: bool = False,
         remote: str = "origin",
         branch: Optional[str] = None,
-    ) -> Dict:
+    ) -> dict:
         """
         Commit changes to git repository
 
@@ -90,14 +125,14 @@ class GitManager:
         try:
             # Check if there are any changes
             status_result = subprocess.run(
-                ["git", "status", "--porcelain"], cwd=self._repo_path, capture_output=True, text=True, check=True
+                ["git", "status", "--porcelain"], cwd=self.repo_path, capture_output=True, text=True, check=True
             )
 
             if not status_result.stdout.strip():
                 return {
                     "success": True,
                     "message": "No changes to commit",
-                    "commit_hash": self._git_tracker.get_current_commit_hash(),
+                    "commit_hash": self.git_tracker.get_current_commit_hash(),
                     "files_committed": 0,
                     "pushed": False,
                 }
@@ -106,15 +141,15 @@ class GitManager:
             if files:
                 # Stage specific files
                 for file_path in files:
-                    subprocess.run(["git", "add", file_path], cwd=self._repo_path, check=True)
+                    subprocess.run(["git", "add", file_path], cwd=self.repo_path, check=True)
             else:
                 # Stage all changes
-                subprocess.run(["git", "add", "-A"], cwd=self._repo_path, check=True)
+                subprocess.run(["git", "add", "-A"], cwd=self.repo_path, check=True)
 
             # Check how many files were staged
             staged_result = subprocess.run(
                 ["git", "diff", "--cached", "--name-only"],
-                cwd=self._repo_path,
+                cwd=self.repo_path,
                 capture_output=True,
                 text=True,
                 check=True,
@@ -126,7 +161,7 @@ class GitManager:
                 return {
                     "success": True,
                     "message": "No changes staged for commit",
-                    "commit_hash": self._git_tracker.get_current_commit_hash(),
+                    "commit_hash": self.git_tracker.get_current_commit_hash(),
                     "files_committed": 0,
                     "pushed": False,
                 }
@@ -137,9 +172,9 @@ class GitManager:
                 message = f"chore: update documents ({len(staged_files)} files) - {timestamp}"
 
             # Commit changes
-            subprocess.run(["git", "commit", "-m", message], cwd=self._repo_path, check=True)
+            subprocess.run(["git", "commit", "-m", message], cwd=self.repo_path, check=True)
 
-            new_commit_hash = self._git_tracker.get_current_commit_hash()
+            new_commit_hash = self.git_tracker.get_current_commit_hash()
 
             result = {
                 "success": True,
@@ -176,7 +211,7 @@ class GitManager:
                 "pushed": False,
             }
 
-    async def _push_to_remote(self, remote: str, branch: Optional[str]) -> Dict:
+    async def _push_to_remote(self, remote: str, branch: Optional[str]) -> dict:
         """
         Push commits to remote repository
 
@@ -191,17 +226,17 @@ class GitManager:
             # Get current branch if not specified
             if not branch:
                 branch_result = subprocess.run(
-                    ["git", "branch", "--show-current"], cwd=self._repo_path, capture_output=True, text=True, check=True
+                    ["git", "branch", "--show-current"], cwd=self.repo_path, capture_output=True, text=True, check=True
                 )
                 branch = branch_result.stdout.strip()
 
             # Try to build authenticated remote URL
-            authenticated_remote = self._git_tracker._build_authenticated_remote(remote)
+            authenticated_remote = self.git_tracker._build_authenticated_remote(remote)
             remote_arg = authenticated_remote or remote
 
             # Push to remote
             subprocess.run(
-                ["git", "push", remote_arg, branch], cwd=self._repo_path, capture_output=True, text=True, check=True
+                ["git", "push", remote_arg, branch], cwd=self.repo_path, capture_output=True, text=True, check=True
             )
 
             return {"success": True, "message": f"Successfully pushed to {remote}/{branch}"}
@@ -210,7 +245,7 @@ class GitManager:
             stderr = e.stderr.strip() if e.stderr else str(e)
             return {"success": False, "message": f"Push failed: {stderr}"}
 
-    async def get_repo_status(self) -> Dict:
+    async def get_repo_status(self) -> dict:
         """
         Get current repository status
 
@@ -232,16 +267,16 @@ class GitManager:
         try:
             # Get current branch
             branch_result = subprocess.run(
-                ["git", "branch", "--show-current"], cwd=self._repo_path, capture_output=True, text=True, check=True
+                ["git", "branch", "--show-current"], cwd=self.repo_path, capture_output=True, text=True, check=True
             )
             branch = branch_result.stdout.strip()
 
             # Get current commit hash
-            commit_hash = self._git_tracker.get_current_commit_hash()
+            commit_hash = self.git_tracker.get_current_commit_hash()
 
             # Get status
             status_result = subprocess.run(
-                ["git", "status", "--porcelain"], cwd=self._repo_path, capture_output=True, text=True, check=True
+                ["git", "status", "--porcelain"], cwd=self.repo_path, capture_output=True, text=True, check=True
             )
 
             # Parse status output
@@ -267,7 +302,7 @@ class GitManager:
             try:
                 tracking_result = subprocess.run(
                     ["git", "rev-list", "--left-right", "--count", "HEAD...@{u}"],
-                    cwd=self._repo_path,
+                    cwd=self.repo_path,
                     capture_output=True,
                     text=True,
                     check=True,
@@ -300,7 +335,7 @@ class GitManager:
         except Exception as e:
             return {"success": False, "message": f"Unexpected error getting status: {str(e)}"}
 
-    async def add_file(self, file_path: str) -> Dict:
+    async def add_file(self, file_path: str) -> dict:
         """
         Stage a file for commit
 
@@ -317,12 +352,12 @@ class GitManager:
 
         try:
             # Check if file exists
-            full_path = self._repo_path / file_path
+            full_path = self.repo_path / file_path
             if not full_path.exists():
                 return {"success": False, "message": f"File not found: {file_path}", "file_path": file_path}
 
             # Stage the file
-            subprocess.run(["git", "add", file_path], cwd=self._repo_path, check=True)
+            subprocess.run(["git", "add", file_path], cwd=self.repo_path, check=True)
 
             return {"success": True, "message": f"Successfully staged file: {file_path}", "file_path": file_path}
 
@@ -332,7 +367,7 @@ class GitManager:
         except Exception as e:
             return {"success": False, "message": f"Unexpected error staging file: {str(e)}", "file_path": file_path}
 
-    async def pull_latest(self, remote: str = "origin", branch: Optional[str] = None, ff_only: bool = True) -> Dict:
+    async def pull_latest(self, remote: str = "origin", branch: Optional[str] = None, ff_only: bool = True) -> dict:
         """
         Pull latest changes from remote repository
 
@@ -351,9 +386,9 @@ class GitManager:
 
         try:
             # Use GitTracker's pull method
-            self._git_tracker.pull_latest(remote=remote, branch=branch, ff_only=ff_only)
+            self.git_tracker.pull_latest(remote=remote, branch=branch, ff_only=ff_only)
 
-            new_commit_hash = self._git_tracker.get_current_commit_hash()
+            new_commit_hash = self.git_tracker.get_current_commit_hash()
 
             return {"success": True, "message": f"Successfully pulled from {remote}", "commit_hash": new_commit_hash}
 
