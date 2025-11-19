@@ -1,0 +1,62 @@
+from __future__ import annotations
+
+import math
+from collections.abc import Iterable
+from dataclasses import dataclass
+from typing import Dict, List, Tuple
+
+
+@dataclass
+class ArticleLayoutPoint:
+    article_id: str
+    x: float
+    y: float
+
+
+def _fallback_grid_layout(article_ids: Iterable[str]) -> Dict[str, Tuple[float, float]]:
+    """Deterministic fallback layout when advanced projection is unavailable.
+
+    Places points on a simple grid; this keeps the rest of the system
+    functional even if UMAP or embeddings are unavailable during tests.
+    """
+
+    coords: Dict[str, Tuple[float, float]] = {}
+    ids: List[str] = list(article_ids)
+    if not ids:
+        return coords
+
+    cols = max(1, int(math.sqrt(len(ids))))
+    spacing = 1.0
+    for idx, article_id in enumerate(sorted(ids)):
+        row = idx // cols
+        col = idx % cols
+        coords[article_id] = (col * spacing, row * spacing)
+    return coords
+
+
+def compute_layout_from_embeddings(embeddings: Dict[str, List[float]]) -> Dict[str, Tuple[float, float]]:
+    """Project high-dimensional embeddings into 2D coordinates.
+
+    This function is structured to allow plugging in a more advanced
+    projector (e.g. UMAP) later. For now it falls back to a simple grid
+    layout when the number of points is small or no optional dependency
+    is available.
+    """
+
+    if not embeddings:
+        return {}
+
+    # Lazy import so UMAP remains an optional dependency.
+    try:  # pragma: no cover - exercised only when umap-learn is installed
+        import umap  # type: ignore[import]
+
+        ids = list(embeddings.keys())
+        vectors = [embeddings[i] for i in ids]
+        reducer = umap.UMAP(n_components=2, random_state=42)
+        coords_array = reducer.fit_transform(vectors)
+        return {doc_id: (float(x), float(y)) for doc_id, (x, y) in zip(ids, coords_array)}
+    except Exception:
+        return _fallback_grid_layout(embeddings.keys())
+
+
+__all__ = ["ArticleLayoutPoint", "compute_layout_from_embeddings"]

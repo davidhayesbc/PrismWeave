@@ -6,7 +6,14 @@ from typing import Optional
 import click
 
 from src.cli_support import CliError, create_state
-from src.core.metadata_index import INDEX_RELATIVE_PATH, build_metadata_index, load_existing_index
+from src.core.embedding_store import EmbeddingStore
+from src.core.layout import compute_layout_from_embeddings
+from src.core.metadata_index import (
+    INDEX_RELATIVE_PATH,
+    build_metadata_index,
+    load_existing_index,
+    save_index,
+)
 
 
 @click.group()
@@ -51,8 +58,50 @@ def build_index(
     state.write(f"📁 Documents root: {docs_root}")
     state.write(f"🗂️  Index path: {target_index}")
 
+    # (1) Rebuild metadata index from documents
     index = build_metadata_index(docs_root, target_index)
     state.write(f"✅ Indexed {len(index)} articles")
+
+    # (2) Ensure article-level embeddings exist in Chroma and compute layout
+    try:
+        store = EmbeddingStore(state.config, state.git_tracker)
+    except Exception as exc:  # pragma: no cover - environment specific
+        state.write(f"⚠️  Skipping embedding/layout step (failed to init store): {exc}")
+        return
+
+    # Collect a simple embedding per article by querying chunks for its source_file.
+    article_embeddings: Dict[str, List[float]] = {}
+    for article in index.values():
+        try:
+            # This relies on EmbeddingStore.add_document storing meta.source_file
+            filters = {"field": "meta.source_file", "operator": "==", "value": article.path}
+            docs = store.document_store.filter_documents(filters=filters)
+            if not docs:
+                continue
+            vector = getattr(docs[0], "embedding", None)
+            if isinstance(vector, list) and vector:
+                article_embeddings[article.id] = vector
+        except Exception:
+            continue
+
+    if not article_embeddings:
+        state.write("ℹ️  No embeddings found for articles; layout step skipped")
+        return
+
+    layout_coords = compute_layout_from_embeddings(article_embeddings)
+
+    # (4) Persist x,y back into metadata index for any article with coordinates
+    for article_id, (x, y) in layout_coords.items():
+        article = index.get(article_id)
+        if not article:
+            continue
+        # Attach coordinates to a lightweight view of metadata via dynamic attributes
+        # API layer can choose how to expose these.
+        article.x = float(x)
+        article.y = float(y)
+
+    save_index(index, target_index)
+    state.write(f"🗺️  Updated layout for {len(layout_coords)} articles")
 
 
 @visualize.command(name="print-index")

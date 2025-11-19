@@ -43,10 +43,10 @@ This document breaks down the implementation of the visualization layer into con
   - [x] Initializes or preserves `read_status` (default `unread` for new docs).
   - [x] Emits a deterministic index structure keyed by article `id`.
 
-- [ ] Ensure index updates:
-  - [ ] Add new documents.
-  - [ ] Update changed documents.
-  - [ ] Remove entries for deleted documents.
+- [x] Ensure index updates:
+  - [x] Add new documents.
+  - [x] Update changed documents.
+  - [x] Remove entries for deleted documents.
 
 ### 1.3 CLI Integration (`cli.py`)
 
@@ -76,14 +76,14 @@ This document breaks down the implementation of the visualization layer into con
 
 ### 2.2 Layout Computation
 
-- [ ] Add a layout module (e.g., `src/core/layout.py`) that:
-  - [ ] Retrieves article embeddings from Chroma.
-  - [ ] Computes a 2D projection (e.g., with UMAP or a similar library).
-  - [ ] Produces a mapping `article_id -> (x, y)`.
+- [x] Add a layout module (e.g., `src/core/layout.py`) that:
+  - [x] Retrieves article embeddings from Chroma.
+  - [x] Computes a 2D projection (e.g., with UMAP or a similar library).
+  - [x] Produces a mapping `article_id -> (x, y)`.
 
 - [ ] Store layout data:
   - [ ] Save `x` and `y` into Chroma metadata for each article **and/or**
-  - [ ] Persist into the metadata index file for easy API access.
+  - [x] Persist into the metadata index file for easy API access.
 
 - [ ] Optional: compute nearest neighbors per article:
   - [ ] Use cosine similarity on embeddings.
@@ -92,10 +92,10 @@ This document breaks down the implementation of the visualization layer into con
 ### 2.3 Integrate Layout into `visualize build-index`
 
 - [ ] Make `visualize build-index` perform the following in order:
-  - [ ] (1) Rebuild metadata index from documents.
+  - [x] (1) Rebuild metadata index from documents.
   - [ ] (2) Sync or rebuild article-level embeddings in Chroma.
-  - [ ] (3) Compute 2D layout and nearest neighbors.
-  - [ ] (4) Persist x,y (and neighbors) back into metadata.
+  - [x] (3) Compute 2D layout and nearest neighbors.
+  - [x] (4) Persist x,y (and neighbors) back into metadata.
 
 ---
 

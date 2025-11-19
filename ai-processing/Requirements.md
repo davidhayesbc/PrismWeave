@@ -113,8 +113,8 @@
       - [x] excerpt
     - [x] Updates metadata index.
     - [ ] Ensures Chroma entries exist per article.
-    - [ ] Computes or updates 2D layout coordinates `x`, `y`.
-    - [ ] Stores x,y in Chroma metadata and/or index.
+    - [x] Computes or updates 2D layout coordinates `x`, `y`.
+    - [x] Stores x,y in Chroma metadata and/or index.
 
 - [ ] HTTP API (Python, inside ai-processing)
   - [ ] `GET /articles`
