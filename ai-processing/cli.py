@@ -16,6 +16,7 @@ import click
 from src.cli.export_command import export
 from src.cli.process_commands import process, rebuild_db, sync
 from src.cli.query_commands import count, list_docs, search, stats
+from src.cli.visualize_commands import visualize
 from src.core.config import Config as _ConfigAlias
 
 # Backwards compatibility for tests that patch cli.Config
@@ -36,6 +37,7 @@ cli.add_command(search)
 cli.add_command(stats)
 cli.add_command(export)
 cli.add_command(rebuild_db)
+cli.add_command(visualize)
 
 
 def main() -> None:
