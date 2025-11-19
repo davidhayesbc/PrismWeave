@@ -3,6 +3,7 @@ Embedding store using Haystack's ChromaDB integration
 """
 
 import uuid
+from collections.abc import Sequence
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -336,3 +337,36 @@ class EmbeddingStore:
         except Exception as e:
             print(f"Failed to get source files: {e}")
             return []
+
+    def get_article_embedding(self, file_path: Path) -> Optional[List[float]]:
+        """Compute a representative embedding for an article by averaging its chunks.
+
+        This keeps the primary storage at chunk level while still providing a
+        stable article-level vector for visualization and coarse search.
+        """
+
+        try:
+            filters = {"field": "meta.source_file", "operator": "==", "value": str(file_path)}
+            docs = self.document_store.filter_documents(filters=filters)
+        except Exception:
+            return None
+
+        vectors: List[Sequence[float]] = []
+        for doc in docs:
+            embedding = getattr(doc, "embedding", None)
+            if isinstance(embedding, list) and embedding:
+                vectors.append(embedding)
+
+        if not vectors:
+            return None
+
+        dim = len(vectors[0])
+        sums = [0.0] * dim
+        for vec in vectors:
+            if len(vec) != dim:
+                continue
+            for i, value in enumerate(vec):
+                sums[i] += float(value)
+
+        count = float(len(vectors))
+        return [s / count for s in sums]

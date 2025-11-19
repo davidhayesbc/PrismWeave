@@ -314,5 +314,19 @@ class TestFileOperations:
             assert result == False  # No documents found to remove
 
 
+class TestArticleEmbedding:
+    """Tests for article-level embedding aggregation."""
+
+    def test_get_article_embedding_empty_returns_none(self):
+        config = Config()
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            config.chroma_db_path = temp_dir
+            store = EmbeddingStore(config)
+
+            embedding = store.get_article_embedding(Path(temp_dir) / "missing.md")
+            assert embedding is None
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

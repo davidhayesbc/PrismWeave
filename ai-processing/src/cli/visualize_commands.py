@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Optional
+from typing import Dict, List, Optional
 
 import click
 
@@ -69,18 +69,13 @@ def build_index(
         state.write(f"⚠️  Skipping embedding/layout step (failed to init store): {exc}")
         return
 
-    # Collect a simple embedding per article by querying chunks for its source_file.
+    # Collect an article-level embedding by averaging chunk embeddings per source file.
     article_embeddings: Dict[str, List[float]] = {}
     for article in index.values():
         try:
-            # This relies on EmbeddingStore.add_document storing meta.source_file
-            filters = {"field": "meta.source_file", "operator": "==", "value": article.path}
-            docs = store.document_store.filter_documents(filters=filters)
-            if not docs:
-                continue
-            vector = getattr(docs[0], "embedding", None)
-            if isinstance(vector, list) and vector:
-                article_embeddings[article.id] = vector
+            vector = store.get_article_embedding(Path(article.path))
+            if vector is not None:
+                article_embeddings[article.id] = list(vector)
         except Exception:
             continue
 
