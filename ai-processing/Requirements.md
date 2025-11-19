@@ -31,7 +31,7 @@
   - [ ] Any additional fields PrismWeave already uses (source URL, collection, etc.)
 
 - [ ] Chroma fields
-  - [ ] Embeddings (per article or aggregated from chunks).
+  - [x] Embeddings (per article or aggregated from chunks).
   - [ ] 2D layout coordinates `x`, `y` stored as metadata.
   - [ ] Optional: nearest neighbor IDs for edges (or computed at query time).
 
@@ -143,9 +143,9 @@
 ### 5. Chroma & Embeddings
 
 - [ ] Embedding strategy
-  - [ ] Reuse existing embedding pipeline from `ai-processing`.
-  - [ ] Decide on per-article embedding:
-    - [ ] Either aggregate chunk embeddings to one vector per article.
+  - [x] Reuse existing embedding pipeline from `ai-processing`.
+  - [x] Decide on per-article embedding:
+    - [x] Either aggregate chunk embeddings to one vector per article.
     - [ ] Or pick a representative embedding per article.
   - [ ] Store article-level embedding in Chroma with:
     - [ ] `id` = article ID.

@@ -63,11 +63,11 @@ This document breaks down the implementation of the visualization layer into con
 
 ### 2.1 Article-Level Embeddings
 
-- [ ] Review current embedding behavior in `ai-processing`:
-  - [ ] Identify whether embeddings are per-chunk or per-document.
+- [x] Review current embedding behavior in `ai-processing`:
+  - [x] Identify whether embeddings are per-chunk or per-document.
 
-- [ ] Implement article-level embedding strategy:
-  - [ ] Option A: Aggregate chunk embeddings (mean or weighted mean) to a single vector per article.
+- [x] Implement article-level embedding strategy:
+  - [x] Option A: Aggregate chunk embeddings (mean or weighted mean) to a single vector per article.
   - [ ] Option B: Use a designated representative chunk embedding per article.
 
 - [ ] Update or add a pipeline function to:
