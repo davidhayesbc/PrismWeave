@@ -72,9 +72,9 @@ def _article_metadata_to_summary(article: ArticleMetadata) -> ArticleSummary:
         word_count=article.word_count,
         excerpt=article.excerpt,
         read_status=article.read_status,
-        x=getattr(article, "x", None),
-        y=getattr(article, "y", None),
-        neighbors=getattr(article, "neighbors", None),
+        x=article.x,
+        y=article.y,
+        neighbors=article.neighbors,
     )
 
 
@@ -177,9 +177,9 @@ async def get_article(article_id: str):
         word_count=article.word_count,
         excerpt=article.excerpt,
         read_status=article.read_status,
-        x=getattr(article, "x", None),
-        y=getattr(article, "y", None),
-        neighbors=getattr(article, "neighbors", None),
+        x=article.x,
+        y=article.y,
+        neighbors=article.neighbors,
         content=content,
     )
 
@@ -286,9 +286,9 @@ async def update_article(article_id: str, update_request: UpdateArticleRequest):
         word_count=article.word_count,
         excerpt=article.excerpt,
         read_status=article.read_status,
-        x=getattr(article, "x", None),
-        y=getattr(article, "y", None),
-        neighbors=getattr(article, "neighbors", None),
+        x=article.x,
+        y=article.y,
+        neighbors=article.neighbors,
         content=post.content,
     )
 

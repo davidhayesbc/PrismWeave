@@ -31,6 +31,9 @@ class ArticleMetadata:
     word_count: int
     excerpt: str
     read_status: str
+    x: Optional[float] = None
+    y: Optional[float] = None
+    neighbors: Optional[List[str]] = None
 
     @classmethod
     def from_markdown_file(
@@ -147,6 +150,9 @@ def load_existing_index(index_path: Path) -> Dict[str, ArticleMetadata]:
                 word_count=int(value.get("word_count", 0)),
                 excerpt=value.get("excerpt", ""),
                 read_status=value.get("read_status", "unread"),
+                x=value.get("x"),
+                y=value.get("y"),
+                neighbors=value.get("neighbors"),
             )
         except Exception:
             continue
