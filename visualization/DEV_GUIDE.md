@@ -28,12 +28,6 @@ To launch both the API backend and Vue frontend together:
 
 ```bash
 cd visualization
-npm start
-```
-
-Or equivalently:
-
-```bash
 npm run dev:all
 ```
 
@@ -43,6 +37,8 @@ This will start:
 - **Frontend Dev Server** on `http://localhost:5173` (green output)
 
 Open your browser to `http://localhost:5173` to use the application.
+
+**Note**: The first time you run this, you may need to build the visualization index. See [Troubleshooting](#troubleshooting) below.
 
 ### Individual Services
 
@@ -132,6 +128,57 @@ When running, the API provides:
 API documentation available at: `http://localhost:8000/docs`
 
 ## Troubleshooting
+
+### 404 Errors - Index Not Found
+
+**Symptom**: API returns `404 Not Found` with message: `Article index not found. Run 'visualize build-index' first.`
+
+**Cause**: The visualization index hasn't been created yet.
+
+**Solution**: Build the index using either method:
+
+**Method 1: Via API (Recommended)**
+
+```bash
+# With services running
+curl -X POST http://localhost:8000/visualization/rebuild
+```
+
+**Method 2: Via CLI**
+
+```bash
+cd ../ai-processing
+source .venv/bin/activate
+python cli.py visualize build-index --verbose
+```
+
+### YAML Parsing Errors
+
+**Symptom**: Index building fails with `ScannerError: found a tab character that violates indentation`
+
+**Cause**: Markdown files have invalid YAML frontmatter (tabs or syntax errors)
+
+**Solution**:
+
+1. Check the error for the problematic file
+2. Open the file and fix the YAML frontmatter:
+   - Replace tabs with spaces
+   - Quote special characters in values
+   - Ensure proper YAML list/dict syntax
+3. Retry the index build
+
+Example of correct frontmatter:
+
+```yaml
+---
+title: 'My Article Title'
+topic: technology
+tags:
+  - python
+  - api
+date: 2024-11-19
+---
+```
 
 ### Port Already in Use
 

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sys
 from collections.abc import Iterable
 from dataclasses import asdict, dataclass
 from datetime import datetime
@@ -48,7 +49,10 @@ class ArticleMetadata:
             raise FileNotFoundError(file_path)
 
         text = file_path.read_text(encoding="utf-8")
-        post = frontmatter.loads(text)
+        try:
+            post = frontmatter.loads(text)
+        except Exception as exc:  # pragma: no cover - defensive logging
+            raise ValueError(f"Failed to parse frontmatter in {file_path}: {exc}") from exc
 
         body = str(post.content or "").strip()
         words = body.split()
@@ -193,6 +197,9 @@ def build_metadata_index(documents_root: Path, index_path: Optional[Path] = None
             updated_index[article.id] = article
         except FileNotFoundError:
             continue
+        except ValueError as exc:
+            print(f"[metadata-index] {exc}", file=sys.stderr)
+            raise
 
     save_index(updated_index, index_path)
     return updated_index
