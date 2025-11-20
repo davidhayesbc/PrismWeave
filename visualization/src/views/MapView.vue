@@ -138,10 +138,10 @@ const MIN_RADIUS = 6;
 const MAX_RADIUS = 24;
 const FORCE_ITERATIONS = 250;
 const REPULSION_STRENGTH = -28;
-const MIN_LABEL_WIDTH = 140;
-const MIN_LABEL_HEIGHT = 64;
-const LABEL_WIDTH_FACTOR = 4.8;
-const LABEL_HEIGHT_FACTOR = 2.6;
+const MIN_LABEL_WIDTH = 210;
+const MIN_LABEL_HEIGHT = 96;
+const LABEL_WIDTH_FACTOR = 7.2;
+const LABEL_HEIGHT_FACTOR = 3.9;
 const LABEL_HORIZONTAL_PADDING = 16;
 const LABEL_VERTICAL_PADDING = 22;
 
@@ -231,11 +231,90 @@ function formatShortDate(dateStr: string | undefined): string {
   }
 }
 
-function truncateText(value: string, maxChars: number): string {
-  if (value.length <= maxChars) {
-    return value;
+const TITLE_LINE_HEIGHT = 1.1;
+
+function renderWrappedTitle(
+  element: SVGTextElement,
+  x: number,
+  y: number,
+  maxWidth: number,
+  title: string,
+) {
+  const text = d3.select(element);
+  text.selectAll('*').remove();
+  text.attr('x', x).attr('y', y);
+
+  const words = title.split(/\s+/).filter(Boolean);
+  if (words.length === 0) {
+    text.text('');
+    return;
   }
-  return `${value.slice(0, Math.max(0, maxChars - 1)).trim()}…`;
+
+  const measureSpan = text.append('tspan').attr('opacity', 0).text('');
+  const lines: string[] = [];
+  const remainingWords = [...words];
+
+  while (remainingWords.length > 0 && lines.length < 2) {
+    let line = '';
+    while (remainingWords.length > 0) {
+      const candidate = line ? `${line} ${remainingWords[0]}` : remainingWords[0];
+      measureSpan.text(candidate);
+      const width = measureSpan.node()?.getComputedTextLength() || 0;
+
+      if (width <= maxWidth || line.length === 0) {
+        line = candidate;
+        remainingWords.shift();
+      } else {
+        break;
+      }
+    }
+
+    if (!line) {
+      line = remainingWords.shift() ?? '';
+    }
+
+    lines.push(line.trim());
+  }
+
+  if (remainingWords.length > 0 && lines.length > 0) {
+    lines[lines.length - 1] = appendEllipsis(lines[lines.length - 1], maxWidth, measureSpan);
+  }
+
+  measureSpan.remove();
+
+  lines.forEach((line, index) => {
+    text
+      .append('tspan')
+      .attr('x', x)
+      .attr('dy', index === 0 ? 0 : `${TITLE_LINE_HEIGHT}em`)
+      .text(line);
+  });
+}
+
+function appendEllipsis(
+  line: string,
+  maxWidth: number,
+  measureSpan: d3.Selection<SVGTSpanElement, unknown, null, undefined>,
+): string {
+  let candidate = line.trim();
+  candidate = candidate ? `${candidate}…` : '…';
+  measureSpan.text(candidate);
+
+  if ((measureSpan.node()?.getComputedTextLength() || 0) <= maxWidth) {
+    return candidate;
+  }
+
+  const words = line.split(/\s+/);
+  while (words.length > 0) {
+    words.pop();
+    const attempt = words.length > 0 ? `${words.join(' ')}…` : '…';
+    measureSpan.text(attempt);
+    if ((measureSpan.node()?.getComputedTextLength() || 0) <= maxWidth || words.length === 0) {
+      return attempt;
+    }
+  }
+
+  return '…';
 }
 
 function clamp(value: number, min: number, max: number): number {
@@ -521,18 +600,22 @@ function renderEmbeddingLayout(articles: ArticleSummary[]) {
   nodeGroups
     .append('text')
     .attr('class', 'node-title')
-    .attr('x', LABEL_HORIZONTAL_PADDING)
-    .attr('y', LABEL_VERTICAL_PADDING)
-    .text((d) => {
-      const approxChars = Math.max(12, Math.floor((d.width - LABEL_HORIZONTAL_PADDING * 2) / 7));
-      return truncateText(d.article.title, approxChars);
+    .each(function (d) {
+      renderWrappedTitle(
+        this as SVGTextElement,
+        LABEL_HORIZONTAL_PADDING,
+        LABEL_VERTICAL_PADDING,
+        d.width - LABEL_HORIZONTAL_PADDING * 2,
+        d.article.title,
+      );
     });
 
   nodeGroups
     .append('text')
     .attr('class', 'node-date')
-    .attr('x', LABEL_HORIZONTAL_PADDING)
-    .attr('y', () => LABEL_VERTICAL_PADDING + 18)
+    .attr('x', (d) => d.width / 2)
+    .attr('y', (d) => d.height - 12)
+    .attr('text-anchor', 'middle')
     .text((d) => formatShortDate(d.article.created_at));
 
   // Add zoom behavior
@@ -725,18 +808,22 @@ function renderForceLayout(articles: ArticleSummary[]) {
   nodeGroups
     .append('text')
     .attr('class', 'node-title')
-    .attr('x', (d) => -d.width / 2 + LABEL_HORIZONTAL_PADDING)
-    .attr('y', (d) => -d.height / 2 + LABEL_VERTICAL_PADDING)
-    .text((d) => {
-      const approxChars = Math.max(12, Math.floor((d.width - LABEL_HORIZONTAL_PADDING * 2) / 7));
-      return truncateText(d.article.title, approxChars);
+    .each(function (d) {
+      renderWrappedTitle(
+        this as SVGTextElement,
+        -d.width / 2 + LABEL_HORIZONTAL_PADDING,
+        -d.height / 2 + LABEL_VERTICAL_PADDING,
+        d.width - LABEL_HORIZONTAL_PADDING * 2,
+        d.article.title,
+      );
     });
 
   nodeGroups
     .append('text')
     .attr('class', 'node-date')
-    .attr('x', (d) => -d.width / 2 + LABEL_HORIZONTAL_PADDING)
-    .attr('y', (d) => -d.height / 2 + LABEL_VERTICAL_PADDING + 18)
+    .attr('x', 0)
+    .attr('y', (d) => d.height / 2 - 12)
+    .attr('text-anchor', 'middle')
     .text((d) => formatShortDate(d.article.created_at));
 
   // Update positions on tick
@@ -967,14 +1054,15 @@ watch(
 }
 
 .article-node .node-title {
-  font-size: 0.78rem;
+  font-size: 0.7rem;
   font-weight: 600;
   fill: #fff;
 }
 
 .article-node .node-date {
-  font-size: 0.7rem;
+  font-size: 0.62rem;
   fill: rgba(255, 255, 255, 0.9);
+  text-anchor: middle;
 }
 
 line.link {
