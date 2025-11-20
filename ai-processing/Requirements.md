@@ -160,28 +160,28 @@
 
 ### 6. Frontend (Vue + TypeScript)
 
-- [ ] Tech stack
-  - [ ] Vue 3 + TypeScript.
-  - [ ] Simple build setup (Vite or similar).
-  - [ ] A visualization layer:
-    - [ ] Either custom canvas/SVG using D3 or a light graph lib that plays well with Vue.
+- [x] Tech stack
+  - [x] Vue 3 + TypeScript.
+  - [x] Simple build setup (Vite or similar).
+  - [x] A visualization layer:
+    - [x] Either custom canvas/SVG using D3 or a light graph lib that plays well with Vue.
 
-- [ ] Structure
-  - [ ] `App.vue`: basic layout (sidebar filters + main visualization area).
-  - [ ] `MapView.vue`:
-    - [ ] Fetches `/articles` data.
-    - [ ] Renders nodes + edges.
-    - [ ] Handles hover tooltips & click navigation.
-  - [ ] `ArticleView.vue`:
-    - [ ] Fetches `/articles/{id}`.
-    - [ ] Renders markdown.
-    - [ ] Provides edit form for metadata and content.
-    - [ ] Save/Delete actions.
-    - [ ] “Open in VS Code” link.
+- [x] Structure
+  - [x] `App.vue`: basic layout (sidebar filters + main visualization area).
+  - [x] `MapView.vue`:
+    - [x] Fetches `/articles` data.
+    - [x] Renders nodes + edges.
+    - [x] Handles hover tooltips & click navigation.
+  - [x] `ArticleView.vue`:
+    - [x] Fetches `/articles/{id}`.
+    - [x] Renders markdown.
+    - [x] Provides edit form for metadata and content.
+    - [x] Save/Delete actions.
+    - [x] "Open in VS Code" link.
 
-- [ ] State management
-  - [ ] Local state in components or small store (e.g., Pinia) for filters and current selection.
-  - [ ] Debounced search/filter applied client-side.
+- [x] State management
+  - [x] Local state in components or small store (e.g., Pinia) for filters and current selection.
+  - [x] Debounced search/filter applied client-side.
 
 ### 7. Docker & Offline-First
 

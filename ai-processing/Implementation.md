@@ -1,5 +1,20 @@
 # Visualization Layer Implementation Plan
 
+## Implementation Status
+
+- ✅ **Phase 1: Backend Foundations** - COMPLETE
+  - Metadata schema, JSON index, CLI integration
+- ✅ **Phase 2: Article-Level Embeddings & Layout** - COMPLETE
+  - Mean aggregation, UMAP layout, coordinate persistence
+- ✅ **Phase 3: HTTP API (FastAPI)** - COMPLETE
+  - All 5 endpoints, CRUD operations, rebuild trigger
+- ✅ **Phase 4: Vue Frontend** - COMPLETE
+  - D3.js visualization, article viewer/editor, filters (see PHASE4_COMPLETE.md)
+- 🔲 **Phase 5: Docker Compose Stack** - PENDING
+- 🔲 **Phase 6: Polish & Quality** - PENDING
+
+---
+
 ## Overview
 
 This document breaks down the implementation of the visualization layer into concrete tasks and phases. It assumes:
@@ -153,63 +168,63 @@ This document breaks down the implementation of the visualization layer into con
 
 ### 4.1 Project Setup
 
-- [ ] Create a new `visualization` (or similar) directory at repo root or under `website/`.
-- [ ] Initialize Vue 3 + TypeScript project (e.g., via Vite):
-  - [ ] Configure base URL to work behind Docker.
-  - [ ] Add dependencies for markdown rendering and visualization (D3 or light graph lib).
+- [x] Create a new `visualization` (or similar) directory at repo root or under `website/`.
+- [x] Initialize Vue 3 + TypeScript project (e.g., via Vite):
+  - [x] Configure base URL to work behind Docker.
+  - [x] Add dependencies for markdown rendering and visualization (D3 or light graph lib).
 
 ### 4.2 Core Layout & Routing
 
-- [ ] Define routes:
-  - [ ] `/` → main map view.
-  - [ ] `/article/:id` → article reader/editor view.
+- [x] Define routes:
+  - [x] `/` → main map view.
+  - [x] `/article/:id` → article reader/editor view.
 
-- [ ] `App.vue`
-  - [ ] Layout shell with sidebar (filters) and main content area.
+- [x] `App.vue`
+  - [x] Layout shell with sidebar (filters) and main content area.
 
 ### 4.3 Map View (`MapView.vue`)
 
-- [ ] Fetch `/articles` on load.
-- [ ] Maintain state for:
-  - [ ] `articles` (list of summaries).
-  - [ ] filters: age range, topic, search query.
+- [x] Fetch `/articles` on load.
+- [x] Maintain state for:
+  - [x] `articles` (list of summaries).
+  - [x] filters: age range, topic, search query.
 
-- [ ] Render visualization:
-  - [ ] Draw nodes at (x, y).
-  - [ ] Color, size, opacity, and read/unread styling per requirements.
-  - [ ] Draw edges between nearest neighbors if available.
+- [x] Render visualization:
+  - [x] Draw nodes at (x, y).
+  - [x] Color, size, opacity, and read/unread styling per requirements.
+  - [x] Draw edges between nearest neighbors if available.
 
-- [ ] Interactions:
-  - [ ] Hover → tooltip with title, excerpt, topic/tags, age, word count.
-  - [ ] Click → open `/article/{id}` in a **new tab**.
-  - [ ] Pan/zoom controls.
+- [x] Interactions:
+  - [x] Hover → tooltip with title, excerpt, topic/tags, age, word count.
+  - [x] Click → open `/article/{id}` in a **new tab**.
+  - [x] Pan/zoom controls.
 
 ### 4.4 Article View (`ArticleView.vue`)
 
-- [ ] On mount, fetch `/articles/{id}`.
-- [ ] Render markdown content using a markdown renderer.
-- [ ] Show metadata in editable form:
-  - [ ] Inputs for title, topic, tags.
-  - [ ] Possibly a toggle or indicator for `read_status`.
+- [x] On mount, fetch `/articles/{id}`.
+- [x] Render markdown content using a markdown renderer.
+- [x] Show metadata in editable form:
+  - [x] Inputs for title, topic, tags.
+  - [x] Possibly a toggle or indicator for `read_status`.
 
-- [ ] Actions:
-  - [ ] Save → `PUT /articles/{id}`.
-  - [ ] Delete → `DELETE /articles/{id}` with confirmation.
-  - [ ] “Open in VS Code” → `vscode://file/{path}` link.
+- [x] Actions:
+  - [x] Save → `PUT /articles/{id}`.
+  - [x] Delete → `DELETE /articles/{id}` with confirmation.
+  - [x] "Open in VS Code" → `vscode://file/{path}` link.
 
-- [ ] After save/delete:
-  - [ ] Show confirmation.
-  - [ ] Optionally instruct user to refresh map or trigger rebuild.
+- [x] After save/delete:
+  - [x] Show confirmation.
+  - [x] Optionally instruct user to refresh map or trigger rebuild.
 
 ### 4.5 Filters & Search
 
-- [ ] Implement sidebar filters:
-  - [ ] Age range (slider, using `created_at`/`updated_at`).
-  - [ ] Topic multi-select.
-  - [ ] Optional tags filter.
+- [x] Implement sidebar filters:
+  - [x] Age range (slider, using `created_at`/`updated_at`).
+  - [x] Topic multi-select.
+  - [x] Optional tags filter.
 
-- [ ] Implement text search:
-  - [ ] Filter or highlight nodes whose title/metadata contain the query.
+- [x] Implement text search:
+  - [x] Filter or highlight nodes whose title/metadata contain the query.
 
 ---
 

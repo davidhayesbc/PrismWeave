@@ -1,0 +1,375 @@
+<template>
+  <div class="article-container">
+    <div v-if="store.loading" class="loading">Loading article...</div>
+    <div v-else-if="store.error" class="error">{{ store.error }}</div>
+    <template v-else-if="article">
+      <aside class="article-sidebar">
+        <button @click="goBack" class="secondary">← Back to Map</button>
+
+        <div class="metadata-section">
+          <h3>Metadata</h3>
+
+          <div class="field">
+            <label>Title</label>
+            <input v-if="editing" type="text" v-model="editForm.title" />
+            <p v-else>{{ article.title }}</p>
+          </div>
+
+          <div class="field">
+            <label>Topic</label>
+            <input
+              v-if="editing"
+              type="text"
+              v-model="editForm.topic"
+              placeholder="e.g., programming, design"
+            />
+            <p v-else>{{ article.topic || 'None' }}</p>
+          </div>
+
+          <div class="field">
+            <label>Tags</label>
+            <input
+              v-if="editing"
+              type="text"
+              v-model="tagsInput"
+              placeholder="comma, separated, tags"
+            />
+            <p v-else>{{ article.tags.join(', ') || 'None' }}</p>
+          </div>
+
+          <div class="field">
+            <label>Read Status</label>
+            <select v-if="editing" v-model="editForm.read_status">
+              <option value="unread">Unread</option>
+              <option value="read">Read</option>
+            </select>
+            <p v-else>{{ article.read_status }}</p>
+          </div>
+
+          <div class="field">
+            <label>Word Count</label>
+            <p>{{ article.word_count }}</p>
+          </div>
+
+          <div class="field">
+            <label>Created</label>
+            <p>{{ formatDate(article.created_at) }}</p>
+          </div>
+
+          <div class="field">
+            <label>Updated</label>
+            <p>{{ formatDate(article.updated_at) }}</p>
+          </div>
+        </div>
+
+        <div class="actions-section">
+          <template v-if="editing">
+            <button @click="saveChanges" class="primary" :disabled="saving">
+              {{ saving ? 'Saving...' : 'Save' }}
+            </button>
+            <button @click="cancelEdit" class="secondary">Cancel</button>
+          </template>
+          <template v-else>
+            <button @click="startEdit" class="primary">Edit</button>
+            <button @click="openInVSCode" class="secondary">Open in VS Code</button>
+            <button @click="confirmDelete" class="danger">Delete</button>
+          </template>
+        </div>
+      </aside>
+
+      <main class="article-content">
+        <div v-if="editing" class="editor">
+          <h2>Content Editor</h2>
+          <textarea
+            v-model="editForm.content"
+            class="content-editor"
+            placeholder="Markdown content..."
+          ></textarea>
+        </div>
+        <div v-else class="content-viewer" v-html="renderedContent"></div>
+      </main>
+    </template>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { useArticlesStore } from '@/stores/articles';
+import { marked } from 'marked';
+import { computed, onMounted, ref } from 'vue';
+import { useRouter } from 'vue-router';
+
+const props = defineProps<{
+  id: string;
+}>();
+
+const router = useRouter();
+const store = useArticlesStore();
+
+const editing = ref(false);
+const saving = ref(false);
+const editForm = ref({
+  title: '',
+  topic: '',
+  tags: [] as string[],
+  read_status: 'unread',
+  content: '',
+});
+
+const tagsInput = ref('');
+
+const article = computed(() => store.currentArticle);
+
+const renderedContent = computed(() => {
+  if (!article.value) return '';
+  return marked(article.value.content);
+});
+
+function goBack() {
+  router.push({ name: 'map' });
+}
+
+function formatDate(dateStr: string): string {
+  return new Date(dateStr).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+function startEdit() {
+  if (!article.value) return;
+
+  editing.value = true;
+  editForm.value = {
+    title: article.value.title,
+    topic: article.value.topic || '',
+    tags: [...article.value.tags],
+    read_status: article.value.read_status,
+    content: article.value.content,
+  };
+  tagsInput.value = article.value.tags.join(', ');
+}
+
+function cancelEdit() {
+  editing.value = false;
+}
+
+async function saveChanges() {
+  if (!article.value) return;
+
+  saving.value = true;
+  try {
+    // Parse tags from input
+    const tags = tagsInput.value
+      .split(',')
+      .map((t) => t.trim())
+      .filter((t) => t.length > 0);
+
+    await store.updateArticle(article.value.id, {
+      title: editForm.value.title,
+      topic: editForm.value.topic || null,
+      tags,
+      read_status: editForm.value.read_status,
+      content: editForm.value.content,
+    });
+
+    editing.value = false;
+    alert('Article saved successfully!');
+  } catch (e) {
+    alert('Failed to save article. See console for details.');
+  } finally {
+    saving.value = false;
+  }
+}
+
+function openInVSCode() {
+  if (!article.value) return;
+
+  // Construct vscode:// URL
+  const absolutePath = article.value.path;
+  window.location.href = `vscode://file/${absolutePath}`;
+}
+
+async function confirmDelete() {
+  if (!article.value) return;
+
+  const confirmed = confirm(
+    `Are you sure you want to delete "${article.value.title}"?\n\nThis will:\n- Delete the markdown file\n- Remove it from the index\n- Remove it from ChromaDB\n\nThis action cannot be undone.`,
+  );
+
+  if (confirmed) {
+    try {
+      await store.deleteArticle(article.value.id);
+      alert('Article deleted successfully');
+      router.push({ name: 'map' });
+    } catch (e) {
+      alert('Failed to delete article. See console for details.');
+    }
+  }
+}
+
+onMounted(async () => {
+  await store.fetchArticle(props.id);
+});
+</script>
+
+<style scoped>
+.article-container {
+  display: flex;
+  height: 100%;
+  background: white;
+}
+
+.article-sidebar {
+  width: 320px;
+  background: #fafafa;
+  border-right: 1px solid #ddd;
+  padding: 1.5rem;
+  overflow-y: auto;
+}
+
+.metadata-section {
+  margin: 1.5rem 0;
+}
+
+.metadata-section h3 {
+  font-size: 1rem;
+  margin-bottom: 1rem;
+  color: #2c3e50;
+}
+
+.field {
+  margin-bottom: 1rem;
+}
+
+.field label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #666;
+  margin-bottom: 0.25rem;
+}
+
+.field input,
+.field select {
+  width: 100%;
+}
+
+.field p {
+  margin: 0;
+  color: #333;
+}
+
+.actions-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid #ddd;
+}
+
+.actions-section button {
+  width: 100%;
+}
+
+.article-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 2rem;
+}
+
+.editor h2 {
+  margin-bottom: 1rem;
+  color: #2c3e50;
+}
+
+.content-editor {
+  width: 100%;
+  height: calc(100vh - 200px);
+  padding: 1rem;
+  font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  resize: vertical;
+}
+
+.content-viewer {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.content-viewer :deep(h1) {
+  font-size: 2rem;
+  margin: 2rem 0 1rem 0;
+  color: #2c3e50;
+}
+
+.content-viewer :deep(h2) {
+  font-size: 1.5rem;
+  margin: 1.5rem 0 0.75rem 0;
+  color: #2c3e50;
+}
+
+.content-viewer :deep(h3) {
+  font-size: 1.25rem;
+  margin: 1.25rem 0 0.5rem 0;
+  color: #2c3e50;
+}
+
+.content-viewer :deep(p) {
+  margin: 1rem 0;
+  line-height: 1.8;
+}
+
+.content-viewer :deep(ul),
+.content-viewer :deep(ol) {
+  margin: 1rem 0;
+  padding-left: 2rem;
+}
+
+.content-viewer :deep(li) {
+  margin: 0.5rem 0;
+}
+
+.content-viewer :deep(code) {
+  background: #f5f5f5;
+  padding: 0.2rem 0.4rem;
+  border-radius: 3px;
+  font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+  font-size: 0.9em;
+}
+
+.content-viewer :deep(pre) {
+  background: #f5f5f5;
+  padding: 1rem;
+  border-radius: 4px;
+  overflow-x: auto;
+  margin: 1rem 0;
+}
+
+.content-viewer :deep(pre code) {
+  background: none;
+  padding: 0;
+}
+
+.content-viewer :deep(blockquote) {
+  border-left: 4px solid #ddd;
+  padding-left: 1rem;
+  margin: 1rem 0;
+  color: #666;
+}
+
+.content-viewer :deep(a) {
+  color: #007bff;
+  text-decoration: none;
+}
+
+.content-viewer :deep(a:hover) {
+  text-decoration: underline;
+}
+</style>
