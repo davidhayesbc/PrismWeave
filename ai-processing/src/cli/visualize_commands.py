@@ -7,7 +7,7 @@ import click
 
 from src.cli_support import CliError, create_state
 from src.core.embedding_store import EmbeddingStore
-from src.core.layout import compute_layout_from_embeddings
+from src.core.layout import compute_layout_from_embeddings, compute_nearest_neighbors
 from src.core.metadata_index import (
     INDEX_RELATIVE_PATH,
     build_metadata_index,
@@ -85,7 +85,10 @@ def build_index(
 
     layout_coords = compute_layout_from_embeddings(article_embeddings)
 
-    # (4) Persist x,y back into metadata index for any article with coordinates
+    # (3) Compute k-nearest neighbors based on layout coordinates
+    neighbors_map = compute_nearest_neighbors(layout_coords, k=5)
+
+    # (4) Persist x,y and neighbors back into metadata index
     for article_id, (x, y) in layout_coords.items():
         article = index.get(article_id)
         if not article:
@@ -94,9 +97,11 @@ def build_index(
         # API layer can choose how to expose these.
         article.x = float(x)
         article.y = float(y)
+        article.neighbors = neighbors_map.get(article_id, [])
 
     save_index(index, target_index)
     state.write(f"🗺️  Updated layout for {len(layout_coords)} articles")
+    state.write(f"🔗 Computed neighbors for {len(neighbors_map)} articles")
 
 
 @visualize.command(name="print-index")

@@ -6,14 +6,14 @@
       <div class="filter-section">
         <label>Visualization Mode</label>
         <div class="mode-toggle">
-          <button 
+          <button
             :class="{ active: layoutMode === 'embedding' }"
             @click="switchLayout('embedding')"
             class="mode-btn"
           >
             Semantic Space
           </button>
-          <button 
+          <button
             :class="{ active: layoutMode === 'force' }"
             @click="switchLayout('force')"
             class="mode-btn"
@@ -25,11 +25,11 @@
 
       <div class="filter-section" v-if="layoutMode === 'force'">
         <label>Link Distance</label>
-        <input 
-          type="range" 
-          v-model.number="linkDistance" 
-          min="30" 
-          max="200" 
+        <input
+          type="range"
+          v-model.number="linkDistance"
+          min="30"
+          max="200"
           step="10"
           @input="renderVisualization"
         />
@@ -38,11 +38,11 @@
 
       <div class="filter-section" v-if="layoutMode === 'force'">
         <label>Charge Strength</label>
-        <input 
-          type="range" 
-          v-model.number="chargeStrength" 
-          min="-300" 
-          max="-10" 
+        <input
+          type="range"
+          v-model.number="chargeStrength"
+          min="-300"
+          max="-10"
           step="10"
           @input="renderVisualization"
         />
@@ -557,7 +557,7 @@ function renderForceLayout(articles: ArticleSummary[]) {
 
   // Build node lookup map
   const nodeMap = new Map<string, SimulationNode>();
-  
+
   // Size scale for word count
   const sizeScale = d3
     .scaleSqrt()
@@ -572,11 +572,7 @@ function renderForceLayout(articles: ArticleSummary[]) {
 
   // Opacity scale for age
   const now = Date.now();
-  const ageScale = d3
-    .scaleLinear()
-    .domain([0, 365])
-    .range([1, 0.4])
-    .clamp(true);
+  const ageScale = d3.scaleLinear().domain([0, 365]).range([1, 0.4]).clamp(true);
 
   // Create nodes
   const nodes: SimulationNode[] = articles.map((article) => {
@@ -597,31 +593,31 @@ function renderForceLayout(articles: ArticleSummary[]) {
     return node;
   });
 
-  // Create links from neighbor data
+  // Create links from neighbor data (computed by backend)
   const links: ForceLink[] = [];
   const linkSet = new Set<string>();
 
   articles.forEach((article) => {
-    if (article.neighbors && article.neighbors.length > 0) {
-      const sourceNode = nodeMap.get(article.id);
-      if (!sourceNode) return;
+    if (!article.neighbors || article.neighbors.length === 0) return;
 
-      article.neighbors.forEach((neighborId) => {
-        const targetNode = nodeMap.get(neighborId);
-        if (targetNode) {
-          // Avoid duplicate links
-          const linkId = [article.id, neighborId].sort().join('-');
-          if (!linkSet.has(linkId)) {
-            linkSet.add(linkId);
-            links.push({
-              source: sourceNode,
-              target: targetNode,
-              strength: 1,
-            });
-          }
+    const sourceNode = nodeMap.get(article.id);
+    if (!sourceNode) return;
+
+    // Create links to pre-computed neighbors
+    article.neighbors.forEach((neighborId) => {
+      const targetNode = nodeMap.get(neighborId);
+      if (targetNode) {
+        const linkId = [article.id, neighborId].sort().join('-');
+        if (!linkSet.has(linkId)) {
+          linkSet.add(linkId);
+          links.push({
+            source: sourceNode,
+            target: targetNode,
+            strength: 1,
+          });
         }
-      });
-    }
+      }
+    });
   });
 
   linkCount.value = links.length;
@@ -635,13 +631,13 @@ function renderForceLayout(articles: ArticleSummary[]) {
         .forceLink<SimulationNode, ForceLink>(links)
         .id((d) => d.article.id)
         .distance(linkDistance.value)
-        .strength(0.3)
+        .strength(0.3),
     )
     .force('charge', d3.forceManyBody().strength(chargeStrength.value))
     .force('center', d3.forceCenter(width / 2, height / 2))
     .force(
       'collide',
-      d3.forceCollide<SimulationNode>((d) => d.collisionRadius + COLLISION_PADDING)
+      d3.forceCollide<SimulationNode>((d) => d.collisionRadius + COLLISION_PADDING),
     );
 
   const g = svg.append('g');
@@ -675,23 +671,22 @@ function renderForceLayout(articles: ArticleSummary[]) {
       // Highlight connected nodes
       d3.selectAll('line.link')
         .attr('stroke-opacity', (link) =>
-          (link as ForceLink).source === d || (link as ForceLink).target === d ? 1 : 0.1
+          (link as ForceLink).source === d || (link as ForceLink).target === d ? 1 : 0.1,
         )
         .attr('stroke-width', (link) =>
-          (link as ForceLink).source === d || (link as ForceLink).target === d ? 3 : 1.5
+          (link as ForceLink).source === d || (link as ForceLink).target === d ? 3 : 1.5,
         );
     })
     .on('mouseleave', () => {
       tooltip.value.visible = false;
-      d3.selectAll('line.link')
-        .attr('stroke-opacity', 0.4)
-        .attr('stroke-width', 1.5);
+      d3.selectAll('line.link').attr('stroke-opacity', 0.4).attr('stroke-width', 1.5);
     })
     .on('click', (_, d) => {
       router.push({ name: 'article', params: { id: d.article.id } });
     })
     .call(
-      d3.drag<SVGGElement, SimulationNode>()
+      d3
+        .drag<SVGGElement, SimulationNode>()
         .on('start', (event, d) => {
           if (!event.active) simulation.alphaTarget(0.3).restart();
           d.fx = d.x;
@@ -705,7 +700,7 @@ function renderForceLayout(articles: ArticleSummary[]) {
           if (!event.active) simulation.alphaTarget(0);
           d.fx = null;
           d.fy = null;
-        })
+        }),
     );
 
   nodeGroups
@@ -840,9 +835,9 @@ watch(
 }
 
 .mode-btn.active {
-  background: #4CAF50;
+  background: #4caf50;
   color: white;
-  border-color: #4CAF50;
+  border-color: #4caf50;
   font-weight: 600;
 }
 
@@ -983,6 +978,8 @@ watch(
 }
 
 line.link {
-  transition: stroke-opacity 0.2s, stroke-width 0.2s;
+  transition:
+    stroke-opacity 0.2s,
+    stroke-width 0.2s;
 }
 </style>

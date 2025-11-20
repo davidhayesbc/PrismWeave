@@ -13,6 +13,44 @@ class ArticleLayoutPoint:
     y: float
 
 
+def compute_nearest_neighbors(layout_coords: Dict[str, Tuple[float, float]], k: int = 5) -> Dict[str, List[str]]:
+    """Compute k-nearest neighbors for each article based on 2D layout coordinates.
+
+    Args:
+        layout_coords: Mapping of article_id to (x, y) coordinates
+        k: Number of nearest neighbors to compute
+
+    Returns:
+        Mapping of article_id to list of neighbor article_ids
+    """
+    if not layout_coords or k <= 0:
+        return {}
+
+    neighbors: Dict[str, List[str]] = {}
+    article_ids = list(layout_coords.keys())
+
+    for article_id in article_ids:
+        x1, y1 = layout_coords[article_id]
+
+        # Calculate distances to all other articles
+        distances: List[Tuple[str, float]] = []
+        for other_id in article_ids:
+            if other_id == article_id:
+                continue
+            x2, y2 = layout_coords[other_id]
+            dx = x1 - x2
+            dy = y1 - y2
+            distance = math.sqrt(dx * dx + dy * dy)
+            distances.append((other_id, distance))
+
+        # Sort by distance and take k nearest
+        distances.sort(key=lambda x: x[1])
+        nearest = [neighbor_id for neighbor_id, _ in distances[:k]]
+        neighbors[article_id] = nearest
+
+    return neighbors
+
+
 def _fallback_grid_layout(article_ids: Iterable[str]) -> Dict[str, Tuple[float, float]]:
     """Deterministic fallback layout when advanced projection is unavailable.
 
@@ -59,4 +97,4 @@ def compute_layout_from_embeddings(embeddings: Dict[str, List[float]]) -> Dict[s
         return _fallback_grid_layout(embeddings.keys())
 
 
-__all__ = ["ArticleLayoutPoint", "compute_layout_from_embeddings"]
+__all__ = ["ArticleLayoutPoint", "compute_layout_from_embeddings", "compute_nearest_neighbors"]
