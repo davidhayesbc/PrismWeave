@@ -116,29 +116,29 @@
     - [x] Computes or updates 2D layout coordinates `x`, `y`.
     - [x] Stores x,y in Chroma metadata and/or index.
 
-- [ ] HTTP API (Python, inside ai-processing)
-  - [ ] `GET /articles`
-    - [ ] Returns list of articles with:
-      - [ ] id, title, topic, tags, created_at, updated_at, word_count, read_status
-      - [ ] x, y coordinates
-      - [ ] neighbor IDs or an adjacency list for edges (optional).
-  - [ ] `GET /articles/{id}`
-    - [ ] Returns full markdown content.
-    - [ ] Returns all metadata from index.
-    - [ ] Returns filesystem path for VS Code link.
-  - [ ] `PUT /articles/{id}`
-    - [ ] Accepts updated metadata + markdown.
-    - [ ] Writes markdown to disk.
-    - [ ] Updates metadata index.
-    - [ ] Updates `read_status`.
-    - [ ] Optionally updates embedding + layout for that article.
-  - [ ] `DELETE /articles/{id}`
-    - [ ] Deletes markdown from disk.
-    - [ ] Removes from metadata index.
-    - [ ] Removes from Chroma.
-  - [ ] `POST /visualization/rebuild`
-    - [ ] Triggers the same logic as the CLI rescan command (`visualize build-index`).
-    - [ ] Returns a summary status (e.g., counts of processed docs).
+- [x] HTTP API (Python, inside ai-processing)
+  - [x] `GET /articles`
+    - [x] Returns list of articles with:
+      - [x] id, title, topic, tags, created_at, updated_at, word_count, read_status
+      - [x] x, y coordinates
+      - [x] neighbor IDs or an adjacency list for edges (optional).
+  - [x] `GET /articles/{id}`
+    - [x] Returns full markdown content.
+    - [x] Returns all metadata from index.
+    - [x] Returns filesystem path for VS Code link.
+  - [x] `PUT /articles/{id}`
+    - [x] Accepts updated metadata + markdown.
+    - [x] Writes markdown to disk.
+    - [x] Updates metadata index.
+    - [x] Updates `read_status`.
+    - [x] Optionally updates embedding + layout for that article.
+  - [x] `DELETE /articles/{id}`
+    - [x] Deletes markdown from disk.
+    - [x] Removes from metadata index.
+    - [x] Removes from Chroma.
+  - [x] `POST /visualization/rebuild`
+    - [x] Triggers the same logic as the CLI rescan command (`visualize build-index`).
+    - [x] Returns a summary status (e.g., counts of processed docs).
 
 ### 5. Chroma & Embeddings
 

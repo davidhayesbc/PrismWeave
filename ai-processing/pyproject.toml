@@ -55,6 +55,9 @@ dependencies = [
     "gitpython>=3.1.0",
     "fastmcp>=2.13.0.2",
     "python-frontmatter>=1.0.0",
+    # HTTP API
+    "fastapi>=0.104.0",
+    "uvicorn[standard]>=0.24.0",
 ]
 
 [project.optional-dependencies]
@@ -69,6 +72,7 @@ prismweave-process = "cli:main"  # Backwards-compatible alias
 prismweave-mcp = "prismweave_mcp.server:main"
 prismweave-mcp-inspector = "launch_mcp_with_inspector:main"
 mcp = "launch_mcp_with_inspector:main"
+prismweave-api = "src.api.app:main"
 
 [project.urls]
 Homepage = "https://github.com/davidhayesbc/PrismWeave"

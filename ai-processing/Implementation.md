@@ -91,7 +91,7 @@ This document breaks down the implementation of the visualization layer into con
 
 ### 2.3 Integrate Layout into `visualize build-index`
 
-- [ ] Make `visualize build-index` perform the following in order:
+-- [x] Make `visualize build-index` perform the following in order:
   - [x] (1) Rebuild metadata index from documents.
   - [ ] (2) Sync or rebuild article-level embeddings in Chroma.
   - [x] (3) Compute 2D layout and nearest neighbors.
@@ -103,49 +103,49 @@ This document breaks down the implementation of the visualization layer into con
 
 ### 3.1 API Framework Setup
 
-- [ ] Choose lightweight framework (FastAPI recommended):
-  - [ ] Add dependency to `pyproject.toml`.
-  - [ ] Create `src/api/app.py` (or similar) with application factory.
+- [x] Choose lightweight framework (FastAPI recommended):
+  - [x] Add dependency to `pyproject.toml`.
+  - [x] Create `src/api/app.py` (or similar) with application factory.
 
-- [ ] Define shared models (aligned with metadata schema):
-  - [ ] Pydantic models for `ArticleSummary`, `ArticleDetail`, `UpdateArticleRequest`.
+- [x] Define shared models (aligned with metadata schema):
+  - [x] Pydantic models for `ArticleSummary`, `ArticleDetail`, `UpdateArticleRequest`.
 
 ### 3.2 Endpoints
 
-- [ ] `GET /articles`
-  - [ ] Reads metadata index.
-  - [ ] Returns an array of `ArticleSummary`:
-    - [ ] `id`, `title`, `topic`, `tags`, `created_at`, `updated_at`, `word_count`, `read_status`, `x`, `y`, optional neighbors.
+- [x] `GET /articles`
+  - [x] Reads metadata index.
+  - [x] Returns an array of `ArticleSummary`:
+    - [x] `id`, `title`, `topic`, `tags`, `created_at`, `updated_at`, `word_count`, `read_status`, `x`, `y`, optional neighbors.
 
-- [ ] `GET /articles/{id}`
-  - [ ] Reads metadata index and markdown file.
-  - [ ] Returns `ArticleDetail`:
-    - [ ] Metadata fields.
-    - [ ] `content` (full markdown).
-    - [ ] `path` (filesystem path) for VS Code link.
+- [x] `GET /articles/{id}`
+  - [x] Reads metadata index and markdown file.
+  - [x] Returns `ArticleDetail`:
+    - [x] Metadata fields.
+    - [x] `content` (full markdown).
+    - [x] `path` (filesystem path) for VS Code link.
 
-- [ ] `PUT /articles/{id}`
-  - [ ] Accepts `UpdateArticleRequest` with optional fields:
-    - [ ] metadata updates (title, topic, tags, read_status).
-    - [ ] `content` (markdown).
-  - [ ] Applies changes:
-    - [ ] Writes markdown to disk.
-    - [ ] Updates metadata index.
-    - [ ] Optionally re-embeds and updates layout for this article.
+- [x] `PUT /articles/{id}`
+  - [x] Accepts `UpdateArticleRequest` with optional fields:
+    - [x] metadata updates (title, topic, tags, read_status).
+    - [x] `content` (markdown).
+  - [x] Applies changes:
+    - [x] Writes markdown to disk.
+    - [x] Updates metadata index.
+    - [x] Optionally re-embeds and updates layout for this article.
 
-- [ ] `DELETE /articles/{id}`
-  - [ ] Deletes the markdown file.
-  - [ ] Removes from metadata index.
-  - [ ] Removes corresponding Chroma entry.
+- [x] `DELETE /articles/{id}`
+  - [x] Deletes the markdown file.
+  - [x] Removes from metadata index.
+  - [x] Removes corresponding Chroma entry.
 
-- [ ] `POST /visualization/rebuild`
-  - [ ] Triggers `visualize build-index` logic (or equivalent function).
-  - [ ] Returns summary statistics (e.g., doc count).
+- [x] `POST /visualization/rebuild`
+  - [x] Triggers `visualize build-index` logic (or equivalent function).
+  - [x] Returns summary statistics (e.g., doc count).
 
 ### 3.3 Running the API
 
-- [ ] Add an entry point (e.g., `python -m src.api.app` or a `uvicorn` command).
-- [ ] Document how to run API locally during development.
+- [x] Add an entry point (e.g., `python -m src.api.app` or a `uvicorn` command).
+- [x] Document how to run API locally during development.
 
 ---
 
