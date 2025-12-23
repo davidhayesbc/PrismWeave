@@ -1,0 +1,98 @@
+# PrismWeave - Production Docker Compose
+# Optimized builds, no source mounts
+version: "3.8"
+
+services:
+  # AI Processing Backend with MCP Server
+  ai-processing:
+    build:
+      context: ./ai-processing
+      dockerfile: Dockerfile
+      target: production
+    container_name: prismweave-ai-prod
+    volumes:
+      # Bind mount for documents
+      - ${PRISMWEAVE_DOCS_PATH:-../PrismWeaveDocs}:/workspace/documents:rw
+      # Named volume for ChromaDB
+      - chroma-data:/workspace/.prismweave/chroma_db
+    environment:
+      - OLLAMA_HOST=${OLLAMA_HOST:-http://ollama:11434}
+      - PYTHONUNBUFFERED=1
+      - LOG_LEVEL=${LOG_LEVEL:-WARNING}
+      - MCP_TRANSPORT=sse
+      - DOCUMENTS_PATH=/workspace/documents
+      - CHROMA_PERSIST_DIR=/workspace/.prismweave/chroma_db
+    ports:
+      - "8000:8000"
+    depends_on:
+      - ollama
+    networks:
+      - prismweave-network
+    restart: always
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Ollama LLM Server
+  ollama:
+    image: ollama/ollama:latest
+    container_name: prismweave-ollama-prod
+    profiles:
+      - with-ollama
+    volumes:
+      - ollama-models:/root/.ollama
+    ports:
+      - "11434:11434"
+    networks:
+      - prismweave-network
+    restart: always
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+  # Website Frontend
+  website:
+    build:
+      context: ./website
+      dockerfile: Dockerfile
+      target: production
+    container_name: prismweave-website-prod
+    ports:
+      - "80:80"
+    networks:
+      - prismweave-network
+    restart: always
+    environment:
+      - API_URL=http://ai-processing:8000
+
+  # Visualization Frontend
+  visualization:
+    build:
+      context: ./visualization
+      dockerfile: Dockerfile
+      target: production
+    container_name: prismweave-viz-prod
+    ports:
+      - "8080:80"
+    networks:
+      - prismweave-network
+    restart: always
+    environment:
+      - API_URL=http://ai-processing:8000
+
+networks:
+  prismweave-network:
+    driver: bridge
+
+volumes:
+  chroma-data:
+    driver: local
+  ollama-models:
+    driver: local

@@ -1,0 +1,116 @@
+# PrismWeave - Development Docker Compose
+# Hot-reload enabled for all services
+version: "3.8"
+
+services:
+  # AI Processing Backend with MCP Server
+  ai-processing:
+    build:
+      context: ./ai-processing
+      dockerfile: Dockerfile
+      target: development
+    container_name: prismweave-ai-dev
+    volumes:
+      # Bind mount for documents (editable from host)
+      - ${PRISMWEAVE_DOCS_PATH:-../PrismWeaveDocs}:/workspace/documents:rw
+      # Named volume for ChromaDB persistence
+      - chroma-data:/workspace/.prismweave/chroma_db
+      # Source code mount for hot-reload
+      - ./ai-processing/src:/app/src:ro
+      - ./ai-processing/prismweave_mcp:/app/prismweave_mcp:ro
+      - ./ai-processing/cli:/app/cli:ro
+      - ./ai-processing/config.yaml:/app/config.yaml:ro
+    environment:
+      - OLLAMA_HOST=${OLLAMA_HOST:-http://ollama:11434}
+      - PYTHONUNBUFFERED=1
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - MCP_TRANSPORT=sse
+      - DOCUMENTS_PATH=/workspace/documents
+      - CHROMA_PERSIST_DIR=/workspace/.prismweave/chroma_db
+    ports:
+      - "8000:8000" # MCP Server HTTP/SSE
+      - "8001:8001" # FastAPI (if enabled)
+    depends_on:
+      - ollama
+    networks:
+      - prismweave-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Ollama LLM Server (optional - can use host's Ollama)
+  ollama:
+    image: ollama/ollama:latest
+    container_name: prismweave-ollama
+    profiles:
+      - with-ollama # Use --profile with-ollama to include this service
+    volumes:
+      - ollama-models:/root/.ollama
+    ports:
+      - "11434:11434"
+    networks:
+      - prismweave-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Website Frontend
+  website:
+    build:
+      context: ./website
+      dockerfile: Dockerfile
+      target: development
+    container_name: prismweave-website-dev
+    volumes:
+      - ./website:/app:ro
+      - ./shared-styles:/app/shared-styles:ro
+    ports:
+      - "3000:3000"
+    networks:
+      - prismweave-network
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=development
+      - API_URL=http://ai-processing:8000
+
+  # Visualization Frontend
+  visualization:
+    build:
+      context: ./visualization
+      dockerfile: Dockerfile
+      target: development
+    container_name: prismweave-viz-dev
+    volumes:
+      - ./visualization:/app:ro
+      - ./shared-styles:/app/shared-styles:ro
+    ports:
+      - "3001:3001"
+    networks:
+      - prismweave-network
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=development
+      - API_URL=http://ai-processing:8000
+
+networks:
+  prismweave-network:
+    driver: bridge
+
+volumes:
+  chroma-data:
+    driver: local
+  ollama-models:
+    driver: local
