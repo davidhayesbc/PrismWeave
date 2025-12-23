@@ -10,7 +10,7 @@ PrismWeave uses a multi-container Docker architecture:
 │                                                       │
 │  ┌──────────────┐  ┌──────────────┐                │
 │  │   Website    │  │Visualization │                │
-│  │  :3000/:80   │  │  :3001/:80   │                │
+│  │  :3002/:80   │  │  :3001/:80   │                │
 │  └──────┬───────┘  └──────┬───────┘                │
 │         │                  │                         │
 │         └────────┬─────────┘                         │
@@ -133,7 +133,7 @@ sudo systemctl restart docker
 
 **Development:**
 
-- Port: `3000`
+- Port: `3002` (configurable via `WEBSITE_PORT`)
 - Hot-reload enabled
 
 **Production:**

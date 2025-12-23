@@ -12,13 +12,16 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Install UV package manager
-RUN curl -LsSf https://astral.sh/uv/install.sh | sh
-ENV PATH="/root/.cargo/bin:$PATH"
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh && \
+    if [ -x /root/.local/bin/uv ]; then cp /root/.local/bin/uv /usr/local/bin/uv; \
+    elif [ -x /root/.cargo/bin/uv ]; then cp /root/.cargo/bin/uv /usr/local/bin/uv; \
+    else echo "uv installation did not produce an executable" >&2; exit 1; fi
+ENV PATH="/usr/local/bin:$PATH"
 
 WORKDIR /app
 
 # Copy dependency files
-COPY pyproject.toml uv.lock* ./
+COPY ai-processing/pyproject.toml ai-processing/uv.lock* ai-processing/README.md ./
 
 # Development stage
 FROM base as development
@@ -27,7 +30,10 @@ FROM base as development
 RUN uv sync --all-extras
 
 # Copy source code
-COPY . .
+COPY ai-processing/src ./src
+COPY ai-processing/prismweave_mcp ./prismweave_mcp
+COPY ai-processing/cli.py ./cli.py
+COPY ai-processing/config.yaml ./config.yaml
 
 # Create workspace directories
 RUN mkdir -p /workspace/documents /workspace/.prismweave/chroma_db
@@ -46,10 +52,10 @@ FROM base as production
 RUN uv sync --no-dev
 
 # Copy source code
-COPY src ./src
-COPY prismweave_mcp ./prismweave_mcp
-COPY cli ./cli
-COPY config.yaml ./
+COPY ai-processing/src ./src
+COPY ai-processing/prismweave_mcp ./prismweave_mcp
+COPY ai-processing/cli.py ./cli.py
+COPY ai-processing/config.yaml ./config.yaml
 
 # Create workspace directories
 RUN mkdir -p /workspace/documents /workspace/.prismweave/chroma_db
