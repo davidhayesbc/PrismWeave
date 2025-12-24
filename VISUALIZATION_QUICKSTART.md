@@ -45,12 +45,12 @@ Then open:
 
 **Important**: Run frontend commands from the `visualization` directory.
 
-| Command                | Description                                |
-| ---------------------- | ------------------------------------------ |
-| `npm run dev`          | Run the Vue frontend dev server            |
-| `npm run build`        | Build for production                       |
-| `npm run preview`      | Preview production build                   |
-| `npm run type-check`   | TypeScript type checking                   |
+| Command              | Description                     |
+| -------------------- | ------------------------------- |
+| `npm run dev`        | Run the Vue frontend dev server |
+| `npm run build`      | Build for production            |
+| `npm run preview`    | Preview production build        |
+| `npm run type-check` | TypeScript type checking        |
 
 ## Ports
 
