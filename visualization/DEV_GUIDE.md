@@ -20,51 +20,57 @@ Before running the visualization layer, ensure you have:
    npm install
    ```
 
-## Available Commands
+## Recommended: Docker Compose (Dev)
 
-### Start Everything (Recommended)
+The easiest way to run the visualization + API together is via the repo-level Docker Compose.
 
-To launch both the API backend and Vue frontend together:
+```bash
+cd ..
+docker-compose up -d --build
+```
+
+Then open:
+
+- Frontend: `http://localhost:3001`
+- API: `http://localhost:8000/docs`
+
+In Docker dev mode, the frontend dev server still proxies `/api/*` to the backend via the `API_URL` environment value.
+
+## Manual: Run Services Separately (No Docker)
+
+### 1) Backend API (ai-processing)
+
+From the repo root:
+
+```bash
+cd ai-processing
+uv sync
+uv run python -m uvicorn src.api.app:app --reload --host 0.0.0.0 --port 8000
+```
+
+### 2) Frontend (visualization)
+
+In another terminal:
 
 ```bash
 cd visualization
-npm run dev:all
+npm install
+npm run dev
 ```
 
-This will start:
+Open `http://localhost:3001`.
 
-- **API Server** on `http://localhost:8000` (blue output)
-- **Frontend Dev Server** on `http://localhost:5173` (green output)
+The Vite dev server proxies `/api/*` to `http://localhost:8000` by default (config in `vite.config.ts`).
 
-Open your browser to `http://localhost:5173` to use the application.
+## Available Commands
 
-**Note**: The first time you run this, you may need to build the visualization index. See [Troubleshooting](#troubleshooting) below.
-
-### Individual Services
-
-If you need to run services separately for debugging:
-
-#### Backend API Only
-
-```bash
-npm run dev:api
-```
-
-Runs the FastAPI backend with hot-reload enabled on port 8000.
-
-#### Frontend Only
-
-```bash
-npm run dev:frontend
-```
-
-Or simply:
+### Frontend dev server
 
 ```bash
 npm run dev
 ```
 
-Runs the Vite development server on port 5173.
+Runs the Vite dev server on port 3001.
 
 ### Other Commands
 
@@ -74,7 +80,7 @@ Runs the Vite development server on port 5173.
 npm run build
 ```
 
-Compiles TypeScript and builds the Vue app for production.
+Builds the Vue app for production.
 
 #### Preview Production Build
 
@@ -92,6 +98,8 @@ npm run type-check
 
 Runs TypeScript type checking without emitting files.
 
+Note: If `vue-tsc` errors in your environment, keep `npm run build` working and run type-checking in CI or with a compatible Node version.
+
 ## Architecture
 
 ### API Backend
@@ -107,7 +115,7 @@ Runs TypeScript type checking without emitting files.
 ### Frontend
 
 - **Framework**: Vue 3 + TypeScript + Vite
-- **Port**: 5173
+- **Port**: 3001
 - **Proxy**: API requests to `/api/*` are proxied to `http://localhost:8000/*`
 - **Features**:
   - Interactive document visualization with D3.js
@@ -188,8 +196,8 @@ If you see port conflicts:
 # Kill process on port 8000 (API)
 lsof -ti:8000 | xargs kill -9
 
-# Kill process on port 5173 (Frontend)
-lsof -ti:5173 | xargs kill -9
+# Kill process on port 3001 (Frontend)
+lsof -ti:3001 | xargs kill -9
 ```
 
 ### Python Virtual Environment Not Found
@@ -212,11 +220,11 @@ uv sync
 - **Backend**: Uses `uvicorn --reload` - changes to Python files are detected automatically
 - **Frontend**: Uses Vite HMR - changes to Vue/TS files update instantly
 
-If hot reload stops working, restart the services with `npm start`.
+If hot reload stops working, restart the services (Docker Compose or `npm run dev`).
 
 ## Development Workflow
 
-1. **Start both services**: `npm start`
+1. **Start services**: via Docker Compose, or run backend + frontend manually
 2. **Make changes**:
    - Backend: Edit files in `../ai-processing/src/api/`
    - Frontend: Edit files in `./src/`
@@ -243,7 +251,6 @@ visualization/
 
 ## Notes
 
-- The `concurrently` package allows running multiple npm scripts simultaneously with colored output
 - The API runs with `--reload` flag for automatic reloading during development
 - Frontend proxies `/api/*` requests to the backend automatically
 - Both services need to be running for the full application to work

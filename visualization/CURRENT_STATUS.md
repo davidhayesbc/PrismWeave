@@ -2,8 +2,9 @@
 
 ## ✅ What's Working
 
-- **npm scripts configured** - Both API and frontend can be launched together
-- **Services running** - Both API (port 8000) and frontend (port 5173) are operational
+- **Frontend configured** - Vue app calls the API via `/api/*`
+- **Services can run together** - Use Docker Compose (recommended) or run backend manually
+- **Ports** - API on 8000, frontend on 3001
 - **Dependencies installed** - All Python and Node.js dependencies are in place
 - **API endpoints functional** - FastAPI server is responding correctly
 
@@ -64,18 +65,34 @@ found a tab character that violates indentation
 
 ## 🚀 How to Start Development
 
-From the `visualization` directory:
+### Option A (Recommended): Docker Compose
+
+From the repo root:
 
 ```bash
-npm run dev:all
+docker-compose up -d --build
 ```
 
-This launches both services with colored output:
+Open:
 
-- **[API]** - Blue text - API server on port 8000
-- **[Frontend]** - Green text - Frontend on port 5173
+- Frontend: `http://localhost:3001`
+- API docs: `http://localhost:8000/docs`
 
-Stop with `Ctrl+C`.
+### Option B: Run backend manually
+
+```bash
+cd ai-processing
+uv sync
+uv run python -m uvicorn src.api.app:app --reload --host 0.0.0.0 --port 8000
+```
+
+Then in another terminal:
+
+```bash
+cd visualization
+npm install
+npm run dev
+```
 
 ## 📝 Next Steps
 
@@ -88,23 +105,16 @@ Stop with `Ctrl+C`.
 - **Quick Reference**: `/home/dhayes/Source/PrismWeave/VISUALIZATION_QUICKSTART.md`
 - **Full Guide**: `/home/dhayes/Source/PrismWeave/visualization/DEV_GUIDE.md`
 
-Both documents have been updated with:
-
-- Correct commands (`npm run dev:all` instead of `npm start`)
-- Troubleshooting for 404 errors
-- YAML parsing error solutions
-- Index building procedures
-
 ## 🔧 Useful Commands
 
 ```bash
 # Check what's running on ports
 lsof -i:8000  # API
-lsof -i:5173  # Frontend
+lsof -i:3001  # Frontend
 
 # Kill if needed
 lsof -ti:8000 | xargs kill -9
-lsof -ti:5173 | xargs kill -9
+lsof -ti:3001 | xargs kill -9
 
 # Test API directly
 curl http://localhost:8000/
@@ -119,12 +129,8 @@ curl -X POST http://localhost:8000/visualization/rebuild
 
 ## Current Terminal Session
 
-Services are currently running in background (terminal ID: a6ac0753-1b8a-478c-9b77-043c0e792f23).
-
-You can stop them with:
+(If you used Docker Compose) stop with:
 
 ```bash
-pkill -f "concurrently"
+docker-compose down
 ```
-
-Or press Ctrl+C if they're in foreground.

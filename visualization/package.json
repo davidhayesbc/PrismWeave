@@ -5,11 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "dev:api": "cd ../ai-processing && .venv/bin/python -m uvicorn src.api.app:app --reload --host 0.0.0.0 --port 8000",
-    "dev:frontend": "vite",
-    "dev:all": "concurrently -n \"API,Frontend\" -c \"blue,green\" \"npm run dev:api\" \"npm run dev:frontend\"",
-    "start": "npm run dev:all",
-    "build": "vue-tsc && vite build",
+    "build": "vite build",
     "preview": "vite preview",
     "type-check": "vue-tsc --noEmit"
   },
@@ -26,7 +22,6 @@
     "@types/marked": "^6.0.0",
     "@types/node": "^20.10.6",
     "@vitejs/plugin-vue": "^5.0.0",
-    "concurrently": "^8.2.2",
     "typescript": "^5.3.3",
     "vite": "^5.0.8",
     "vue-tsc": "^1.8.27"

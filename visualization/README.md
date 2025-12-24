@@ -25,16 +25,31 @@ npm run build
 # Preview production build
 npm run preview
 
-# Type check
+# Type check (separate from build)
 npm run type-check
 ```
 
 ## Configuration
 
-The API endpoint is configured in `vite.config.ts`:
+The frontend calls the backend through the API service in `src/services/api.ts`.
+By default it uses a base path of `/api`.
 
-- Development: proxies `/api` to `http://localhost:8000`
-- Production: configure `VITE_API_BASE_URL` environment variable
+**Development**
+
+- Vite proxies `/api/*` to the backend (default: `http://localhost:8000`).
+- You can override the proxy target with `API_URL`.
+
+**Production (Docker Compose)**
+
+- Nginx proxies `/api/*` to the `ai-processing` service.
+- No special `VITE_API_BASE_URL` is needed; keeping it as `/api` is recommended.
+
+If you deploy the frontend outside of the Compose network, set `VITE_API_BASE_URL` at build time to point at your backend.
+
+Ports (defaults):
+
+- Frontend dev server: `http://localhost:3001`
+- Backend API: `http://localhost:8000` (Swagger docs at `/docs`)
 
 ## Architecture
 

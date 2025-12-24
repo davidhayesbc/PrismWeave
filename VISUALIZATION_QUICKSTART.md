@@ -1,20 +1,17 @@
 # PrismWeave Visualization Layer - Quick Start
 
-## Launch the Application
+## Launch the Application (Recommended)
 
-From the `visualization` directory:
+Use Docker Compose from the repo root to start both the API and the visualization frontend:
 
 ```bash
-cd visualization
-npm start
+docker-compose up -d --build
 ```
 
-This single command launches:
+Then open:
 
-- ✅ **API Backend** (FastAPI on port 8000)
-- ✅ **Vue Frontend** (Vite on port 5173)
-
-Then open your browser to: **http://localhost:5173**
+- Frontend: **http://localhost:3001**
+- API docs: **http://localhost:8000/docs**
 
 ## First Time Setup
 
@@ -41,33 +38,33 @@ Then open your browser to: **http://localhost:5173**
    ```
 
 4. **Start the application**:
-   ```bash
-   cd visualization
-   npm start
-   ```
+   - If you’re using Docker Compose: `docker-compose up -d --build`
+   - If you’re running manually: see below
 
 ## All Available Commands
 
-**Important**: Run these commands from the `visualization` directory!
+**Important**: Run frontend commands from the `visualization` directory.
 
 | Command                | Description                                |
 | ---------------------- | ------------------------------------------ |
-| `npm run dev:all`      | Launch both API and frontend (recommended) |
-| `npm run dev:api`      | Run only the API backend                   |
-| `npm run dev:frontend` | Run only the Vue frontend                  |
+| `npm run dev`          | Run the Vue frontend dev server            |
 | `npm run build`        | Build for production                       |
 | `npm run preview`      | Preview production build                   |
 | `npm run type-check`   | TypeScript type checking                   |
 
 ## Ports
 
-- **Frontend**: http://localhost:5173
+- **Frontend**: http://localhost:3001
 - **API**: http://localhost:8000
 - **API Docs**: http://localhost:8000/docs (Swagger UI)
 
 ## Stopping Services
 
-Press `Ctrl+C` in the terminal to stop both services.
+If you used Docker Compose:
+
+```bash
+docker-compose down
+```
 
 ## Troubleshooting
 
@@ -115,8 +112,8 @@ If you see `Address already in use` errors:
 # Kill process on port 8000 (API)
 lsof -ti:8000 | xargs kill -9
 
-# Kill process on port 5173 (Frontend)
-lsof -ti:5173 | xargs kill -9
+# Kill process on port 3001 (Frontend)
+lsof -ti:3001 | xargs kill -9
 ```
 
 ### Wrong Directory
@@ -125,7 +122,7 @@ Make sure you're in the `visualization` directory when running npm commands:
 
 ```bash
 cd /path/to/PrismWeave/visualization
-npm run dev:all
+npm run dev
 ```
 
 ## More Information
