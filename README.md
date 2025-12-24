@@ -127,10 +127,6 @@ python cli.py --help
 
 This repo includes a file-based Aspire AppHost that can orchestrate the Python API/MCP server plus the dev UIs, and routes logs/traces/metrics via OpenTelemetry to the Aspire dashboard.
 
-Implementation plan:
-
-- [ASPIRE_IMPLEMENTATION_PLAN.md](ASPIRE_IMPLEMENTATION_PLAN.md)
-
 Files:
 
 - [apphost.cs](apphost.cs)
@@ -144,7 +140,9 @@ Prereqs:
 Run (from repo root):
 
 ```bash
-aspire run
+npm run aspire:run
+# or: aspire run
+# or (no Aspire CLI): npm run aspire:run:dotnet
 ```
 
 Note:

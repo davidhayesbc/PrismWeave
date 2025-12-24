@@ -1,5 +1,7 @@
 # PrismWeave Docker Documentation
 
+Note: For local dev, the recommended orchestration path is now the Aspire AppHost (see the repo README). Docker Compose remains a supported alternative and is useful for containerizing the full stack.
+
 ## Architecture Overview
 
 PrismWeave uses a multi-container Docker architecture:
@@ -10,7 +12,8 @@ PrismWeave uses a multi-container Docker architecture:
 │                                                       │
 │  ┌──────────────┐  ┌──────────────┐                │
 │  │   Website    │  │Visualization │                │
-│  │  :3002/:80   │  │  :3001/:80   │                │
+│  │  :3002(dev)  │  │  :3001(dev)  │                │
+│  │  :80(prod)   │  │  :8080(prod) │                │
 │  └──────┬───────┘  └──────┬───────┘                │
 │         │                  │                         │
 │         └────────┬─────────┘                         │
@@ -194,7 +197,6 @@ npm run docker:shell:ai      # Access AI container
 npm run docker:shell:web     # Access website container
 
 # Utilities
-npm run docker:backup        # Backup ChromaDB
 npm run docker:pull-models   # Pull Ollama models
 npm run docker:health        # Check container health
 ```
@@ -475,7 +477,7 @@ curl http://localhost:8000/tools
 
 1. **Network Isolation**: Services communicate via internal network
 2. **Non-root User**: Production containers run as `prismweave` user
-3. **Read-only Mounts**: Source code mounted read-only in dev
+3. **Read-only Mounts**: Prefer read-only mounts where feasible; the default dev compose mounts source as read/write for hot reload
 4. **Secret Management**: Use Docker secrets or env files (not committed)
 5. **Container Updates**: Regularly update base images
 

@@ -75,7 +75,7 @@ services:
       target: development
     container_name: prismweave-website-dev
     volumes:
-      - ./website:/app:rw,Z
+      - ./website:/app:rw,z
       - /app/node_modules
       # website/shared-styles is a symlink to ../shared-styles, so mount it at /shared-styles
       - ./shared-styles:/shared-styles:ro,z
@@ -99,7 +99,7 @@ services:
       target: development
     container_name: prismweave-viz-dev
     volumes:
-      - ./visualization:/app:rw,Z
+      - ./visualization:/app:rw,z
       - /app/node_modules
       - ./shared-styles:/shared-styles:ro,z
     ports:

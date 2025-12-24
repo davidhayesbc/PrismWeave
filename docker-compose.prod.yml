@@ -21,6 +21,7 @@ services:
       - MCP_TRANSPORT=sse
       - DOCUMENTS_PATH=/workspace/documents
       - CHROMA_PERSIST_DIR=/workspace/.prismweave/chroma_db
+      - ARTICLE_INDEX_PATH=/workspace/.prismweave/chroma_db/index/articles.json
     ports:
       - "8000:8000"
     networks:
