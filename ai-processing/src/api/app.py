@@ -60,7 +60,7 @@ async def lifespan(_: FastAPI):
     _initialize_state()
 
     # Emit a clear startup log so Docker logs show where this API is listening.
-    api_port = int(os.environ.get("API_PORT", "8001"))
+    api_port = int(os.environ.get("API_PORT", "8000"))
     api_host = os.environ.get("API_HOST", "0.0.0.0")
     display_host = "localhost" if api_host in {"0.0.0.0", "::"} else api_host
 
@@ -69,12 +69,64 @@ async def lifespan(_: FastAPI):
     yield
 
 
-# Initialize FastAPI app
+# Initialize FastAPI app with comprehensive OpenAPI documentation
 app = FastAPI(
     title="PrismWeave Visualization API",
-    description="HTTP API for PrismWeave document visualization and management",
+    description="""
+    # PrismWeave Visualization API
+    
+    HTTP API for PrismWeave document visualization and management.
+    
+    ## Features
+    
+    - **Article Management**: CRUD operations for captured documents
+    - **Visualization**: 2D graph visualization with semantic embeddings
+    - **Metadata**: Rich metadata extraction and indexing
+    - **Search**: Semantic search capabilities
+    
+    ## Endpoints
+    
+    - `/articles` - List all articles with metadata
+    - `/articles/{id}` - Get, update, or delete a specific article
+    - `/visualization/rebuild` - Rebuild the visualization index
+    - `/health` - Health check endpoint
+    
+    ## Data Flow
+    
+    1. Articles are captured via browser extension
+    2. Metadata is extracted and indexed
+    3. Embeddings are generated for semantic similarity
+    4. 2D coordinates are computed for visualization
+    5. Frontend displays interactive graph
+    """,
     version="0.1.0",
     lifespan=lifespan,
+    contact={
+        "name": "PrismWeave Team",
+        "url": "https://github.com/davidhayesbc/PrismWeave",
+    },
+    license_info={
+        "name": "MIT",
+        "url": "https://opensource.org/licenses/MIT",
+    },
+    openapi_tags=[
+        {
+            "name": "root",
+            "description": "API root and information endpoints",
+        },
+        {
+            "name": "health",
+            "description": "Health check and status monitoring",
+        },
+        {
+            "name": "articles",
+            "description": "Article management operations (CRUD)",
+        },
+        {
+            "name": "visualization",
+            "description": "Visualization index and rebuild operations",
+        },
+    ],
 )
 
 # Add CORS middleware for local development
@@ -220,23 +272,58 @@ def _apply_layout_to_index(index: dict[str, ArticleMetadata], docs_root: Path) -
     return updated
 
 
-@app.get("/", tags=["root"])
+@app.get(
+    "/",
+    tags=["root"],
+    summary="API Information",
+    description="Get API metadata and available endpoints",
+    response_description="API information and endpoint links",
+)
 async def root():
-    """Root endpoint with API information"""
+    """
+    Get API information and available endpoints.
+
+    Returns basic API metadata including version, available endpoints,
+    and links to API documentation.
+    """
     return {
         "name": "PrismWeave Visualization API",
         "version": "0.1.0",
+        "description": "HTTP API for PrismWeave document visualization and management",
+        "documentation": "/docs",
+        "redoc": "/redoc",
+        "openapi_schema": "/openapi.json",
         "endpoints": {
-            "articles": "/articles",
+            "health": "/health",
+            "articles_list": "/articles",
             "article_detail": "/articles/{id}",
-            "rebuild": "/visualization/rebuild",
+            "article_update": "PUT /articles/{id}",
+            "article_delete": "DELETE /articles/{id}",
+            "visualization_rebuild": "/visualization/rebuild",
         },
     }
 
 
-@app.get("/health", tags=["health"])
+@app.get(
+    "/health",
+    tags=["health"],
+    summary="Health Check",
+    description="Check API health status and resource availability",
+    response_description="Health status with detailed diagnostics",
+)
 async def health():
-    """Health check endpoint for container orchestrators."""
+    """
+    Health check endpoint for container orchestrators and monitoring.
+
+    Returns detailed health status including:
+    - Overall service status (healthy/degraded)
+    - Documents root directory status
+    - Index file availability and status
+    - Service metadata (version, name)
+
+    This endpoint is used by Docker health checks and load balancers
+    to determine if the service is ready to accept requests.
+    """
 
     documents_root_value = str(documents_root) if documents_root is not None else None
     documents_root_status = _path_status(documents_root) if documents_root is not None else "uninitialized"
@@ -256,15 +343,49 @@ async def health():
     }
 
 
-@app.get("/articles", response_model=List[ArticleSummary], tags=["articles"])
+@app.get(
+    "/articles",
+    response_model=List[ArticleSummary],
+    tags=["articles"],
+    summary="List All Articles",
+    description="Get a list of all articles with metadata and visualization coordinates",
+    response_description="List of article summaries with metadata and coordinates",
+)
 async def get_articles():
     """
     Get list of all articles with metadata and visualization coordinates.
 
-    Returns a list of article summaries including:
-    - Basic metadata (id, title, topic, tags, etc.)
-    - Visualization coordinates (x, y) if available
-    - Optional neighbor IDs for drawing edges
+    Returns a comprehensive list of all articles in the system, each containing:
+
+    **Metadata:**
+    - Article ID (typically file path)
+    - Title and topic
+    - Tags for categorization
+    - Word count and excerpt
+    - Creation and update timestamps
+    - Read status (read/unread)
+
+    **Visualization Data:**
+    - X/Y coordinates for 2D graph visualization
+    - Neighbor IDs for drawing edges between related articles
+
+    The coordinates are computed from semantic embeddings when available,
+    falling back to a deterministic grid layout otherwise.
+
+    **Example Response:**
+    ```json
+    [
+      {
+        "id": "documents/tech/python-basics.md",
+        "title": "Python Basics",
+        "topic": "programming",
+        "tags": ["python", "tutorial"],
+        "x": 0.5,
+        "y": 0.3,
+        "neighbors": ["documents/tech/advanced-python.md"]
+      }
+    ]
+    ```
     """
     selected_index_path = _select_readable_index_path()
 
@@ -289,16 +410,50 @@ async def get_articles():
     return articles
 
 
-@app.get("/articles/{article_id:path}", response_model=ArticleDetail, tags=["articles"])
+@app.get(
+    "/articles/{article_id:path}",
+    response_model=ArticleDetail,
+    tags=["articles"],
+    summary="Get Article Details",
+    description="Get detailed information for a specific article including full markdown content",
+    response_description="Article details with full content and metadata",
+    responses={
+        200: {
+            "description": "Article found and returned successfully",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "id": "documents/tech/python-basics.md",
+                        "title": "Python Basics",
+                        "content": "# Python Basics\n\nThis article covers...",
+                        "word_count": 1250,
+                    }
+                }
+            },
+        },
+        404: {"description": "Article not found"},
+        500: {"description": "Server error reading article"},
+    },
+)
 async def get_article(article_id: str):
     """
     Get detailed information for a specific article including full content.
 
-    Args:
-        article_id: Article identifier (typically the file path)
+    Retrieves complete article data including all metadata fields and the
+    full markdown content. Useful for displaying article details in the UI
+    or for editing operations.
 
-    Returns:
-        ArticleDetail with metadata and full markdown content
+    **Path Parameters:**
+    - `article_id`: Article identifier (typically the relative file path)
+      Example: `documents/tech/python-basics.md`
+
+    **Returns:**
+    - All metadata fields (same as ArticleSummary)
+    - Full markdown content with frontmatter
+
+    **Error Cases:**
+    - 404: Article not found in index or file missing
+    - 500: Permission denied or file read error
     """
     selected_index_path = _select_readable_index_path()
 
@@ -360,23 +515,53 @@ async def get_article(article_id: str):
     )
 
 
-@app.put("/articles/{article_id:path}", response_model=ArticleDetail, tags=["articles"])
+@app.put(
+    "/articles/{article_id:path}",
+    response_model=ArticleDetail,
+    tags=["articles"],
+    summary="Update Article",
+    description="Update an article's metadata and/or content",
+    response_description="Updated article with all changes applied",
+    responses={
+        200: {"description": "Article updated successfully"},
+        404: {"description": "Article not found"},
+        500: {"description": "Server error updating article"},
+    },
+)
 async def update_article(article_id: str, update_request: UpdateArticleRequest):
     """
     Update an article's metadata and/or content.
 
-    Args:
-        article_id: Article identifier (typically the file path)
-        update_request: Fields to update (all optional)
+    Allows partial updates to any combination of fields. Only provided
+    fields will be updated; others remain unchanged.
 
-    Returns:
-        Updated ArticleDetail
+    **Path Parameters:**
+    - `article_id`: Article identifier (file path)
 
-    Notes:
-        - Updates markdown file on disk with new frontmatter/content
-        - Updates metadata index
-        - Automatically marks article as 'read' if not already
-        - Does NOT automatically recompute embeddings/layout
+    **Request Body Fields (all optional):**
+    - `title`: Update article title
+    - `topic`: Update topic/category
+    - `tags`: Update tag list (replaces existing)
+    - `read_status`: Update read status (read/unread)
+    - `content`: Update markdown content (triggers word recount)
+
+    **Behavior:**
+    - Updates markdown file on disk with new frontmatter/content
+    - Updates metadata index
+    - Automatically marks article as 'read' if not already
+    - Does NOT automatically recompute embeddings (call rebuild for that)
+
+    **Returns:**
+    - Complete updated ArticleDetail
+
+    **Example Request:**
+    ```json
+    {
+      "title": "Python Basics - Updated",
+      "tags": ["python", "tutorial", "beginner"],
+      "read_status": "read"
+    }
+    ```
     """
     selected_index_path = _select_readable_index_path()
 
@@ -482,16 +667,43 @@ async def update_article(article_id: str, update_request: UpdateArticleRequest):
     )
 
 
-@app.delete("/articles/{article_id:path}", status_code=status.HTTP_204_NO_CONTENT, tags=["articles"])
+@app.delete(
+    "/articles/{article_id:path}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    tags=["articles"],
+    summary="Delete Article",
+    description="Permanently delete an article and all associated data",
+    response_description="Article deleted successfully (no content)",
+    responses={
+        204: {"description": "Article deleted successfully"},
+        404: {"description": "Article not found"},
+        500: {"description": "Server error deleting article"},
+    },
+)
 async def delete_article(article_id: str):
     """
-    Delete an article (removes markdown file, metadata index entry, and Chroma records).
+    Permanently delete an article and all associated data.
 
-    Args:
-        article_id: Article identifier (typically the file path)
+    Removes all traces of the article from the system:
 
-    Returns:
-        204 No Content on success
+    **Deletion Steps:**
+    1. Deletes markdown file from disk
+    2. Removes entry from metadata index
+    3. Removes embeddings from Chroma vector database
+
+    **Path Parameters:**
+    - `article_id`: Article identifier (file path)
+
+    **Returns:**
+    - 204 No Content on success
+
+    **Warning:**
+    This operation is permanent and cannot be undone.
+    Make sure to back up important articles before deletion.
+
+    **Error Cases:**
+    - 404: Article not found in index
+    - 500: File system or database error
     """
     selected_index_path = _select_readable_index_path()
 
@@ -539,18 +751,61 @@ async def delete_article(article_id: str):
     return None
 
 
-@app.post("/visualization/rebuild", response_model=RebuildResponse, tags=["visualization"])
+@app.post(
+    "/visualization/rebuild",
+    response_model=RebuildResponse,
+    tags=["visualization"],
+    summary="Rebuild Visualization Index",
+    description="Rebuild the entire visualization index with metadata and layout",
+    response_description="Rebuild status with article count",
+    responses={
+        200: {
+            "description": "Index rebuilt successfully",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "status": "success",
+                        "article_count": 42,
+                        "message": "Successfully rebuilt visualization index with 42 articles",
+                    }
+                }
+            },
+        },
+        404: {"description": "Documents directory not found"},
+        500: {"description": "Server error during rebuild"},
+    },
+)
 async def rebuild_visualization():
     """
-    Rebuild the visualization index (metadata + layout).
+    Rebuild the entire visualization index with metadata and layout.
 
-    Triggers the same process as 'visualize build-index' CLI command:
-    - Scans documents directory for markdown files
-    - Extracts metadata and computes layout
-    - Updates the metadata index
+    Performs a complete rebuild of the visualization index, equivalent to
+    running the `visualize build-index` CLI command.
 
-    Returns:
-        RebuildResponse with status and article count
+    **Rebuild Process:**
+    1. Scans documents directory for all markdown files
+    2. Extracts metadata from frontmatter
+    3. Computes 2D layout coordinates:
+       - Uses semantic embeddings when available
+       - Falls back to deterministic grid layout
+    4. Computes nearest neighbors for each article
+    5. Saves updated index to disk
+
+    **When to Use:**
+    - After adding many new articles
+    - After updating embeddings
+    - When visualization appears incorrect
+    - To refresh metadata from updated files
+
+    **Performance:**
+    - Processing time scales with document count
+    - Embedding generation (if needed) is the slowest step
+    - Typically takes 1-5 seconds for 100 documents
+
+    **Returns:**
+    - Status (success/error)
+    - Number of articles processed
+    - Human-readable status message
     """
     if documents_root is None or index_path is None:
         raise HTTPException(
@@ -592,7 +847,7 @@ def main():
     """Run the API server"""
     import uvicorn
 
-    port = int(os.environ.get("API_PORT", "8001"))
+    port = int(os.environ.get("API_PORT", "8000"))
     uvicorn.run(app, host="0.0.0.0", port=port)
 
 

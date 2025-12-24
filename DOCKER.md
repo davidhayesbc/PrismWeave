@@ -83,7 +83,7 @@ docker-compose -f docker-compose.prod.yml up -d
 **Ports:**
 
 - `8000` - MCP Server (HTTP/SSE endpoint)
-- `8001` - FastAPI server (optional)
+- `8000` - Unified API server (MCP SSE + Visualization REST)
 
 **Volumes:**
 

@@ -87,42 +87,9 @@ services:
     environment:
       - NODE_ENV=development
       - API_URL=http://ai-processing:8000
-
-  # Visualization REST API (FastAPI)
-  ai-api:
-    build:
-      context: .
-      dockerfile: ai-processing/Dockerfile
-      target: development
-    container_name: prismweave-api-dev
-    volumes:
-      - ${PRISMWEAVE_DOCS_PATH:-../PrismWeaveDocs}:/workspace/documents:rw,z
-      - chroma-data:/workspace/.prismweave/chroma_db
-      - ./ai-processing/src:/app/src:rw,z
-      - ./ai-processing/config.yaml:/app/config.yaml:rw,z
-    environment:
-      - PYTHONUNBUFFERED=1
-      - LOG_LEVEL=${LOG_LEVEL:-INFO}
-      - PYTHONPATH=/app
-      - DOCUMENTS_PATH=/workspace/documents
-      - CHROMA_PERSIST_DIR=/workspace/.prismweave/chroma_db
-      - ARTICLE_INDEX_PATH=/workspace/.prismweave/chroma_db/index/articles.json
-      - API_PORT=8001
-    working_dir: /app
-    ports:
-      - "8001:8001"
-    networks:
-      - prismweave-network
-    restart: unless-stopped
-    command:
-      [
-        "/app/.venv/bin/uvicorn",
-        "src.api.app:app",
-        "--host",
-        "0.0.0.0",
-        "--port",
-        "8001",
-      ]
+    depends_on:
+      ai-processing:
+        condition: service_healthy
 
   # Visualization Frontend
   visualization:
@@ -142,7 +109,10 @@ services:
     restart: unless-stopped
     environment:
       - NODE_ENV=development
-      - API_URL=http://ai-api:8001
+      - API_URL=http://ai-processing:8000
+    depends_on:
+      ai-processing:
+        condition: service_healthy
 
 networks:
   prismweave-network:

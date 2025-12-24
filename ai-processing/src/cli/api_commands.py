@@ -11,7 +11,7 @@ import requests
 
 def _get_base_url(base_url: str | None) -> str:
     env = os.environ.get("PRISMWEAVE_API_URL")
-    return (base_url or env or "http://localhost:8001").rstrip("/")
+    return (base_url or env or "http://localhost:8000").rstrip("/")
 
 
 def _request(method: str, url: str, *, json_body: dict[str, Any] | None = None) -> Any:
@@ -25,7 +25,9 @@ def _request(method: str, url: str, *, json_body: dict[str, Any] | None = None) 
 
 @click.group()
 @click.option(
-    "--base-url", default=None, help="REST API base URL (default: PRISMWEAVE_API_URL or http://localhost:8001)"
+    "--base-url",
+    default=None,
+    help="REST API base URL (default: PRISMWEAVE_API_URL or http://localhost:8000)",
 )
 @click.pass_context
 def api(ctx: click.Context, base_url: str | None) -> None:

@@ -11,7 +11,7 @@ from cli import cli
 def test_api_articles_prints_json(monkeypatch):
     def fake_request(method, url, json=None, timeout=None):
         assert method == "GET"
-        assert url == "http://localhost:8001/articles"
+        assert url == "http://localhost:8000/articles"
         return SimpleNamespace(ok=True, status_code=200, text="", json=lambda: [{"id": "documents/a.md"}])
 
     monkeypatch.setattr("src.cli.api_commands.requests.request", fake_request)
