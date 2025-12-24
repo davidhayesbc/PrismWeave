@@ -58,6 +58,14 @@ def _initialize_state() -> None:
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     _initialize_state()
+
+    # Emit a clear startup log so Docker logs show where this API is listening.
+    api_port = int(os.environ.get("API_PORT", "8001"))
+    api_host = os.environ.get("API_HOST", "0.0.0.0")
+    display_host = "localhost" if api_host in {"0.0.0.0", "::"} else api_host
+
+    print(f"[ai-api] Listening on http://{api_host}:{api_port} (local: http://{display_host}:{api_port})")
+    print(f"[ai-api] Health: http://{display_host}:{api_port}/health")
     yield
 
 

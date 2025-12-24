@@ -409,8 +409,14 @@ def main():
     logger.info(f"Debug mode: {args.debug}")
 
     if args.transport == "sse":
-        logger.info(f"HTTP Server: http://{args.host}:{args.port}")
-        logger.info(f"SSE endpoint: http://{args.host}:{args.port}/sse")
+        bind_host = args.host
+        bind_port = args.port
+        display_host = "localhost" if bind_host in {"0.0.0.0", "::"} else bind_host
+
+        logger.info(f"Listening on http://{bind_host}:{bind_port}")
+        logger.info(f"Local URL: http://{display_host}:{bind_port}")
+        logger.info(f"Health: http://{display_host}:{bind_port}/health")
+        logger.info(f"SSE endpoint: http://{display_host}:{bind_port}/sse")
         # Run with SSE transport (HTTP server) with CORS enabled for Inspector
         # Configure CORS middleware for MCP Inspector
         from starlette.middleware import Middleware

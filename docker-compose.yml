@@ -41,7 +41,7 @@ services:
       timeout: 10s
       retries: 3
 
-  # Ollama LLM Server (optional - can use host's Ollama)
+  # Ollama LLM Server
   ollama:
     image: ollama/ollama:latest
     container_name: prismweave-ollama
