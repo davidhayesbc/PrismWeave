@@ -15,6 +15,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from src.core.config import Config, load_config
 from src.core.embedding_store import EmbeddingStore
 from src.core.git_tracker import GitTracker
+from src.core.layout import compute_fallback_layout, compute_layout_from_embeddings, compute_nearest_neighbors
 from src.core.metadata_index import (
     INDEX_RELATIVE_PATH,
     ArticleMetadata,
@@ -164,6 +165,53 @@ def _article_metadata_to_summary(article: ArticleMetadata) -> ArticleSummary:
     )
 
 
+def _apply_layout_to_index(index: dict[str, ArticleMetadata], docs_root: Path) -> int:
+    """Populate x/y and neighbors for the given index.
+
+    Prefers embeddings when available; otherwise falls back to a deterministic
+    grid layout. Always returns a coordinate mapping for every index entry.
+    """
+
+    # Base layout is always available.
+    layout_coords = compute_fallback_layout(index.keys())
+
+    # Overlay embedding-derived layout when possible.
+    try:
+        if config is not None:
+            git_tracker = GitTracker(docs_root, config)
+            store = EmbeddingStore(config, git_tracker)
+
+            article_embeddings: dict[str, list[float]] = {}
+            for article in index.values():
+                try:
+                    vector = store.get_article_embedding(docs_root / article.path)
+                    if vector is not None:
+                        article_embeddings[article.id] = list(vector)
+                except Exception:
+                    continue
+
+            if article_embeddings:
+                embedding_coords = compute_layout_from_embeddings(article_embeddings)
+                layout_coords.update(embedding_coords)
+    except Exception:
+        # Embeddings are an enhancement; visualization should still work.
+        pass
+
+    neighbors_map = compute_nearest_neighbors(layout_coords, k=5)
+
+    updated = 0
+    for article_id, article in index.items():
+        coords = layout_coords.get(article_id)
+        if coords is None:
+            continue
+        article.x = float(coords[0])
+        article.y = float(coords[1])
+        article.neighbors = neighbors_map.get(article_id, [])
+        updated += 1
+
+    return updated
+
+
 @app.get("/", tags=["root"])
 async def root():
     """Root endpoint with API information"""
@@ -217,6 +265,15 @@ async def get_articles():
 
     if not index:
         return []
+
+    # Ensure we always have a usable layout for visualization.
+    # Older indexes (or metadata-only rebuilds) can have null x/y/neighbors.
+    if documents_root is not None and any(a.x is None or a.y is None for a in index.values()):
+        try:
+            _apply_layout_to_index(index, documents_root)
+        except Exception:
+            # Fall back to returning whatever we have.
+            pass
 
     # Convert to response models
     articles = [_article_metadata_to_summary(article) for article in index.values()]
@@ -501,8 +558,13 @@ async def rebuild_visualization():
 
     try:
         _ensure_writable_index_path(index_path)
-        # Rebuild the metadata index (this also computes layout if embeddings exist)
+        # Rebuild the metadata index.
         index = build_metadata_index(documents_root, index_path)
+
+        # Always compute a layout (embeddings if available; deterministic fallback otherwise)
+        _apply_layout_to_index(index, documents_root)
+
+        save_index(index, index_path)
 
         return RebuildResponse(
             status="success",

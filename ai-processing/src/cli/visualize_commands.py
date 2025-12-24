@@ -7,7 +7,7 @@ import click
 
 from src.cli_support import CliError, create_state
 from src.core.embedding_store import EmbeddingStore
-from src.core.layout import compute_layout_from_embeddings, compute_nearest_neighbors
+from src.core.layout import compute_fallback_layout, compute_layout_from_embeddings, compute_nearest_neighbors
 from src.core.metadata_index import (
     INDEX_RELATIVE_PATH,
     build_metadata_index,
@@ -67,23 +67,29 @@ def build_index(
         store = EmbeddingStore(state.config, state.git_tracker)
     except Exception as exc:  # pragma: no cover - environment specific
         state.write(f"⚠️  Skipping embedding/layout step (failed to init store): {exc}")
-        return
+        store = None
 
     # Collect an article-level embedding by averaging chunk embeddings per source file.
     article_embeddings: Dict[str, List[float]] = {}
-    for article in index.values():
-        try:
-            vector = store.get_article_embedding(docs_root / article.path)
-            if vector is not None:
-                article_embeddings[article.id] = list(vector)
-        except Exception:
-            continue
+    if store is not None:
+        for article in index.values():
+            try:
+                vector = store.get_article_embedding(docs_root / article.path)
+                if vector is not None:
+                    article_embeddings[article.id] = list(vector)
+            except Exception:
+                continue
 
-    if not article_embeddings:
-        state.write("ℹ️  No embeddings found for articles; layout step skipped")
-        return
-
-    layout_coords = compute_layout_from_embeddings(article_embeddings)
+    if article_embeddings:
+        state.write(f"🧠 Found embeddings for {len(article_embeddings)} articles")
+        layout_coords = compute_layout_from_embeddings(article_embeddings)
+        # Provide deterministic coordinates for articles missing embeddings.
+        fallback_coords = compute_fallback_layout(index.keys())
+        fallback_coords.update(layout_coords)
+        layout_coords = fallback_coords
+    else:
+        state.write("ℹ️  No embeddings found for articles; using fallback layout")
+        layout_coords = compute_fallback_layout(index.keys())
 
     # (3) Compute k-nearest neighbors based on layout coordinates
     neighbors_map = compute_nearest_neighbors(layout_coords, k=5)

@@ -72,6 +72,17 @@ def _fallback_grid_layout(article_ids: Iterable[str]) -> Dict[str, Tuple[float, 
     return coords
 
 
+def compute_fallback_layout(article_ids: Iterable[str]) -> Dict[str, Tuple[float, float]]:
+    """Compute a deterministic 2D layout without requiring embeddings.
+
+    This keeps visualization functional even when documents have not yet
+    been embedded (e.g. fresh repo / cold-start). The layout is stable for
+    a given set of IDs.
+    """
+
+    return _fallback_grid_layout(article_ids)
+
+
 def compute_layout_from_embeddings(embeddings: Dict[str, List[float]]) -> Dict[str, Tuple[float, float]]:
     """Project high-dimensional embeddings into 2D coordinates.
 
@@ -97,4 +108,9 @@ def compute_layout_from_embeddings(embeddings: Dict[str, List[float]]) -> Dict[s
         return _fallback_grid_layout(embeddings.keys())
 
 
-__all__ = ["ArticleLayoutPoint", "compute_layout_from_embeddings", "compute_nearest_neighbors"]
+__all__ = [
+    "ArticleLayoutPoint",
+    "compute_fallback_layout",
+    "compute_layout_from_embeddings",
+    "compute_nearest_neighbors",
+]
