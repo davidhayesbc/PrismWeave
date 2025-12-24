@@ -26,14 +26,14 @@ COPY ai-processing/pyproject.toml ai-processing/uv.lock* ai-processing/README.md
 # Development stage
 FROM base as development
 
-# Install all dependencies including dev
-RUN uv sync --all-extras
-
-# Copy source code
+# Copy source code (needed for installing the local project)
 COPY ai-processing/src ./src
 COPY ai-processing/prismweave_mcp ./prismweave_mcp
 COPY ai-processing/cli.py ./cli.py
 COPY ai-processing/config.yaml ./config.yaml
+
+# Install all dependencies including dev (and install the local project)
+RUN uv sync --all-extras
 
 # Create workspace directories
 RUN mkdir -p /workspace/documents /workspace/.prismweave/chroma_db
@@ -43,19 +43,19 @@ EXPOSE 8000
 EXPOSE 8001
 
 # Development command with hot-reload
-CMD ["uv", "run", "python", "-m", "prismweave_mcp.server", "--transport", "sse", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["/app/.venv/bin/python", "-m", "prismweave_mcp.server", "--transport", "sse", "--host", "0.0.0.0", "--port", "8000"]
 
 # Production stage
 FROM base as production
 
-# Install only production dependencies
-RUN uv sync --no-dev
-
-# Copy source code
+# Copy source code (needed for installing the local project)
 COPY ai-processing/src ./src
 COPY ai-processing/prismweave_mcp ./prismweave_mcp
 COPY ai-processing/cli.py ./cli.py
 COPY ai-processing/config.yaml ./config.yaml
+
+# Install only production dependencies (and install the local project)
+RUN uv sync --no-dev
 
 # Create workspace directories
 RUN mkdir -p /workspace/documents /workspace/.prismweave/chroma_db
@@ -74,4 +74,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD curl -f http://localhost:8000/health || exit 1
 
 # Production command
-CMD ["uv", "run", "python", "-m", "prismweave_mcp.server", "--transport", "sse", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["/app/.venv/bin/python", "-m", "prismweave_mcp.server", "--transport", "sse", "--host", "0.0.0.0", "--port", "8000"]

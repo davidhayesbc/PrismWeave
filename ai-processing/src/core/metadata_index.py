@@ -40,6 +40,7 @@ class ArticleMetadata:
         cls,
         file_path: Path,
         *,
+        documents_root: Path,
         existing: Optional[ArticleMetadata] = None,
     ) -> ArticleMetadata:
         """Create an ArticleMetadata instance from a markdown file.
@@ -50,6 +51,12 @@ class ArticleMetadata:
 
         if not file_path.exists():
             raise FileNotFoundError(file_path)
+
+        documents_root = documents_root.expanduser().resolve()
+        try:
+            relative_path = file_path.resolve().relative_to(documents_root).as_posix()
+        except Exception as exc:
+            raise ValueError(f"File is not under documents root: {file_path} (root={documents_root}): {exc}") from exc
 
         text = file_path.read_text(encoding="utf-8")
         try:
@@ -78,12 +85,13 @@ class ArticleMetadata:
         else:
             tags = []
 
-        article_id = meta.get("id") or _derive_id(file_path)
+        # Stable ID: repo-relative path (optionally overridden by frontmatter id)
+        article_id = meta.get("id") or relative_path
         read_status = (existing.read_status if existing else None) or "unread"
 
         return cls(
             id=str(article_id),
-            path=str(file_path),
+            path=relative_path,
             title=title,
             topic=str(topic) if topic is not None else None,
             tags=tags,
@@ -93,17 +101,6 @@ class ArticleMetadata:
             excerpt=excerpt,
             read_status=read_status,
         )
-
-
-def _derive_id(path: Path) -> str:
-    """Derive a stable identifier from the path.
-
-    Currently this is the POSIX path relative to the documents root. The
-    documents root is expected to be managed by the caller; this helper only
-    ensures a stable textual representation.
-    """
-
-    return path.as_posix()
 
 
 def _build_excerpt(body: str, max_words: int = 60) -> str:
@@ -124,7 +121,12 @@ def load_existing_index(index_path: Path) -> Dict[str, ArticleMetadata]:
     callers can rebuild safely.
     """
 
-    if not index_path.exists():
+    try:
+        if not index_path.exists():
+            return {}
+    except OSError:
+        # Covers PermissionError and other filesystem issues (e.g. rootless containers
+        # with bind mounts that have restrictive ownership/permissions).
         return {}
 
     import json
@@ -193,13 +195,18 @@ def build_metadata_index(documents_root: Path, index_path: Optional[Path] = None
     existing_index = load_existing_index(index_path)
     updated_index: Dict[str, ArticleMetadata] = {}
 
+    documents_root = documents_root.expanduser().resolve()
     markdown_files: Iterable[Path] = documents_root.rglob("*.md")
 
     for md_file in markdown_files:
         try:
-            # If we previously indexed this file, preserve read_status.
-            previous = next((a for a in existing_index.values() if a.path == str(md_file)), None)
-            article = ArticleMetadata.from_markdown_file(md_file, existing=previous)
+            relative_path = md_file.resolve().relative_to(documents_root).as_posix()
+            previous = existing_index.get(relative_path)
+            article = ArticleMetadata.from_markdown_file(
+                md_file,
+                documents_root=documents_root,
+                existing=previous,
+            )
             updated_index[article.id] = article
         except FileNotFoundError:
             continue

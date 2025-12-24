@@ -73,7 +73,7 @@ def build_index(
     article_embeddings: Dict[str, List[float]] = {}
     for article in index.values():
         try:
-            vector = store.get_article_embedding(Path(article.path))
+            vector = store.get_article_embedding(docs_root / article.path)
             if vector is not None:
                 article_embeddings[article.id] = list(vector)
         except Exception:

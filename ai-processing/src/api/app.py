@@ -2,6 +2,7 @@
 FastAPI application for PrismWeave visualization layer
 """
 
+import os
 import sys
 from pathlib import Path
 from typing import List, Optional
@@ -43,20 +44,97 @@ app.add_middleware(
 config: Optional[Config] = None
 documents_root: Optional[Path] = None
 index_path: Optional[Path] = None
+legacy_index_path: Optional[Path] = None
+index_path_is_override: bool = False
 
 
 @app.on_event("startup")
 async def startup_event():
     """Initialize configuration and paths on startup"""
-    global config, documents_root, index_path
+    global config, documents_root, index_path, legacy_index_path, index_path_is_override
 
     # Load configuration
     config = load_config()
-    documents_root = Path(config.mcp.paths.documents_root).expanduser().resolve()
-    index_path = documents_root / INDEX_RELATIVE_PATH
+    documents_root = Path(os.environ.get("DOCUMENTS_PATH", config.mcp.paths.documents_root)).expanduser().resolve()
+    legacy_index_path = documents_root / INDEX_RELATIVE_PATH
+
+    configured_index_path = os.environ.get("ARTICLE_INDEX_PATH") or os.environ.get("INDEX_PATH")
+    if configured_index_path:
+        index_path_is_override = True
+        index_path = Path(configured_index_path).expanduser().resolve()
+    else:
+        index_path_is_override = False
+        index_path = legacy_index_path
 
     if not documents_root.exists():
         print(f"Warning: Documents root does not exist: {documents_root}", file=sys.stderr)
+
+
+def _path_status(path: Path) -> str:
+    """Return a stable status for a path without throwing."""
+
+    try:
+        path.stat()
+        return "ok"
+    except FileNotFoundError:
+        return "missing"
+    except PermissionError:
+        return "denied"
+    except OSError:
+        return "error"
+
+
+def _index_candidates() -> List[Path]:
+    candidates: List[Path] = []
+    if index_path is not None:
+        candidates.append(index_path)
+    # Only fall back to the legacy index path when no override is configured.
+    # This avoids raising errors due to permission-denied on bind mounts when the
+    # intended (override) path is merely missing.
+    if (not index_path_is_override) and legacy_index_path is not None and legacy_index_path not in candidates:
+        candidates.append(legacy_index_path)
+    return candidates
+
+
+def _select_readable_index_path() -> Path:
+    for candidate in _index_candidates():
+        path_state = _path_status(candidate)
+        if path_state == "ok":
+            return candidate
+        if path_state == "denied":
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=(
+                    "Permission denied reading article index. "
+                    f"Index path: {candidate}. "
+                    "Fix file ownership/permissions on the host (e.g. chown/chmod) "
+                    "or set INDEX_PATH/ARTICLE_INDEX_PATH to a writable location inside the container."
+                ),
+            )
+
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail="Article index not found. Run 'visualize build-index' (or POST /visualization/rebuild) first.",
+    )
+
+
+def _ensure_writable_index_path(target: Path) -> None:
+    try:
+        target.parent.mkdir(parents=True, exist_ok=True)
+    except PermissionError as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=(
+                "Cannot create/write article index directory due to permissions. "
+                f"Index path: {target} ({e}). "
+                "Set INDEX_PATH/ARTICLE_INDEX_PATH to a writable location."
+            ),
+        )
+    except OSError as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to prepare index directory {target.parent}: {e}",
+        )
 
 
 def _article_metadata_to_summary(article: ArticleMetadata) -> ArticleSummary:
@@ -92,6 +170,28 @@ async def root():
     }
 
 
+@app.get("/health", tags=["health"])
+async def health():
+    """Health check endpoint for container orchestrators."""
+
+    documents_root_value = str(documents_root) if documents_root is not None else None
+    documents_root_status = _path_status(documents_root) if documents_root is not None else "uninitialized"
+    index_candidates = [str(p) for p in _index_candidates()]
+    index_candidate_statuses = {str(p): _path_status(p) for p in _index_candidates()}
+
+    overall_status = "healthy" if documents_root_status in {"ok", "missing"} else "degraded"
+
+    return {
+        "status": overall_status,
+        "service": "prismweave-visualization-api",
+        "version": "0.1.0",
+        "documents_root": documents_root_value,
+        "documents_root_status": documents_root_status,
+        "index_candidates": index_candidates,
+        "index_candidate_statuses": index_candidate_statuses,
+    }
+
+
 @app.get("/articles", response_model=List[ArticleSummary], tags=["articles"])
 async def get_articles():
     """
@@ -102,14 +202,10 @@ async def get_articles():
     - Visualization coordinates (x, y) if available
     - Optional neighbor IDs for drawing edges
     """
-    if index_path is None or not index_path.exists():
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Article index not found. Run 'visualize build-index' first.",
-        )
+    selected_index_path = _select_readable_index_path()
 
     # Load the metadata index
-    index = load_existing_index(index_path)
+    index = load_existing_index(selected_index_path)
 
     if not index:
         return []
@@ -131,14 +227,10 @@ async def get_article(article_id: str):
     Returns:
         ArticleDetail with metadata and full markdown content
     """
-    if index_path is None or not index_path.exists():
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Article index not found",
-        )
+    selected_index_path = _select_readable_index_path()
 
     # Load the metadata index
-    index = load_existing_index(index_path)
+    index = load_existing_index(selected_index_path)
 
     # Find the article
     article = index.get(article_id)
@@ -150,10 +242,21 @@ async def get_article(article_id: str):
 
     # Load the full markdown content
     article_path = documents_root / article.path
-    if not article_path.exists():
+    article_path_state = _path_status(article_path)
+    if article_path_state == "missing":
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Article file not found: {article.path}",
+        )
+    if article_path_state == "denied":
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Permission denied reading article file: {article.path}",
+        )
+    if article_path_state != "ok":
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to access article file: {article.path}",
         )
 
     try:
@@ -202,14 +305,10 @@ async def update_article(article_id: str, update_request: UpdateArticleRequest):
         - Automatically marks article as 'read' if not already
         - Does NOT automatically recompute embeddings/layout
     """
-    if index_path is None or not index_path.exists():
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Article index not found",
-        )
+    selected_index_path = _select_readable_index_path()
 
     # Load the metadata index
-    index = load_existing_index(index_path)
+    index = load_existing_index(selected_index_path)
 
     # Find the article
     article = index.get(article_id)
@@ -221,10 +320,21 @@ async def update_article(article_id: str, update_request: UpdateArticleRequest):
 
     # Load the markdown file
     article_path = documents_root / article.path
-    if not article_path.exists():
+    article_path_state = _path_status(article_path)
+    if article_path_state == "missing":
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Article file not found: {article.path}",
+        )
+    if article_path_state == "denied":
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Permission denied reading article file: {article.path}",
+        )
+    if article_path_state != "ok":
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to access article file: {article.path}",
         )
 
     try:
@@ -272,6 +382,12 @@ async def update_article(article_id: str, update_request: UpdateArticleRequest):
 
     # Update the index
     index[article_id] = article
+    if index_path is None:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="API not properly initialized",
+        )
+    _ensure_writable_index_path(index_path)
     save_index(index, index_path)
 
     # Return the updated article
@@ -304,14 +420,10 @@ async def delete_article(article_id: str):
     Returns:
         204 No Content on success
     """
-    if index_path is None or not index_path.exists():
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Article index not found",
-        )
+    selected_index_path = _select_readable_index_path()
 
     # Load the metadata index
-    index = load_existing_index(index_path)
+    index = load_existing_index(selected_index_path)
 
     # Find the article
     article = index.get(article_id)
@@ -323,7 +435,7 @@ async def delete_article(article_id: str):
 
     # Delete the markdown file
     article_path = documents_root / article.path
-    if article_path.exists():
+    if _path_status(article_path) == "ok":
         try:
             article_path.unlink()
         except OSError as e:
@@ -343,6 +455,12 @@ async def delete_article(article_id: str):
 
     # Remove from index
     del index[article_id]
+    if index_path is None:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="API not properly initialized",
+        )
+    _ensure_writable_index_path(index_path)
     save_index(index, index_path)
 
     return None
@@ -374,6 +492,7 @@ async def rebuild_visualization():
         )
 
     try:
+        _ensure_writable_index_path(index_path)
         # Rebuild the metadata index (this also computes layout if embeddings exist)
         index = build_metadata_index(documents_root, index_path)
 
@@ -395,7 +514,8 @@ def main():
     """Run the API server"""
     import uvicorn
 
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    port = int(os.environ.get("API_PORT", "8001"))
+    uvicorn.run(app, host="0.0.0.0", port=port)
 
 
 if __name__ == "__main__":

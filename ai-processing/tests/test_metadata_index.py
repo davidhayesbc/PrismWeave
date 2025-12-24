@@ -9,7 +9,9 @@ from src.core.metadata_index import ArticleMetadata, build_metadata_index, load_
 
 
 def test_article_metadata_from_markdown_preserves_basic_fields(tmp_path: Path) -> None:
-    md = tmp_path / "doc.md"
+    docs_root = tmp_path / "docs"
+    docs_root.mkdir()
+    md = docs_root / "doc.md"
     md.write_text(
         """---
 title: Sample
@@ -24,10 +26,11 @@ Second paragraph.
         encoding="utf-8",
     )
 
-    article = ArticleMetadata.from_markdown_file(md)
+    article = ArticleMetadata.from_markdown_file(md, documents_root=docs_root)
 
     assert article.id
-    assert article.path == str(md)
+    assert article.path == "doc.md"
+    assert article.id == "doc.md"
     assert article.title == "Sample"
     assert article.topic == "testing"
     assert article.tags == ["one", "two"]
@@ -94,7 +97,7 @@ def test_save_and_load_round_trip(tmp_path: Path) -> None:
     now = datetime.utcnow()
     article = ArticleMetadata(
         id="id1",
-        path="/tmp/doc.md",
+        path="documents/doc.md",
         title="Title",
         topic=None,
         tags=["a"],

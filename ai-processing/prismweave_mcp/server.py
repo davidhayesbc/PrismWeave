@@ -5,9 +5,6 @@ Main MCP server implementation using FastMCP for document management and AI proc
 """
 
 import logging
-import os
-from dataclasses import asdict
-from pathlib import Path
 from typing import Any
 
 from fastmcp import FastMCP
@@ -30,7 +27,6 @@ from prismweave_mcp.tools.git import GitTools
 from prismweave_mcp.tools.processing import ProcessingTools
 from prismweave_mcp.tools.search import SearchTools
 from src.core.config import load_config
-from src.core.metadata_index import INDEX_RELATIVE_PATH, build_metadata_index, load_existing_index
 
 # Configure logging
 logging.basicConfig(
@@ -49,110 +45,7 @@ document_tools = DocumentTools(config)
 processing_tools = ProcessingTools(config)
 git_tools = GitTools(config)
 
-# Track initialization
 _initialized = False
-
-
-def _get_documents_root() -> Path:
-    # Prefer Docker env var when present (docker-compose sets this)
-    env_path = os.environ.get("DOCUMENTS_PATH")
-    raw = env_path or config.mcp.paths.documents_root
-    return Path(raw).expanduser().resolve()
-
-
-def _get_index_path(documents_root: Path) -> Path:
-    return documents_root / INDEX_RELATIVE_PATH
-
-
-def _normalize_relative_id(raw: str, *, documents_root: Path) -> str | None:
-    """Normalize a legacy absolute id/path to a stable repo-relative id.
-
-    The visualization UI should ideally address articles by a path relative to the
-    mounted documents repo (e.g. "documents/foo.md"). Older indexes may contain
-    absolute host paths (e.g. "/home/.../PrismWeaveDocs/documents/foo.md").
-    """
-
-    if not raw:
-        return None
-
-    try:
-        path = Path(raw)
-    except Exception:
-        return None
-
-    # If it's already relative, keep it stable.
-    if not path.is_absolute():
-        return path.as_posix()
-
-    # Try to relativize against the mounted documents root.
-    try:
-        return path.relative_to(documents_root).as_posix()
-    except Exception:
-        pass
-
-    # Heuristic for host-built absolute paths containing PrismWeaveDocs.
-    parts = list(path.parts)
-    if "PrismWeaveDocs" in parts:
-        idx = parts.index("PrismWeaveDocs")
-        suffix_parts = parts[idx + 1 :]
-        if suffix_parts:
-            return Path(*suffix_parts).as_posix()
-
-    return None
-
-
-def _resolve_article_from_index(
-    index: dict[str, Any],
-    requested_id: str,
-    *,
-    documents_root: Path,
-) -> Any | None:
-    """Resolve an article from the index using both legacy and normalized ids."""
-
-    # 1) Direct key lookup
-    direct = index.get(requested_id)
-    if direct is not None:
-        return direct
-
-    normalized_requested = _normalize_relative_id(requested_id, documents_root=documents_root)
-
-    # 2) If requested id normalizes, try as a key
-    if normalized_requested:
-        direct_norm = index.get(normalized_requested)
-        if direct_norm is not None:
-            return direct_norm
-
-    # 3) Fall back to scanning values (handles mismatched key vs stored id/path)
-    for article in index.values():
-        try:
-            candidates: set[str] = set()
-            for raw in (getattr(article, "id", None), getattr(article, "path", None)):
-                if isinstance(raw, str) and raw:
-                    candidates.add(raw)
-                    norm = _normalize_relative_id(raw, documents_root=documents_root)
-                    if norm:
-                        candidates.add(norm)
-            if requested_id in candidates:
-                return article
-            if normalized_requested and normalized_requested in candidates:
-                return article
-        except Exception:
-            continue
-
-    return None
-
-
-def _article_metadata_to_response(article: Any, *, documents_root: Path) -> dict[str, Any]:
-    data = asdict(article)
-    data["created_at"] = article.created_at.isoformat()
-    data["updated_at"] = article.updated_at.isoformat()
-
-    # Normalize identifiers for the UI (prefer repo-relative paths).
-    normalized = _normalize_relative_id(str(getattr(article, "path", "")), documents_root=documents_root)
-    if normalized:
-        data["id"] = normalized
-        data["path"] = normalized
-    return data
 
 
 async def ensure_initialized():
@@ -171,104 +64,6 @@ async def ensure_initialized():
 async def health_check(_request: Request) -> JSONResponse:
     """Simple health check endpoint for container orchestrators."""
     return JSONResponse({"status": "healthy", "service": "prismweave-mcp"})
-
-
-@mcp.custom_route("/articles", methods=["GET"])
-async def list_articles(_request: Request) -> JSONResponse:
-    """List indexed articles for the visualization UI."""
-    documents_root = _get_documents_root()
-    if not documents_root.exists():
-        return JSONResponse(
-            {
-                "detail": "Documents root not found. Ensure the documents repo is mounted.",
-                "documents_root": str(documents_root),
-            },
-            status_code=404,
-        )
-
-    index_path = _get_index_path(documents_root)
-    if not index_path.exists():
-        try:
-            index = build_metadata_index(documents_root)
-        except FileNotFoundError:
-            return JSONResponse(
-                {
-                    "detail": "Documents root not found. Ensure the documents repo is mounted.",
-                    "documents_root": str(documents_root),
-                },
-                status_code=404,
-            )
-        except Exception as exc:
-            return JSONResponse(
-                {"detail": f"Failed to build article index: {exc}"},
-                status_code=500,
-            )
-    else:
-        index = load_existing_index(index_path)
-
-    articles = [_article_metadata_to_response(article, documents_root=documents_root) for article in index.values()]
-    return JSONResponse(articles)
-
-
-@mcp.custom_route("/articles/{article_id:path}", methods=["GET"])
-async def get_article(_request: Request) -> JSONResponse:
-    """Return article metadata and full markdown content for the visualization UI."""
-    documents_root = _get_documents_root()
-    if not documents_root.exists():
-        return JSONResponse(
-            {
-                "detail": "Documents root not found. Ensure the documents repo is mounted.",
-                "documents_root": str(documents_root),
-            },
-            status_code=404,
-        )
-
-    index_path = _get_index_path(documents_root)
-    if not index_path.exists():
-        try:
-            build_metadata_index(documents_root)
-        except Exception as exc:
-            return JSONResponse(
-                {"detail": f"Failed to build article index: {exc}"},
-                status_code=500,
-            )
-
-    # Starlette stores path params on request
-    article_id = (_request.path_params or {}).get("article_id")
-    if not isinstance(article_id, str) or not article_id:
-        return JSONResponse({"detail": "Missing article id"}, status_code=400)
-
-    index = load_existing_index(index_path)
-    article = _resolve_article_from_index(index, article_id, documents_root=documents_root)
-    if article is None:
-        return JSONResponse({"detail": f"Article not found: {article_id}"}, status_code=404)
-
-    article_path = Path(article.path)
-    if not article_path.is_absolute():
-        article_path = documents_root / article.path
-
-    # If the index was built on the host, map absolute host paths into the mounted repo.
-    if not article_path.exists():
-        normalized_path = _normalize_relative_id(str(article.path), documents_root=documents_root)
-        if normalized_path:
-            candidate = documents_root / normalized_path
-            if candidate.exists():
-                article_path = candidate
-
-    if not article_path.exists():
-        return JSONResponse(
-            {"detail": f"Article file not found: {article.path}"},
-            status_code=404,
-        )
-
-    try:
-        content = article_path.read_text(encoding="utf-8")
-    except (OSError, UnicodeDecodeError) as exc:
-        return JSONResponse({"detail": f"Failed to read article: {exc}"}, status_code=500)
-
-    payload = _article_metadata_to_response(article, documents_root=documents_root)
-    payload["content"] = content
-    return JSONResponse(payload)
 
 
 @mcp.tool()

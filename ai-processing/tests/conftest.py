@@ -10,9 +10,11 @@ from pathlib import Path
 
 import pytest
 
-# Add src directory to path for imports
-src_path = Path(__file__).parent.parent / "src"
-sys.path.insert(0, str(src_path))
+# Add project root to path for imports.
+# This allows `import cli` to resolve to ai-processing/cli.py while still
+# supporting `from src...` imports.
+project_root = Path(__file__).parent.parent
+sys.path.insert(0, str(project_root))
 
 # Test configuration
 TEST_CONFIG = {
@@ -214,7 +216,7 @@ class TestUtils:
     @staticmethod
     def count_lines(file_path: str) -> int:
         """Count lines in file"""
-        with open(file_path, "r", encoding="utf-8") as f:
+        with open(file_path, encoding="utf-8") as f:
             return sum(1 for _ in f)
 
 
@@ -316,9 +318,9 @@ class ErrorTestHelpers:
         with pytest.raises(exception_type) as exc_info:
             callable_obj(*args, **kwargs)
 
-        assert re.search(
-            message_pattern, str(exc_info.value)
-        ), f"Exception message '{exc_info.value}' does not match pattern '{message_pattern}'"
+        assert re.search(message_pattern, str(exc_info.value)), (
+            f"Exception message '{exc_info.value}' does not match pattern '{message_pattern}'"
+        )
 
     @staticmethod
     async def assert_async_raises_with_message(exception_type, message_pattern, async_callable, *args, **kwargs):
@@ -328,9 +330,9 @@ class ErrorTestHelpers:
         with pytest.raises(exception_type) as exc_info:
             await async_callable(*args, **kwargs)
 
-        assert re.search(
-            message_pattern, str(exc_info.value)
-        ), f"Exception message '{exc_info.value}' does not match pattern '{message_pattern}'"
+        assert re.search(message_pattern, str(exc_info.value)), (
+            f"Exception message '{exc_info.value}' does not match pattern '{message_pattern}'"
+        )
 
 
 @pytest.fixture

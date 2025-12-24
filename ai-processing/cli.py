@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import click
 
+from src.cli.api_commands import api
 from src.cli.export_command import export
 from src.cli.process_commands import process, rebuild_db, sync
 from src.cli.query_commands import count, list_docs, search, stats
@@ -38,6 +39,7 @@ cli.add_command(stats)
 cli.add_command(export)
 cli.add_command(rebuild_db)
 cli.add_command(visualize)
+cli.add_command(api)
 
 
 def main() -> None:
