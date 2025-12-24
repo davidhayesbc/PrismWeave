@@ -54,6 +54,10 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, ''),
       },
+      '/visualization': {
+        target: process.env.API_URL || 'http://localhost:8000',
+        changeOrigin: true,
+      },
     },
   },
 });

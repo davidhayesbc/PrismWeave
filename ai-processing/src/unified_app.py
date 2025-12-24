@@ -10,11 +10,19 @@ Goal: allow running both APIs from the same container/port.
 
 from __future__ import annotations
 
+from src.telemetry import configure_telemetry, instrument_fastapi
+
+# Configure telemetry as early as possible (Aspire injects OTEL_* env vars).
+configure_telemetry("ai-processing")
+
 from starlette.middleware import Middleware
 from starlette.middleware.cors import CORSMiddleware
 
 from prismweave_mcp.server import mcp
 from src.api.app import app as rest_app
+
+# Add FastAPI tracing (no-op when OTEL_EXPORTER_OTLP_ENDPOINT isn't set).
+instrument_fastapi(rest_app)
 
 
 def _build_mcp_http_app():

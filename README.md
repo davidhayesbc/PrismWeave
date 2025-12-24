@@ -123,6 +123,44 @@ python cli.py --help
 # See ai-processing/prismweave_mcp/VS_CODE_INTEGRATION.md
 ```
 
+### Aspire Orchestration + OpenTelemetry
+
+This repo includes a file-based Aspire AppHost that can orchestrate the Python API/MCP server plus the dev UIs, and routes logs/traces/metrics via OpenTelemetry to the Aspire dashboard.
+
+Implementation plan:
+
+- [ASPIRE_IMPLEMENTATION_PLAN.md](ASPIRE_IMPLEMENTATION_PLAN.md)
+
+Files:
+
+- [apphost.cs](apphost.cs)
+- [apphost.run.json](apphost.run.json)
+
+Prereqs:
+
+- .NET SDK 10+
+- Aspire CLI (`aspire`)
+
+Run (from repo root):
+
+```bash
+aspire run
+```
+
+Note:
+
+- The default settings in `apphost.run.json` configure the dashboard to run over HTTP (to avoid dev-certs trust issues) and set `ASPIRE_ALLOW_UNSECURED_TRANSPORT=true`.
+
+Verify:
+
+- Open the dashboard URL printed by the CLI and confirm `ai-processing`, `visualization`, and `website` are healthy.
+- Hit the `ai-processing` `/health` endpoint and confirm traces appear in the dashboard.
+- Confirm `ai-processing` startup logs appear in the dashboard logs view.
+
+Tip:
+
+- Set `PRISMWEAVE_OTEL_CONSOLE_PASSTHROUGH=0` to suppress duplicated stdout when Node console logs are also exported to OpenTelemetry.
+
 ## Architecture
 
 ```

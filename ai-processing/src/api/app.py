@@ -2,8 +2,8 @@
 FastAPI application for PrismWeave visualization layer
 """
 
+import logging
 import os
-import sys
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import List, Optional
@@ -33,6 +33,8 @@ index_path: Optional[Path] = None
 legacy_index_path: Optional[Path] = None
 index_path_is_override: bool = False
 
+logger = logging.getLogger("prismweave.ai.api")
+
 
 def _initialize_state() -> None:
     """Initialize configuration and paths (used by FastAPI lifespan)."""
@@ -52,7 +54,7 @@ def _initialize_state() -> None:
         index_path = legacy_index_path
 
     if not documents_root.exists():
-        print(f"Warning: Documents root does not exist: {documents_root}", file=sys.stderr)
+        logger.warning("Documents root does not exist: %s", documents_root)
 
 
 @asynccontextmanager
@@ -64,8 +66,14 @@ async def lifespan(_: FastAPI):
     api_host = os.environ.get("API_HOST", "0.0.0.0")
     display_host = "localhost" if api_host in {"0.0.0.0", "::"} else api_host
 
-    print(f"[ai-api] Listening on http://{api_host}:{api_port} (local: http://{display_host}:{api_port})")
-    print(f"[ai-api] Health: http://{display_host}:{api_port}/health")
+    logger.info(
+        "Listening on http://%s:%s (local: http://%s:%s)",
+        api_host,
+        api_port,
+        display_host,
+        api_port,
+    )
+    logger.info("Health: http://%s:%s/health", display_host, api_port)
     yield
 
 
@@ -736,7 +744,7 @@ async def delete_article(article_id: str):
         store.remove_file_documents(article_path)
     except Exception as e:
         # Log but don't fail if Chroma removal fails
-        print(f"Warning: Failed to remove from Chroma: {e}", file=sys.stderr)
+        logger.warning("Failed to remove from Chroma: %s", e)
 
     # Remove from index
     del index[article_id]
