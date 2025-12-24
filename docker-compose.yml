@@ -114,7 +114,15 @@ services:
     networks:
       - prismweave-network
     restart: unless-stopped
-    command: ["/app/.venv/bin/uvicorn", "src.api.app:app", "--host", "0.0.0.0", "--port", "8001"]
+    command:
+      [
+        "/app/.venv/bin/uvicorn",
+        "src.api.app:app",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "8001",
+      ]
 
   # Visualization Frontend
   visualization:

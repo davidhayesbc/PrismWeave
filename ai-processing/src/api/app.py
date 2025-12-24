@@ -4,6 +4,7 @@ FastAPI application for PrismWeave visualization layer
 
 import os
 import sys
+from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import List, Optional
 
@@ -24,22 +25,6 @@ from src.core.metadata_index import (
 
 from .models import ArticleDetail, ArticleSummary, RebuildResponse, UpdateArticleRequest
 
-# Initialize FastAPI app
-app = FastAPI(
-    title="PrismWeave Visualization API",
-    description="HTTP API for PrismWeave document visualization and management",
-    version="0.1.0",
-)
-
-# Add CORS middleware for local development
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # In production, specify actual origins
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
 # Global state (initialized on startup)
 config: Optional[Config] = None
 documents_root: Optional[Path] = None
@@ -48,9 +33,8 @@ legacy_index_path: Optional[Path] = None
 index_path_is_override: bool = False
 
 
-@app.on_event("startup")
-async def startup_event():
-    """Initialize configuration and paths on startup"""
+def _initialize_state() -> None:
+    """Initialize configuration and paths (used by FastAPI lifespan)."""
     global config, documents_root, index_path, legacy_index_path, index_path_is_override
 
     # Load configuration
@@ -68,6 +52,30 @@ async def startup_event():
 
     if not documents_root.exists():
         print(f"Warning: Documents root does not exist: {documents_root}", file=sys.stderr)
+
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    _initialize_state()
+    yield
+
+
+# Initialize FastAPI app
+app = FastAPI(
+    title="PrismWeave Visualization API",
+    description="HTTP API for PrismWeave document visualization and management",
+    version="0.1.0",
+    lifespan=lifespan,
+)
+
+# Add CORS middleware for local development
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # In production, specify actual origins
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 def _path_status(path: Path) -> str:
