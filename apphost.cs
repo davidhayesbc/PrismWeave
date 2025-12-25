@@ -38,7 +38,8 @@ var visualization = builder
 var website = builder
     .AddNodeApp("website", "./website", "scripts/dev-server.mjs")
     .WithNpm(installCommand: "ci", installArgs: ["--no-audit", "--no-fund"])
-    .WithArgs("--port", "3002")
+    // Let Aspire allocate a free port and pass it via PORT to avoid EADDRINUSE.
+    .WithHttpEndpoint(env: "PORT", name: "http")
     .WithExternalHttpEndpoints()
     .WithEnvironment("API_URL", aiProcessing.GetEndpoint("http"))
     .WithReference(aiProcessing)

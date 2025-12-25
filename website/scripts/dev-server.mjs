@@ -10,7 +10,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 function parseArgs(argv) {
-  const args = { port: 3000 };
+  const envPort = process.env.PORT ? Number(process.env.PORT) : undefined;
+  const args = { port: Number.isFinite(envPort) && envPort > 0 ? envPort : 3000 };
   for (let i = 2; i < argv.length; i++) {
     const token = argv[i];
     if (token === '--port') {
@@ -59,7 +60,9 @@ async function main() {
 
   const repoRoot = path.resolve(__dirname, '..');
   const distRoot = path.join(repoRoot, 'dist');
-  const staticRoot = (await fileExists(distRoot)) ? distRoot : repoRoot;
+  // Only serve from dist/ if it contains a web root (index.html). Otherwise serve directly from repoRoot.
+  const distIndex = path.join(distRoot, 'index.html');
+  const staticRoot = (await fileExists(distIndex)) ? distRoot : repoRoot;
 
   const server = http.createServer(async (req, res) => {
     try {
@@ -87,7 +90,22 @@ async function main() {
           return;
         }
       } else if (stat.isDirectory()) {
-        filePath = path.join(candidate, 'index.html');
+        const dirIndex = path.join(candidate, 'index.html');
+        if (await fileExists(dirIndex)) {
+          filePath = dirIndex;
+        } else {
+          // If the requested path maps to a directory in dist/ but there is no index.html there,
+          // fall back to the repo root index.html (common in this project).
+          const rootIndex = path.join(repoRoot, 'index.html');
+          if (await fileExists(rootIndex)) {
+            filePath = rootIndex;
+          } else {
+            res.writeHead(404, { 'content-type': 'text/plain; charset=utf-8' });
+            res.end('Not found');
+            telemetry.logWarn?.('404', { path: requestPath, method: req.method || 'GET' });
+            return;
+          }
+        }
       }
 
       const body = await fs.readFile(filePath);
