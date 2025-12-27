@@ -50,8 +50,23 @@ var aiProcessing = builder
 // Standalone MCP server (FastMCP over SSE) as a separate Aspire process/resource.
 // SSE endpoint is available at: {mcp-server base URL}/sse
 var mcpServer = builder
-    .AddUvicornApp("mcp-server", "./ai-processing", "src.mcp_app:app")
-    .WithUv()
+    // NOTE: We intentionally run this as plain HTTP. Aspire's Python hosting can
+    // inject a self-signed TLS cert for uvicorn, but VS Code's MCP SSE client does
+    // not (currently) provide a reliable per-server way to disable cert validation.
+    // Running HTTP here keeps local dev friction-free.
+    .AddExecutable(
+        "mcp-server",
+        "./.venv/bin/python3",
+        "./ai-processing",
+        "-m",
+        "uvicorn",
+        "src.mcp_app:app",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "4005",
+        "--reload"
+    )
     .WithEndpoint(
         endpointName: "http",
         e =>
@@ -112,7 +127,7 @@ var mcpInspector = builder
 
 // Dashboard convenience link: opens Inspector UI, pre-populated to connect to our SSE endpoint.
 // (Token is fixed via MCP_PROXY_AUTH_TOKEN so the link stays stable.)
-var mcpSseUrl = "http://localhost:4005/sse";
+var mcpSseUrl = "http://127.0.0.1:4005/sse";
 var encodedMcpSseUrl = Uri.EscapeDataString(mcpSseUrl);
 var encodedAuthToken = Uri.EscapeDataString(mcpInspectorAuthToken);
 mcpInspector.WithUrlForEndpoint(

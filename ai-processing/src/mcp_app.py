@@ -6,7 +6,7 @@ This module exists so the MCP server can be run as a *separate* Aspire resource
 It exposes FastMCP over SSE on:
 - /sse
 
-It also includes the MCP health endpoint (provided by the MCP server):
+It also includes a simple health endpoint:
 - /health
 """
 
@@ -17,10 +17,19 @@ from src.telemetry import configure_telemetry
 # Configure telemetry as early as possible (Aspire injects OTEL_* env vars).
 configure_telemetry("mcp-server")
 
+from starlette.applications import Starlette
 from starlette.middleware import Middleware
 from starlette.middleware.cors import CORSMiddleware
+from starlette.requests import Request
+from starlette.responses import JSONResponse
+from starlette.routing import Mount, Route
 
 from prismweave_mcp.server import mcp
+
+
+async def health_check(request: Request) -> JSONResponse:
+    """Simple health check endpoint for Aspire."""
+    return JSONResponse({"status": "healthy", "service": "prismweave-mcp-sse"})
 
 
 def _build_mcp_http_app():
@@ -35,7 +44,17 @@ def _build_mcp_http_app():
         )
     ]
 
-    return mcp.http_app(transport="sse", path="/sse", middleware=middleware)
+    # Build the SSE-only MCP app
+    mcp_sse_app = mcp.http_app(transport="sse", path="/sse", middleware=middleware)
+
+    # Wrap it in a Starlette app so we can add /health
+    return Starlette(
+        routes=[
+            Route("/health", health_check, methods=["GET"]),
+            Mount("/", app=mcp_sse_app),
+        ],
+        middleware=middleware,
+    )
 
 
 # Export as the ASGI app for uvicorn.
