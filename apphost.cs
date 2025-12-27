@@ -74,6 +74,10 @@ var mcpServer = builder
     .WithEnvironment("CHROMA_PERSIST_DIR", chromaPersistDir)
     .WithEnvironment("ARTICLE_INDEX_PATH", articleIndexPath);
 
+// Add an explicit dashboard URL that includes the SSE path.
+// (Aspire endpoints are base addresses; paths like /sse are best represented as Resource URLs.)
+mcpServer.WithUrl($"{mcpServer.GetEndpoint("http")}/sse", "MCP SSE");
+
 var visualization = builder
     .AddViteApp("visualization", "./visualization")
     .WithNpm(installCommand: "ci", installArgs: ["--no-audit", "--no-fund"])
