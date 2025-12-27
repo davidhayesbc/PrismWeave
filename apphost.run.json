@@ -4,8 +4,8 @@
       "commandName": "Project",
       "environmentVariables": {
         "ASPIRE_ALLOW_UNSECURED_TRANSPORT": "true",
-        "ASPNETCORE_URLS": "http://localhost:17244",
-        "ASPIRE_DASHBOARD_OTLP_HTTP_ENDPOINT_URL": "http://localhost:18890"
+        "ASPNETCORE_URLS": "http://localhost:4000",
+        "ASPIRE_DASHBOARD_OTLP_HTTP_ENDPOINT_URL": "http://localhost:4004"
       }
     }
   },

@@ -2,6 +2,8 @@
 
 Note: For local dev, the recommended orchestration path is now the Aspire AppHost (see the repo README). Docker Compose remains a supported alternative and is useful for containerizing the full stack.
 
+Tip (VS Code): Use the **"Aspire: Run AppHost (dotnet run)"** launch configuration to start the AppHost and open the Aspire dashboard automatically.
+
 ## Architecture Overview
 
 PrismWeave uses a multi-container Docker architecture:

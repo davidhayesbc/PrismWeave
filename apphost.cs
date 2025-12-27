@@ -1,4 +1,5 @@
 #:sdk Aspire.AppHost.Sdk@13.1.0
+#:package Aspire.Hosting@13.1.0
 #:package Aspire.Hosting.Python@13.1.0
 #:package Aspire.Hosting.JavaScript@13.1.0
 
@@ -8,7 +9,10 @@ var builder = DistributedApplication.CreateBuilder(args);
 // NOTE: These paths are consumed by the `ai-processing` app, whose working directory is `./ai-processing`.
 // So they must be relative to that directory (or be absolute paths).
 var documentsPath = builder.AddParameter("documents-path", "../../PrismWeaveDocs/documents");
-var chromaPersistDir = builder.AddParameter("chroma-persist-dir", "../../PrismWeaveDocs/.prismweave/chroma_db");
+var chromaPersistDir = builder.AddParameter(
+    "chroma-persist-dir",
+    "../../PrismWeaveDocs/.prismweave/chroma_db"
+);
 var articleIndexPath = builder.AddParameter(
     "article-index-path",
     "../../PrismWeaveDocs/documents/.prismweave/index/articles.json"
@@ -18,8 +22,27 @@ var ollamaHost = builder.AddParameter("ollama-host", "http://localhost:11434");
 var aiProcessing = builder
     .AddUvicornApp("ai-processing", "./ai-processing", "src.unified_app:app")
     .WithUv()
+    // Fixed host port + provide the internal listen port via env var.
+    // NOTE: AddUvicornApp already defines an "http" endpoint; we mutate it here
+    // to avoid endpoint name collisions.
+    .WithEndpoint(
+        "http",
+        e =>
+        {
+            e.Port = 4001;
+            e.TargetPort = 4001;
+            e.UriScheme = "http";
+            e.Transport = "http";
+            e.IsProxied = false;
+        },
+        createIfNotExists: true
+    )
     .WithHttpHealthCheck("/health")
+    // Show the endpoint in the Aspire dashboard so it's easy to copy/paste for MCP connections.
+    // The MCP SSE endpoint is available at: {ai-processing base URL}/sse
+    .WithExternalHttpEndpoints()
     .WithEnvironment("PYTHONUNBUFFERED", "1")
+    .WithEnvironment("UVICORN_PORT", "4001")
     .WithEnvironment("LOG_LEVEL", "INFO")
     .WithEnvironment("OLLAMA_HOST", ollamaHost)
     .WithEnvironment("DOCUMENTS_PATH", documentsPath)
@@ -30,7 +53,21 @@ var visualization = builder
     .AddViteApp("visualization", "./visualization")
     .WithNpm(installCommand: "ci", installArgs: ["--no-audit", "--no-fund"])
     .WithRunScript("dev")
+    // Fixed host port + provide the internal listen port via env var.
+    .WithEndpoint(
+        "http",
+        e =>
+        {
+            e.Port = 4002;
+            e.TargetPort = 4002;
+            e.UriScheme = "http";
+            e.Transport = "http";
+            e.IsProxied = false;
+        },
+        createIfNotExists: true
+    )
     .WithExternalHttpEndpoints()
+    .WithEnvironment("PORT", "4002")
     .WithEnvironment("API_URL", aiProcessing.GetEndpoint("http"))
     .WithReference(aiProcessing)
     .WaitFor(aiProcessing);
@@ -38,9 +75,21 @@ var visualization = builder
 var website = builder
     .AddNodeApp("website", "./website", "scripts/dev-server.mjs")
     .WithNpm(installCommand: "ci", installArgs: ["--no-audit", "--no-fund"])
-    // Let Aspire allocate a free port and pass it via PORT to avoid EADDRINUSE.
-    .WithHttpEndpoint(env: "PORT", name: "http")
+    // Fixed host port + provide the internal listen port via env var.
+    .WithEndpoint(
+        "http",
+        e =>
+        {
+            e.Port = 4003;
+            e.TargetPort = 4003;
+            e.UriScheme = "http";
+            e.Transport = "http";
+            e.IsProxied = false;
+        },
+        createIfNotExists: true
+    )
     .WithExternalHttpEndpoints()
+    .WithEnvironment("PORT", "4003")
     .WithEnvironment("API_URL", aiProcessing.GetEndpoint("http"))
     .WithReference(aiProcessing)
     .WaitFor(aiProcessing);

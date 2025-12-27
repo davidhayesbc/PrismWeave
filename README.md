@@ -145,6 +145,11 @@ npm run aspire:run
 # or (no Aspire CLI): npm run aspire:run:dotnet
 ```
 
+VS Code (recommended for dev):
+
+- Open the Run & Debug panel and start **"Aspire: Run AppHost (dotnet run)"**.
+- It will run `dotnet run apphost.cs` and auto-open the Aspire dashboard when it prints the dashboard URL.
+
 Note:
 
 - The default settings in `apphost.run.json` configure the dashboard to run over HTTP (to avoid dev-certs trust issues) and set `ASPIRE_ALLOW_UNSECURED_TRANSPORT=true`.
@@ -154,6 +159,11 @@ Verify:
 - Open the dashboard URL printed by the CLI and confirm `ai-processing`, `visualization`, and `website` are healthy.
 - Hit the `ai-processing` `/health` endpoint and confirm traces appear in the dashboard.
 - Confirm `ai-processing` startup logs appear in the dashboard logs view.
+
+MCP URL:
+
+- In the dashboard, copy the `ai-processing` HTTP endpoint base URL and append `/sse`.
+  - Example: `http://127.0.0.1:4001/sse`
 
 Tip:
 
