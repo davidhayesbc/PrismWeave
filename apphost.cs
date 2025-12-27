@@ -76,7 +76,54 @@ var mcpServer = builder
 
 // Add an explicit dashboard URL that includes the SSE path.
 // (Aspire endpoints are base addresses; paths like /sse are best represented as Resource URLs.)
-mcpServer.WithUrl($"{mcpServer.GetEndpoint("http")}/sse", "MCP SSE");
+mcpServer.WithUrlForEndpoint("http", _ => new() { Url = "/sse", DisplayText = "MCP SSE" });
+
+// MCP Inspector (UI + proxy) managed by Aspire.
+// The Inspector is a separate Node process; it is NOT hosted by FastMCP.
+// Defaults are 6274 (UI) + 6277 (proxy); we pin them to avoid port drift.
+const int mcpInspectorUiPort = 4009;
+const int mcpInspectorProxyPort = 4010;
+const string mcpInspectorAuthToken = "prismweave-dev-inspector-token";
+
+var mcpInspector = builder
+    .AddExecutable(
+        "mcp-inspector",
+        "npx",
+        "./ai-processing",
+        "-y",
+        "@modelcontextprotocol/inspector"
+    )
+    .WithEnvironment("CLIENT_PORT", mcpInspectorUiPort.ToString())
+    .WithEnvironment("SERVER_PORT", mcpInspectorProxyPort.ToString())
+    .WithEnvironment("MCP_PROXY_AUTH_TOKEN", mcpInspectorAuthToken)
+    .WithEndpoint(
+        endpointName: "http",
+        e =>
+        {
+            e.Port = mcpInspectorUiPort;
+            e.TargetPort = mcpInspectorUiPort;
+            e.UriScheme = "http";
+            e.Transport = "http";
+            e.IsProxied = false;
+            e.IsExternal = true;
+        },
+        createIfNotExists: true
+    );
+
+// Dashboard convenience link: opens Inspector UI, pre-populated to connect to our SSE endpoint.
+// (Token is fixed via MCP_PROXY_AUTH_TOKEN so the link stays stable.)
+var mcpSseUrl = "http://localhost:4005/sse";
+var encodedMcpSseUrl = Uri.EscapeDataString(mcpSseUrl);
+var encodedAuthToken = Uri.EscapeDataString(mcpInspectorAuthToken);
+mcpInspector.WithUrlForEndpoint(
+    "http",
+    _ =>
+        new()
+        {
+            Url = $"/?transport=sse&serverUrl={encodedMcpSseUrl}&MCP_PROXY_AUTH_TOKEN={encodedAuthToken}",
+            DisplayText = "MCP Inspector",
+        }
+);
 
 var visualization = builder
     .AddViteApp("visualization", "./visualization")
