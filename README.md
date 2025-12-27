@@ -39,13 +39,6 @@ Local AI integration with Ollama for content processing and generation.
 
 **Features:**
 
-- Local embeddings with sentence-transformers
-- NPU acceleration (AI HX 370)
-- Document analysis and categorization
-- Content generation from captured sources
-- **MCP Server:** Model Context Protocol integration for VS Code
-- **Semantic Search:** ChromaDB vector database for intelligent document retrieval
-
 **Location:** `ai-processing/`
 
 #### MCP Server (NEW!)
@@ -53,12 +46,6 @@ Local AI integration with Ollama for content processing and generation.
 The PrismWeave MCP server enables AI-powered document management directly in VS Code through the Model Context Protocol.
 
 **Key Capabilities:**
-
-- Semantic search across all captured documents
-- AI-powered tag generation and categorization
-- Create synthesized documents from multiple sources
-- Automatic vector embeddings for similarity search
-- Git integration for version control
 
 **Quick Start:**
 
@@ -68,14 +55,14 @@ uv sync
 # Configure VS Code (see ai-processing/prismweave_mcp/VS_CODE_INTEGRATION.md)
 ```
 
-**Documentation:**
+### MCP (Model Context Protocol)
 
-- [MCP Server README](ai-processing/prismweave_mcp/README.md) - Complete guide
-- [VS Code Integration](ai-processing/prismweave_mcp/VS_CODE_INTEGRATION.md) - Setup instructions
-- [Troubleshooting](ai-processing/prismweave_mcp/TROUBLESHOOTING.md) - Common issues
+MCP runs as a separate Aspire resource/process named `mcp-server`.
 
-### 🔧 VS Code Extension
+- MCP SSE endpoint: `{mcp-server base URL}/sse`
 
+In Aspire, copy the `mcp-server` HTTP endpoint from the dashboard and append `/sse`.
+Example (with fixed ports): `http://127.0.0.1:4005/sse`.
 VS Code integration for document management and content creation.
 
 **Location:** `vscode-extension/`

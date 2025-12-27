@@ -46,6 +46,9 @@ API documentation available at http://localhost:8000/docs
 ### MCP Server
 
 ```bash
+When orchestrated by Aspire, the MCP server runs as a separate Aspire resource
+(`mcp-server`) using the ASGI app `src.mcp_app:app`.
+
 # Run MCP server
 prismweave-mcp
 
@@ -56,6 +59,7 @@ prismweave-mcp-inspector
 ## Configuration
 
 Edit `config.yaml` to configure:
+
 - Document paths
 - Ollama model settings
 - ChromaDB location
