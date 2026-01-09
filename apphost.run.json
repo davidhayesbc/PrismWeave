@@ -12,7 +12,6 @@
   "parameters": {
     "documents-path": "../../PrismWeaveDocs/documents",
     "chroma-persist-dir": "../../PrismWeaveDocs/.prismweave/chroma_db",
-    "article-index-path": "../../PrismWeaveDocs/documents/.prismweave/index/articles.json",
-    "ollama-host": "http://localhost:11434"
+    "article-index-path": "../../PrismWeaveDocs/documents/.prismweave/index/articles.json"
   }
 }

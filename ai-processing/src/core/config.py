@@ -2,6 +2,7 @@
 Configuration management for PrismWeave AI processing
 """
 
+import os
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
@@ -235,6 +236,20 @@ def load_config(config_path: Optional[Path] = None) -> Config:
         except Exception:
             # If normalization fails, keep existing relative paths
             pass
+
+        # Environment variable overrides (primarily for Aspire/AppHost).
+        # Prefer these over config.yaml so orchestrators can inject runtime endpoints.
+        env_ollama_host = os.getenv("OLLAMA_HOST")
+        if env_ollama_host:
+            config.ollama_host = env_ollama_host
+
+        env_ollama_timeout = os.getenv("OLLAMA_TIMEOUT")
+        if env_ollama_timeout:
+            try:
+                config.ollama_timeout = int(env_ollama_timeout)
+            except ValueError:
+                # Keep config value if env var is invalid.
+                pass
 
         return config
 

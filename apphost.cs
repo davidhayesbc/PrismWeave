@@ -2,6 +2,9 @@
 #:package Aspire.Hosting@13.1.0
 #:package Aspire.Hosting.Python@13.1.0
 #:package Aspire.Hosting.JavaScript@13.1.0
+#:package CommunityToolkit.Aspire.Hosting.Ollama@13.0.0
+
+using CommunityToolkit.Aspire.Hosting.Ollama;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
@@ -17,7 +20,33 @@ var articleIndexPath = builder.AddParameter(
     "article-index-path",
     "../../PrismWeaveDocs/documents/.prismweave/index/articles.json"
 );
-var ollamaHost = builder.AddParameter("ollama-host", "http://localhost:11434");
+
+// Ollama (hosted by Aspire) + models.
+// The model resources are marked unhealthy until they are fully downloaded.
+// Keeping the LLM cache in a volume avoids re-downloading between runs.
+const int ollamaPort = 11434;
+const string ollamaHost = "http://localhost:11434";
+
+var ollama = builder
+    .AddOllama("ollama")
+    .WithDataVolume()
+    // Keep a stable localhost port so host processes can connect reliably.
+    .WithEndpoint(
+        endpointName: "http",
+        e =>
+        {
+            e.Port = ollamaPort;
+            e.TargetPort = 11434;
+            e.UriScheme = "http";
+            e.Transport = "http";
+            e.IsProxied = false;
+            e.IsExternal = true;
+        },
+        createIfNotExists: true
+    );
+var ollamaEmbeddingModel = ollama.AddModel("nomic-embed-text");
+var ollamaSmallModel = ollama.AddModel("phi3:mini");
+var ollamaLargeModel = ollama.AddModel("llama3.1:8b");
 
 var aiProcessing = builder
     .AddUvicornApp("ai-processing", "./ai-processing", "src.unified_app:app")
@@ -45,7 +74,12 @@ var aiProcessing = builder
     .WithEnvironment("OLLAMA_HOST", ollamaHost)
     .WithEnvironment("DOCUMENTS_PATH", documentsPath)
     .WithEnvironment("CHROMA_PERSIST_DIR", chromaPersistDir)
-    .WithEnvironment("ARTICLE_INDEX_PATH", articleIndexPath);
+    .WithEnvironment("ARTICLE_INDEX_PATH", articleIndexPath)
+    .WithReference(ollama)
+    .WithReference(ollamaEmbeddingModel)
+    .WithReference(ollamaSmallModel)
+    .WithReference(ollamaLargeModel)
+    .WaitFor(ollamaEmbeddingModel);
 
 // Standalone MCP server (FastMCP over SSE) as a separate Aspire process/resource.
 // SSE endpoint is available at: {mcp-server base URL}/sse
@@ -87,7 +121,12 @@ var mcpServer = builder
     .WithEnvironment("OLLAMA_HOST", ollamaHost)
     .WithEnvironment("DOCUMENTS_PATH", documentsPath)
     .WithEnvironment("CHROMA_PERSIST_DIR", chromaPersistDir)
-    .WithEnvironment("ARTICLE_INDEX_PATH", articleIndexPath);
+    .WithEnvironment("ARTICLE_INDEX_PATH", articleIndexPath)
+    .WithReference(ollama)
+    .WithReference(ollamaEmbeddingModel)
+    .WithReference(ollamaSmallModel)
+    .WithReference(ollamaLargeModel)
+    .WaitFor(ollamaEmbeddingModel);
 
 // Add an explicit dashboard URL that includes the SSE path.
 // (Aspire endpoints are base addresses; paths like /sse are best represented as Resource URLs.)

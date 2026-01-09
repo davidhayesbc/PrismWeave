@@ -5,6 +5,7 @@ Main MCP server implementation using FastMCP for document management and AI proc
 """
 
 import logging
+import os
 from typing import Any
 
 from fastmcp import FastMCP
@@ -40,6 +41,13 @@ mcp = FastMCP("PrismWeave Document Manager")
 
 # Initialize configuration and tools
 config = load_config()
+
+logger.info(
+    "MCP server configured Ollama host: %s (env OLLAMA_HOST=%s)",
+    config.ollama_host,
+    os.getenv("OLLAMA_HOST"),
+)
+
 search_tools = SearchTools(config)
 document_tools = DocumentTools(config)
 processing_tools = ProcessingTools(config)
