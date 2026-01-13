@@ -6,7 +6,6 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
 
-
 from .models import ArticleTagAssignment, Tag, TaxonomyCategory
 
 

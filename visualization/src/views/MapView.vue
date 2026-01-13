@@ -90,7 +90,12 @@
             Taxonomy clusters
           </label>
           <label class="checkbox-label">
-            <input type="radio" value="neighbors" v-model="linkMode" @change="renderVisualization" />
+            <input
+              type="radio"
+              value="neighbors"
+              v-model="linkMode"
+              @change="renderVisualization"
+            />
             Nearest neighbors
           </label>
         </div>
@@ -150,14 +155,16 @@
         <h3>{{ tooltip.article?.title }}</h3>
         <p class="excerpt">{{ tooltip.article?.excerpt }}</p>
         <div class="meta">
-          <span
-            v-if="tooltip.article?.taxonomy_category || tooltip.article?.topic"
-            class="topic"
-          >
+          <span v-if="tooltip.article?.taxonomy_category || tooltip.article?.topic" class="topic">
             {{ tooltip.article?.taxonomy_category || tooltip.article?.topic }}
           </span>
           <span class="tags">
-            {{ (tooltip.article?.taxonomy_tags?.length ? tooltip.article?.taxonomy_tags : ['None']).join(', ') }}
+            {{
+              (tooltip.article?.taxonomy_tags?.length
+                ? tooltip.article?.taxonomy_tags
+                : ['None']
+              ).join(', ')
+            }}
           </span>
         </div>
         <div class="stats-line">
@@ -404,7 +411,8 @@ function getGraphArticles(): ArticleSummary[] {
     return filtered;
   }
 
-  const canUseTaxonomy = linkMode.value === 'taxonomy' && filtered.some((a) => !!a.taxonomy_cluster_id);
+  const canUseTaxonomy =
+    linkMode.value === 'taxonomy' && filtered.some((a) => !!a.taxonomy_cluster_id);
 
   if (canUseTaxonomy) {
     const counts = new Map<string, number>();

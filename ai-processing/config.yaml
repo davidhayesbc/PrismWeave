@@ -6,7 +6,7 @@ ollama:
   timeout: 60
   models:
     embedding: 'nomic-embed-text:latest' # Vector embeddings for search
-    tagging: 'phi3:mini' # Semantic tag generation (LLM)
+    tagging: 'qwen2.5:7b' # Semantic tag generation (LLM) - more JSON-reliable
 
 # Document Processing Configuration
 processing:

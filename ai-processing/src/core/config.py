@@ -76,7 +76,7 @@ class Config:
     ollama_host: str = "http://localhost:11434"
     ollama_timeout: int = 60
     embedding_model: str = "nomic-embed-text:latest"
-    tagging_model: str = "phi3:mini"
+    tagging_model: str = "qwen2.5:7b"
 
     # Document processing settings
     chunk_size: int = 1000  # Smaller chunks for web documents

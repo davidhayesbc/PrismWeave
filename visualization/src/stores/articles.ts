@@ -3,7 +3,13 @@
  */
 
 import { articlesApi } from '@/services/api';
-import type { ArticleDetail, ArticleSummary, Filters, OptionItem, UpdateArticleRequest } from '@/types';
+import type {
+  ArticleDetail,
+  ArticleSummary,
+  Filters,
+  OptionItem,
+  UpdateArticleRequest,
+} from '@/types';
 import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
 

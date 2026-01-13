@@ -23,7 +23,6 @@ from src.core.metadata_index import (
     load_existing_index,
     save_index,
 )
-
 from src.taxonomy.artifacts import default_artifacts_dir, read_json
 from src.taxonomy.store import TaxonomyStore, TaxonomyStoreConfig, default_taxonomy_sqlite_path
 
@@ -272,7 +271,18 @@ def _load_taxonomy_enrichment(
                             continue
                         for aid in cluster.get("article_ids") or []:
                             if aid:
-                                article_to_cluster[str(aid)] = cluster_id
+                                raw_id = str(aid)
+                                article_to_cluster[raw_id] = cluster_id
+                                # Also map absolute paths back to repo-relative paths when possible.
+                                # The taxonomy pipeline historically used absolute file paths as ids,
+                                # but the visualization index uses docs-root-relative paths.
+                                try:
+                                    p = Path(raw_id)
+                                    if p.is_absolute():
+                                        rel = p.resolve().relative_to(docs_root.resolve()).as_posix()
+                                        article_to_cluster[rel] = cluster_id
+                                except Exception:
+                                    pass
             except Exception:
                 # Artifacts are optional.
                 pass
@@ -282,7 +292,23 @@ def _load_taxonomy_enrichment(
         category_map = store.get_category_map()
 
         # Tag assignments and tag name lookup from SQLite.
-        assignments_by_article = store.get_article_tags_for_articles(article_ids)
+        # Be resilient to article_id format differences between systems (relative vs absolute).
+        expanded_article_ids: list[str] = []
+        absolute_by_canonical: dict[str, str] = {}
+        for canonical_id in article_ids:
+            expanded_article_ids.append(canonical_id)
+            try:
+                abs_id = (docs_root / canonical_id).resolve()
+                absolute_by_canonical[canonical_id] = str(abs_id)
+                expanded_article_ids.append(str(abs_id))
+            except Exception:
+                continue
+
+        # Deduplicate while keeping order.
+        seen: set[str] = set()
+        expanded_article_ids = [x for x in expanded_article_ids if not (x in seen or seen.add(x))]
+
+        assignments_by_article = store.get_article_tags_for_articles(expanded_article_ids)
         tag_map = store.get_tag_map()
 
         enrichment: dict[str, dict[str, object]] = {}
@@ -295,20 +321,20 @@ def _load_taxonomy_enrichment(
 
             category_name = category_map.get(category_id).name if category_id and category_id in category_map else None
             subcategory_name = (
-                category_map.get(subcategory_id).name
-                if subcategory_id and subcategory_id in category_map
-                else None
+                category_map.get(subcategory_id).name if subcategory_id and subcategory_id in category_map else None
             )
 
             raw_assignments = assignments_by_article.get(article_id, [])
+            if not raw_assignments:
+                alt = absolute_by_canonical.get(article_id)
+                if alt:
+                    raw_assignments = assignments_by_article.get(alt, [])
             tag_assignments: list[TaxonomyTagAssignment] = []
             tag_names: list[str] = []
             for a in raw_assignments:
                 tag = tag_map.get(a.tag_id)
                 name = tag.name if tag else a.tag_id
-                tag_assignments.append(
-                    TaxonomyTagAssignment(id=a.tag_id, name=name, confidence=float(a.confidence))
-                )
+                tag_assignments.append(TaxonomyTagAssignment(id=a.tag_id, name=name, confidence=float(a.confidence)))
                 tag_names.append(name)
 
             enrichment[article_id] = {
@@ -613,11 +639,7 @@ async def get_article(article_id: str):
             detail=f"Failed to read article: {e}",
         )
 
-    taxonomy = (
-        _load_taxonomy_enrichment(docs_root=documents_root, article_ids=[article.id])
-        if documents_root
-        else {}
-    )
+    taxonomy = _load_taxonomy_enrichment(docs_root=documents_root, article_ids=[article.id]) if documents_root else {}
     enrich = taxonomy.get(article.id)
 
     # Create response model
@@ -783,11 +805,7 @@ async def update_article(article_id: str, update_request: UpdateArticleRequest):
     _ensure_writable_index_path(index_path)
     save_index(index, index_path)
 
-    taxonomy = (
-        _load_taxonomy_enrichment(docs_root=documents_root, article_ids=[article.id])
-        if documents_root
-        else {}
-    )
+    taxonomy = _load_taxonomy_enrichment(docs_root=documents_root, article_ids=[article.id]) if documents_root else {}
     enrich = taxonomy.get(article.id)
 
     # Return the updated article

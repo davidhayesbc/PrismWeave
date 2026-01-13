@@ -45,7 +45,7 @@ var ollama = builder
         createIfNotExists: true
     );
 var ollamaEmbeddingModel = ollama.AddModel("nomic-embed-text");
-var ollamaSmallModel = ollama.AddModel("phi3:mini");
+var ollamaSmallModel = ollama.AddModel("qwen2.5:7b");
 var ollamaLargeModel = ollama.AddModel("llama3.1:8b");
 
 var aiProcessing = builder
@@ -79,7 +79,10 @@ var aiProcessing = builder
     .WithReference(ollamaEmbeddingModel)
     .WithReference(ollamaSmallModel)
     .WithReference(ollamaLargeModel)
-    .WaitFor(ollamaEmbeddingModel);
+    // Ensure embeddings + tagging + large models are downloaded before starting.
+    .WaitFor(ollamaEmbeddingModel)
+    .WaitFor(ollamaSmallModel)
+    .WaitFor(ollamaLargeModel);
 
 // Standalone MCP server (FastMCP over SSE) as a separate Aspire process/resource.
 // SSE endpoint is available at: {mcp-server base URL}/sse
@@ -126,7 +129,10 @@ var mcpServer = builder
     .WithReference(ollamaEmbeddingModel)
     .WithReference(ollamaSmallModel)
     .WithReference(ollamaLargeModel)
-    .WaitFor(ollamaEmbeddingModel);
+    // Ensure embeddings + tagging + large models are downloaded before starting.
+    .WaitFor(ollamaEmbeddingModel)
+    .WaitFor(ollamaSmallModel)
+    .WaitFor(ollamaLargeModel);
 
 // Add an explicit dashboard URL that includes the SSE path.
 // (Aspire endpoints are base addresses; paths like /sse are best represented as Resource URLs.)
