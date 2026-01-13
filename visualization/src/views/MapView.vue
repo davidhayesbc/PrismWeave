@@ -45,7 +45,7 @@
           type="search"
           v-model="searchQuery"
           placeholder="Search articles..."
-          @input="updateFilters"
+          @input="updateFiltersDebounced"
         />
       </div>
 
@@ -57,7 +57,7 @@
               type="checkbox"
               :value="topic"
               v-model="selectedTopics"
-              @change="updateFilters"
+              @change="updateFiltersImmediate"
             />
             {{ topic }}
           </label>
@@ -66,7 +66,12 @@
 
       <div class="filter-section">
         <label>Tags</label>
-        <select v-model="selectedTags" multiple @change="updateFilters" class="tags-select">
+        <select
+          v-model="selectedTags"
+          multiple
+          @change="updateFiltersImmediate"
+          class="tags-select"
+        >
           <option v-for="tag in store.availableTags" :key="tag" :value="tag">
             {{ tag }}
           </option>
@@ -208,13 +213,35 @@ const tooltipStyle = computed(() => ({
   top: `${tooltip.value.y}px`,
 }));
 
-function updateFilters() {
+const FILTER_DEBOUNCE_MS = 250;
+let filterDebounceTimer: number | null = null;
+
+function applyFilters() {
   store.setFilters({
     searchQuery: searchQuery.value,
     topics: selectedTopics.value,
     tags: selectedTags.value,
   });
   renderVisualization();
+}
+
+function updateFiltersImmediate() {
+  if (filterDebounceTimer) {
+    window.clearTimeout(filterDebounceTimer);
+    filterDebounceTimer = null;
+  }
+  applyFilters();
+}
+
+function updateFiltersDebounced() {
+  if (filterDebounceTimer) {
+    window.clearTimeout(filterDebounceTimer);
+  }
+
+  filterDebounceTimer = window.setTimeout(() => {
+    filterDebounceTimer = null;
+    applyFilters();
+  }, FILTER_DEBOUNCE_MS);
 }
 
 function clearFilters() {
@@ -461,7 +488,12 @@ function fitGraphToView(params: {
     maxY = Math.max(maxY, y + halfH);
   });
 
-  if (!Number.isFinite(minX) || !Number.isFinite(minY) || !Number.isFinite(maxX) || !Number.isFinite(maxY)) {
+  if (
+    !Number.isFinite(minX) ||
+    !Number.isFinite(minY) ||
+    !Number.isFinite(maxX) ||
+    !Number.isFinite(maxY)
+  ) {
     return;
   }
 
