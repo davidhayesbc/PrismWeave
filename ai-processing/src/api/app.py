@@ -247,7 +247,22 @@ def _load_taxonomy_enrichment(
     """
 
     try:
-        sqlite_path = default_taxonomy_sqlite_path(docs_root)
+        # The API may be configured with DOCUMENTS_PATH pointing at the content folder
+        # (e.g. PrismWeaveDocs/documents), while taxonomy artifacts live at the repo root
+        # (e.g. PrismWeaveDocs/.prismweave). Resolve the taxonomy root by preferring the
+        # nearest directory that actually contains the taxonomy sqlite.
+        content_root = docs_root
+        taxonomy_root = docs_root
+        try:
+            for candidate in (docs_root, docs_root.parent):
+                candidate_sqlite = default_taxonomy_sqlite_path(candidate)
+                if candidate_sqlite.exists():
+                    taxonomy_root = candidate
+                    break
+        except Exception:
+            taxonomy_root = docs_root
+
+        sqlite_path = default_taxonomy_sqlite_path(taxonomy_root)
         if not sqlite_path.exists():
             return {}
 
@@ -256,7 +271,7 @@ def _load_taxonomy_enrichment(
         store.initialize()
 
         # Cluster membership comes from taxonomy artifacts (clusters.json)
-        artifacts_dir = default_artifacts_dir(docs_root)
+        artifacts_dir = default_artifacts_dir(taxonomy_root)
         clusters_path = artifacts_dir / "clusters.json"
         article_to_cluster: dict[str, str] = {}
         if clusters_path.exists():
@@ -279,7 +294,7 @@ def _load_taxonomy_enrichment(
                                 try:
                                     p = Path(raw_id)
                                     if p.is_absolute():
-                                        rel = p.resolve().relative_to(docs_root.resolve()).as_posix()
+                                        rel = p.resolve().relative_to(content_root.resolve()).as_posix()
                                         article_to_cluster[rel] = cluster_id
                                 except Exception:
                                     pass
@@ -298,7 +313,7 @@ def _load_taxonomy_enrichment(
         for canonical_id in article_ids:
             expanded_article_ids.append(canonical_id)
             try:
-                abs_id = (docs_root / canonical_id).resolve()
+                abs_id = (content_root / canonical_id).resolve()
                 absolute_by_canonical[canonical_id] = str(abs_id)
                 expanded_article_ids.append(str(abs_id))
             except Exception:
