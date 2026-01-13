@@ -681,6 +681,7 @@ export class FileManager {
       metadata.title.toLowerCase(),
       metadata.url.toLowerCase(),
       ...metadata.tags.map(tag => tag.toLowerCase()),
+      ...(metadata.sourceKeywords || []).map(k => k.toLowerCase()),
       ...this.extractUrlKeywords(metadata.url),
     ];
 

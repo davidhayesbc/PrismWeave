@@ -6,6 +6,7 @@ ollama:
   timeout: 60
   models:
     embedding: 'nomic-embed-text:latest' # Vector embeddings for search
+    tagging: 'phi3:mini' # Semantic tag generation (LLM)
 
 # Document Processing Configuration
 processing:

@@ -307,6 +307,21 @@ Content.""",
         content = doc_path.read_text(encoding="utf-8")
         assert "tags: [test]" in content
 
+    @pytest.mark.asyncio
+    async def test_auto_process_updates_frontmatter_tags(self, processing_manager, temp_docs_dir):
+        """Test auto-processing writes tags into frontmatter when enabled"""
+        doc_path = temp_docs_dir / "documents" / "test.md"
+        doc_path.write_text("---\nid: doc_1\ntitle: Test\n---\nContent about AI and machine learning.", encoding="utf-8")
+
+        result = await processing_manager.auto_process_document(
+            doc_path, generate_embeddings=False, generate_tags=True, update_metadata=True
+        )
+
+        assert result["success"] is True
+        updated = doc_path.read_text(encoding="utf-8")
+        assert "tags:" in updated
+        assert "tagged_at:" in updated
+
 
 class TestGetProcessingStatus:
     """Tests for get_processing_status"""

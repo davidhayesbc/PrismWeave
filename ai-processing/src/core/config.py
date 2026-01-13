@@ -76,6 +76,7 @@ class Config:
     ollama_host: str = "http://localhost:11434"
     ollama_timeout: int = 60
     embedding_model: str = "nomic-embed-text:latest"
+    tagging_model: str = "phi3:mini"
 
     # Document processing settings
     chunk_size: int = 1000  # Smaller chunks for web documents
@@ -103,6 +104,9 @@ class Config:
 
         if not self.embedding_model:
             issues.append("Embedding model cannot be empty")
+
+        if not self.tagging_model:
+            issues.append("Tagging model cannot be empty")
 
         # MCP validation
         if self.mcp.search.max_results <= 0:
@@ -148,6 +152,10 @@ def load_config(config_path: Optional[Path] = None) -> Config:
 
             if "models" in ollama_config:
                 config.embedding_model = ollama_config["models"].get("embedding", config.embedding_model)
+                config.tagging_model = ollama_config["models"].get(
+                    "tagging",
+                    ollama_config["models"].get("medium", config.tagging_model),
+                )
 
         # Processing settings
         if "processing" in config_data:

@@ -177,6 +177,8 @@ export class InjectableContentExtractor {
       `extracted_at: "${params.extractedAt}"`,
       `word_count: ${params.wordCount}`,
       `extraction_method: "injectable-advanced"`,
+      // Capture should not assign semantic tags; keep empty for AI processing.
+      'tags: []',
     ];
 
     // Add author if available
@@ -189,7 +191,7 @@ export class InjectableContentExtractor {
       frontmatterLines.push(`description: "${params.metadata.description.replace(/"/g, '\\"')}"`);
     }
 
-    // Add keywords/tags if available
+    // Add raw source keywords (not semantic tags)
     if (params.metadata.keywords) {
       let keywordArray: string[] = [];
 
@@ -219,8 +221,8 @@ export class InjectableContentExtractor {
         .slice(0, 10); // Limit to 10 tags maximum
 
       if (validTags.length > 0) {
-        const tags = validTags.map(k => `"${k.replace(/"/g, '\\"')}"`).join(', ');
-        frontmatterLines.push(`tags: [${tags}]`);
+        const keywords = validTags.map(k => `"${k.replace(/"/g, '\\"')}"`).join(', ');
+        frontmatterLines.push(`source_keywords: [${keywords}]`);
       }
     }
 

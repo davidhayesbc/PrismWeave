@@ -1597,6 +1597,7 @@ export class ContentCaptureService implements IContentExtractor, IDocumentProces
       title: metadata.title,
       url: metadata.url,
       tags: metadata.tags,
+      sourceKeywords: metadata.sourceKeywords,
       defaultFolder: settings.defaultFolder,
     });
 
@@ -1630,6 +1631,7 @@ export class ContentCaptureService implements IContentExtractor, IDocumentProces
       metadata.title.toLowerCase(),
       metadata.url.toLowerCase(),
       ...metadata.tags.map(tag => tag.toLowerCase()),
+      ...(metadata.sourceKeywords || []).map(k => k.toLowerCase()),
     ].join(' ');
 
     // Score each folder based on keyword matches
@@ -1675,6 +1677,7 @@ export class ContentCaptureService implements IContentExtractor, IDocumentProces
       url: metadata.url,
       captured: metadata.captureDate,
       tags: metadata.tags,
+      source_keywords: metadata.sourceKeywords || [],
     };
 
     // Add optional metadata fields
@@ -1694,10 +1697,14 @@ export class ContentCaptureService implements IContentExtractor, IDocumentProces
 
     Object.entries(frontmatterData).forEach(([key, value]) => {
       if (Array.isArray(value)) {
-        frontmatter += `${key}:\n`;
-        value.forEach(item => {
-          frontmatter += `  - ${item}\n`;
-        });
+        if (value.length === 0) {
+          frontmatter += `${key}: []\n`;
+        } else {
+          frontmatter += `${key}:\n`;
+          value.forEach(item => {
+            frontmatter += `  - ${item}\n`;
+          });
+        }
       } else {
         frontmatter += `${key}: ${SharedUtils.formatYamlValue(value)}\n`;
       }
@@ -1860,7 +1867,8 @@ export class ContentCaptureService implements IContentExtractor, IDocumentProces
       `url: "${url || ''}"`,
       `capture_date: "${new Date().toISOString()}"`,
       'source: "PrismWeave Browser Extension"',
-      'tags: ["web-capture", "fallback"]',
+      'tags: []',
+      'source_keywords: []',
       '---',
       '',
     ].join('\n');

@@ -107,7 +107,10 @@ export class ContentExtractionCore {
       title: this.extractTitle(),
       url: window.location.href,
       captureDate: new Date().toISOString(),
-      tags: this.extractKeywords(),
+      // Capture should not assign semantic tags; keep empty for AI processing.
+      tags: [],
+      // Preserve raw, source-provided keywords/tags for later AI processing.
+      sourceKeywords: this.extractKeywords(),
       author: this.extractAuthor(),
       wordCount: wordCount,
       estimatedReadingTime: this.estimateReadingTime(wordCount),
@@ -117,11 +120,11 @@ export class ContentExtractionCore {
     if (this.isBlogPage()) {
       const blogMetadata = this.extractBlogMetadata();
 
-      // Merge tags instead of overwriting
-      if (blogMetadata.tags && blogMetadata.tags.length > 0) {
-        const combinedTags = [...metadata.tags, ...blogMetadata.tags];
-        metadata.tags = [...new Set(combinedTags)].slice(0, 10); // Dedupe and limit
-        delete blogMetadata.tags; // Remove to prevent overwrite
+      // Merge blog tags into sourceKeywords (raw) instead of semantic tags.
+      if (blogMetadata.sourceKeywords && blogMetadata.sourceKeywords.length > 0) {
+        const combined = [...(metadata.sourceKeywords || []), ...blogMetadata.sourceKeywords];
+        metadata.sourceKeywords = [...new Set(combined)].slice(0, 25); // Dedupe and limit
+        delete (blogMetadata as Partial<IDocumentMetadata>).sourceKeywords;
       }
 
       Object.assign(metadata, blogMetadata);
@@ -703,7 +706,7 @@ export class ContentExtractionCore {
     // Extract tags/categories
     const tags = this.extractTags();
     if (tags.length > 0) {
-      blogMetadata.tags = tags;
+      blogMetadata.sourceKeywords = tags;
     }
 
     // Extract reading time estimate

@@ -133,10 +133,17 @@ class ProcessingTools:
                 )
                 return error.model_dump()
 
-            result = await self.processing_manager.generate_tags(
-                document_path=document_path,
-                max_tags=request.max_tags,
-            )
+            if hasattr(self.processing_manager, "generate_tags_with_options"):
+                result = await self.processing_manager.generate_tags_with_options(
+                    document_path=document_path,
+                    max_tags=request.max_tags,
+                    force_regenerate=getattr(request, "force_regenerate", False),
+                )
+            else:
+                result = await self.processing_manager.generate_tags(
+                    document_path=document_path,
+                    max_tags=request.max_tags,
+                )
 
             # Check if processing succeeded
             if not result["success"]:

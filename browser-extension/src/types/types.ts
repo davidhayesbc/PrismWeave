@@ -92,6 +92,11 @@ export interface IDocumentMetadata {
   url: string;
   captureDate: string;
   tags: string[];
+  /**
+   * Raw, source-provided keywords/tags captured from the page (e.g. meta keywords, blog tag pills).
+   * These are intentionally not treated as semantic tags.
+   */
+  sourceKeywords?: string[];
   author?: string;
   wordCount?: number;
   estimatedReadingTime?: number;

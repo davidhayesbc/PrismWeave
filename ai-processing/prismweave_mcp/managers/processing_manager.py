@@ -7,14 +7,21 @@ Handles AI-powered document processing including:
 - Auto-processing workflows
 """
 
+import asyncio
+import json
 import logging
+import re
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
+import requests
+
 from src.core.config import Config
 from src.core.document_processor import DocumentProcessor
 from src.core.embedding_store import EmbeddingStore
+
+from prismweave_mcp.utils.document_utils import generate_frontmatter, parse_frontmatter
 
 logger = logging.getLogger(__name__)
 
@@ -147,51 +154,266 @@ class ProcessingManager:
                 "message": str
             }
         """
+        return await self.generate_tags_with_options(
+            document_path=document_path,
+            max_tags=max_tags,
+            force_regenerate=False,
+        )
+
+    async def generate_tags_with_options(
+        self,
+        document_path: Path,
+        max_tags: int = 10,
+        force_regenerate: bool = False,
+    ) -> dict:
+        """Generate semantic tags for a document.
+
+        Behavior:
+        - If the document already has tags and force_regenerate=False, returns existing tags.
+        - Otherwise tries Ollama LLM tagging; falls back to deterministic keyword extraction.
+        """
         try:
             logger.info(f"Generating tags for: {document_path}")
 
-            # This would use Ollama to generate tags
-            # For now, returning a placeholder implementation
-            # TODO: Implement actual tag generation with Ollama
+            if not document_path.exists():
+                raise FileNotFoundError(f"File not found: {document_path}")
 
-            tags = await self._extract_tags_from_document(document_path, max_tags)
+            file_text = document_path.read_text(encoding="utf-8")
+            existing_metadata, clean_content = parse_frontmatter(file_text)
+
+            existing_tags = existing_metadata.get("tags")
+            normalized_existing = self._normalize_tags(existing_tags)
+            if normalized_existing and not force_regenerate:
+                return {
+                    "success": True,
+                    "tags": normalized_existing[:max_tags],
+                    "confidence": 1.0,
+                    "document_id": str(document_path),
+                    "message": "Tags already exist (use force_regenerate=True to regenerate)",
+                }
+
+            title = str(existing_metadata.get("title") or document_path.stem)
+            source_keywords = existing_metadata.get("source_keywords") or existing_metadata.get("sourceKeywords")
+            source_keywords_list = self._normalize_tags(source_keywords)
+
+            # 1) Try Ollama-based semantic tagging
+            tags, confidence = await self._generate_tags_via_ollama(
+                title=title,
+                content=clean_content,
+                source_keywords=source_keywords_list,
+                max_tags=max_tags,
+            )
+
+            # 2) Fallback to deterministic extraction if Ollama unavailable / failed
+            if not tags:
+                tags = self._extract_tags_fallback(clean_content, source_keywords_list, max_tags)
+                confidence = 0.35 if tags else 0.0
 
             return {
                 "success": True,
                 "tags": tags,
+                "confidence": confidence,
                 "document_id": str(document_path),
                 "message": f"Generated {len(tags)} tags",
             }
 
         except Exception as e:
             logger.error(f"Failed to generate tags for {document_path}: {e}")
-            return {"success": False, "tags": [], "document_id": str(document_path), "message": f"Error: {str(e)}"}
+            return {
+                "success": False,
+                "tags": [],
+                "confidence": 0.0,
+                "document_id": str(document_path),
+                "message": f"Error: {str(e)}",
+            }
 
-    async def _extract_tags_from_document(self, document_path: Path, max_tags: int) -> list[str]:
+    async def _generate_tags_via_ollama(
+        self,
+        title: str,
+        content: str,
+        source_keywords: list[str],
+        max_tags: int,
+    ) -> tuple[list[str], float]:
+        """Best-effort semantic tag generation using Ollama.
+
+        Returns (tags, confidence). On failure returns ([], 0.0).
         """
-        Extract tags from document (placeholder implementation)
+        prompt = self._build_tagging_prompt(title=title, content=content, source_keywords=source_keywords, max_tags=max_tags)
+        payload = {
+            "model": self.config.tagging_model,
+            "prompt": prompt,
+            "stream": False,
+            "options": {"temperature": 0.1},
+        }
 
-        TODO: Implement with Ollama LLM
-        """
-        # Read document
-        content = document_path.read_text(encoding="utf-8")
+        url = self.config.ollama_host.rstrip("/") + "/api/generate"
 
-        # Simple keyword extraction (placeholder)
-        # In a real implementation, this would use Ollama
-        common_words = ["the", "a", "an", "and", "or", "but", "in", "on", "at", "to", "for", "of", "with"]
-        words = content.lower().split()
-        word_freq = {}
+        def _do_request() -> dict:
+            resp = requests.post(url, json=payload, timeout=self.config.ollama_timeout)
+            resp.raise_for_status()
+            return resp.json()
 
-        for word in words:
-            cleaned = word.strip(".,!?;:()")
-            if len(cleaned) > 3 and cleaned not in common_words:
-                word_freq[cleaned] = word_freq.get(cleaned, 0) + 1
+        try:
+            data = await asyncio.to_thread(_do_request)
+            raw = str(data.get("response") or "").strip()
+            tags = self._parse_tag_list(raw)
+            tags = self._normalize_tags(tags)[:max_tags]
+            if not tags:
+                return [], 0.0
+            return tags, 0.8
+        except Exception as exc:
+            logger.info(f"Ollama tag generation unavailable/failed; falling back. Reason: {exc}")
+            return [], 0.0
 
-        # Get top N words as tags
-        sorted_words = sorted(word_freq.items(), key=lambda x: x[1], reverse=True)
-        tags = [word for word, _ in sorted_words[:max_tags]]
+    @staticmethod
+    def _build_tagging_prompt(title: str, content: str, source_keywords: list[str], max_tags: int) -> str:
+        # Keep prompts short to reduce latency.
+        excerpt = content.strip()
+        if len(excerpt) > 4000:
+            excerpt = excerpt[:4000]
 
-        return tags
+        source_hint = ", ".join(source_keywords[:20]) if source_keywords else ""
+
+        return (
+            "You are a document tagging assistant.\n"
+            "Task: produce a small set of consistent, semantic tags for the document.\n"
+            "Rules:\n"
+            f"- Return ONLY a JSON array of 1 to {max_tags} strings.\n"
+            "- Tags must be lowercase kebab-case (e.g. \"machine-learning\").\n"
+            "- Prefer broad topics over site-specific labels.\n"
+            "- Avoid duplicates, avoid personal names, avoid dates.\n"
+            "\n"
+            f"Title: {title}\n"
+            + (f"Source keywords (raw hints): {source_hint}\n" if source_hint else "")
+            + "Content:\n"
+            + excerpt
+        )
+
+    @staticmethod
+    def _parse_tag_list(text: str) -> list[str]:
+        """Parse a JSON array of strings from model output (best-effort)."""
+        text = text.strip()
+        if not text:
+            return []
+
+        # First, try direct JSON.
+        try:
+            parsed = json.loads(text)
+            if isinstance(parsed, list):
+                return [str(x) for x in parsed]
+        except Exception:
+            pass
+
+        # Fallback: extract the first JSON array in the response.
+        match = re.search(r"\[[\s\S]*?\]", text)
+        if not match:
+            return []
+        try:
+            parsed = json.loads(match.group(0))
+            if isinstance(parsed, list):
+                return [str(x) for x in parsed]
+        except Exception:
+            return []
+        return []
+
+    @staticmethod
+    def _normalize_tags(value: object) -> list[str]:
+        """Normalize tags to lowercase kebab-case and dedupe while preserving order."""
+        if value is None:
+            return []
+
+        if isinstance(value, str):
+            # Support comma-separated or YAML-ish strings.
+            raw_items = re.split(r"[,;|]", value)
+        elif isinstance(value, list):
+            raw_items = [str(v) for v in value]
+        else:
+            raw_items = [str(value)]
+
+        seen: set[str] = set()
+        out: list[str] = []
+        for item in raw_items:
+            t = item.strip().lower()
+            if not t:
+                continue
+            # Convert spaces/underscores to hyphens
+            t = re.sub(r"[\s_]+", "-", t)
+            # Remove invalid chars
+            t = re.sub(r"[^a-z0-9-]", "", t)
+            # Collapse hyphens
+            t = re.sub(r"-+", "-", t).strip("-")
+            if len(t) < 2 or len(t) > 40:
+                continue
+            if t in seen:
+                continue
+            seen.add(t)
+            out.append(t)
+        return out
+
+    @staticmethod
+    def _extract_tags_fallback(content: str, source_keywords: list[str], max_tags: int) -> list[str]:
+        """Deterministic fallback tag extraction: use source keywords first, then frequent terms."""
+        tags: list[str] = []
+        tags.extend(source_keywords)
+
+        # Light-weight frequency-based fallback
+        stop = {
+            "this",
+            "that",
+            "with",
+            "from",
+            "your",
+            "have",
+            "will",
+            "what",
+            "when",
+            "where",
+            "which",
+            "their",
+            "about",
+            "there",
+            "into",
+            "also",
+            "because",
+            "https",
+            "http",
+        }
+        words = re.findall(r"[a-zA-Z][a-zA-Z0-9_-]{2,}", content.lower())
+        freq: dict[str, int] = {}
+        for w in words:
+            w = re.sub(r"[^a-z0-9-]", "", w)
+            w = re.sub(r"-+", "-", w).strip("-")
+            if len(w) < 3:
+                continue
+            if w in stop:
+                continue
+            freq[w] = freq.get(w, 0) + 1
+
+        for w, _ in sorted(freq.items(), key=lambda kv: kv[1], reverse=True):
+            tags.append(w)
+            if len(tags) >= max_tags * 3:
+                break
+
+        # Normalize + clamp
+        return ProcessingManager._normalize_tags(tags)[:max_tags]
+
+    @staticmethod
+    def _update_document_tags_frontmatter(document_path: Path, tags: object) -> None:
+        """Update (or create) frontmatter tags for a markdown document."""
+        normalized_tags = ProcessingManager._normalize_tags(tags)
+        if not normalized_tags:
+            return
+
+        file_text = document_path.read_text(encoding="utf-8")
+        metadata, clean_content = parse_frontmatter(file_text)
+
+        # Preserve existing metadata; only update tags and timestamp fields.
+        metadata = dict(metadata)
+        metadata["tags"] = normalized_tags
+        metadata["tagged_at"] = datetime.now().isoformat()
+
+        frontmatter_text = generate_frontmatter(metadata)
+        document_path.write_text(f"{frontmatter_text}\n{clean_content}", encoding="utf-8")
 
     async def auto_process_document(
         self,
@@ -249,9 +471,10 @@ class ProcessingManager:
 
             # Update metadata (if requested)
             if update_metadata and results["tags_result"] and results["tags_result"]["success"]:
-                # TODO: Update document frontmatter with generated tags
-                # This would be implemented by the Document Manager
-                pass
+                self._update_document_tags_frontmatter(
+                    document_path=document_path,
+                    tags=results["tags_result"].get("tags", []),
+                )
 
             return results
 
