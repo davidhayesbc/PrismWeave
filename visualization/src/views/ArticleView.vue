@@ -26,15 +26,27 @@
             <p v-else>{{ article.topic || 'None' }}</p>
           </div>
 
-          <div class="field">
-            <label>Tags</label>
-            <input
-              v-if="editing"
-              type="text"
-              v-model="tagsInput"
-              placeholder="comma, separated, tags"
-            />
-            <p v-else>{{ article.tags.join(', ') || 'None' }}</p>
+          <div class="field" v-if="article.taxonomy_category || article.taxonomy_subcategory">
+            <label>Taxonomy Category</label>
+            <p>
+              {{ article.taxonomy_category || 'None' }}
+              <span v-if="article.taxonomy_subcategory"> / {{ article.taxonomy_subcategory }}</span>
+            </p>
+          </div>
+
+          <div class="field" v-if="article.taxonomy_cluster_id">
+            <label>Taxonomy Cluster</label>
+            <p>{{ article.taxonomy_cluster_id }}</p>
+          </div>
+
+          <div class="field" v-if="article.taxonomy_tag_assignments?.length">
+            <label>Taxonomy Tags</label>
+            <ul class="taxonomy-tags">
+              <li v-for="t in article.taxonomy_tag_assignments" :key="t.id">
+                <span class="taxonomy-tag-name">{{ t.name }}</span>
+                <span class="taxonomy-tag-confidence">({{ Math.round(t.confidence * 100) }}%)</span>
+              </li>
+            </ul>
           </div>
 
           <div class="field">
@@ -110,12 +122,9 @@ const saving = ref(false);
 const editForm = ref({
   title: '',
   topic: '',
-  tags: [] as string[],
   read_status: 'unread',
   content: '',
 });
-
-const tagsInput = ref('');
 
 const article = computed(() => store.currentArticle);
 
@@ -145,11 +154,9 @@ function startEdit() {
   editForm.value = {
     title: article.value.title,
     topic: article.value.topic || '',
-    tags: [...article.value.tags],
     read_status: article.value.read_status,
     content: article.value.content,
   };
-  tagsInput.value = article.value.tags.join(', ');
 }
 
 function cancelEdit() {
@@ -161,16 +168,9 @@ async function saveChanges() {
 
   saving.value = true;
   try {
-    // Parse tags from input
-    const tags = tagsInput.value
-      .split(',')
-      .map((t) => t.trim())
-      .filter((t) => t.length > 0);
-
     await store.updateArticle(article.value.id, {
       title: editForm.value.title,
       topic: editForm.value.topic || null,
-      tags,
       read_status: editForm.value.read_status,
       content: editForm.value.content,
     });
@@ -260,6 +260,28 @@ onMounted(async () => {
 .field p {
   margin: 0;
   color: #333;
+}
+
+.taxonomy-tags {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.taxonomy-tags li {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.25rem 0;
+}
+
+.taxonomy-tag-name {
+  color: #2c3e50;
+}
+
+.taxonomy-tag-confidence {
+  color: #666;
+  font-size: 0.85rem;
 }
 
 .actions-section {

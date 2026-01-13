@@ -16,6 +16,20 @@ export interface ArticleSummary {
   x?: number;
   y?: number;
   neighbors?: string[];
+
+  taxonomy_cluster_id?: string | null;
+  taxonomy_category_id?: string | null;
+  taxonomy_category?: string | null;
+  taxonomy_subcategory_id?: string | null;
+  taxonomy_subcategory?: string | null;
+  taxonomy_tag_assignments?: TaxonomyTagAssignment[];
+  taxonomy_tags?: string[];
+}
+
+export interface TaxonomyTagAssignment {
+  id: string;
+  name: string;
+  confidence: number;
 }
 
 export interface ArticleDetail extends ArticleSummary {
@@ -38,7 +52,13 @@ export interface RebuildResponse {
 
 export interface Filters {
   topics: string[];
+  categories: string[];
   searchQuery: string;
   ageRange: [number, number] | null;
-  tags: string[];
+  tagValues: string[];
+}
+
+export interface OptionItem {
+  value: string;
+  label: string;
 }

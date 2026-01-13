@@ -5,7 +5,7 @@ import sqlite3
 from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+
 
 from .models import ArticleTagAssignment, Tag, TaxonomyCategory
 
@@ -117,7 +117,29 @@ class TaxonomyStore:
                     (tag.id, tag.name, tag.normalized_name, tag.description, tag.category_id),
                 )
 
-    def list_tags(self) -> List[Tag]:
+    def list_categories(self) -> list[TaxonomyCategory]:
+        with self.connect() as conn:
+            rows = conn.execute(
+                "SELECT id, name, description, parent_id, level FROM taxonomy_categories ORDER BY id"
+            ).fetchall()
+        return [
+            TaxonomyCategory(
+                id=row["id"],
+                name=row["name"],
+                description=row["description"],
+                parent_id=row["parent_id"],
+                level=int(row["level"]),
+            )
+            for row in rows
+        ]
+
+    def get_category_map(self) -> dict[str, TaxonomyCategory]:
+        return {c.id: c for c in self.list_categories()}
+
+    def get_tag_map(self) -> dict[str, Tag]:
+        return {t.id: t for t in self.list_tags()}
+
+    def list_tags(self) -> list[Tag]:
         with self.connect() as conn:
             rows = conn.execute(
                 "SELECT id, name, normalized_name, description, category_id FROM tags ORDER BY id"
@@ -136,10 +158,10 @@ class TaxonomyStore:
     def map_cluster_to_category(
         self,
         cluster_id: str,
-        category_id: Optional[str],
-        subcategory_id: Optional[str] = None,
+        category_id: str | None,
+        subcategory_id: str | None = None,
         *,
-        notes: Optional[str] = None,
+        notes: str | None = None,
     ) -> None:
         with self.connect() as conn:
             conn.execute(
@@ -155,7 +177,7 @@ class TaxonomyStore:
                 (cluster_id, category_id, subcategory_id, notes),
             )
 
-    def get_cluster_category_map(self) -> Dict[str, Tuple[Optional[str], Optional[str]]]:
+    def get_cluster_category_map(self) -> dict[str, tuple[str | None, str | None]]:
         with self.connect() as conn:
             rows = conn.execute("SELECT cluster_id, category_id, subcategory_id FROM cluster_category_map").fetchall()
         return {row["cluster_id"]: (row["category_id"], row["subcategory_id"]) for row in rows}
@@ -174,7 +196,7 @@ class TaxonomyStore:
                     (assignment.article_id, assignment.tag_id, float(assignment.confidence)),
                 )
 
-    def get_article_tags(self, article_id: str) -> List[ArticleTagAssignment]:
+    def get_article_tags(self, article_id: str) -> list[ArticleTagAssignment]:
         with self.connect() as conn:
             rows = conn.execute(
                 """
@@ -193,7 +215,42 @@ class TaxonomyStore:
             for row in rows
         ]
 
-    def set_manual_override(self, article_id: str, override: Dict[str, object]) -> None:
+    def get_article_tags_for_articles(self, article_ids: Iterable[str]) -> dict[str, list[ArticleTagAssignment]]:
+        ids = [str(i) for i in article_ids if str(i)]
+        if not ids:
+            return {}
+
+        # SQLite has a variable limit; chunk to stay well below it.
+        chunk_size = 900
+        out: dict[str, list[ArticleTagAssignment]] = {}
+
+        with self.connect() as conn:
+            for i in range(0, len(ids), chunk_size):
+                chunk = ids[i : i + chunk_size]
+                placeholders = ",".join("?" for _ in chunk)
+                rows = conn.execute(
+                    f"""
+                    SELECT article_id, tag_id, confidence
+                    FROM article_tag_assignments
+                    WHERE article_id IN ({placeholders})
+                    ORDER BY article_id ASC, confidence DESC, tag_id ASC
+                    """,
+                    tuple(chunk),
+                ).fetchall()
+
+                for row in rows:
+                    article_id = row["article_id"]
+                    out.setdefault(article_id, []).append(
+                        ArticleTagAssignment(
+                            article_id=article_id,
+                            tag_id=row["tag_id"],
+                            confidence=float(row["confidence"]),
+                        )
+                    )
+
+        return out
+
+    def set_manual_override(self, article_id: str, override: dict[str, object]) -> None:
         payload = json.dumps(override, sort_keys=True)
         with self.connect() as conn:
             conn.execute(
@@ -207,7 +264,7 @@ class TaxonomyStore:
                 (article_id, payload),
             )
 
-    def get_manual_override(self, article_id: str) -> Optional[Dict[str, object]]:
+    def get_manual_override(self, article_id: str) -> dict[str, object] | None:
         with self.connect() as conn:
             row = conn.execute(
                 "SELECT override_json FROM manual_overrides WHERE article_id=?",

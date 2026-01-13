@@ -8,6 +8,14 @@ from typing import List, Optional
 from pydantic import BaseModel, Field
 
 
+class TaxonomyTagAssignment(BaseModel):
+    """A taxonomy tag assignment for an article."""
+
+    id: str = Field(..., description="Taxonomy tag id")
+    name: str = Field(..., description="Human-readable tag name")
+    confidence: float = Field(..., ge=0.0, le=1.0, description="Assignment confidence")
+
+
 class ArticleSummary(BaseModel):
     """Summary information for an article (used in list view)"""
 
@@ -24,6 +32,22 @@ class ArticleSummary(BaseModel):
     x: Optional[float] = Field(None, description="X coordinate for visualization")
     y: Optional[float] = Field(None, description="Y coordinate for visualization")
     neighbors: Optional[List[str]] = Field(None, description="IDs of nearest neighbor articles")
+
+    taxonomy_cluster_id: Optional[str] = Field(
+        None, description="Taxonomy cluster id (from PrismWeave taxonomy artifacts)"
+    )
+    taxonomy_category_id: Optional[str] = Field(None, description="Taxonomy category id")
+    taxonomy_category: Optional[str] = Field(None, description="Taxonomy category name")
+    taxonomy_subcategory_id: Optional[str] = Field(None, description="Taxonomy subcategory id")
+    taxonomy_subcategory: Optional[str] = Field(None, description="Taxonomy subcategory name")
+    taxonomy_tag_assignments: List[TaxonomyTagAssignment] = Field(
+        default_factory=list,
+        description="Taxonomy-derived tag assignments (id/name/confidence)",
+    )
+    taxonomy_tags: List[str] = Field(
+        default_factory=list,
+        description="Convenience list of taxonomy tag names (derived from taxonomy_tag_assignments)",
+    )
 
     class Config:
         json_schema_extra = {

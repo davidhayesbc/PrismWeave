@@ -3,7 +3,7 @@
  */
 
 import { articlesApi } from '@/services/api';
-import type { ArticleDetail, ArticleSummary, Filters, UpdateArticleRequest } from '@/types';
+import type { ArticleDetail, ArticleSummary, Filters, OptionItem, UpdateArticleRequest } from '@/types';
 import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
 
@@ -18,10 +18,23 @@ export const useArticlesStore = defineStore('articles', () => {
   // Filters
   const filters = ref<Filters>({
     topics: [],
+    categories: [],
     searchQuery: '',
     ageRange: null,
-    tags: [],
+    tagValues: [],
   });
+
+  function getCategoryLabel(article: ArticleSummary): string | null {
+    return article.taxonomy_category || null;
+  }
+
+  function getTagValues(article: ArticleSummary): string[] {
+    const assignments = article.taxonomy_tag_assignments;
+    if (assignments && assignments.length > 0) {
+      return assignments.map((a) => a.id);
+    }
+    return [];
+  }
 
   // Computed
   const filteredArticles = computed(() => {
@@ -34,11 +47,20 @@ export const useArticlesStore = defineStore('articles', () => {
       );
     }
 
+    // Filter by taxonomy categories
+    if (filters.value.categories.length > 0) {
+      result = result.filter((article) => {
+        const category = getCategoryLabel(article);
+        return category ? filters.value.categories.includes(category) : false;
+      });
+    }
+
     // Filter by tags
-    if (filters.value.tags.length > 0) {
-      result = result.filter((article) =>
-        filters.value.tags.some((tag) => article.tags.includes(tag)),
-      );
+    if (filters.value.tagValues.length > 0) {
+      result = result.filter((article) => {
+        const articleTagValues = getTagValues(article);
+        return filters.value.tagValues.some((value) => articleTagValues.includes(value));
+      });
     }
 
     // Filter by search query
@@ -48,7 +70,7 @@ export const useArticlesStore = defineStore('articles', () => {
         (article) =>
           article.title.toLowerCase().includes(query) ||
           article.excerpt.toLowerCase().includes(query) ||
-          article.tags.some((tag) => tag.toLowerCase().includes(query)),
+          (article.taxonomy_tags || []).some((tag) => tag.toLowerCase().includes(query)),
       );
     }
 
@@ -74,11 +96,31 @@ export const useArticlesStore = defineStore('articles', () => {
   });
 
   const availableTags = computed(() => {
-    const tags = new Set<string>();
+    const optionsByValue = new Map<string, OptionItem>();
+
     articles.value.forEach((article) => {
-      article.tags.forEach((tag) => tags.add(tag));
+      const assignments = article.taxonomy_tag_assignments;
+      if (assignments && assignments.length > 0) {
+        assignments.forEach((a) => {
+          if (!optionsByValue.has(a.id)) {
+            optionsByValue.set(a.id, { value: a.id, label: a.name });
+          }
+        });
+      }
     });
-    return Array.from(tags).sort();
+
+    return Array.from(optionsByValue.values()).sort((a, b) => a.label.localeCompare(b.label));
+  });
+
+  const availableCategories = computed(() => {
+    const categories = new Set<string>();
+    articles.value.forEach((article) => {
+      const category = getCategoryLabel(article);
+      if (category) categories.add(category);
+    });
+    return Array.from(categories)
+      .sort()
+      .map((c) => ({ value: c, label: c }));
   });
 
   // Actions
@@ -168,9 +210,10 @@ export const useArticlesStore = defineStore('articles', () => {
   function clearFilters() {
     filters.value = {
       topics: [],
+      categories: [],
       searchQuery: '',
       ageRange: null,
-      tags: [],
+      tagValues: [],
     };
   }
 
@@ -190,6 +233,7 @@ export const useArticlesStore = defineStore('articles', () => {
     filteredArticles,
     availableTopics,
     availableTags,
+    availableCategories,
     // Actions
     fetchArticles,
     fetchArticle,

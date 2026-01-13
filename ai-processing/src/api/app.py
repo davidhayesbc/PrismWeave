@@ -24,7 +24,10 @@ from src.core.metadata_index import (
     save_index,
 )
 
-from .models import ArticleDetail, ArticleSummary, RebuildResponse, UpdateArticleRequest
+from src.taxonomy.artifacts import default_artifacts_dir, read_json
+from src.taxonomy.store import TaxonomyStore, TaxonomyStoreConfig, default_taxonomy_sqlite_path
+
+from .models import ArticleDetail, ArticleSummary, RebuildResponse, TaxonomyTagAssignment, UpdateArticleRequest
 
 # Global state (initialized on startup)
 config: Optional[Config] = None
@@ -233,6 +236,96 @@ def _article_metadata_to_summary(article: ArticleMetadata) -> ArticleSummary:
     )
 
 
+def _load_taxonomy_enrichment(
+    *,
+    docs_root: Path,
+    article_ids: List[str],
+) -> dict[str, dict[str, object]]:
+    """Best-effort taxonomy enrichment for a set of articles.
+
+    Returns a mapping: article_id -> enrichment dict containing taxonomy fields.
+    Never raises; failures degrade to an empty mapping.
+    """
+
+    try:
+        sqlite_path = default_taxonomy_sqlite_path(docs_root)
+        if not sqlite_path.exists():
+            return {}
+
+        store = TaxonomyStore(TaxonomyStoreConfig(sqlite_path=sqlite_path))
+        # Initialize is safe/cheap; ensures tables exist if the file is present.
+        store.initialize()
+
+        # Cluster membership comes from taxonomy artifacts (clusters.json)
+        artifacts_dir = default_artifacts_dir(docs_root)
+        clusters_path = artifacts_dir / "clusters.json"
+        article_to_cluster: dict[str, str] = {}
+        if clusters_path.exists():
+            try:
+                clusters_payload = read_json(clusters_path) or []
+                if isinstance(clusters_payload, list):
+                    for cluster in clusters_payload:
+                        if not isinstance(cluster, dict):
+                            continue
+                        cluster_id = str(cluster.get("id", "")).strip()
+                        if not cluster_id:
+                            continue
+                        for aid in cluster.get("article_ids") or []:
+                            if aid:
+                                article_to_cluster[str(aid)] = cluster_id
+            except Exception:
+                # Artifacts are optional.
+                pass
+
+        # Cluster -> category/subcategory mapping and category names from SQLite.
+        cluster_category_map = store.get_cluster_category_map()
+        category_map = store.get_category_map()
+
+        # Tag assignments and tag name lookup from SQLite.
+        assignments_by_article = store.get_article_tags_for_articles(article_ids)
+        tag_map = store.get_tag_map()
+
+        enrichment: dict[str, dict[str, object]] = {}
+        for article_id in article_ids:
+            cluster_id = article_to_cluster.get(article_id)
+            category_id = None
+            subcategory_id = None
+            if cluster_id and cluster_id in cluster_category_map:
+                category_id, subcategory_id = cluster_category_map.get(cluster_id, (None, None))
+
+            category_name = category_map.get(category_id).name if category_id and category_id in category_map else None
+            subcategory_name = (
+                category_map.get(subcategory_id).name
+                if subcategory_id and subcategory_id in category_map
+                else None
+            )
+
+            raw_assignments = assignments_by_article.get(article_id, [])
+            tag_assignments: list[TaxonomyTagAssignment] = []
+            tag_names: list[str] = []
+            for a in raw_assignments:
+                tag = tag_map.get(a.tag_id)
+                name = tag.name if tag else a.tag_id
+                tag_assignments.append(
+                    TaxonomyTagAssignment(id=a.tag_id, name=name, confidence=float(a.confidence))
+                )
+                tag_names.append(name)
+
+            enrichment[article_id] = {
+                "taxonomy_cluster_id": cluster_id,
+                "taxonomy_category_id": category_id,
+                "taxonomy_category": category_name,
+                "taxonomy_subcategory_id": subcategory_id,
+                "taxonomy_subcategory": subcategory_name,
+                "taxonomy_tag_assignments": tag_assignments,
+                "taxonomy_tags": tag_names,
+            }
+
+        return enrichment
+    except Exception:
+        return {}
+
+
 def _apply_layout_to_index(index: dict[str, ArticleMetadata], docs_root: Path) -> int:
     """Populate x/y and neighbors for the given index.
 
@@ -413,7 +506,23 @@ async def get_articles():
             pass
 
     # Convert to response models
-    articles = [_article_metadata_to_summary(article) for article in index.values()]
+    index_values = list(index.values())
+    article_ids = [a.id for a in index_values]
+    taxonomy = _load_taxonomy_enrichment(docs_root=documents_root, article_ids=article_ids) if documents_root else {}
+
+    articles: List[ArticleSummary] = []
+    for article in index_values:
+        summary = _article_metadata_to_summary(article)
+        enrich = taxonomy.get(article.id)
+        if enrich:
+            summary.taxonomy_cluster_id = enrich.get("taxonomy_cluster_id")  # type: ignore[assignment]
+            summary.taxonomy_category_id = enrich.get("taxonomy_category_id")  # type: ignore[assignment]
+            summary.taxonomy_category = enrich.get("taxonomy_category")  # type: ignore[assignment]
+            summary.taxonomy_subcategory_id = enrich.get("taxonomy_subcategory_id")  # type: ignore[assignment]
+            summary.taxonomy_subcategory = enrich.get("taxonomy_subcategory")  # type: ignore[assignment]
+            summary.taxonomy_tag_assignments = enrich.get("taxonomy_tag_assignments") or []  # type: ignore[assignment]
+            summary.taxonomy_tags = enrich.get("taxonomy_tags") or []  # type: ignore[assignment]
+        articles.append(summary)
 
     return articles
 
@@ -504,8 +613,15 @@ async def get_article(article_id: str):
             detail=f"Failed to read article: {e}",
         )
 
+    taxonomy = (
+        _load_taxonomy_enrichment(docs_root=documents_root, article_ids=[article.id])
+        if documents_root
+        else {}
+    )
+    enrich = taxonomy.get(article.id)
+
     # Create response model
-    return ArticleDetail(
+    detail = ArticleDetail(
         id=article.id,
         title=article.title,
         path=article.path,
@@ -521,6 +637,17 @@ async def get_article(article_id: str):
         neighbors=article.neighbors,
         content=content,
     )
+
+    if enrich:
+        detail.taxonomy_cluster_id = enrich.get("taxonomy_cluster_id")  # type: ignore[assignment]
+        detail.taxonomy_category_id = enrich.get("taxonomy_category_id")  # type: ignore[assignment]
+        detail.taxonomy_category = enrich.get("taxonomy_category")  # type: ignore[assignment]
+        detail.taxonomy_subcategory_id = enrich.get("taxonomy_subcategory_id")  # type: ignore[assignment]
+        detail.taxonomy_subcategory = enrich.get("taxonomy_subcategory")  # type: ignore[assignment]
+        detail.taxonomy_tag_assignments = enrich.get("taxonomy_tag_assignments") or []  # type: ignore[assignment]
+        detail.taxonomy_tags = enrich.get("taxonomy_tags") or []  # type: ignore[assignment]
+
+    return detail
 
 
 @app.put(
@@ -656,8 +783,15 @@ async def update_article(article_id: str, update_request: UpdateArticleRequest):
     _ensure_writable_index_path(index_path)
     save_index(index, index_path)
 
+    taxonomy = (
+        _load_taxonomy_enrichment(docs_root=documents_root, article_ids=[article.id])
+        if documents_root
+        else {}
+    )
+    enrich = taxonomy.get(article.id)
+
     # Return the updated article
-    return ArticleDetail(
+    detail = ArticleDetail(
         id=article.id,
         title=article.title,
         path=article.path,
@@ -673,6 +807,17 @@ async def update_article(article_id: str, update_request: UpdateArticleRequest):
         neighbors=article.neighbors,
         content=post.content,
     )
+
+    if enrich:
+        detail.taxonomy_cluster_id = enrich.get("taxonomy_cluster_id")  # type: ignore[assignment]
+        detail.taxonomy_category_id = enrich.get("taxonomy_category_id")  # type: ignore[assignment]
+        detail.taxonomy_category = enrich.get("taxonomy_category")  # type: ignore[assignment]
+        detail.taxonomy_subcategory_id = enrich.get("taxonomy_subcategory_id")  # type: ignore[assignment]
+        detail.taxonomy_subcategory = enrich.get("taxonomy_subcategory")  # type: ignore[assignment]
+        detail.taxonomy_tag_assignments = enrich.get("taxonomy_tag_assignments") or []  # type: ignore[assignment]
+        detail.taxonomy_tags = enrich.get("taxonomy_tags") or []  # type: ignore[assignment]
+
+    return detail
 
 
 @app.delete(

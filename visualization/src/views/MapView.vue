@@ -50,16 +50,20 @@
       </div>
 
       <div class="filter-section">
-        <label>Topics</label>
+        <label>Categories</label>
         <div class="checkbox-group">
-          <label v-for="topic in store.availableTopics" :key="topic" class="checkbox-label">
+          <label
+            v-for="category in store.availableCategories"
+            :key="category.value"
+            class="checkbox-label"
+          >
             <input
               type="checkbox"
-              :value="topic"
-              v-model="selectedTopics"
+              :value="category.value"
+              v-model="selectedCategories"
               @change="updateFiltersImmediate"
             />
-            {{ topic }}
+            {{ category.label }}
           </label>
         </div>
       </div>
@@ -67,15 +71,29 @@
       <div class="filter-section">
         <label>Tags</label>
         <select
-          v-model="selectedTags"
+          v-model="selectedTagValues"
           multiple
           @change="updateFiltersImmediate"
           class="tags-select"
         >
-          <option v-for="tag in store.availableTags" :key="tag" :value="tag">
-            {{ tag }}
+          <option v-for="tag in store.availableTags" :key="tag.value" :value="tag.value">
+            {{ tag.label }}
           </option>
         </select>
+      </div>
+
+      <div class="filter-section">
+        <label>Clustering</label>
+        <div class="checkbox-group">
+          <label class="checkbox-label">
+            <input type="radio" value="taxonomy" v-model="linkMode" @change="renderVisualization" />
+            Taxonomy clusters
+          </label>
+          <label class="checkbox-label">
+            <input type="radio" value="neighbors" v-model="linkMode" @change="renderVisualization" />
+            Nearest neighbors
+          </label>
+        </div>
       </div>
 
       <div class="filter-section">
@@ -103,7 +121,9 @@
           >
             <div class="match-title" :title="article.title">{{ article.title }}</div>
             <div class="match-meta">
-              <span class="match-topic">{{ article.topic || 'No topic' }}</span>
+              <span class="match-topic">
+                {{ article.taxonomy_category || article.topic || 'No category' }}
+              </span>
               <span class="match-date">{{ formatShortDate(article.updated_at) }}</span>
             </div>
           </button>
@@ -130,8 +150,15 @@
         <h3>{{ tooltip.article?.title }}</h3>
         <p class="excerpt">{{ tooltip.article?.excerpt }}</p>
         <div class="meta">
-          <span v-if="tooltip.article?.topic" class="topic">{{ tooltip.article.topic }}</span>
-          <span class="tags">{{ tooltip.article?.tags.join(', ') }}</span>
+          <span
+            v-if="tooltip.article?.taxonomy_category || tooltip.article?.topic"
+            class="topic"
+          >
+            {{ tooltip.article?.taxonomy_category || tooltip.article?.topic }}
+          </span>
+          <span class="tags">
+            {{ (tooltip.article?.taxonomy_tags?.length ? tooltip.article?.taxonomy_tags : ['None']).join(', ') }}
+          </span>
         </div>
         <div class="stats-line">
           <span>{{ tooltip.article?.word_count }} words</span>
@@ -156,6 +183,9 @@ const chargeStrength = ref(-100);
 const linkCount = ref(0);
 const hideIsolated = ref(true);
 
+type LinkMode = 'taxonomy' | 'neighbors';
+const linkMode = ref<LinkMode>('taxonomy');
+
 const COLLISION_PADDING = 8;
 const MIN_RADIUS = 6;
 const MAX_RADIUS = 24;
@@ -167,7 +197,7 @@ const LABEL_HORIZONTAL_PADDING = 16;
 const LABEL_VERTICAL_PADDING = 22;
 
 const COLOR_PALETTE = d3.schemeTableau10;
-const NO_TOPIC_LABEL = 'No topic';
+const NO_TOPIC_LABEL = 'No category';
 
 type SimulationNode = d3.SimulationNodeDatum & {
   article: ArticleSummary;
@@ -185,7 +215,8 @@ type ForceLink = {
 const svgRef = ref<SVGSVGElement | null>(null);
 const searchQuery = ref('');
 const selectedTopics = ref<string[]>([]);
-const selectedTags = ref<string[]>([]);
+const selectedCategories = ref<string[]>([]);
+const selectedTagValues = ref<string[]>([]);
 
 type MatchSort = 'recent' | 'unread' | 'long';
 const matchSort = ref<MatchSort>('recent');
@@ -220,7 +251,8 @@ function applyFilters() {
   store.setFilters({
     searchQuery: searchQuery.value,
     topics: selectedTopics.value,
-    tags: selectedTags.value,
+    categories: selectedCategories.value,
+    tagValues: selectedTagValues.value,
   });
   renderVisualization();
 }
@@ -247,7 +279,8 @@ function updateFiltersDebounced() {
 function clearFilters() {
   searchQuery.value = '';
   selectedTopics.value = [];
-  selectedTags.value = [];
+  selectedCategories.value = [];
+  selectedTagValues.value = [];
   store.clearFilters();
   renderVisualization();
 }
@@ -359,12 +392,33 @@ function appendEllipsis(
   return '…';
 }
 
-function getTopicLabel(article: ArticleSummary): string {
-  return article.topic?.trim() ? article.topic : NO_TOPIC_LABEL;
+function getCategoryLabel(article: ArticleSummary): string {
+  const label = article.taxonomy_category || article.topic;
+  return label && label.trim() ? label : NO_TOPIC_LABEL;
 }
 
 function getGraphArticles(): ArticleSummary[] {
   const filtered = store.filteredArticles;
+
+  if (!hideIsolated.value) {
+    return filtered;
+  }
+
+  const canUseTaxonomy = linkMode.value === 'taxonomy' && filtered.some((a) => !!a.taxonomy_cluster_id);
+
+  if (canUseTaxonomy) {
+    const counts = new Map<string, number>();
+    filtered.forEach((article) => {
+      const cid = article.taxonomy_cluster_id;
+      if (!cid) return;
+      counts.set(cid, (counts.get(cid) || 0) + 1);
+    });
+
+    return filtered.filter((article) => {
+      const cid = article.taxonomy_cluster_id;
+      return !!cid && (counts.get(cid) || 0) > 1;
+    });
+  }
 
   const connectedIds = new Set<string>();
   filtered.forEach((article) => {
@@ -375,7 +429,7 @@ function getGraphArticles(): ArticleSummary[] {
     article.neighbors.forEach((neighborId) => connectedIds.add(neighborId));
   });
 
-  return hideIsolated.value ? filtered.filter((article) => connectedIds.has(article.id)) : filtered;
+  return filtered.filter((article) => connectedIds.has(article.id));
 }
 
 const graphArticles = computed(() => getGraphArticles());
@@ -430,10 +484,22 @@ function applyHighlight() {
   }
 
   const connected = new Set<string>([selectedId]);
-  graphArticles.value.forEach((article) => {
-    if (article.id !== selectedId) return;
-    (article.neighbors || []).forEach((neighborId) => connected.add(neighborId));
-  });
+  if (linkMode.value === 'taxonomy') {
+    const selected = graphArticles.value.find((a) => a.id === selectedId);
+    const clusterId = selected?.taxonomy_cluster_id;
+    if (clusterId) {
+      graphArticles.value.forEach((article) => {
+        if (article.taxonomy_cluster_id === clusterId) {
+          connected.add(article.id);
+        }
+      });
+    }
+  } else {
+    graphArticles.value.forEach((article) => {
+      if (article.id !== selectedId) return;
+      (article.neighbors || []).forEach((neighborId) => connected.add(neighborId));
+    });
+  }
 
   nodes
     .classed('is-highlighted', function () {
@@ -550,9 +616,9 @@ function renderForceLayout(articles: ArticleSummary[]) {
     .domain([0, d3.max(articles, (d) => d.word_count) || 1000])
     .range([MIN_RADIUS, MAX_RADIUS]);
 
-  // Topic-based coloring (more interpretable than embedding clusters)
-  const topics = Array.from(new Set(articles.map(getTopicLabel))).sort();
-  const colorScale = d3.scaleOrdinal<string, string>(COLOR_PALETTE).domain(topics);
+  // Category-based coloring (taxonomy-driven)
+  const categories = Array.from(new Set(articles.map(getCategoryLabel))).sort();
+  const colorScale = d3.scaleOrdinal<string, string>(COLOR_PALETTE).domain(categories);
 
   // Opacity scale for age
   const now = Date.now();
@@ -575,32 +641,54 @@ function renderForceLayout(articles: ArticleSummary[]) {
     return node;
   });
 
-  // Create links from neighbor data (computed by backend)
+  // Create links based on selected clustering mode
   const links: ForceLink[] = [];
   const linkSet = new Set<string>();
 
-  articles.forEach((article) => {
-    if (!article.neighbors || article.neighbors.length === 0) return;
+  const addLink = (source: SimulationNode, target: SimulationNode, strength: number) => {
+    const linkId = [source.article.id, target.article.id].sort().join('-');
+    if (linkSet.has(linkId)) return;
+    linkSet.add(linkId);
+    links.push({ source, target, strength });
+  };
 
-    const sourceNode = nodeMap.get(article.id);
-    if (!sourceNode) return;
+  const canUseTaxonomy =
+    linkMode.value === 'taxonomy' && nodes.some((n) => !!n.article.taxonomy_cluster_id);
 
-    // Create links to pre-computed neighbors
-    article.neighbors.forEach((neighborId) => {
-      const targetNode = nodeMap.get(neighborId);
-      if (targetNode) {
-        const linkId = [article.id, neighborId].sort().join('-');
-        if (!linkSet.has(linkId)) {
-          linkSet.add(linkId);
-          links.push({
-            source: sourceNode,
-            target: targetNode,
-            strength: 1,
-          });
-        }
+  if (canUseTaxonomy) {
+    const clusters = new Map<string, SimulationNode[]>();
+
+    nodes.forEach((node) => {
+      const clusterId = node.article.taxonomy_cluster_id;
+      if (!clusterId) return;
+      const list = clusters.get(clusterId) || [];
+      list.push(node);
+      clusters.set(clusterId, list);
+    });
+
+    clusters.forEach((clusterNodes) => {
+      if (clusterNodes.length < 2) return;
+      const hub = clusterNodes[0];
+      for (let i = 1; i < clusterNodes.length; i += 1) {
+        addLink(hub, clusterNodes[i], 0.9);
       }
     });
-  });
+  } else {
+    articles.forEach((article) => {
+      if (!article.neighbors || article.neighbors.length === 0) return;
+
+      const sourceNode = nodeMap.get(article.id);
+      if (!sourceNode) return;
+
+      // Create links to pre-computed neighbors
+      article.neighbors.forEach((neighborId) => {
+        const targetNode = nodeMap.get(neighborId);
+        if (targetNode) {
+          addLink(sourceNode, targetNode, 1);
+        }
+      });
+    });
+  }
 
   linkCount.value = links.length;
 
@@ -613,7 +701,7 @@ function renderForceLayout(articles: ArticleSummary[]) {
         .forceLink<SimulationNode, ForceLink>(links)
         .id((d) => d.article.id)
         .distance(linkDistance.value)
-        .strength(0.3),
+        .strength((d) => Math.max(0.05, Math.min(1, d.strength)) * 0.35),
     )
     .force('charge', d3.forceManyBody().strength(chargeStrength.value))
     .force('center', d3.forceCenter(width / 2, height / 2))
@@ -692,7 +780,7 @@ function renderForceLayout(articles: ArticleSummary[]) {
     .attr('ry', 12)
     .attr('x', (d) => -d.width / 2)
     .attr('y', (d) => -d.height / 2)
-    .attr('fill', (d) => colorScale(getTopicLabel(d.article)))
+    .attr('fill', (d) => colorScale(getCategoryLabel(d.article)))
     .attr('opacity', (d) => {
       const age = (now - new Date(d.article.created_at).getTime()) / (1000 * 60 * 60 * 24);
       return ageScale(age);
