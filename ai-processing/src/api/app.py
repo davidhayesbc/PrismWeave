@@ -23,7 +23,6 @@ from src.core.metadata_index import (
     load_existing_index,
     save_index,
 )
-from src.taxonomy.artifacts import default_artifacts_dir, read_json
 from src.taxonomy.store import TaxonomyStore, TaxonomyStoreConfig, default_taxonomy_sqlite_path
 
 from .models import ArticleDetail, ArticleSummary, RebuildResponse, TaxonomyTagAssignment, UpdateArticleRequest
@@ -270,37 +269,26 @@ def _load_taxonomy_enrichment(
         # Initialize is safe/cheap; ensures tables exist if the file is present.
         store.initialize()
 
-        # Cluster membership comes from taxonomy artifacts (clusters.json)
-        artifacts_dir = default_artifacts_dir(taxonomy_root)
-        clusters_path = artifacts_dir / "clusters.json"
+        # Cluster membership comes from taxonomy.sqlite snapshots.
         article_to_cluster: dict[str, str] = {}
-        if clusters_path.exists():
-            try:
-                clusters_payload = read_json(clusters_path) or []
-                if isinstance(clusters_payload, list):
-                    for cluster in clusters_payload:
-                        if not isinstance(cluster, dict):
-                            continue
-                        cluster_id = str(cluster.get("id", "")).strip()
-                        if not cluster_id:
-                            continue
-                        for aid in cluster.get("article_ids") or []:
-                            if aid:
-                                raw_id = str(aid)
-                                article_to_cluster[raw_id] = cluster_id
-                                # Also map absolute paths back to repo-relative paths when possible.
-                                # The taxonomy pipeline historically used absolute file paths as ids,
-                                # but the visualization index uses docs-root-relative paths.
-                                try:
-                                    p = Path(raw_id)
-                                    if p.is_absolute():
-                                        rel = p.resolve().relative_to(content_root.resolve()).as_posix()
-                                        article_to_cluster[rel] = cluster_id
-                                except Exception:
-                                    pass
-            except Exception:
-                # Artifacts are optional.
-                pass
+        try:
+            article_to_cluster = store.get_article_to_cluster_map()
+
+            # Also map absolute paths back to repo-relative paths when possible.
+            # The taxonomy pipeline historically used absolute file paths as ids,
+            # but the visualization index uses docs-root-relative paths.
+            remapped: dict[str, str] = {}
+            for raw_id, cluster_id in article_to_cluster.items():
+                try:
+                    p = Path(str(raw_id))
+                    if p.is_absolute():
+                        rel = p.resolve().relative_to(content_root.resolve()).as_posix()
+                        remapped[rel] = cluster_id
+                except Exception:
+                    continue
+            article_to_cluster.update(remapped)
+        except Exception:
+            article_to_cluster = {}
 
         # Cluster -> category/subcategory mapping and category names from SQLite.
         cluster_category_map = store.get_cluster_category_map()

@@ -7,9 +7,9 @@ from typing import Dict, Optional
 from src.core.config import Config
 
 from .articles import ArticleBuildOptions, load_articles_from_chroma
-from .artifacts import default_artifacts_dir, write_json
 from .chroma_clusters import ClusterStoreConfig, ClusterVectorStore
 from .clustering import ClusteringOptions, cluster_articles
+from .store import TaxonomyStore, TaxonomyStoreConfig, default_taxonomy_sqlite_path
 
 
 @dataclass(frozen=True)
@@ -23,10 +23,9 @@ def run_clustering_pipeline(
     config: Config,
     *,
     options: ClusterPipelineOptions,
-    artifacts_dir: Optional[Path] = None,
+    sqlite_path: Optional[Path] = None,
 ) -> Dict[str, object]:
     documents_root = Path(config.mcp.paths.documents_root)
-    artifacts_dir = artifacts_dir or default_artifacts_dir(documents_root)
 
     articles = load_articles_from_chroma(config, options=ArticleBuildOptions(max_articles=options.max_articles))
     clusters = cluster_articles(articles, options=ClusteringOptions(algorithm=options.algorithm, k=options.k))
@@ -39,19 +38,16 @@ def run_clustering_pipeline(
     )
     vector_store.upsert_clusters(clusters)
 
-    # Emit machine-readable artifacts
-    write_json(
-        artifacts_dir / "articles.json",
-        [a.model_dump() for a in articles],
-    )
-    write_json(
-        artifacts_dir / "clusters.json",
-        [c.model_dump() for c in clusters],
-    )
+    # Persist pipeline artifacts into SQLite (source of truth).
+    sqlite_path = sqlite_path or default_taxonomy_sqlite_path(documents_root)
+    store = TaxonomyStore(TaxonomyStoreConfig(sqlite_path=sqlite_path))
+    store.initialize()
+    store.upsert_articles(articles)
+    store.upsert_clusters(clusters)
 
     return {
         "articles": len(articles),
         "clusters": len(clusters),
-        "artifacts_dir": str(artifacts_dir),
+        "sqlite": str(sqlite_path),
         "clusters_collection": "clusters",
     }

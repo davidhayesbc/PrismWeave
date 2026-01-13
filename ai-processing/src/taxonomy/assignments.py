@@ -6,9 +6,8 @@ from typing import Dict, List, Optional
 
 from src.core.config import Config
 
-from .artifacts import default_artifacts_dir, read_json, write_json
 from .chroma_clusters import ClusterStoreConfig, ClusterVectorStore
-from .models import Article, ArticleTagAssignment, Cluster, Tag
+from .models import ArticleTagAssignment, Tag
 from .normalize import canonicalize_normalized_name, normalize_name
 from .store import TaxonomyStore, TaxonomyStoreConfig, default_taxonomy_sqlite_path
 
@@ -28,22 +27,35 @@ def _distance_to_confidence(distance: float) -> float:
 def run_article_tag_assignment(
     config: Config,
     *,
-    artifacts_dir: Optional[Path] = None,
     sqlite_path: Optional[Path] = None,
     options: AssignmentOptions = AssignmentOptions(),
 ) -> Dict[str, object]:
     documents_root = Path(config.mcp.paths.documents_root)
-    artifacts_dir = artifacts_dir or default_artifacts_dir(documents_root)
 
-    articles_payload = read_json(artifacts_dir / "articles.json")
-    clusters_payload = read_json(artifacts_dir / "clusters.json")
-    proposals_payload = read_json(artifacts_dir / "cluster_proposals.json")
-    taxonomy_payload = read_json(artifacts_dir / "taxonomy.json")
+    sqlite_path = sqlite_path or default_taxonomy_sqlite_path(documents_root)
+    store = TaxonomyStore(TaxonomyStoreConfig(sqlite_path=sqlite_path))
+    store.initialize()
 
-    articles: List[Article] = [Article(**a) for a in articles_payload]
-    clusters: List[Cluster] = [Cluster(**c) for c in clusters_payload]
+    articles = store.list_articles()
+    clusters = store.list_clusters()
+    proposals_payload = store.list_cluster_proposals()
 
-    tags: Dict[str, Tag] = {t["id"]: Tag(**t) for t in (taxonomy_payload.get("tags") or [])}
+    if not articles:
+        raise RuntimeError(f"No articles found in taxonomy.sqlite. Run taxonomy clustering first. sqlite={sqlite_path}")
+
+    if not clusters:
+        raise RuntimeError(f"No clusters found in taxonomy.sqlite. Run taxonomy clustering first. sqlite={sqlite_path}")
+
+    if not proposals_payload:
+        raise RuntimeError(
+            f"No cluster proposals found in taxonomy.sqlite. Run taxonomy propose first. sqlite={sqlite_path}"
+        )
+
+    tags_list = store.list_tags()
+    if not tags_list:
+        raise RuntimeError(f"No tags found in taxonomy.sqlite. Run taxonomy normalize first. sqlite={sqlite_path}")
+
+    tags: Dict[str, Tag] = {t.id: t for t in tags_list}
     tag_id_by_normalized = {t.normalized_name: t.id for t in tags.values()}
 
     # cluster_id -> list of normalized tag names from the LLM proposal
@@ -90,8 +102,8 @@ def run_article_tag_assignment(
                 conf = _distance_to_confidence(float(dist))
                 if conf >= options.min_confidence:
                     by_tag_id[str(tag_id)] = max(by_tag_id.get(str(tag_id), 0.0), conf)
-        except Exception:
-            # Tag embedding collection might not exist yet.
+        except (KeyError, ValueError, TypeError, RuntimeError):
+            # Tag embedding collection might not exist yet, or results may be missing.
             pass
 
         # Materialize
@@ -100,16 +112,10 @@ def run_article_tag_assignment(
         ]:
             assignments.append(ArticleTagAssignment(article_id=article.id, tag_id=tag_id, confidence=float(confidence)))
 
-    sqlite_path = sqlite_path or default_taxonomy_sqlite_path(documents_root)
-    store = TaxonomyStore(TaxonomyStoreConfig(sqlite_path=sqlite_path))
-    store.initialize()
     store.upsert_article_tag_assignments(assignments)
-
-    write_json(artifacts_dir / "article_tag_assignments.json", [a.model_dump() for a in assignments])
 
     return {
         "articles": len(articles),
         "assignments": len(assignments),
         "sqlite": str(sqlite_path),
-        "artifacts_dir": str(artifacts_dir),
     }

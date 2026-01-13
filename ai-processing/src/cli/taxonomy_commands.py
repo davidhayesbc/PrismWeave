@@ -48,7 +48,8 @@ def cluster_cmd(
     )
 
     state.write(f"✅ Clustered {result['articles']} articles into {result['clusters']} clusters")
-    state.write(f"📦 Artifacts: {result['artifacts_dir']}")
+    if result.get("sqlite"):
+        state.write(f"🗄️ SQLite: {result['sqlite']}")
 
 
 @taxonomy.command(name="propose")
@@ -69,7 +70,8 @@ def propose_cmd(config: Path | None, verbose: bool, sample_size: int) -> None:
 
     result = run_cluster_proposals(state.config, options=ProposalRunOptions(sample_size=sample_size))
     state.write(f"✅ Generated {result['proposals']} proposals")
-    state.write(f"📦 Artifacts: {result['artifacts_dir']}")
+    if result.get("sqlite"):
+        state.write(f"🗄️ SQLite: {result['sqlite']}")
 
 
 @taxonomy.command(name="normalize")
@@ -87,7 +89,6 @@ def normalize_cmd(config: Path | None, verbose: bool) -> None:
     result = run_taxonomy_normalize_and_store(state.config)
     state.write(f"✅ Stored taxonomy: {result['categories']} categories, {result['tags']} tags")
     state.write(f"🗄️ SQLite: {result['sqlite']}")
-    state.write(f"📦 Artifacts: {result['artifacts_dir']}")
 
 
 @taxonomy.command(name="embed-tags")
@@ -128,7 +129,6 @@ def assign_cmd(config: Path | None, verbose: bool, top_n: int, min_confidence: f
     result = run_article_tag_assignment(state.config, options=opts)
     state.write(f"✅ Wrote {result['assignments']} tag assignments for {result['articles']} articles")
     state.write(f"🗄️ SQLite: {result['sqlite']}")
-    state.write(f"📦 Artifacts: {result['artifacts_dir']}")
 
 
 @taxonomy.command(name="tag-new")

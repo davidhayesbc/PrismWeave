@@ -6,7 +6,6 @@ from typing import Dict, List, Optional, Tuple
 
 from src.core.config import Config
 
-from .artifacts import default_artifacts_dir, read_json, write_json
 from .models import Tag, TaxonomyCategory
 from .normalize import (
     ProposedTaxonomy,
@@ -86,7 +85,7 @@ def build_taxonomy_from_proposals(proposals_payload: List[dict]) -> TaxonomyBuil
             ):
                 global_by_norm[tag.normalized_name] = tag
 
-    tags = [global_by_norm[norm] for norm in sorted(global_by_norm.keys())]
+    tags_out = [global_by_norm[norm] for norm in sorted(global_by_norm.keys())]
 
     # Build cluster → (category_id, subcategory_id)
     cluster_map: Dict[str, Tuple[Optional[str], Optional[str]]] = {}
@@ -105,45 +104,37 @@ def build_taxonomy_from_proposals(proposals_payload: List[dict]) -> TaxonomyBuil
 
         cluster_map[cluster_id] = (category_id, subcategory_id)
 
-    return TaxonomyBuildResult(categories=categories, tags=tags, cluster_category_map=cluster_map)
+    return TaxonomyBuildResult(categories=categories, tags=tags_out, cluster_category_map=cluster_map)
 
 
 def run_taxonomy_normalize_and_store(
     config: Config,
     *,
-    artifacts_dir: Optional[Path] = None,
     sqlite_path: Optional[Path] = None,
 ) -> Dict[str, object]:
     documents_root = Path(config.mcp.paths.documents_root)
-    artifacts_dir = artifacts_dir or default_artifacts_dir(documents_root)
-
-    proposals_payload = read_json(artifacts_dir / "cluster_proposals.json")
-    result = build_taxonomy_from_proposals(proposals_payload)
 
     sqlite_path = sqlite_path or default_taxonomy_sqlite_path(documents_root)
     store = TaxonomyStore(TaxonomyStoreConfig(sqlite_path=sqlite_path))
     store.initialize()
+
+    proposals_payload = store.list_cluster_proposals()
+
+    if not proposals_payload:
+        raise RuntimeError(
+            f"No cluster proposals found in taxonomy.sqlite. Run taxonomy propose first. sqlite={sqlite_path}"
+        )
+
+    result = build_taxonomy_from_proposals(proposals_payload)
+
     store.upsert_categories(result.categories)
     store.upsert_tags(result.tags)
 
     for cluster_id, (category_id, subcategory_id) in sorted(result.cluster_category_map.items()):
         store.map_cluster_to_category(cluster_id, category_id, subcategory_id)
 
-    write_json(
-        artifacts_dir / "taxonomy.json",
-        {
-            "categories": [c.model_dump() for c in result.categories],
-            "tags": [t.model_dump() for t in result.tags],
-            "cluster_category_map": {
-                cluster_id: {"category_id": cat, "subcategory_id": sub}
-                for cluster_id, (cat, sub) in sorted(result.cluster_category_map.items())
-            },
-        },
-    )
-
     return {
         "categories": len(result.categories),
         "tags": len(result.tags),
         "sqlite": str(sqlite_path),
-        "artifacts_dir": str(artifacts_dir),
     }
