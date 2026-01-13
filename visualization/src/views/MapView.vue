@@ -906,6 +906,18 @@ watch(
 );
 
 watch(
+  () => store.availableTags.map((t) => t.value).join('|'),
+  () => {
+    const allowed = new Set(store.availableTags.map((t) => t.value));
+    const next = selectedTagValues.value.filter((value) => allowed.has(value));
+    if (next.length !== selectedTagValues.value.length) {
+      selectedTagValues.value = next;
+      updateFiltersImmediate();
+    }
+  },
+);
+
+watch(
   () => matchSort.value,
   () => {
     // No render needed; list is computed.

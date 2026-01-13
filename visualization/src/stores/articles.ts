@@ -43,6 +43,52 @@ export const useArticlesStore = defineStore('articles', () => {
   }
 
   // Computed
+  // Articles that match all filters except tagValues. This is used to build the
+  // available tag list so tag options narrow when categories/topics/search/age
+  // are selected, without being affected by the current tag selection.
+  const articlesForTagOptions = computed(() => {
+    let result = articles.value;
+
+    // Filter by topics
+    if (filters.value.topics.length > 0) {
+      result = result.filter(
+        (article) => article.topic && filters.value.topics.includes(article.topic),
+      );
+    }
+
+    // Filter by taxonomy categories only (ignore tags).
+    const selectedCategories = filters.value.categories;
+    if (selectedCategories.length > 0) {
+      result = result.filter((article) => {
+        const category = getCategoryLabel(article);
+        return category ? selectedCategories.includes(category) : false;
+      });
+    }
+
+    // Filter by search query
+    if (filters.value.searchQuery) {
+      const query = filters.value.searchQuery.toLowerCase();
+      result = result.filter(
+        (article) =>
+          article.title.toLowerCase().includes(query) ||
+          article.excerpt.toLowerCase().includes(query) ||
+          (article.taxonomy_tags || []).some((tag) => tag.toLowerCase().includes(query)),
+      );
+    }
+
+    // Filter by age range (in days)
+    if (filters.value.ageRange) {
+      const now = Date.now();
+      const [minDays, maxDays] = filters.value.ageRange;
+      result = result.filter((article) => {
+        const age = (now - new Date(article.created_at).getTime()) / (1000 * 60 * 60 * 24);
+        return age >= minDays && age <= maxDays;
+      });
+    }
+
+    return result;
+  });
+
   const filteredArticles = computed(() => {
     let result = articles.value;
 
@@ -53,19 +99,23 @@ export const useArticlesStore = defineStore('articles', () => {
       );
     }
 
-    // Filter by taxonomy categories and tags.
-    // If neither is selected, show all. If one or both are selected, match is OR across them.
+    // Filter by taxonomy categories AND tags.
+    // - If categories are selected: article must match one of them.
+    // - If tags are selected: article must match at least one of them.
+    // - If both are selected: category AND (tag1 OR tag2 ...).
     const selectedCategories = filters.value.categories;
     const selectedTagValues = filters.value.tagValues;
-    if (selectedCategories.length > 0 || selectedTagValues.length > 0) {
+    if (selectedCategories.length > 0) {
       result = result.filter((article) => {
         const category = getCategoryLabel(article);
-        const matchesCategory = category ? selectedCategories.includes(category) : false;
+        return category ? selectedCategories.includes(category) : false;
+      });
+    }
 
+    if (selectedTagValues.length > 0) {
+      result = result.filter((article) => {
         const articleTagValues = getTagValues(article);
-        const matchesTags = selectedTagValues.some((value) => articleTagValues.includes(value));
-
-        return matchesCategory || matchesTags;
+        return selectedTagValues.some((value) => articleTagValues.includes(value));
       });
     }
 
@@ -104,7 +154,7 @@ export const useArticlesStore = defineStore('articles', () => {
   const availableTags = computed(() => {
     const optionsByValue = new Map<string, OptionItem>();
 
-    articles.value.forEach((article) => {
+    articlesForTagOptions.value.forEach((article) => {
       const assignments = article.taxonomy_tag_assignments;
       if (assignments && assignments.length > 0) {
         assignments.forEach((a) => {
