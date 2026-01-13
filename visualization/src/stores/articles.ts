@@ -53,19 +53,19 @@ export const useArticlesStore = defineStore('articles', () => {
       );
     }
 
-    // Filter by taxonomy categories
-    if (filters.value.categories.length > 0) {
+    // Filter by taxonomy categories and tags.
+    // If neither is selected, show all. If one or both are selected, match is OR across them.
+    const selectedCategories = filters.value.categories;
+    const selectedTagValues = filters.value.tagValues;
+    if (selectedCategories.length > 0 || selectedTagValues.length > 0) {
       result = result.filter((article) => {
         const category = getCategoryLabel(article);
-        return category ? filters.value.categories.includes(category) : false;
-      });
-    }
+        const matchesCategory = category ? selectedCategories.includes(category) : false;
 
-    // Filter by tags
-    if (filters.value.tagValues.length > 0) {
-      result = result.filter((article) => {
         const articleTagValues = getTagValues(article);
-        return filters.value.tagValues.some((value) => articleTagValues.includes(value));
+        const matchesTags = selectedTagValues.some((value) => articleTagValues.includes(value));
+
+        return matchesCategory || matchesTags;
       });
     }
 

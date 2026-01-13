@@ -31,11 +31,6 @@
             />
             <span class="range-value">{{ chargeStrength }}</span>
           </div>
-
-          <label class="checkbox-label compact">
-            <input type="checkbox" v-model="hideIsolated" @change="renderVisualization" />
-            Hide isolated nodes
-          </label>
         </div>
       </div>
 
@@ -150,6 +145,7 @@
     <div class="visualization-area">
       <div v-if="store.loading" class="loading">Loading articles...</div>
       <div v-else-if="store.error" class="error">{{ store.error }}</div>
+      <div v-else-if="graphArticles.length === 0" class="empty">No articles to display.</div>
       <svg ref="svgRef" class="visualization-svg"></svg>
       <div v-if="tooltip.visible" class="tooltip" :style="tooltipStyle">
         <h3>{{ tooltip.article?.title }}</h3>
@@ -180,7 +176,7 @@
 import { useArticlesStore } from '@/stores/articles';
 import type { ArticleSummary } from '@/types';
 import * as d3 from 'd3';
-import { computed, onMounted, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 
 const router = useRouter();
@@ -188,7 +184,7 @@ const store = useArticlesStore();
 const linkDistance = ref(80);
 const chargeStrength = ref(-100);
 const linkCount = ref(0);
-const hideIsolated = ref(true);
+// Always show all nodes for the current filters.
 
 type LinkMode = 'taxonomy' | 'neighbors';
 const linkMode = ref<LinkMode>('taxonomy');
@@ -407,37 +403,7 @@ function getCategoryLabel(article: ArticleSummary): string {
 function getGraphArticles(): ArticleSummary[] {
   const filtered = store.filteredArticles;
 
-  if (!hideIsolated.value) {
-    return filtered;
-  }
-
-  const canUseTaxonomy =
-    linkMode.value === 'taxonomy' && filtered.some((a) => !!a.taxonomy_cluster_id);
-
-  if (canUseTaxonomy) {
-    const counts = new Map<string, number>();
-    filtered.forEach((article) => {
-      const cid = article.taxonomy_cluster_id;
-      if (!cid) return;
-      counts.set(cid, (counts.get(cid) || 0) + 1);
-    });
-
-    return filtered.filter((article) => {
-      const cid = article.taxonomy_cluster_id;
-      return !!cid && (counts.get(cid) || 0) > 1;
-    });
-  }
-
-  const connectedIds = new Set<string>();
-  filtered.forEach((article) => {
-    if (!article.neighbors) return;
-    if (article.neighbors.length === 0) return;
-
-    connectedIds.add(article.id);
-    article.neighbors.forEach((neighborId) => connectedIds.add(neighborId));
-  });
-
-  return filtered.filter((article) => connectedIds.has(article.id));
+  return filtered;
 }
 
 const graphArticles = computed(() => getGraphArticles());
@@ -592,6 +558,14 @@ function fitGraphToView(params: {
 
 function renderVisualization() {
   if (!svgRef.value) return;
+
+  // If the SVG hasn't been laid out yet, wait for the next frame.
+  // This prevents rendering a blank graph due to 0x0 dimensions on first mount.
+  if (svgRef.value.clientWidth <= 0 || svgRef.value.clientHeight <= 0) {
+    window.requestAnimationFrame(() => renderVisualization());
+    return;
+  }
+
   const articles = getGraphArticles();
 
   if (articles.length === 0) {
@@ -612,8 +586,12 @@ function renderForceLayout(articles: ArticleSummary[]) {
   const svg = d3.select(svgRef.value);
   svg.selectAll('*').remove();
 
-  const width = svgRef.value.clientWidth;
-  const height = svgRef.value.clientHeight;
+  const svgWidth = svgRef.value.clientWidth;
+  const svgHeight = svgRef.value.clientHeight;
+
+  // Ensure the SVG's internal coordinate system matches its displayed size.
+  // Without this, elements can be positioned outside the default 300x150 viewport and get clipped.
+  svg.attr('viewBox', `0 0 ${Math.max(1, svgWidth)} ${Math.max(1, svgHeight)}`);
 
   // Build node lookup map
   const nodeMap = new Map<string, SimulationNode>();
@@ -634,13 +612,14 @@ function renderForceLayout(articles: ArticleSummary[]) {
 
   // Create nodes
   const nodes: SimulationNode[] = articles.map((article) => {
-    const baseSize = sizeScale(article.word_count);
+    const wordCount = Number.isFinite(article.word_count) ? article.word_count : 0;
+    const baseSize = sizeScale(wordCount);
     const width = Math.max(MIN_LABEL_WIDTH, baseSize * LABEL_WIDTH_FACTOR);
     const height = Math.max(MIN_LABEL_HEIGHT, baseSize * LABEL_HEIGHT_FACTOR);
     const node: SimulationNode = {
       article,
-      x: width / 2 + Math.random() * (width - width),
-      y: height / 2 + Math.random() * (height - height),
+      x: Math.random() * Math.max(1, svgWidth),
+      y: Math.random() * Math.max(1, svgHeight),
       width,
       height,
       collisionRadius: Math.max(width, height) / 2,
@@ -712,7 +691,7 @@ function renderForceLayout(articles: ArticleSummary[]) {
         .strength((d) => Math.max(0.05, Math.min(1, d.strength)) * 0.35),
     )
     .force('charge', d3.forceManyBody().strength(chargeStrength.value))
-    .force('center', d3.forceCenter(width / 2, height / 2))
+    .force('center', d3.forceCenter(svgWidth / 2, svgHeight / 2))
     .force(
       'collide',
       d3.forceCollide<SimulationNode>((d) => d.collisionRadius + COLLISION_PADDING),
@@ -846,26 +825,41 @@ function renderForceLayout(articles: ArticleSummary[]) {
       svg,
       zoom,
       nodes,
-      width,
-      height,
+      width: svgWidth,
+      height: svgHeight,
     });
   }, FIT_DELAY_MS);
 }
 
+let svgResizeObserver: ResizeObserver | null = null;
+
 onMounted(async () => {
   await store.fetchArticles();
-  renderVisualization();
+  await nextTick();
+
+  // Render once the SVG exists and has dimensions.
+  window.requestAnimationFrame(() => renderVisualization());
+
+  // Keep the layout responsive: re-render when the SVG size changes.
+  if (typeof ResizeObserver !== 'undefined') {
+    svgResizeObserver = new ResizeObserver(() => {
+      renderVisualization();
+    });
+    if (svgRef.value) {
+      svgResizeObserver.observe(svgRef.value);
+    }
+  }
+});
+
+onBeforeUnmount(() => {
+  if (svgResizeObserver) {
+    svgResizeObserver.disconnect();
+    svgResizeObserver = null;
+  }
 });
 
 watch(
   () => store.filteredArticles,
-  () => {
-    renderVisualization();
-  },
-);
-
-watch(
-  () => hideIsolated.value,
   () => {
     renderVisualization();
   },
@@ -1073,6 +1067,15 @@ watch(
   flex: 1;
   position: relative;
   background: #fafafa;
+}
+
+.empty {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  font-size: 1rem;
+  color: #777;
 }
 
 .visualization-svg {
