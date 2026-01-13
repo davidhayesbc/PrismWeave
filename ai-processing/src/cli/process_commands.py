@@ -237,7 +237,7 @@ def rebuild_db(config: Optional[Path], verbose: bool, yes: bool) -> None:
 
         docs_root = Path(state.config.mcp.paths.documents_root).expanduser().resolve()
         chroma_path = Path(state.config.chroma_db_path).expanduser().resolve()
-        processing_state_file = docs_root / ".prismweave" / "processing_state.json"
+        processing_state_file = docs_root / ".prismweave" / "processing_state.sqlite"
         processing_state_file.parent.mkdir(parents=True, exist_ok=True)
 
         if not docs_root.exists():
@@ -249,7 +249,7 @@ def rebuild_db(config: Optional[Path], verbose: bool, yes: bool) -> None:
 
         if not yes:
             confirm = click.confirm(
-                "This will DELETE the ChromaDB database and processing_state.json. Continue?",
+                "This will DELETE the ChromaDB database and processing_state.sqlite. Continue?",
                 default=False,
             )
             if not confirm:
@@ -266,9 +266,9 @@ def rebuild_db(config: Optional[Path], verbose: bool, yes: bool) -> None:
 
         if processing_state_file.exists():
             processing_state_file.unlink()
-            state.write("🗑️  Deleted processing_state.json")
+            state.write("🗑️  Deleted processing_state.sqlite")
         else:
-            state.write("ℹ️ processing_state.json not found (already clean)")
+            state.write("ℹ️ processing_state.sqlite not found (already clean)")
 
         repo_root = docs_root if (docs_root / ".git").exists() else None
         git_tracker = initialize_git_tracker(

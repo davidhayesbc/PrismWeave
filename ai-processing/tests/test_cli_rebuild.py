@@ -23,9 +23,9 @@ def test_rebuild_db_cleans_state_and_runs_processing(tmp_path):
     stale_file = chroma_path / "old.bin"
     stale_file.write_text("stale")
 
-    processing_state = docs_root / ".prismweave" / "processing_state.json"
+    processing_state = docs_root / ".prismweave" / "processing_state.sqlite"
     processing_state.parent.mkdir(parents=True, exist_ok=True)
-    processing_state.write_text("{}")
+    processing_state.write_text("stub")
 
     config = Config()
     config.chroma_db_path = str(chroma_path)
@@ -51,7 +51,7 @@ def test_rebuild_db_cleans_state_and_runs_processing(tmp_path):
 
     assert result.exit_code == 0
     assert not stale_file.exists(), "ChromaDB contents should be removed"
-    assert processing_state.exists() is False, "processing_state.json should be deleted"
+    assert processing_state.exists() is False, "processing_state.sqlite should be deleted"
 
     process_dir_mock.assert_called_once()
     args, kwargs = process_dir_mock.call_args

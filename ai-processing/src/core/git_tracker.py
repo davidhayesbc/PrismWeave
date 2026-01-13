@@ -3,12 +3,18 @@ Git integration utilities for tracking document changes and processing state
 """
 
 import hashlib
-import json
+import sqlite3
 import subprocess
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Set, Tuple
 from urllib.parse import quote, urlparse, urlunparse
+
+from src.core.processing_state_store import (
+    ProcessingStateStore,
+    ProcessingStateStoreConfig,
+    default_processing_state_sqlite_path,
+)
 
 
 class GitTracker:
@@ -20,13 +26,27 @@ class GitTracker:
 
         Args:
             repo_path: Path to the git repository
-            state_file: Path to the processing state file (default: .prismweave/processing_state.json)
+            state_file: Path to the processing state SQLite file (default: .prismweave/processing_state.sqlite)
         """
         self.repo_path = Path(repo_path).resolve()
-        self.state_file = state_file or (self.repo_path / ".prismweave" / "processing_state.json")
+        self.state_file = state_file or default_processing_state_sqlite_path(self.repo_path)
+
+        # Legacy JSON file (migration source only; no longer written).
+        self.legacy_state_file = self.repo_path / ".prismweave" / "processing_state.json"
 
         # Ensure the state directory exists
         self.state_file.parent.mkdir(parents=True, exist_ok=True)
+
+        self._state_store = ProcessingStateStore(ProcessingStateStoreConfig(sqlite_path=self.state_file))
+
+        # One-time migration from legacy JSON if present and SQLite has no processed files.
+        try:
+            existing = self._state_store.load_state().get("processed_files") or {}
+            if not existing and self.legacy_state_file.exists():
+                self._state_store.migrate_from_json(self.legacy_state_file)
+        except sqlite3.Error:
+            # If the DB is corrupted/unreadable, fall back to empty state.
+            pass
 
         # Initialize git repository check
         if not self._is_git_repo():
@@ -52,7 +72,7 @@ class GitTracker:
             )
             return result.stdout.strip()
         except subprocess.CalledProcessError as e:
-            raise RuntimeError(f"Failed to get current commit hash: {e}")
+            raise RuntimeError(f"Failed to get current commit hash: {e}") from e
 
     def get_file_last_commit_hash(self, file_path: Path) -> Optional[str]:
         """
@@ -125,29 +145,24 @@ class GitTracker:
             return changed_files
 
         except subprocess.CalledProcessError as e:
-            raise RuntimeError(f"Failed to get changed files: {e}")
+            raise RuntimeError(f"Failed to get changed files: {e}") from e
 
     def load_processing_state(self) -> Dict:
-        """Load the processing state from the state file"""
-        if not self.state_file.exists():
-            return {"version": "1.0.0", "last_processed_commit": None, "processed_files": {}, "last_update": None}
-
+        """Load the processing state from SQLite."""
         try:
-            with open(self.state_file, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except (json.JSONDecodeError, IOError) as e:
-            print(f"Warning: Failed to load processing state: {e}")
+            return self._state_store.load_state()
+        except sqlite3.Error as e:
+            print(f"Warning: Failed to load processing state SQLite: {e}")
             return {"version": "1.0.0", "last_processed_commit": None, "processed_files": {}, "last_update": None}
 
     def save_processing_state(self, state: Dict) -> None:
-        """Save the processing state to the state file"""
+        """Save the processing state to SQLite."""
         state["last_update"] = datetime.now().isoformat()
 
         try:
-            with open(self.state_file, "w", encoding="utf-8") as f:
-                json.dump(state, f, indent=2, ensure_ascii=False)
-        except IOError as e:
-            raise RuntimeError(f"Failed to save processing state: {e}")
+            self._state_store.save_state(state)
+        except sqlite3.Error as e:
+            raise RuntimeError(f"Failed to save processing state: {e}") from e
 
     def get_file_content_hash(self, file_path: Path) -> str:
         """
@@ -164,7 +179,7 @@ class GitTracker:
                 content = f.read()
             return hashlib.sha256(content).hexdigest()
         except IOError as e:
-            raise RuntimeError(f"Failed to read file {file_path}: {e}")
+            raise RuntimeError(f"Failed to read file {file_path}: {e}") from e
 
     def mark_file_processed(self, file_path: Path, commit_hash: Optional[str] = None) -> None:
         """
@@ -174,15 +189,13 @@ class GitTracker:
             file_path: Path to the processed file
             commit_hash: Git commit hash when file was processed (default: current HEAD)
         """
-        state = self.load_processing_state()
-
         if commit_hash is None:
             commit_hash = self.get_current_commit_hash()
 
         relative_path = str(file_path.relative_to(self.repo_path))
         content_hash = self.get_file_content_hash(file_path)
 
-        state["processed_files"][relative_path] = {
+        file_info = {
             "processed_at": datetime.now().isoformat(),
             "commit_hash": commit_hash,
             "content_hash": content_hash,
@@ -190,7 +203,10 @@ class GitTracker:
             "last_modified": datetime.fromtimestamp(file_path.stat().st_mtime).isoformat(),
         }
 
-        self.save_processing_state(state)
+        try:
+            self._state_store.upsert_processed_file(relative_path, file_info)
+        except sqlite3.Error as e:
+            raise RuntimeError(f"Failed to save processing state: {e}") from e
 
     def is_file_processed(self, file_path: Path) -> bool:
         """
@@ -202,13 +218,15 @@ class GitTracker:
         Returns:
             True if file has been processed and is unchanged
         """
-        state = self.load_processing_state()
         relative_path = str(file_path.relative_to(self.repo_path))
 
-        if relative_path not in state["processed_files"]:
+        try:
+            file_info = self._state_store.get_processed_file(relative_path)
+        except sqlite3.Error:
             return False
 
-        file_info = state["processed_files"][relative_path]
+        if not file_info:
+            return False
 
         # Check if file content has changed
         try:
@@ -265,14 +283,19 @@ class GitTracker:
 
     def reset_processing_state(self) -> None:
         """Reset all processing state (marks all files as unprocessed)"""
-        state = {"version": "1.0.0", "last_processed_commit": None, "processed_files": {}, "last_update": None}
-        self.save_processing_state(state)
+        try:
+            self._state_store.set_meta("version", "1.0.0")
+            self._state_store.set_last_processed_commit(None)
+            self._state_store.clear_processed_files()
+        except sqlite3.Error as e:
+            raise RuntimeError(f"Failed to reset processing state: {e}") from e
 
     def update_last_processed_commit(self) -> None:
         """Update the last processed commit to current HEAD"""
-        state = self.load_processing_state()
-        state["last_processed_commit"] = self.get_current_commit_hash()
-        self.save_processing_state(state)
+        try:
+            self._state_store.set_last_processed_commit(self.get_current_commit_hash())
+        except sqlite3.Error as e:
+            raise RuntimeError(f"Failed to update last processed commit: {e}") from e
 
     def _load_git_credentials(self) -> Tuple[Optional[str], Optional[str]]:
         """Load GitHub credentials from a .env file within the repository."""
@@ -394,7 +417,7 @@ class GitTracker:
             return True
         except subprocess.CalledProcessError as exc:
             stderr = exc.stderr.strip() if exc.stderr else str(exc)
-            raise RuntimeError(f"Failed to pull latest changes: {stderr}")
+            raise RuntimeError(f"Failed to pull latest changes: {stderr}") from exc
 
     def commit_processing_state(self, message: Optional[str] = None) -> bool:
         """Commit the processing state file if it has changed."""
@@ -411,7 +434,7 @@ class GitTracker:
             )
         except subprocess.CalledProcessError as exc:
             stderr = exc.stderr.strip() if exc.stderr else str(exc)
-            raise RuntimeError(f"Failed to check processing state status: {stderr}")
+            raise RuntimeError(f"Failed to check processing state status: {stderr}") from exc
 
         if not status_result.stdout.strip():
             return False  # No changes to commit
@@ -424,7 +447,7 @@ class GitTracker:
             )
         except subprocess.CalledProcessError as exc:
             stderr = exc.stderr.strip() if exc.stderr else str(exc)
-            raise RuntimeError(f"Failed to stage processing state: {stderr}")
+            raise RuntimeError(f"Failed to stage processing state: {stderr}") from exc
 
         commit_message = message or "chore: update processing state"
 
@@ -437,4 +460,4 @@ class GitTracker:
             return True
         except subprocess.CalledProcessError as exc:
             stderr = exc.stderr.strip() if exc.stderr else str(exc)
-            raise RuntimeError(f"Failed to commit processing state: {stderr}")
+            raise RuntimeError(f"Failed to commit processing state: {stderr}") from exc

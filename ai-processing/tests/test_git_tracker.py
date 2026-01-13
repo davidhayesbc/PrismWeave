@@ -48,7 +48,7 @@ class TestGitTrackerInitialization:
 
         assert tracker.repo_path == git_repo.resolve()
         assert tracker.state_file.parent.name == ".prismweave"
-        assert tracker.state_file.name == "processing_state.json"
+        assert tracker.state_file.name == "processing_state.sqlite"
 
     def test_tracker_creates_state_directory(self, git_repo):
         """Test that GitTracker creates .prismweave directory"""
@@ -66,7 +66,7 @@ class TestGitTrackerInitialization:
 
     def test_custom_state_file_path(self, git_repo):
         """Test using custom state file path"""
-        custom_state = git_repo / "custom_state.json"
+        custom_state = git_repo / "custom_state.sqlite"
         tracker = GitTracker(git_repo, state_file=custom_state)
 
         assert tracker.state_file == custom_state

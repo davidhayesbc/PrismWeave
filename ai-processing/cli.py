@@ -98,7 +98,7 @@ def rebuild_everything_cmd(
 
     docs_root = Path(state.config.mcp.paths.documents_root).expanduser().resolve()
     chroma_path = Path(state.config.chroma_db_path).expanduser().resolve()
-    processing_state_file = docs_root / ".prismweave" / "processing_state.json"
+    processing_state_file = docs_root / ".prismweave" / "processing_state.sqlite"
     taxonomy_sqlite = default_taxonomy_sqlite_path(docs_root)
     taxonomy_artifacts_dir = docs_root / ".prismweave" / "taxonomy" / "artifacts"
 
@@ -118,7 +118,7 @@ def rebuild_everything_cmd(
         prompt = (
             "This will RESET tag embeddings and DELETE all article tag assignments (taxonomy remains). Continue?"
             if tags_only
-            else "This will DELETE the ChromaDB database, processing_state.json, taxonomy.sqlite, and taxonomy artifacts. Continue?"
+            else "This will DELETE the ChromaDB database, processing_state.sqlite, taxonomy.sqlite, and taxonomy artifacts. Continue?"
         )
         confirm = click.confirm(prompt, default=False)
         if not confirm:
@@ -273,7 +273,9 @@ def rebuild_everything_cmd(
                 f"   ✅ Wrote {assign_result['assignments']} tag assignments for {assign_result['articles']} articles in {time.time() - phase_start:.1f}s"
             )
             state.write(f"   🗄️  SQLite: {assign_result['sqlite']}")
-            state.write(f"   📦 Artifacts: {assign_result['artifacts_dir']}")
+            artifacts_dir = assign_result.get("artifacts_dir")
+            if artifacts_dir:
+                state.write(f"   📦 Artifacts: {artifacts_dir}")
             state.write()
             state.write(f"✅ Tag rebuild completed in {time.time() - overall_start:.1f}s")
             return
@@ -290,7 +292,7 @@ def rebuild_everything_cmd(
 
         if processing_state_file.exists():
             processing_state_file.unlink()
-            state.write("   🗑️  Deleted processing_state.json")
+            state.write("   🗑️  Deleted processing_state.sqlite")
 
         processor = DocumentProcessor(state.config, state.git_tracker)
         store = EmbeddingStore(state.config, state.git_tracker)
