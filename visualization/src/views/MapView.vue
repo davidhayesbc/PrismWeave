@@ -58,6 +58,11 @@
               v-model="selectedCategories"
               @change="updateFiltersImmediate"
             />
+            <span
+              class="category-swatch category-swatch--filter"
+              :style="{ backgroundColor: getCategoryColor(category.value) }"
+              aria-hidden="true"
+            ></span>
             {{ category.label }}
           </label>
         </div>
@@ -122,7 +127,14 @@
             <div class="match-title" :title="article.title">{{ article.title }}</div>
             <div class="match-meta">
               <span class="match-topic">
-                {{ article.taxonomy_category || article.topic || 'No category' }}
+                <span
+                  class="category-swatch category-swatch--tiny"
+                  :style="{ backgroundColor: getCategoryColor(getCategoryLabel(article)) }"
+                  aria-hidden="true"
+                ></span>
+                <span class="match-topic-text">
+                  {{ article.taxonomy_category || article.topic || 'No category' }}
+                </span>
               </span>
               <span class="match-date">{{ formatShortDate(article.updated_at) }}</span>
             </div>
@@ -152,6 +164,15 @@
         <p class="excerpt">{{ tooltip.article?.excerpt }}</p>
         <div class="meta">
           <span v-if="tooltip.article?.taxonomy_category || tooltip.article?.topic" class="topic">
+            <span
+              class="category-swatch category-swatch--tiny"
+              :style="{
+                backgroundColor: tooltip.article
+                  ? getCategoryColor(getCategoryLabel(tooltip.article))
+                  : NO_CATEGORY_COLOR,
+              }"
+              aria-hidden="true"
+            ></span>
             {{ tooltip.article?.taxonomy_category || tooltip.article?.topic }}
           </span>
           <span class="tags">
@@ -199,7 +220,10 @@ const LABEL_HEIGHT_FACTOR = 3.9;
 const LABEL_HORIZONTAL_PADDING = 16;
 const LABEL_VERTICAL_PADDING = 22;
 
-const COLOR_PALETTE = d3.schemeTableau10;
+const CATEGORY_COLOR_PALETTE: string[] = Array.from(
+  new Set([...(d3.schemeTableau10 as string[]), ...(d3.schemeSet3 as string[])]),
+);
+const NO_CATEGORY_COLOR = '#6c757d';
 const NO_TOPIC_LABEL = 'No category';
 
 type SimulationNode = d3.SimulationNodeDatum & {
@@ -396,8 +420,25 @@ function appendEllipsis(
 }
 
 function getCategoryLabel(article: ArticleSummary): string {
+  // Top-level category is taxonomy_category (with topic as a fallback).
   const label = article.taxonomy_category || article.topic;
   return label && label.trim() ? label : NO_TOPIC_LABEL;
+}
+
+function hashString(input: string): number {
+  // Deterministic, fast non-crypto hash.
+  let hash = 5381;
+  for (let i = 0; i < input.length; i += 1) {
+    hash = (hash * 33) ^ input.charCodeAt(i);
+  }
+  return hash >>> 0;
+}
+
+function getCategoryColor(category: string): string {
+  const normalized = category.trim() || NO_TOPIC_LABEL;
+  if (normalized === NO_TOPIC_LABEL) return NO_CATEGORY_COLOR;
+  const index = hashString(normalized) % CATEGORY_COLOR_PALETTE.length;
+  return CATEGORY_COLOR_PALETTE[index] ?? NO_CATEGORY_COLOR;
 }
 
 function getGraphArticles(): ArticleSummary[] {
@@ -602,9 +643,8 @@ function renderForceLayout(articles: ArticleSummary[]) {
     .domain([0, d3.max(articles, (d) => d.word_count) || 1000])
     .range([MIN_RADIUS, MAX_RADIUS]);
 
-  // Category-based coloring (taxonomy-driven)
-  const categories = Array.from(new Set(articles.map(getCategoryLabel))).sort();
-  const colorScale = d3.scaleOrdinal<string, string>(COLOR_PALETTE).domain(categories);
+  // Category-based coloring (top-level category). Use deterministic mapping so colors
+  // don't reshuffle when filters change.
 
   // Opacity scale for age
   const now = Date.now();
@@ -767,7 +807,7 @@ function renderForceLayout(articles: ArticleSummary[]) {
     .attr('ry', 12)
     .attr('x', (d) => -d.width / 2)
     .attr('y', (d) => -d.height / 2)
-    .attr('fill', (d) => colorScale(getCategoryLabel(d.article)))
+    .attr('fill', (d) => getCategoryColor(getCategoryLabel(d.article)))
     .attr('opacity', (d) => {
       const age = (now - new Date(d.article.created_at).getTime()) / (1000 * 60 * 60 * 24);
       return ageScale(age);
@@ -966,6 +1006,26 @@ watch(
   cursor: pointer;
 }
 
+.category-swatch {
+  display: inline-block;
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 999px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  flex: 0 0 auto;
+}
+
+.category-swatch--filter {
+  width: 1rem;
+  height: 1rem;
+}
+
+.category-swatch--tiny {
+  width: 0.6rem;
+  height: 0.6rem;
+}
+
 .checkbox-label.compact {
   margin-top: 0.25rem;
   font-size: 0.85rem;
@@ -1043,9 +1103,17 @@ watch(
 }
 
 .match-topic {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.match-topic-text {
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+  min-width: 0;
 }
 
 .match-date {
@@ -1116,7 +1184,9 @@ watch(
 }
 
 .tooltip .topic {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
   padding: 0.2rem 0.5rem;
   background: #e3f2fd;
   color: #1976d2;
