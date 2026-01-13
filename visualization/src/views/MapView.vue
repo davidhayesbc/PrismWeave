@@ -186,6 +186,11 @@ type MatchSort = 'recent' | 'unread' | 'long';
 const matchSort = ref<MatchSort>('recent');
 const highlightedArticleId = ref<string | null>(null);
 
+let renderEpoch = 0;
+const ZOOM_EXTENT: [number, number] = [0.2, 4];
+const FIT_PADDING = 70;
+const FIT_DELAY_MS = 220;
+
 const tooltip = ref<{
   visible: boolean;
   article: ArticleSummary | null;
@@ -427,6 +432,58 @@ function applyHighlight() {
     });
 }
 
+function fitGraphToView(params: {
+  svg: d3.Selection<SVGSVGElement, unknown, null, undefined>;
+  zoom: d3.ZoomBehavior<SVGSVGElement, unknown>;
+  nodes: SimulationNode[];
+  width: number;
+  height: number;
+}) {
+  const { svg, zoom, nodes, width, height } = params;
+
+  if (width <= 0 || height <= 0) return;
+  if (nodes.length === 0) return;
+
+  let minX = Number.POSITIVE_INFINITY;
+  let minY = Number.POSITIVE_INFINITY;
+  let maxX = Number.NEGATIVE_INFINITY;
+  let maxY = Number.NEGATIVE_INFINITY;
+
+  nodes.forEach((node) => {
+    const x = node.x ?? 0;
+    const y = node.y ?? 0;
+    const halfW = node.width / 2;
+    const halfH = node.height / 2;
+
+    minX = Math.min(minX, x - halfW);
+    maxX = Math.max(maxX, x + halfW);
+    minY = Math.min(minY, y - halfH);
+    maxY = Math.max(maxY, y + halfH);
+  });
+
+  if (!Number.isFinite(minX) || !Number.isFinite(minY) || !Number.isFinite(maxX) || !Number.isFinite(maxY)) {
+    return;
+  }
+
+  const boundsWidth = Math.max(1, maxX - minX + FIT_PADDING * 2);
+  const boundsHeight = Math.max(1, maxY - minY + FIT_PADDING * 2);
+
+  const scale = Math.max(
+    ZOOM_EXTENT[0],
+    Math.min(ZOOM_EXTENT[1], 0.96 * Math.min(width / boundsWidth, height / boundsHeight)),
+  );
+
+  const centerX = (minX + maxX) / 2;
+  const centerY = (minY + maxY) / 2;
+  const translateX = width / 2 - scale * centerX;
+  const translateY = height / 2 - scale * centerY;
+
+  svg
+    .transition()
+    .duration(250)
+    .call(zoom.transform, d3.zoomIdentity.translate(translateX, translateY).scale(scale));
+}
+
 function renderVisualization() {
   if (!svgRef.value) return;
   const articles = getGraphArticles();
@@ -443,6 +500,8 @@ function renderVisualization() {
 
 function renderForceLayout(articles: ArticleSummary[]) {
   if (!svgRef.value) return;
+
+  const epoch = (renderEpoch += 1);
 
   const svg = d3.select(svgRef.value);
   svg.selectAll('*').remove();
@@ -644,12 +703,25 @@ function renderForceLayout(articles: ArticleSummary[]) {
   // Add zoom behavior
   const zoom = d3
     .zoom<SVGSVGElement, unknown>()
-    .scaleExtent([0.2, 4])
+    .scaleExtent(ZOOM_EXTENT)
     .on('zoom', (event) => {
       g.attr('transform', event.transform);
     });
 
   svg.call(zoom);
+
+  // Auto-fit to the currently rendered nodes (important after filters change).
+  // Use a short delay so the simulation has a moment to spread nodes out.
+  window.setTimeout(() => {
+    if (epoch !== renderEpoch) return;
+    fitGraphToView({
+      svg,
+      zoom,
+      nodes,
+      width,
+      height,
+    });
+  }, FIT_DELAY_MS);
 }
 
 onMounted(async () => {
