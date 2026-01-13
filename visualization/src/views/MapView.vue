@@ -74,12 +74,45 @@
       </div>
 
       <div class="filter-section">
+        <div class="matches-header">
+          <label class="matches-title">Top matches</label>
+          <select v-model="matchSort" class="matches-sort" @change="renderVisualization">
+            <option value="recent">Recent</option>
+            <option value="unread">Unread first</option>
+            <option value="long">Longest</option>
+          </select>
+        </div>
+
+        <div class="matches-subtitle">
+          Showing {{ topMatches.length }} of {{ graphArticles.length }} graph nodes
+        </div>
+
+        <div class="matches-list">
+          <button
+            v-for="article in topMatches"
+            :key="article.id"
+            class="match-item"
+            @click="openArticle(article.id)"
+            @mouseenter="highlightArticle(article.id)"
+            @mouseleave="highlightArticle(null)"
+          >
+            <div class="match-title" :title="article.title">{{ article.title }}</div>
+            <div class="match-meta">
+              <span class="match-topic">{{ article.topic || 'No topic' }}</span>
+              <span class="match-date">{{ formatShortDate(article.updated_at) }}</span>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      <div class="filter-section">
         <button @click="clearFilters" class="secondary">Clear Filters</button>
       </div>
 
       <div class="stats">
         <p><strong>Total:</strong> {{ store.articles.length }}</p>
         <p><strong>Visible:</strong> {{ store.filteredArticles.length }}</p>
+        <p><strong>Graph nodes:</strong> {{ graphArticles.length }}</p>
         <p><strong>Links:</strong> {{ linkCount }}</p>
       </div>
     </aside>
@@ -148,6 +181,10 @@ const svgRef = ref<SVGSVGElement | null>(null);
 const searchQuery = ref('');
 const selectedTopics = ref<string[]>([]);
 const selectedTags = ref<string[]>([]);
+
+type MatchSort = 'recent' | 'unread' | 'long';
+const matchSort = ref<MatchSort>('recent');
+const highlightedArticleId = ref<string | null>(null);
 
 const tooltip = ref<{
   visible: boolean;
@@ -294,28 +331,114 @@ function getTopicLabel(article: ArticleSummary): string {
   return article.topic?.trim() ? article.topic : NO_TOPIC_LABEL;
 }
 
-function renderVisualization() {
-  if (!svgRef.value) return;
+function getGraphArticles(): ArticleSummary[] {
   const filtered = store.filteredArticles;
 
   const connectedIds = new Set<string>();
   filtered.forEach((article) => {
     if (!article.neighbors) return;
+    if (article.neighbors.length === 0) return;
+
     connectedIds.add(article.id);
     article.neighbors.forEach((neighborId) => connectedIds.add(neighborId));
   });
 
-  const graphArticles = hideIsolated.value
-    ? filtered.filter((article) => connectedIds.has(article.id))
-    : filtered;
+  return hideIsolated.value ? filtered.filter((article) => connectedIds.has(article.id)) : filtered;
+}
 
-  if (graphArticles.length === 0) {
+const graphArticles = computed(() => getGraphArticles());
+
+const topMatches = computed(() => {
+  const articles = [...graphArticles.value];
+
+  switch (matchSort.value) {
+    case 'unread':
+      articles.sort((a, b) => {
+        const aUnread = a.read_status !== 'read';
+        const bUnread = b.read_status !== 'read';
+        if (aUnread !== bUnread) return aUnread ? -1 : 1;
+        return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+      });
+      break;
+
+    case 'long':
+      articles.sort((a, b) => (b.word_count || 0) - (a.word_count || 0));
+      break;
+
+    case 'recent':
+    default:
+      articles.sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
+      break;
+  }
+
+  return articles.slice(0, 20);
+});
+
+function openArticle(id: string) {
+  router.push({ name: 'article', params: { id } });
+}
+
+function highlightArticle(id: string | null) {
+  highlightedArticleId.value = id;
+  applyHighlight();
+}
+
+function applyHighlight() {
+  if (!svgRef.value) return;
+
+  const selectedId = highlightedArticleId.value;
+  const svg = d3.select(svgRef.value);
+  const nodes = svg.selectAll<SVGGElement, unknown>('g.article-node');
+  const links = svg.selectAll<SVGLineElement, unknown>('line.link');
+
+  if (!selectedId) {
+    nodes.classed('is-dimmed', false).classed('is-highlighted', false);
+    links.classed('is-dimmed', false).classed('is-highlighted', false);
+    return;
+  }
+
+  const connected = new Set<string>([selectedId]);
+  graphArticles.value.forEach((article) => {
+    if (article.id !== selectedId) return;
+    (article.neighbors || []).forEach((neighborId) => connected.add(neighborId));
+  });
+
+  nodes
+    .classed('is-highlighted', function () {
+      const id = d3.select(this).attr('data-article-id');
+      return id === selectedId;
+    })
+    .classed('is-dimmed', function () {
+      const id = d3.select(this).attr('data-article-id');
+      return !!id && !connected.has(id);
+    });
+
+  links
+    .classed('is-highlighted', function () {
+      const sourceId = d3.select(this).attr('data-source-id');
+      const targetId = d3.select(this).attr('data-target-id');
+      return sourceId === selectedId || targetId === selectedId;
+    })
+    .classed('is-dimmed', function () {
+      const sourceId = d3.select(this).attr('data-source-id');
+      const targetId = d3.select(this).attr('data-target-id');
+      if (!sourceId || !targetId) return false;
+      return !connected.has(sourceId) && !connected.has(targetId);
+    });
+}
+
+function renderVisualization() {
+  if (!svgRef.value) return;
+  const articles = getGraphArticles();
+
+  if (articles.length === 0) {
     d3.select(svgRef.value).selectAll('*').remove();
     linkCount.value = 0;
     return;
   }
 
-  renderForceLayout(graphArticles);
+  renderForceLayout(articles);
+  applyHighlight();
 }
 
 function renderForceLayout(articles: ArticleSummary[]) {
@@ -417,6 +540,8 @@ function renderForceLayout(articles: ArticleSummary[]) {
     .enter()
     .append('line')
     .attr('class', 'link')
+    .attr('data-source-id', (d) => (d.source as SimulationNode).article.id)
+    .attr('data-target-id', (d) => (d.target as SimulationNode).article.id)
     .attr('stroke', '#999')
     .attr('stroke-opacity', 0.4)
     .attr('stroke-width', 1.5);
@@ -428,8 +553,10 @@ function renderForceLayout(articles: ArticleSummary[]) {
     .enter()
     .append('g')
     .attr('class', 'article-node')
+    .attr('data-article-id', (d) => d.article.id)
     .style('cursor', 'pointer')
     .on('mouseenter', (event, d) => {
+      highlightedArticleId.value = d.article.id;
       tooltip.value = {
         visible: true,
         article: d.article,
@@ -437,20 +564,15 @@ function renderForceLayout(articles: ArticleSummary[]) {
         y: event.pageY + 10,
       };
       // Highlight connected nodes
-      d3.selectAll('line.link')
-        .attr('stroke-opacity', (link) =>
-          (link as ForceLink).source === d || (link as ForceLink).target === d ? 1 : 0.1,
-        )
-        .attr('stroke-width', (link) =>
-          (link as ForceLink).source === d || (link as ForceLink).target === d ? 3 : 1.5,
-        );
+      applyHighlight();
     })
     .on('mouseleave', () => {
       tooltip.value.visible = false;
-      d3.selectAll('line.link').attr('stroke-opacity', 0.4).attr('stroke-width', 1.5);
+      highlightedArticleId.value = null;
+      applyHighlight();
     })
     .on('click', (_, d) => {
-      router.push({ name: 'article', params: { id: d.article.id } });
+      openArticle(d.article.id);
     })
     .call(
       d3
@@ -539,6 +661,20 @@ watch(
   () => store.filteredArticles,
   () => {
     renderVisualization();
+  },
+);
+
+watch(
+  () => hideIsolated.value,
+  () => {
+    renderVisualization();
+  },
+);
+
+watch(
+  () => matchSort.value,
+  () => {
+    // No render needed; list is computed.
   },
 );
 </script>
@@ -650,6 +786,78 @@ watch(
   height: 120px;
 }
 
+.matches-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.matches-title {
+  margin: 0;
+}
+
+.matches-sort {
+  padding: 0.35rem 0.5rem;
+  font-size: 0.85rem;
+}
+
+.matches-subtitle {
+  margin-top: 0.35rem;
+  font-size: 0.8rem;
+  color: #777;
+}
+
+.matches-list {
+  margin-top: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 260px;
+  overflow-y: auto;
+  padding-right: 0.25rem;
+}
+
+.match-item {
+  text-align: left;
+  background: #fff;
+  border: 1px solid #eee;
+  border-radius: 6px;
+  padding: 0.6rem 0.65rem;
+}
+
+.match-item:hover {
+  background: #f7f7f7;
+}
+
+.match-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #2c3e50;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.match-meta {
+  margin-top: 0.2rem;
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.78rem;
+  color: #666;
+}
+
+.match-topic {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.match-date {
+  flex: 0 0 auto;
+}
+
 .stats {
   margin-top: 2rem;
   padding-top: 1rem;
@@ -749,5 +957,22 @@ line.link {
   transition:
     stroke-opacity 0.2s,
     stroke-width 0.2s;
+}
+
+.article-node.is-dimmed {
+  opacity: 0.25;
+}
+
+line.link.is-dimmed {
+  stroke-opacity: 0.1;
+}
+
+.article-node.is-highlighted {
+  opacity: 1;
+}
+
+line.link.is-highlighted {
+  stroke-opacity: 1;
+  stroke-width: 3;
 }
 </style>
