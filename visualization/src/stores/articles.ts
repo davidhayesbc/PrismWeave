@@ -3,7 +3,7 @@
  */
 
 import { articlesApi } from '@/services/api';
-import type { ArticleDetail, ArticleSummary, Filters } from '@/types';
+import type { ArticleDetail, ArticleSummary, Filters, UpdateArticleRequest } from '@/types';
 import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
 
@@ -13,6 +13,7 @@ export const useArticlesStore = defineStore('articles', () => {
   const currentArticle = ref<ArticleDetail | null>(null);
   const loading = ref(false);
   const error = ref<string | null>(null);
+  const notice = ref<string | null>(null);
 
   // Filters
   const filters = ref<Filters>({
@@ -107,7 +108,7 @@ export const useArticlesStore = defineStore('articles', () => {
     }
   }
 
-  async function updateArticle(id: string, updates: Partial<ArticleDetail>) {
+  async function updateArticle(id: string, updates: UpdateArticleRequest) {
     loading.value = true;
     error.value = null;
     try {
@@ -173,12 +174,17 @@ export const useArticlesStore = defineStore('articles', () => {
     };
   }
 
+  function setNotice(message: string | null) {
+    notice.value = message;
+  }
+
   return {
     // State
     articles,
     currentArticle,
     loading,
     error,
+    notice,
     filters,
     // Computed
     filteredArticles,
@@ -192,5 +198,6 @@ export const useArticlesStore = defineStore('articles', () => {
     rebuildVisualization,
     setFilters,
     clearFilters,
+    setNotice,
   };
 });

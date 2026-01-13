@@ -4,49 +4,39 @@
       <h2>Filters</h2>
 
       <div class="filter-section">
-        <label>Visualization Mode</label>
-        <div class="mode-toggle">
-          <button
-            :class="{ active: layoutMode === 'embedding' }"
-            @click="switchLayout('embedding')"
-            class="mode-btn"
-          >
-            Semantic Space
-          </button>
-          <button
-            :class="{ active: layoutMode === 'force' }"
-            @click="switchLayout('force')"
-            class="mode-btn"
-          >
-            Network Graph
-          </button>
+        <label>Graph</label>
+        <div class="graph-controls">
+          <div class="graph-control">
+            <span class="graph-control-label">Link Distance</span>
+            <input
+              type="range"
+              v-model.number="linkDistance"
+              min="30"
+              max="200"
+              step="10"
+              @input="renderVisualization"
+            />
+            <span class="range-value">{{ linkDistance }}</span>
+          </div>
+
+          <div class="graph-control">
+            <span class="graph-control-label">Charge</span>
+            <input
+              type="range"
+              v-model.number="chargeStrength"
+              min="-300"
+              max="-10"
+              step="10"
+              @input="renderVisualization"
+            />
+            <span class="range-value">{{ chargeStrength }}</span>
+          </div>
+
+          <label class="checkbox-label compact">
+            <input type="checkbox" v-model="hideIsolated" @change="renderVisualization" />
+            Hide isolated nodes
+          </label>
         </div>
-      </div>
-
-      <div class="filter-section" v-if="layoutMode === 'force'">
-        <label>Link Distance</label>
-        <input
-          type="range"
-          v-model.number="linkDistance"
-          min="30"
-          max="200"
-          step="10"
-          @input="renderVisualization"
-        />
-        <span class="range-value">{{ linkDistance }}</span>
-      </div>
-
-      <div class="filter-section" v-if="layoutMode === 'force'">
-        <label>Charge Strength</label>
-        <input
-          type="range"
-          v-model.number="chargeStrength"
-          min="-300"
-          max="-10"
-          step="10"
-          @input="renderVisualization"
-        />
-        <span class="range-value">{{ chargeStrength }}</span>
       </div>
 
       <div class="filter-section">
@@ -90,7 +80,7 @@
       <div class="stats">
         <p><strong>Total:</strong> {{ store.articles.length }}</p>
         <p><strong>Visible:</strong> {{ store.filteredArticles.length }}</p>
-        <p v-if="layoutMode === 'force'"><strong>Links:</strong> {{ linkCount }}</p>
+        <p><strong>Links:</strong> {{ linkCount }}</p>
       </div>
     </aside>
 
@@ -123,21 +113,14 @@ import { useRouter } from 'vue-router';
 
 const router = useRouter();
 const store = useArticlesStore();
-
-// Layout mode
-type LayoutMode = 'embedding' | 'force';
-const layoutMode = ref<LayoutMode>('embedding');
 const linkDistance = ref(80);
 const chargeStrength = ref(-100);
 const linkCount = ref(0);
+const hideIsolated = ref(true);
 
-const CLUSTER_COUNT = 8;
-const CLUSTER_ITERATIONS = 20;
 const COLLISION_PADDING = 8;
 const MIN_RADIUS = 6;
 const MAX_RADIUS = 24;
-const FORCE_ITERATIONS = 250;
-const REPULSION_STRENGTH = -28;
 const MIN_LABEL_WIDTH = 210;
 const MIN_LABEL_HEIGHT = 96;
 const LABEL_WIDTH_FACTOR = 7.2;
@@ -146,11 +129,10 @@ const LABEL_HORIZONTAL_PADDING = 16;
 const LABEL_VERTICAL_PADDING = 22;
 
 const COLOR_PALETTE = d3.schemeTableau10;
+const NO_TOPIC_LABEL = 'No topic';
 
 type SimulationNode = d3.SimulationNodeDatum & {
   article: ArticleSummary;
-  targetX: number;
-  targetY: number;
   width: number;
   height: number;
   collisionRadius: number;
@@ -201,11 +183,6 @@ function clearFilters() {
   renderVisualization();
 }
 
-function switchLayout(mode: LayoutMode) {
-  layoutMode.value = mode;
-  renderVisualization();
-}
-
 function formatDate(dateStr: string | undefined): string {
   if (!dateStr) return '';
   const date = new Date(dateStr);
@@ -220,15 +197,11 @@ function formatDate(dateStr: string | undefined): string {
 
 function formatShortDate(dateStr: string | undefined): string {
   if (!dateStr) return '';
-  try {
-    return new Intl.DateTimeFormat('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    }).format(new Date(dateStr));
-  } catch (error) {
-    return formatDate(dateStr);
-  }
+  return new Date(dateStr).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
 }
 
 const TITLE_LINE_HEIGHT = 1.1;
@@ -317,316 +290,32 @@ function appendEllipsis(
   return '…';
 }
 
-function clamp(value: number, min: number, max: number): number {
-  return Math.max(min, Math.min(max, value));
-}
-
-function computeClusters(articles: ArticleSummary[], desiredClusters: number): Map<string, number> {
-  const validArticles = articles.filter(
-    (article) => article.x !== undefined && article.y !== undefined,
-  );
-  const clusterCount = Math.min(Math.max(desiredClusters, 1), validArticles.length);
-  const assignments = new Array(validArticles.length).fill(0);
-  const centroids: Array<[number, number]> = [];
-
-  if (validArticles.length === 0) {
-    return new Map();
-  }
-
-  centroids.push([validArticles[0].x!, validArticles[0].y!]);
-  for (let idx = 1; idx < clusterCount; idx += 1) {
-    let farthestArticle = validArticles[0];
-    let farthestDistance = -Infinity;
-
-    validArticles.forEach((article) => {
-      let nearestDistance = Number.POSITIVE_INFINITY;
-      centroids.forEach(([cx, cy]) => {
-        const dx = article.x! - cx;
-        const dy = article.y! - cy;
-        const distance = dx * dx + dy * dy;
-        if (distance < nearestDistance) {
-          nearestDistance = distance;
-        }
-      });
-
-      if (nearestDistance > farthestDistance) {
-        farthestDistance = nearestDistance;
-        farthestArticle = article;
-      }
-    });
-
-    centroids.push([farthestArticle.x!, farthestArticle.y!]);
-  }
-
-  if (clusterCount === 0) {
-    return new Map();
-  }
-
-  for (let iteration = 0; iteration < CLUSTER_ITERATIONS; iteration += 1) {
-    let moved = false;
-
-    validArticles.forEach((article, index) => {
-      let bestCluster = 0;
-      let smallestDistance = Number.POSITIVE_INFINITY;
-
-      centroids.forEach(([cx, cy], centroidIndex) => {
-        const dx = article.x! - cx;
-        const dy = article.y! - cy;
-        const distance = dx * dx + dy * dy;
-        if (distance < smallestDistance) {
-          smallestDistance = distance;
-          bestCluster = centroidIndex;
-        }
-      });
-
-      if (assignments[index] !== bestCluster) {
-        moved = true;
-        assignments[index] = bestCluster;
-      }
-    });
-
-    const accumulators = Array.from({ length: clusterCount }, () => ({ x: 0, y: 0, count: 0 }));
-    assignments.forEach((clusterIndex, articleIndex) => {
-      const article = validArticles[articleIndex];
-      const accumulator = accumulators[clusterIndex];
-      accumulator.x += article.x!;
-      accumulator.y += article.y!;
-      accumulator.count += 1;
-    });
-
-    accumulators.forEach((accumulator, idx) => {
-      if (accumulator.count > 0) {
-        centroids[idx] = [accumulator.x / accumulator.count, accumulator.y / accumulator.count];
-      }
-    });
-
-    if (!moved) break;
-  }
-
-  const assignmentsMap = new Map<string, number>();
-  validArticles.forEach((article, index) => {
-    assignmentsMap.set(article.id, assignments[index]);
-  });
-
-  return assignmentsMap;
+function getTopicLabel(article: ArticleSummary): string {
+  return article.topic?.trim() ? article.topic : NO_TOPIC_LABEL;
 }
 
 function renderVisualization() {
   if (!svgRef.value) return;
+  const filtered = store.filteredArticles;
 
-  const articles = store.filteredArticles.filter((a) => a.x !== undefined && a.y !== undefined);
-  if (articles.length === 0) return;
-
-  if (layoutMode.value === 'embedding') {
-    renderEmbeddingLayout(articles);
-  } else {
-    renderForceLayout(articles);
-  }
-}
-
-function renderEmbeddingLayout(articles: ArticleSummary[]) {
-  if (!svgRef.value) return;
-
-  const svg = d3.select(svgRef.value);
-  svg.selectAll('*').remove();
-
-  const width = svgRef.value.clientWidth;
-  const height = svgRef.value.clientHeight;
-
-  // Find coordinate bounds
-  const xExtent = d3.extent(articles, (d) => d.x!) as [number, number];
-  const yExtent = d3.extent(articles, (d) => d.y!) as [number, number];
-
-  // Add padding
-  const padding = 50;
-  const xScale = d3
-    .scaleLinear()
-    .domain(xExtent)
-    .range([padding, width - padding]);
-
-  const yScale = d3
-    .scaleLinear()
-    .domain(yExtent)
-    .range([padding, height - padding]);
-
-  const clusterAssignments = computeClusters(articles, CLUSTER_COUNT);
-  const colorScale = d3
-    .scaleOrdinal<number, string>(COLOR_PALETTE)
-    .domain(d3.range(COLOR_PALETTE.length));
-
-  // Size scale for word count
-  const sizeScale = d3
-    .scaleSqrt()
-    .domain([0, d3.max(articles, (d) => d.word_count) || 1000])
-    .range([MIN_RADIUS, MAX_RADIUS]);
-
-  // Opacity scale for age
-  const now = Date.now();
-  const ageScale = d3
-    .scaleLinear()
-    .domain([0, 365]) // 0 to 1 year
-    .range([1, 0.4])
-    .clamp(true);
-
-  const nodes: SimulationNode[] = articles.map((article) => {
-    const baseSize = sizeScale(article.word_count);
-    const width = Math.max(MIN_LABEL_WIDTH, baseSize * LABEL_WIDTH_FACTOR);
-    const height = Math.max(MIN_LABEL_HEIGHT, baseSize * LABEL_HEIGHT_FACTOR);
-    return {
-      article,
-      x: xScale(article.x!),
-      y: yScale(article.y!),
-      targetX: xScale(article.x!),
-      targetY: yScale(article.y!),
-      width,
-      height,
-      collisionRadius: Math.max(width, height) / 2,
-    };
+  const connectedIds = new Set<string>();
+  filtered.forEach((article) => {
+    if (!article.neighbors) return;
+    connectedIds.add(article.id);
+    article.neighbors.forEach((neighborId) => connectedIds.add(neighborId));
   });
 
-  const simulation = d3
-    .forceSimulation(nodes)
-    .force('x', d3.forceX<SimulationNode>((node) => node.targetX).strength(0.2))
-    .force('y', d3.forceY<SimulationNode>((node) => node.targetY).strength(0.2))
-    .force('charge', d3.forceManyBody().strength(REPULSION_STRENGTH))
-    .force(
-      'collide',
-      d3.forceCollide<SimulationNode>((node) => node.collisionRadius + COLLISION_PADDING),
-    )
-    .stop();
+  const graphArticles = hideIsolated.value
+    ? filtered.filter((article) => connectedIds.has(article.id))
+    : filtered;
 
-  for (let i = 0; i < FORCE_ITERATIONS; i += 1) {
-    simulation.tick();
+  if (graphArticles.length === 0) {
+    d3.select(svgRef.value).selectAll('*').remove();
+    linkCount.value = 0;
+    return;
   }
 
-  const rawXExtent = d3.extent(nodes, (node) => node.x ?? node.targetX) as [number, number];
-  const rawYExtent = d3.extent(nodes, (node) => node.y ?? node.targetY) as [number, number];
-  const currentCenterX = (rawXExtent[0] + rawXExtent[1]) / 2;
-  const currentCenterY = (rawYExtent[0] + rawYExtent[1]) / 2;
-  const desiredCenterX = width / 2;
-  const desiredCenterY = height / 2;
-  const availableWidth = width - padding * 2;
-  const availableHeight = height - padding * 2;
-  const currentWidth = Math.max(rawXExtent[1] - rawXExtent[0], 1);
-  const currentHeight = Math.max(rawYExtent[1] - rawYExtent[0], 1);
-  const scaleX = clamp(availableWidth / currentWidth, 0.6, 1.8);
-  const scaleY = clamp(availableHeight / currentHeight, 0.6, 1.8);
-
-  const positionsById = new Map<string, { x: number; y: number }>();
-  nodes.forEach((node) => {
-    const baseX = node.x ?? node.targetX;
-    const baseY = node.y ?? node.targetY;
-    const shiftedX = (baseX - currentCenterX) * scaleX + desiredCenterX;
-    const shiftedY = (baseY - currentCenterY) * scaleY + desiredCenterY;
-    const finalX = clamp(shiftedX, padding, width - padding);
-    const finalY = clamp(shiftedY, padding, height - padding);
-    positionsById.set(node.article.id, {
-      x: finalX,
-      y: finalY,
-    });
-    node.x = finalX;
-    node.y = finalY;
-  });
-
-  // Draw edges (if neighbors exist)
-  const g = svg.append('g');
-
-  articles.forEach((article) => {
-    if (article.neighbors && article.neighbors.length > 0) {
-      const sourcePosition = positionsById.get(article.id);
-      if (!sourcePosition) return;
-
-      article.neighbors.forEach((neighborId) => {
-        const neighborPosition = positionsById.get(neighborId);
-        if (neighborPosition) {
-          g.append('line')
-            .attr('x1', sourcePosition.x)
-            .attr('y1', sourcePosition.y)
-            .attr('x2', neighborPosition.x)
-            .attr('y2', neighborPosition.y)
-            .attr('stroke', '#ddd')
-            .attr('stroke-width', 1)
-            .attr('opacity', 0.25);
-        }
-      });
-    }
-  });
-
-  // Draw nodes
-  const nodeGroups = g
-    .selectAll('g.article-node')
-    .data(nodes)
-    .enter()
-    .append('g')
-    .attr('class', 'article-node')
-    .attr(
-      'transform',
-      (d) => `translate(${(d.x ?? d.targetX) - d.width / 2}, ${(d.y ?? d.targetY) - d.height / 2})`,
-    )
-    .style('cursor', 'pointer')
-    .on('mouseenter', (event, d) => {
-      tooltip.value = {
-        visible: true,
-        article: d.article,
-        x: event.pageX + 10,
-        y: event.pageY + 10,
-      };
-    })
-    .on('mouseleave', () => {
-      tooltip.value.visible = false;
-    })
-    .on('click', (_, d) => {
-      router.push({ name: 'article', params: { id: d.article.id } });
-    });
-
-  nodeGroups
-    .append('rect')
-    .attr('width', (d) => d.width)
-    .attr('height', (d) => d.height)
-    .attr('rx', 12)
-    .attr('ry', 12)
-    .attr('fill', (d) => {
-      const clusterIndex = clusterAssignments.get(d.article.id) ?? 0;
-      const colorDomainSize = COLOR_PALETTE.length;
-      return colorScale(clusterIndex % colorDomainSize);
-    })
-    .attr('opacity', (d) => {
-      const age = (now - new Date(d.article.created_at).getTime()) / (1000 * 60 * 60 * 24);
-      return ageScale(age);
-    })
-    .attr('stroke', (d) => (d.article.read_status === 'read' ? '#2b2b2b' : '#fff'))
-    .attr('stroke-width', (d) => (d.article.read_status === 'read' ? 1 : 2));
-
-  nodeGroups
-    .append('text')
-    .attr('class', 'node-title')
-    .each(function (d) {
-      renderWrappedTitle(
-        this as SVGTextElement,
-        LABEL_HORIZONTAL_PADDING,
-        LABEL_VERTICAL_PADDING,
-        d.width - LABEL_HORIZONTAL_PADDING * 2,
-        d.article.title,
-      );
-    });
-
-  nodeGroups
-    .append('text')
-    .attr('class', 'node-date')
-    .attr('x', (d) => d.width / 2)
-    .attr('y', (d) => d.height - 12)
-    .attr('text-anchor', 'middle')
-    .text((d) => formatShortDate(d.article.created_at));
-
-  // Add zoom behavior
-  const zoom = d3
-    .zoom<SVGSVGElement, unknown>()
-    .scaleExtent([0.5, 5])
-    .on('zoom', (event) => {
-      g.attr('transform', event.transform);
-    });
-
-  svg.call(zoom);
+  renderForceLayout(graphArticles);
 }
 
 function renderForceLayout(articles: ArticleSummary[]) {
@@ -647,11 +336,9 @@ function renderForceLayout(articles: ArticleSummary[]) {
     .domain([0, d3.max(articles, (d) => d.word_count) || 1000])
     .range([MIN_RADIUS, MAX_RADIUS]);
 
-  // Cluster assignments for coloring
-  const clusterAssignments = computeClusters(articles, CLUSTER_COUNT);
-  const colorScale = d3
-    .scaleOrdinal<number, string>(COLOR_PALETTE)
-    .domain(d3.range(COLOR_PALETTE.length));
+  // Topic-based coloring (more interpretable than embedding clusters)
+  const topics = Array.from(new Set(articles.map(getTopicLabel))).sort();
+  const colorScale = d3.scaleOrdinal<string, string>(COLOR_PALETTE).domain(topics);
 
   // Opacity scale for age
   const now = Date.now();
@@ -666,8 +353,6 @@ function renderForceLayout(articles: ArticleSummary[]) {
       article,
       x: width / 2 + Math.random() * (width - width),
       y: height / 2 + Math.random() * (height - height),
-      targetX: width / 2,
-      targetY: height / 2,
       width,
       height,
       collisionRadius: Math.max(width, height) / 2,
@@ -794,10 +479,7 @@ function renderForceLayout(articles: ArticleSummary[]) {
     .attr('ry', 12)
     .attr('x', (d) => -d.width / 2)
     .attr('y', (d) => -d.height / 2)
-    .attr('fill', (d) => {
-      const clusterIndex = clusterAssignments.get(d.article.id) ?? 0;
-      return colorScale(clusterIndex % COLOR_PALETTE.length);
-    })
+    .attr('fill', (d) => colorScale(getTopicLabel(d.article)))
     .attr('opacity', (d) => {
       const age = (now - new Date(d.article.created_at).getTime()) / (1000 * 60 * 60 * 24);
       return ageScale(age);
@@ -846,11 +528,6 @@ function renderForceLayout(articles: ArticleSummary[]) {
     });
 
   svg.call(zoom);
-
-  // Stop simulation after a while for performance
-  simulation.on('end', () => {
-    console.log('Force simulation completed');
-  });
 }
 
 onMounted(async () => {
@@ -901,30 +578,28 @@ watch(
   width: 100%;
 }
 
-.mode-toggle {
+.graph-controls {
   display: flex;
-  gap: 0.5rem;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border: 1px solid #eee;
+  border-radius: 6px;
+  background: #fafafa;
 }
 
-.mode-btn {
-  flex: 1;
-  padding: 0.5rem;
+.graph-control {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  column-gap: 0.5rem;
+  row-gap: 0.35rem;
+}
+
+.graph-control-label {
+  grid-column: 1 / -1;
   font-size: 0.85rem;
-  border: 1px solid #ddd;
-  background: white;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.mode-btn:hover {
-  background: #f5f5f5;
-}
-
-.mode-btn.active {
-  background: #4caf50;
-  color: white;
-  border-color: #4caf50;
+  color: #555;
   font-weight: 600;
 }
 
@@ -959,6 +634,11 @@ watch(
   gap: 0.5rem;
   font-weight: normal;
   cursor: pointer;
+}
+
+.checkbox-label.compact {
+  margin-top: 0.25rem;
+  font-size: 0.85rem;
 }
 
 .checkbox-label input {

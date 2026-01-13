@@ -4,7 +4,7 @@
     <div v-else-if="store.error" class="error">{{ store.error }}</div>
     <template v-else-if="article">
       <aside class="article-sidebar">
-        <button @click="goBack" class="secondary">← Back to Map</button>
+        <button @click="goBack" class="secondary">← Back to Graph</button>
 
         <div class="metadata-section">
           <h3>Metadata</h3>
@@ -125,7 +125,7 @@ const renderedContent = computed(() => {
 });
 
 function goBack() {
-  router.push({ name: 'map' });
+  router.push({ name: 'graph' });
 }
 
 function formatDate(dateStr: string): string {

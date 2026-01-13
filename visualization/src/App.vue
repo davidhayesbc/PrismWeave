@@ -3,7 +3,7 @@
     <header class="app-header">
       <h1>PrismWeave</h1>
       <nav>
-        <router-link to="/" class="nav-link">Map</router-link>
+        <router-link to="/" class="nav-link">Graph</router-link>
         <button @click="handleRebuild" :disabled="loading" class="secondary">
           {{ loading ? 'Rebuilding...' : 'Rebuild Index' }}
         </button>
@@ -15,6 +15,10 @@
     <div v-if="error" class="error-toast" @click="clearError">
       {{ error }}
     </div>
+
+    <div v-if="notice" class="notice-toast" @click="clearNotice">
+      {{ notice }}
+    </div>
   </div>
 </template>
 
@@ -25,11 +29,12 @@ import { computed } from 'vue';
 const store = useArticlesStore();
 const loading = computed(() => store.loading);
 const error = computed(() => store.error);
+const notice = computed(() => store.notice);
 
 async function handleRebuild() {
   try {
-    await store.rebuildVisualization();
-    alert('Visualization index rebuilt successfully!');
+    const response = await store.rebuildVisualization();
+    store.setNotice(response.message || 'Visualization index rebuilt successfully');
   } catch (e) {
     console.error('Rebuild failed:', e);
   }
@@ -37,6 +42,10 @@ async function handleRebuild() {
 
 function clearError() {
   store.error = null;
+}
+
+function clearNotice() {
+  store.setNotice(null);
 }
 </script>
 
@@ -92,6 +101,19 @@ function clearError() {
   right: 2rem;
   padding: 1rem 1.5rem;
   background: #dc3545;
+  color: white;
+  border-radius: 4px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  animation: slideIn 0.3s ease;
+}
+
+.notice-toast {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  padding: 1rem 1.5rem;
+  background: #198754;
   color: white;
   border-radius: 4px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);

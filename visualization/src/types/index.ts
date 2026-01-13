@@ -24,7 +24,7 @@ export interface ArticleDetail extends ArticleSummary {
 
 export interface UpdateArticleRequest {
   title?: string;
-  topic?: string;
+  topic?: string | null;
   tags?: string[];
   read_status?: string;
   content?: string;
