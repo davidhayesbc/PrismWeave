@@ -17,11 +17,10 @@ from typing import Optional
 
 import requests
 
+from prismweave_mcp.utils.document_utils import generate_frontmatter, parse_frontmatter
 from src.core.config import Config
 from src.core.document_processor import DocumentProcessor
 from src.core.embedding_store import EmbeddingStore
-
-from prismweave_mcp.utils.document_utils import generate_frontmatter, parse_frontmatter
 
 logger = logging.getLogger(__name__)
 
@@ -238,7 +237,9 @@ class ProcessingManager:
 
         Returns (tags, confidence). On failure returns ([], 0.0).
         """
-        prompt = self._build_tagging_prompt(title=title, content=content, source_keywords=source_keywords, max_tags=max_tags)
+        prompt = self._build_tagging_prompt(
+            title=title, content=content, source_keywords=source_keywords, max_tags=max_tags
+        )
         payload = {
             "model": self.config.tagging_model,
             "prompt": prompt,
@@ -279,7 +280,7 @@ class ProcessingManager:
             "Task: produce a small set of consistent, semantic tags for the document.\n"
             "Rules:\n"
             f"- Return ONLY a JSON array of 1 to {max_tags} strings.\n"
-            "- Tags must be lowercase kebab-case (e.g. \"machine-learning\").\n"
+            '- Tags must be lowercase kebab-case (e.g. "machine-learning").\n'
             "- Prefer broad topics over site-specific labels.\n"
             "- Avoid duplicates, avoid personal names, avoid dates.\n"
             "\n"
