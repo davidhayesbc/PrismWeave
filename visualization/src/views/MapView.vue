@@ -77,7 +77,7 @@
           class="tags-select"
         >
           <option v-for="tag in store.availableTags" :key="tag.value" :value="tag.value">
-            {{ tag.label }}
+            {{ tag.label }} ({{ tag.count }})
           </option>
         </select>
       </div>

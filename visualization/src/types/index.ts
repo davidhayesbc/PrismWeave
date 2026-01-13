@@ -62,3 +62,7 @@ export interface OptionItem {
   value: string;
   label: string;
 }
+
+export interface CountedOptionItem extends OptionItem {
+  count: number;
+}

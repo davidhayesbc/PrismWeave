@@ -6,8 +6,8 @@ import { articlesApi } from '@/services/api';
 import type {
   ArticleDetail,
   ArticleSummary,
+  CountedOptionItem,
   Filters,
-  OptionItem,
   UpdateArticleRequest,
 } from '@/types';
 import { defineStore } from 'pinia';
@@ -152,17 +152,25 @@ export const useArticlesStore = defineStore('articles', () => {
   });
 
   const availableTags = computed(() => {
-    const optionsByValue = new Map<string, OptionItem>();
+    const optionsByValue = new Map<string, CountedOptionItem>();
 
     articlesForTagOptions.value.forEach((article) => {
       const assignments = article.taxonomy_tag_assignments;
-      if (assignments && assignments.length > 0) {
-        assignments.forEach((a) => {
-          if (!optionsByValue.has(a.id)) {
-            optionsByValue.set(a.id, { value: a.id, label: a.name });
-          }
-        });
-      }
+      if (!assignments || assignments.length === 0) return;
+
+      // Count each tag once per article.
+      const seenForArticle = new Set<string>();
+      assignments.forEach((a) => {
+        if (seenForArticle.has(a.id)) return;
+        seenForArticle.add(a.id);
+
+        const existing = optionsByValue.get(a.id);
+        if (existing) {
+          existing.count += 1;
+        } else {
+          optionsByValue.set(a.id, { value: a.id, label: a.name, count: 1 });
+        }
+      });
     });
 
     return Array.from(optionsByValue.values()).sort((a, b) => a.label.localeCompare(b.label));
