@@ -586,6 +586,18 @@
 			],
 			"isBackground": false,
 			"problemMatcher": []
+		},
+		{
+			"label": "Aspire: Run AppHost",
+			"type": "shell",
+			"command": "npm",
+			"args": [
+				"run",
+				"aspire:run"
+			],
+			"isBackground": true,
+			"problemMatcher": [],
+			"group": "build"
 		}
 	]
 }
