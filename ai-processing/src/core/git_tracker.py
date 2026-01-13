@@ -178,7 +178,7 @@ class GitTracker:
             with open(file_path, "rb") as f:
                 content = f.read()
             return hashlib.sha256(content).hexdigest()
-        except IOError as e:
+        except OSError as e:
             raise RuntimeError(f"Failed to read file {file_path}: {e}") from e
 
     def mark_file_processed(self, file_path: Path, commit_hash: Optional[str] = None) -> None:
@@ -319,7 +319,7 @@ class GitTracker:
 
                     key, value = line.split("=", 1)
                     credentials[key.strip()] = value.strip()
-        except IOError:
+        except OSError:
             return None, None
 
         username = credentials.get("GITHUB_USERNAME") or credentials.get("GIT_USERNAME")

@@ -162,13 +162,16 @@ class ProcessingStateStore:
             ).fetchall()
 
         for row in rows:
-            yield str(row["path"]), {
-                "processed_at": row["processed_at"],
-                "commit_hash": row["commit_hash"],
-                "content_hash": row["content_hash"],
-                "file_size": row["file_size"],
-                "last_modified": row["last_modified"],
-            }
+            yield (
+                str(row["path"]),
+                {
+                    "processed_at": row["processed_at"],
+                    "commit_hash": row["commit_hash"],
+                    "content_hash": row["content_hash"],
+                    "file_size": row["file_size"],
+                    "last_modified": row["last_modified"],
+                },
+            )
 
     def clear_processed_files(self) -> None:
         with self._connect() as conn:

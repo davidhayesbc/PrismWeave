@@ -60,9 +60,8 @@ class TestGitTrackerInitialization:
 
     def test_tracker_fails_on_non_git_directory(self):
         """Test that GitTracker raises error for non-git directory"""
-        with tempfile.TemporaryDirectory() as temp_dir:
-            with pytest.raises(ValueError, match="not a git repository"):
-                GitTracker(Path(temp_dir))
+        with tempfile.TemporaryDirectory() as temp_dir, pytest.raises(ValueError, match="not a git repository"):
+            GitTracker(Path(temp_dir))
 
     def test_custom_state_file_path(self, git_repo):
         """Test using custom state file path"""
