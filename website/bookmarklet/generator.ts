@@ -219,6 +219,7 @@ class BookmarkletGeneratorUI {
     };
   }
 
+  /**
    * Converts form data to the bookmarklet configuration format.
    * Maps form field values to the configuration structure expected by the bookmarklet.
    * Sets sensible defaults for optional configuration values.
