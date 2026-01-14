@@ -520,7 +520,7 @@ describe('ContentCaptureService - Consolidated Manager Tests', () => {
         'Test',
         'not-a-valid-url',
         {},
-        { defaultFolder: 'auto' }
+        { fileNamingPattern: 'YYYY-MM-DD-domain-title' }
       );
 
       expect(result.filename).toContain('unknown'); // Should use unknown domain

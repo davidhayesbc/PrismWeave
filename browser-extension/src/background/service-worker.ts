@@ -1044,7 +1044,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
       );
       await showNotification('Extension is still starting up. Please try again in a moment.', {
         type: 'info',
-        tabId: tab?.id,
+        ...(tab?.id !== undefined && { tabId: tab.id }),
       });
       return;
     }
@@ -1065,7 +1065,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
           ) => {
             await showNotification(message, {
               ...opts,
-              tabId,
+              ...(tabId !== undefined && { tabId }),
             });
           };
 
@@ -1084,7 +1084,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
                 },
                 timestamp: Date.now(),
               },
-              { tab: tab }
+              { ...(tab !== undefined && { tab }) }
             );
             logger.debug('handleMessage result:', result);
 
@@ -1127,7 +1127,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
           // Show error notification
           await showNotification('No link URL found. Please right-click directly on a link.', {
             type: 'error',
-            tabId: tab?.id,
+            ...(tab?.id !== undefined && { tabId: tab.id }),
           });
         }
         break;

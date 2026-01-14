@@ -6,7 +6,7 @@
 import { ContentExtractionCore, ICoreExtractionOptions } from '../utils/content-extraction-core.js';
 import { createLogger } from '../utils/logger.js';
 import { MarkdownConverter } from '../utils/markdown-converter.js';
-import { showToast } from '../utils/notifications/toast-internal.js';
+import { showToast, type ToastType } from '../utils/notifications/toast-internal.js';
 
 // Re-export and extend core options for injectable use
 export interface IInjectableExtractionOptions extends ICoreExtractionOptions {
@@ -386,7 +386,7 @@ declare global {
       options?: IInjectableExtractionOptions,
       filename?: string
     ) => Promise<IGitHubCommitResult>;
-    prismweaveShowToast?: (message: string, options?: any) => void;
+    prismweaveShowToast?: (message: string, type?: ToastType, clickUrl?: string) => void;
   }
 }
 
@@ -395,7 +395,14 @@ if (typeof window !== 'undefined') {
   window.PrismWeaveInjectableExtractor = InjectableContentExtractor;
   window.prismweaveExtractContent = InjectableContentExtractor.extractContent;
   window.prismweaveExtractAndCommit = InjectableContentExtractor.extractAndCommit;
-  window.prismweaveShowToast = showToast;
+  
+  // Adapt showToast to match the expected signature
+  window.prismweaveShowToast = (message: string, type?: ToastType, clickUrl?: string) => {
+    const options: { type?: ToastType; clickUrl?: string } = {};
+    if (type) options.type = type;
+    if (clickUrl) options.clickUrl = clickUrl;
+    showToast(message, options);
+  };
 
   // Log successful injection
   console.log('🔗 PrismWeave Injectable Content Extractor loaded successfully');

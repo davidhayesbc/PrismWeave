@@ -47,8 +47,6 @@ describe('Options Page - PrismWeaveOptions', () => {
   const mockSettings: Partial<ISettings> = {
     githubToken: 'ghp_test1234567890abcdef',
     githubRepo: 'testuser/test-repo',
-    defaultFolder: 'articles',
-    customFolder: 'custom-articles',
     fileNamingPattern: 'YYYY-MM-DD-title',
     autoCommit: true,
     captureImages: false,
@@ -318,11 +316,9 @@ describe('Options Page - PrismWeaveOptions', () => {
       // Since we're mocking the DOM, we need to simulate the form field updates
       (mockElements.githubToken as HTMLInputElement).value = mockSettings.githubToken || '';
       (mockElements.githubRepo as HTMLInputElement).value = mockSettings.githubRepo || '';
-      (mockElements.customFolder as HTMLInputElement).value = mockSettings.customFolder || '';
       (mockElements.customSelectors as HTMLInputElement).value = mockSettings.customSelectors || '';
       (mockElements.commitMessageTemplate as HTMLInputElement).value =
         mockSettings.commitMessageTemplate || '';
-      (mockElements.defaultFolder as HTMLSelectElement).value = mockSettings.defaultFolder || '';
       (mockElements.fileNamingPattern as HTMLSelectElement).value =
         mockSettings.fileNamingPattern || '';
       (mockElements.autoCommit as HTMLInputElement).checked = mockSettings.autoCommit || false;
@@ -336,37 +332,12 @@ describe('Options Page - PrismWeaveOptions', () => {
         mockSettings.showNotifications || false;
       (mockElements.enableKeyboardShortcuts as HTMLInputElement).checked =
         mockSettings.enableKeyboardShortcuts || false;
-
-      // DEBUG: Ensure customFolder element has the correct value
-      // Create/recreate customFolder if it doesn't have value correctly
-      if (
-        !mockElements.customFolder ||
-        (mockElements.customFolder as HTMLInputElement).value !== mockSettings.customFolder
-      ) {
-        const customFolderInput = document.createElement('input');
-        customFolderInput.type = 'text';
-        customFolderInput.id = 'customFolder';
-        customFolderInput.value = mockSettings.customFolder || '';
-        customFolderInput.addEventListener = jest.fn();
-        customFolderInput.removeEventListener = jest.fn();
-        customFolderInput.classList = {
-          add: jest.fn(),
-          remove: jest.fn(),
-          toggle: jest.fn(),
-          contains: jest.fn(() => false),
-        } as any;
-        mockElements.customFolder = customFolderInput;
-        document.getElementById = jest.fn((id: string) => mockElements[id] || null);
-      }
     });
 
     test('2.1 - Should populate form fields with loaded settings', () => {
       // Text inputs
       expect((mockElements.githubToken as HTMLInputElement).value).toBe(mockSettings.githubToken);
       expect((mockElements.githubRepo as HTMLInputElement).value).toBe(mockSettings.githubRepo);
-      expect((mockElements.customFolder as HTMLInputElement).value).toBe(
-        mockSettings.customFolder || ''
-      );
       expect((mockElements.customSelectors as HTMLInputElement).value).toBe(
         mockSettings.customSelectors
       );
@@ -375,9 +346,6 @@ describe('Options Page - PrismWeaveOptions', () => {
       );
 
       // Select elements
-      expect((mockElements.defaultFolder as HTMLSelectElement).value).toBe(
-        mockSettings.defaultFolder
-      );
       expect((mockElements.fileNamingPattern as HTMLSelectElement).value).toBe(
         mockSettings.fileNamingPattern
       );

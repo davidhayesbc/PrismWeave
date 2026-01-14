@@ -1039,7 +1039,7 @@ export class PrismWeavePopup {
   private updateCaptureStatus(
     title: string,
     message?: string,
-    type: 'progress' | 'success' | 'error' | 'warning' = 'progress',
+    type: 'progress' | 'success' | 'error' | 'warning' | 'info' = 'progress',
     options: {
       showProgress?: boolean;
       progressValue?: number;
@@ -1062,6 +1062,7 @@ export class PrismWeavePopup {
         error: '⚠',
         progress: '⟳',
         warning: '⚠',
+        info: 'ℹ',
       };
       iconElement.textContent = icons[type];
     }

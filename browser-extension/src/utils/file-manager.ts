@@ -432,6 +432,14 @@ export class FileManager {
     return { folder, filename: name, extension };
   }
 
+  private splitFilename(filename: string): [string, string] {
+    const lastDot = filename.lastIndexOf('.');
+    if (lastDot === -1) {
+      return [filename, ''];
+    }
+    return [filename.substring(0, lastDot), filename.substring(lastDot + 1)];
+  }
+
   // =============================================================================
   // PRIVATE HELPER METHODS (FILE NAMING)
   // =============================================================================
@@ -454,9 +462,8 @@ export class FileManager {
     pattern: string,
     options: IFileManagerOptions = {}
   ): string {
-    if (pattern === 'custom' && options.customNamingPattern) {
-      pattern = options.customNamingPattern;
-    }
+    // Custom naming patterns handled by fileNamingPattern option
+    // No additional processing needed
 
     let filename = pattern
       .replace(/YYYY/g, components.date.substring(0, 4))
@@ -541,10 +548,6 @@ export class FileManager {
     const date = this.formatDate(new Date(metadata.captureDate));
     const title = this.sanitizeTitle(metadata.title || 'untitled');
     return `${date}-${title}.md`;
-  }
-    }
-
-    return [filename.substring(0, lastDot), filename.substring(lastDot + 1)];
   }
 
   private generateCommitMessage(metadata: IDocumentMetadata, filePath: string): string {

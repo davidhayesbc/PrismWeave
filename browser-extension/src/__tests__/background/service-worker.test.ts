@@ -114,8 +114,6 @@ describe('Service Worker Comprehensive Tests - Phase 3.1', () => {
   const VALID_SETTINGS: ISettings = {
     githubToken: 'ghp_test1234567890abcdef1234567890abcdef12',
     githubRepo: 'testuser/testrepo',
-    defaultFolder: 'documents',
-    customFolder: '',
     fileNamingPattern: '{title}',
     autoCommit: true,
     captureImages: true,
@@ -475,7 +473,6 @@ describe('Service Worker Comprehensive Tests - Phase 3.1', () => {
         // Arrange
         const details: chrome.runtime.InstalledDetails = {
           reason: 'install',
-          previousVersion: undefined,
         };
 
         // Act & Assert - should not throw any errors
@@ -497,7 +494,6 @@ describe('Service Worker Comprehensive Tests - Phase 3.1', () => {
         // Arrange
         const details: chrome.runtime.InstalledDetails = {
           reason: 'chrome_update',
-          previousVersion: undefined,
         };
 
         // Act & Assert - should not throw any errors

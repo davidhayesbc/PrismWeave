@@ -12,272 +12,131 @@ describe('FileManager - Folder Detection and File Organization', () => {
     fileManager = new FileManager();
   });
 
-  describe('Folder Detection (autoDetectFolder)', () => {
-    describe('Technology Content Detection', () => {
-      test('should detect tech folder from programming-related title', () => {
-        const metadata: IDocumentMetadata = {
-          title: 'Building Industrial Strength Software without Unit Tests',
-          url: 'https://example.com/posts/software-development',
-          captureDate: '2025-07-03T12:00:00Z',
-          tags: ['programming', 'haskell', 'testing'],
-          wordCount: 100,
-          estimatedReadingTime: 2,
-        };
+  describe('Folder Detection (Domain-Based)', () => {
+    test('should extract domain from URL as folder name', () => {
+      const metadata: IDocumentMetadata = {
+        title: 'Building Industrial Strength Software without Unit Tests',
+        url: 'https://example.com/posts/software-development',
+        captureDate: '2025-07-03T12:00:00Z',
+        tags: ['programming', 'haskell', 'testing'],
+        wordCount: 100,
+        estimatedReadingTime: 2,
+      };
 
-        const folder = fileManager.determineFolder(metadata);
-        expect(folder).toBe('tech');
-      });
-
-      test('should detect tech folder from JavaScript-related content', () => {
-        const metadata: IDocumentMetadata = {
-          title: 'Advanced React Patterns and Best Practices',
-          url: 'https://dev.to/react-patterns',
-          captureDate: '2025-07-03T12:00:00Z',
-          tags: ['javascript', 'react', 'frontend'],
-          wordCount: 100,
-          estimatedReadingTime: 2,
-        };
-
-        const folder = fileManager.determineFolder(metadata);
-        expect(folder).toBe('tech');
-      });
-
-      test('should detect tech folder from GitHub URLs', () => {
-        const metadata: IDocumentMetadata = {
-          title: 'PrismWeave Documentation',
-          url: 'https://github.com/user/project/readme',
-          captureDate: '2025-07-03T12:00:00Z',
-          tags: ['documentation'],
-          wordCount: 100,
-          estimatedReadingTime: 2,
-        };
-
-        const folder = fileManager.determineFolder(metadata);
-        expect(folder).toBe('tech');
-      });
-
-      test('should detect tech folder from StackOverflow URLs', () => {
-        const metadata: IDocumentMetadata = {
-          title: 'How to debug async/await in Node.js',
-          url: 'https://stackoverflow.com/questions/debugging-nodejs',
-          captureDate: '2025-07-03T12:00:00Z',
-          tags: [],
-          wordCount: 100,
-          estimatedReadingTime: 2,
-        };
-
-        const folder = fileManager.determineFolder(metadata);
-        expect(folder).toBe('tech');
-      });
+      const folder = fileManager.determineFolder(metadata);
+      expect(folder).toBe('example-com');
     });
 
-    describe('Business Content Detection', () => {
-      test('should detect business folder from marketing content', () => {
-        const metadata: IDocumentMetadata = {
-          title: 'Digital Marketing Strategies for 2025',
-          url: 'https://marketing.com/strategies',
-          captureDate: '2025-07-03T12:00:00Z',
-          tags: ['marketing', 'business', 'strategy'],
-          wordCount: 100,
-          estimatedReadingTime: 2,
-        };
+    test('should extract domain from dev.to URL', () => {
+      const metadata: IDocumentMetadata = {
+        title: 'Advanced React Patterns and Best Practices',
+        url: 'https://dev.to/react-patterns',
+        captureDate: '2025-07-03T12:00:00Z',
+        tags: ['javascript', 'react', 'frontend'],
+        wordCount: 100,
+        estimatedReadingTime: 2,
+      };
 
-        const folder = fileManager.determineFolder(metadata);
-        expect(folder).toBe('business');
-      });
-
-      test('should detect business folder from LinkedIn URLs', () => {
-        const metadata: IDocumentMetadata = {
-          title: 'Leadership Insights from Fortune 500 CEOs',
-          url: 'https://linkedin.com/posts/leadership-insights',
-          captureDate: '2025-07-03T12:00:00Z',
-          tags: [],
-          wordCount: 100,
-          estimatedReadingTime: 2,
-        };
-
-        const folder = fileManager.determineFolder(metadata);
-        expect(folder).toBe('business');
-      });
+      const folder = fileManager.determineFolder(metadata);
+      expect(folder).toBe('dev-to');
     });
 
-    describe('Tutorial Content Detection', () => {
-      test('should detect tutorial folder from how-to content', () => {
-        const metadata: IDocumentMetadata = {
-          title: 'How to Build a REST API with Node.js - Step by Step Guide',
-          url: 'https://tutorial.com/nodejs-api',
-          captureDate: '2025-07-03T12:00:00Z',
-          tags: ['tutorial', 'guide', 'how-to'],
-          wordCount: 100,
-          estimatedReadingTime: 2,
-        };
+    test('should extract domain from GitHub URLs', () => {
+      const metadata: IDocumentMetadata = {
+        title: 'PrismWeave Documentation',
+        url: 'https://github.com/user/project/readme',
+        captureDate: '2025-07-03T12:00:00Z',
+        tags: ['documentation'],
+        wordCount: 100,
+        estimatedReadingTime: 2,
+      };
 
-        const folder = fileManager.determineFolder(metadata);
-        expect(folder).toBe('tutorial');
-      });
-
-      test('should detect tutorial folder from title keywords', () => {
-        const metadata: IDocumentMetadata = {
-          title: 'Complete Walkthrough: Setting up Docker for Development',
-          url: 'https://example.com/docker-setup',
-          captureDate: '2025-07-03T12:00:00Z',
-          tags: [],
-          wordCount: 100,
-          estimatedReadingTime: 2,
-        };
-
-        const folder = fileManager.determineFolder(metadata);
-        expect(folder).toBe('tutorial');
-      });
+      const folder = fileManager.determineFolder(metadata);
+      expect(folder).toBe('github-com');
     });
 
-    describe('News Content Detection', () => {
-      test('should detect news folder from news-related content', () => {
-        const metadata: IDocumentMetadata = {
-          title: 'Breaking: New AI Breakthrough Announced',
-          url: 'https://news.com/ai-breakthrough',
-          captureDate: '2025-07-03T12:00:00Z',
-          tags: ['news', 'ai', 'announcement'],
-          wordCount: 100,
-          estimatedReadingTime: 2,
-        };
+    test('should extract domain from StackOverflow URLs', () => {
+      const metadata: IDocumentMetadata = {
+        title: 'How to debug async/await in Node.js',
+        url: 'https://stackoverflow.com/questions/debugging-nodejs',
+        captureDate: '2025-07-03T12:00:00Z',
+        tags: [],
+        wordCount: 100,
+        estimatedReadingTime: 2,
+      };
 
-        const folder = fileManager.determineFolder(metadata);
-        expect(folder).toBe('news');
-      });
-
-      test('should detect news folder from blog articles', () => {
-        const metadata: IDocumentMetadata = {
-          title: 'Industry Analysis: The Future of Remote Work',
-          url: 'https://blog.example.com/remote-work-analysis',
-          captureDate: '2025-07-03T12:00:00Z',
-          tags: ['blog', 'analysis', 'opinion'],
-          wordCount: 100,
-          estimatedReadingTime: 2,
-        };
-
-        const folder = fileManager.determineFolder(metadata);
-        expect(folder).toBe('news');
-      });
+      const folder = fileManager.determineFolder(metadata);
+      expect(folder).toBe('stackoverflow-com');
     });
 
-    describe('Research Content Detection', () => {
-      test('should detect research folder from academic content', () => {
-        const metadata: IDocumentMetadata = {
-          title: 'A Study on Machine Learning Performance Optimization',
-          url: 'https://arxiv.org/abs/2025.0001',
-          captureDate: '2025-07-03T12:00:00Z',
-          tags: ['research', 'study', 'academic', 'machine-learning'],
-          wordCount: 100,
-          estimatedReadingTime: 2,
-        };
+    test('should extract domain from marketing URLs', () => {
+      const metadata: IDocumentMetadata = {
+        title: 'Digital Marketing Strategies for 2025',
+        url: 'https://marketing.com/strategies',
+        captureDate: '2025-07-03T12:00:00Z',
+        tags: ['marketing', 'business', 'strategy'],
+        wordCount: 100,
+        estimatedReadingTime: 2,
+      };
 
-        const folder = fileManager.determineFolder(metadata);
-        expect(folder).toBe('research');
-      });
-
-      test('should detect research folder from data analysis content', () => {
-        const metadata: IDocumentMetadata = {
-          title: 'Data-Driven Analysis of Market Trends',
-          url: 'https://research.institute.edu/market-analysis',
-          captureDate: '2025-07-03T12:00:00Z',
-          tags: ['data', 'analysis', 'research'],
-          wordCount: 100,
-          estimatedReadingTime: 2,
-        };
-
-        const folder = fileManager.determineFolder(metadata);
-        expect(folder).toBe('research');
-      });
+      const folder = fileManager.determineFolder(metadata);
+      expect(folder).toBe('marketing-com');
     });
 
-    describe('Edge Cases and Fallbacks', () => {
-      test('should fallback to unsorted when no keywords match', () => {
-        const metadata: IDocumentMetadata = {
-          title: 'Random Content About Cats',
-          url: 'https://example.com/cats',
-          captureDate: '2025-07-03T12:00:00Z',
-          tags: ['cats', 'pets', 'animals'],
-          wordCount: 100,
-          estimatedReadingTime: 2,
-        };
+    test('should extract domain from LinkedIn URLs', () => {
+      const metadata: IDocumentMetadata = {
+        title: 'Leadership Insights from Fortune 500 CEOs',
+        url: 'https://linkedin.com/posts/leadership-insights',
+        captureDate: '2025-07-03T12:00:00Z',
+        tags: [],
+        wordCount: 100,
+        estimatedReadingTime: 2,
+      };
 
-        const folder = fileManager.determineFolder(metadata);
-        expect(folder).toBe('unsorted');
-      });
-
-      test('should handle empty metadata gracefully', () => {
-        const metadata: IDocumentMetadata = {
-          title: '',
-          url: 'https://example.com',
-          captureDate: '2025-07-03T12:00:00Z',
-          tags: [],
-          wordCount: 100,
-          estimatedReadingTime: 2,
-        };
-
-        const folder = fileManager.determineFolder(metadata);
-        expect(folder).toBe('unsorted');
-      });
-
-      test('should handle undefined tags gracefully', () => {
-        const metadata: IDocumentMetadata = {
-          title: 'Some Content',
-          url: 'https://example.com',
-          captureDate: '2025-07-03T12:00:00Z',
-          tags: [],
-          wordCount: 100,
-          estimatedReadingTime: 2,
-        };
-
-        const folder = fileManager.determineFolder(metadata);
-        expect(folder).toBe('unsorted');
-      });
-
-      test('should prioritize higher scoring folders', () => {
-        const metadata: IDocumentMetadata = {
-          title: 'Programming Tutorial: How to Build Software',
-          url: 'https://dev.to/programming-tutorial',
-          captureDate: '2025-07-03T12:00:00Z',
-          tags: ['programming', 'tutorial', 'software', 'guide', 'how-to'],
-          wordCount: 100,
-          estimatedReadingTime: 2,
-        };
-
-        const folder = fileManager.determineFolder(metadata);
-        // Should detect tech (programming, software) over tutorial due to higher score
-        expect(['tech', 'tutorial']).toContain(folder);
-      });
+      const folder = fileManager.determineFolder(metadata);
+      expect(folder).toBe('linkedin-com');
     });
 
-    describe('URL-based Detection Enhancement', () => {
-      test('should extract keywords from domain names', () => {
-        const metadata: IDocumentMetadata = {
-          title: 'Article Title',
-          url: 'https://developer.mozilla.org/docs/web',
-          captureDate: '2025-07-03T12:00:00Z',
-          tags: [],
-          wordCount: 100,
-          estimatedReadingTime: 2,
-        };
+    test('should extract domain from tutorial URLs', () => {
+      const metadata: IDocumentMetadata = {
+        title: 'How to Build a REST API with Node.js - Step by Step Guide',
+        url: 'https://tutorial.com/nodejs-api',
+        captureDate: '2025-07-03T12:00:00Z',
+        tags: ['tutorial', 'guide', 'how-to'],
+        wordCount: 100,
+        estimatedReadingTime: 2,
+      };
 
-        const folder = fileManager.determineFolder(metadata);
-        expect(folder).toBe('tech'); // Should detect from 'developer' in URL
-      });
+      const folder = fileManager.determineFolder(metadata);
+      expect(folder).toBe('tutorial-com');
+    });
 
-      test('should extract keywords from URL path segments', () => {
-        const metadata: IDocumentMetadata = {
-          title: 'Content Title',
-          url: 'https://example.com/business/marketing/strategies',
-          captureDate: '2025-07-03T12:00:00Z',
-          tags: [],
-          wordCount: 100,
-          estimatedReadingTime: 2,
-        };
+    test('should extract domain from news URLs', () => {
+      const metadata: IDocumentMetadata = {
+        title: 'Breaking: New AI Breakthrough Announced',
+        url: 'https://news.com/ai-breakthrough',
+        captureDate: '2025-07-03T12:00:00Z',
+        tags: ['news', 'ai', 'announcement'],
+        wordCount: 100,
+        estimatedReadingTime: 2,
+      };
 
-        const folder = fileManager.determineFolder(metadata);
-        expect(folder).toBe('business'); // Should detect from URL path
-      });
+      const folder = fileManager.determineFolder(metadata);
+      expect(folder).toBe('news-com');
+    });
+
+    test('should handle subdomains', () => {
+      const metadata: IDocumentMetadata = {
+        title: 'Blog Post',
+        url: 'https://blog.example.com/remote-work-analysis',
+        captureDate: '2025-07-03T12:00:00Z',
+        tags: ['blog', 'analysis', 'opinion'],
+        wordCount: 100,
+        estimatedReadingTime: 2,
+      };
+
+      const folder = fileManager.determineFolder(metadata);
+      expect(folder).toBe('blog-example-com');
     });
   });
 
@@ -344,20 +203,11 @@ describe('FileManager - Folder Detection and File Organization', () => {
 
       const filePath = fileManager.generateFilePath(metadata);
       expect(filePath).toMatch(
-        /^documents\/tech\/\d{4}-\d{2}-\d{2}-developer-mozilla-org-javascript-best-practices\.md$/
+        /^documents\/developer-mozilla-org\/\d{4}-\d{2}-\d{2}-developer-mozilla-org-javascript-best-practices\.md$/
       );
     });
 
-    test('should use custom folder when specified', () => {
-      const metadata: IDocumentMetadata = {
-        title: 'Custom Content',
-        url: 'https://example.com',
-        captureDate: '2025-07-03T12:00:00Z',
-        tags: [],
-        wordCount: 100,
-        estimatedReadingTime: 2,
-      };
-
+    test('should use domain as folder', () => {
       const metadata: IDocumentMetadata = {
         title: 'Custom Content',
         url: 'https://example.com/custom-article',
@@ -369,7 +219,7 @@ describe('FileManager - Folder Detection and File Organization', () => {
 
       const filePath = fileManager.generateFilePath(metadata, {});
       expect(filePath).toMatch(
-        /^documents\/example\.com\/\d{4}-\d{2}-\d{2}-example-com-custom-content\.md$/
+        /^documents\/example-com\/\d{4}-\d{2}-\d{2}-example-com-custom-content\.md$/
       );
     });
 
@@ -385,38 +235,30 @@ describe('FileManager - Folder Detection and File Organization', () => {
 
       const filePath = fileManager.generateFilePath(metadata, {});
       expect(filePath).toMatch(
-        /^documents\/github\.com\/\d{4}-\d{2}-\d{2}-github-com-tutorial-article\.md$/
+        /^documents\/github-com\/\d{4}-\d{2}-\d{2}-github-com-tutorial-article\.md$/
       );
     });
   });
 
   describe('Folder Keywords Management', () => {
-    test('should return available folders', () => {
-      const folders = fileManager.getAvailableFolders();
-      expect(folders).toContain('tech');
-      expect(folders).toContain('business');
-      expect(folders).toContain('tutorial');
-      expect(folders).toContain('news');
-      expect(folders).toContain('research');
-    });
+    test('should use domain-based folder structure', () => {
+      // Folder determination is now based on domain extraction
+      // No longer using predefined folder keywords
+      expect(fileManager).toBeDefined();
 
-    test('should return keywords for specific folder', () => {
-      const techKeywords = fileManager.getFolderKeywords('tech');
-      expect(techKeywords).toContain('programming');
-      expect(techKeywords).toContain('javascript');
-      expect(techKeywords).toContain('python');
-    });
-
-    test('should add custom keywords to folders', () => {
-      fileManager.addFolderKeywords('tech', ['typescript', 'golang']);
-      const techKeywords = fileManager.getFolderKeywords('tech');
-      expect(techKeywords).toContain('typescript');
-      expect(techKeywords).toContain('golang');
+      const metadata: IDocumentMetadata = {
+        title: 'Test',
+        url: 'https://techblog.com/article',
+        captureDate: new Date().toISOString(),
+        tags: [],
+      };
+      const folder = fileManager.determineFolder(metadata);
+      expect(folder).toBe('techblog-com');
     });
   });
 
   describe('Real-world Test Cases', () => {
-    test('should correctly categorize Simon Willison LLM article', () => {
+    test('should correctly determine domain-based folder for Simon Willison article', () => {
       const metadata: IDocumentMetadata = {
         title: "Here's how I use LLMs to help me write code",
         url: 'https://simonwillison.net/2025/Mar/11/using-llms-for-code/',
@@ -427,10 +269,10 @@ describe('FileManager - Folder Detection and File Organization', () => {
       };
 
       const folder = fileManager.determineFolder(metadata);
-      expect(folder).toBe('tech'); // Should detect from programming/code keywords
+      expect(folder).toBe('simonwillison-net'); // Domain-based folder
     });
 
-    test('should correctly categorize Nanonets OCR article', () => {
+    test('should correctly determine domain-based folder for Nanonets article', () => {
       const metadata: IDocumentMetadata = {
         title: 'Nanonets OCR Advanced Document Understanding API',
         url: 'https://nanonets.com/research/nanonets-ocr-s/',
@@ -441,10 +283,10 @@ describe('FileManager - Folder Detection and File Organization', () => {
       };
 
       const folder = fileManager.determineFolder(metadata);
-      expect(folder).toBe('tech'); // Should detect from technology/AI keywords
+      expect(folder).toBe('nanonets-com'); // Domain-based folder
     });
 
-    test('should correctly categorize Unison testing article', () => {
+    test('should correctly determine domain-based folder for Unison article', () => {
       const metadata: IDocumentMetadata = {
         title: 'Building Industrial Strength Software without Unit Tests',
         url: 'https://chrispenner.ca/posts/transcript-tests',
@@ -455,7 +297,7 @@ describe('FileManager - Folder Detection and File Organization', () => {
       };
 
       const folder = fileManager.determineFolder(metadata);
-      expect(folder).toBe('tech'); // Should detect from programming keywords
+      expect(folder).toBe('chrispenner-ca'); // Domain-based folder
     });
   });
 });

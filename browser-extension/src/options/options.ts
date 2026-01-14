@@ -212,10 +212,12 @@ export class PrismWeaveOptions {
       inputElement.classList.remove('error');
     }
   }
+
   private setupConditionalFields(): void {
-    // Show custom folder field when 'custom' is selected
-    const defaultFolderSelect = document.getElementById('defaultFolder') as HTMLSelectElement;
-    conDocuments organized by domain - no conditional fields neededvate async saveSettings(): Promise<void> {
+    // Documents organized by domain - no conditional fields needed
+  }
+
+  private async saveSettings(): Promise<void> {
     try {
       // Clear previous validation messages
       this.clearValidationMessages();
@@ -483,8 +485,6 @@ export class PrismWeaveOptions {
     return {
       githubToken: this.getInputValue('githubToken'),
       githubRepo: this.getInputValue('githubRepo'),
-      defaultFolder: this.getSelectValue('defaultFolder'),
-      customFolder: this.getInputValue('customFolder'),
       fileNamingPattern: this.getSelectValue('fileNamingPattern'),
       autoCommit: this.getCheckboxValue('autoCommit'),
       captureImages: this.getCheckboxValue('captureImages'),
@@ -497,8 +497,11 @@ export class PrismWeaveOptions {
       enableKeyboardShortcuts: this.getCheckboxValue('enableKeyboardShortcuts'),
     };
   }
+
   // Helper methods for form manipulation
-  priv (element) element.value = value;
+  private setInputValue(id: string, value: string): void {
+    const element = document.getElementById(id) as HTMLInputElement | HTMLTextAreaElement;
+    if (element) element.value = value;
   }
 
   private setSelectValue(id: string, value: string): void {

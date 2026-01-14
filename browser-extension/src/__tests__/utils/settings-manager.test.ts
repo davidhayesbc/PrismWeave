@@ -55,8 +55,6 @@ describe('III. - SettingsManager - Comprehensive Functionality', () => {
       expect(defaults).toEqual({
         githubToken: '',
         githubRepo: '',
-        defaultFolder: 'unsorted',
-        customFolder: '',
         fileNamingPattern: 'YYYY-MM-DD-domain-title',
         autoCommit: true,
         captureImages: true,
@@ -82,7 +80,6 @@ describe('III. - SettingsManager - Comprehensive Functionality', () => {
       // Verify all required fields are present
       expect(defaults).toHaveProperty('githubToken');
       expect(defaults).toHaveProperty('githubRepo');
-      expect(defaults).toHaveProperty('defaultFolder');
       expect(defaults).toHaveProperty('autoCommit');
     });
 
@@ -116,8 +113,6 @@ describe('III. - SettingsManager - Comprehensive Functionality', () => {
       const expectedKeys = [
         'githubToken',
         'githubRepo',
-        'defaultFolder',
-        'customFolder',
         'fileNamingPattern',
         'autoCommit',
         'captureImages',
@@ -156,9 +151,8 @@ describe('III. - SettingsManager - Comprehensive Functionality', () => {
 
       // Test with null/undefined values
       const settingsWithNulls: any = {
-        defaultFolder: null,
-        customFolder: '',
         githubToken: undefined,
+        githubRepo: '',
       };
 
       const nullDependencies = await manager.checkRequiredDependencies(settingsWithNulls);
@@ -191,7 +185,6 @@ describe('III. - SettingsManager - Comprehensive Functionality', () => {
       // Use only valid schema fields
       const testSettings = {
         autoCommit: false,
-        defaultFolder: 'tech',
         captureImages: false,
         githubRepo: 'user/repo',
         debugMode: true,
@@ -226,7 +219,6 @@ describe('III. - SettingsManager - Comprehensive Functionality', () => {
       // Use only valid schema fields
       const validSettings = {
         autoCommit: true,
-        defaultFolder: 'tech',
         githubRepo: 'owner/repo',
         captureImages: false,
         debugMode: true,
@@ -280,34 +272,18 @@ describe('III. - SettingsManager - Comprehensive Functionality', () => {
     });
 
     test('III.3.4 - Should validate enum options correctly', () => {
-      // Test valid defaultFolder options
-      const validFolderOptions = [
-        'tech',
-        'business',
-        'research',
-        'news',
-        'tutorial',
-        'reference',
-        'blog',
-        'social',
-        'unsorted',
-        'custom',
+      // Test valid fileNamingPattern options
+      const validPatternOptions = [
+        'YYYY-MM-DD-domain-title',
+        'YYYY-MM-DD-title',
+        'domain-YYYY-MM-DD-title',
+        'title-YYYY-MM-DD',
       ];
 
-      validFolderOptions.forEach(folder => {
-        const settings = { defaultFolder: folder };
+      validPatternOptions.forEach(pattern => {
+        const settings = { fileNamingPattern: pattern };
         const result = manager.validateSettings(settings);
         expect(result.isValid).toBe(true);
-      });
-
-      // Test invalid defaultFolder options
-      const invalidFolderOptions = ['invalid-folder', 'random', 'documents', 'downloads'];
-
-      invalidFolderOptions.forEach(folder => {
-        const settings = { defaultFolder: folder };
-        const result = manager.validateSettings(settings);
-        expect(result.isValid).toBe(false);
-        expect(result.errors.some(error => error.includes('must be one of'))).toBe(true);
       });
     });
 
@@ -316,7 +292,6 @@ describe('III. - SettingsManager - Comprehensive Functionality', () => {
       const multiFieldSettings = {
         githubToken: 'valid-token',
         githubRepo: 'user/repo',
-        defaultFolder: 'tech',
         autoCommit: true,
         captureImages: false,
       };
@@ -329,20 +304,18 @@ describe('III. - SettingsManager - Comprehensive Functionality', () => {
       const multipleErrorSettings: any = {
         githubToken: 123, // Wrong type
         githubRepo: 'invalid format', // Wrong pattern
-        defaultFolder: 'invalid-folder', // Wrong enum
         autoCommit: 'yes', // Wrong type
         captureImages: 'true', // Wrong type
       };
 
       const invalidResult = manager.validateSettings(multipleErrorSettings);
       expect(invalidResult.isValid).toBe(false);
-      expect(invalidResult.errors.length).toBeGreaterThan(4); // Should have multiple errors
+      expect(invalidResult.errors.length).toBeGreaterThan(3); // Should have multiple errors
 
       // Check that each type of error is present
       const errorString = invalidResult.errors.join(' ');
       expect(errorString).toContain('Invalid type');
       expect(errorString).toContain('pattern');
-      expect(errorString).toContain('must be one of');
     });
 
     test('III.3.6 - Should validate on load and warn about invalid data', async () => {
@@ -351,7 +324,6 @@ describe('III. - SettingsManager - Comprehensive Functionality', () => {
           prismWeaveSettings: {
             githubToken: 12345, // should be string
             githubRepo: 'invalid repo format', // should match pattern
-            defaultFolder: 'not-a-valid-folder', // not in options
             autoCommit: 'yes', // should be boolean
           },
         });
@@ -362,7 +334,6 @@ describe('III. - SettingsManager - Comprehensive Functionality', () => {
       expect(settings).toEqual({
         githubToken: 12345,
         githubRepo: 'invalid repo format',
-        defaultFolder: 'not-a-valid-folder',
         autoCommit: 'yes',
       });
 
@@ -371,7 +342,6 @@ describe('III. - SettingsManager - Comprehensive Functionality', () => {
         expect.arrayContaining([
           expect.stringContaining('Invalid type for githubToken'),
           expect.stringContaining('Invalid format for githubRepo'),
-          expect.stringContaining('Invalid value for defaultFolder'),
           expect.stringContaining('Invalid type for autoCommit'),
         ])
       );
@@ -384,7 +354,6 @@ describe('III. - SettingsManager - Comprehensive Functionality', () => {
       const testSettings = {
         githubToken: 'secret-token',
         autoCommit: true,
-        defaultFolder: 'tech',
         captureImages: false,
         debugMode: true,
       };
@@ -400,7 +369,6 @@ describe('III. - SettingsManager - Comprehensive Functionality', () => {
 
       expect(parsed.githubToken).toBe('[REDACTED]');
       expect(parsed.autoCommit).toBe(true);
-      expect(parsed.defaultFolder).toBe('tech');
     });
 
     test('III.4.2 - Should import settings successfully', async () => {
@@ -414,7 +382,6 @@ describe('III. - SettingsManager - Comprehensive Functionality', () => {
       // Use valid schema fields
       const importSettings = {
         autoCommit: false,
-        defaultFolder: 'business',
         captureImages: true,
         githubRepo: 'user/repo',
         debugMode: false,
@@ -511,7 +478,6 @@ describe('III. - SettingsManager - Comprehensive Functionality', () => {
         customSelectors: 'selector1,'.repeat(50) + 'selector2',
         commitMessageTemplate: 'X'.repeat(100),
         githubRepo: 'user/repository-with-very-long-name',
-        defaultFolder: 'tech',
         autoCommit: true,
         captureImages: false,
       };
@@ -546,7 +512,6 @@ describe('III. - SettingsManager - Comprehensive Functionality', () => {
         githubToken: null,
         githubRepo: undefined,
         autoCommit: 0, // Falsy but not boolean
-        defaultFolder: ['array', 'instead', 'of', 'string'],
         captureImages: {},
       };
 
@@ -584,7 +549,6 @@ describe('III. - SettingsManager - Comprehensive Functionality', () => {
         githubToken: 'valid-token', // Valid
         githubRepo: 'invalid format', // Invalid pattern
         autoCommit: true, // Valid
-        defaultFolder: 'invalid-folder', // Invalid enum value
       };
 
       const result = await manager.updateSettings(mixedSettings);
