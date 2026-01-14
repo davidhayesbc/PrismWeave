@@ -395,7 +395,7 @@ if (typeof window !== 'undefined') {
   window.PrismWeaveInjectableExtractor = InjectableContentExtractor;
   window.prismweaveExtractContent = InjectableContentExtractor.extractContent;
   window.prismweaveExtractAndCommit = InjectableContentExtractor.extractAndCommit;
-  
+
   // Adapt showToast to match the expected signature
   window.prismweaveShowToast = (message: string, type?: ToastType, clickUrl?: string) => {
     const options: { type?: ToastType; clickUrl?: string } = {};
