@@ -178,9 +178,9 @@ jobs:
         run: |
           echo "🔍 Verifying build outputs..."
 
-          # Check browser extension build
+          # Check browser extension build (outputs to dist/browser-extension/)
           echo "Browser Extension outputs:"
-          ls -la browser-extension/dist/
+          ls -la dist/browser-extension/
 
           # Check web build
           echo "Web build outputs:"
@@ -190,6 +190,10 @@ jobs:
           test -f dist/web/index.html || (echo "❌ Missing index.html" && exit 1)
           test -d dist/web/extension || (echo "❌ Missing extension directory" && exit 1)
           test -d dist/web/bookmarklet || (echo "❌ Missing bookmarklet directory" && exit 1)
+          
+          # Verify browser extension build
+          test -f dist/browser-extension/manifest.json || (echo "❌ Missing browser extension manifest.json" && exit 1)
+          test -f dist/browser-extension/background/service-worker.js || (echo "❌ Missing service worker" && exit 1)
 
           echo "✅ All build outputs verified"
 
@@ -211,7 +215,7 @@ jobs:
         with:
           name: build-artifacts
           path: |
-            browser-extension/dist/
+            dist/browser-extension/
             dist/web/
           retention-days: 7
 
