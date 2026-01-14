@@ -31,8 +31,6 @@ export class PrismWeaveOptions {
       githubRepo: '',
 
       // File Organization Settings
-      defaultFolder: 'auto',
-      customFolder: '',
       fileNamingPattern: 'YYYY-MM-DD-domain-title',
 
       // Automation Settings
@@ -82,8 +80,6 @@ export class PrismWeaveOptions {
     this.setInputValue('githubRepo', this.settings.githubRepo || '');
 
     // File Organization
-    this.setSelectValue('defaultFolder', this.settings.defaultFolder || 'unsorted');
-    this.setInputValue('customFolder', this.settings.customFolder || '');
     this.setSelectValue(
       'fileNamingPattern',
       this.settings.fileNamingPattern || 'YYYY-MM-DD-domain-title'
@@ -219,22 +215,7 @@ export class PrismWeaveOptions {
   private setupConditionalFields(): void {
     // Show custom folder field when 'custom' is selected
     const defaultFolderSelect = document.getElementById('defaultFolder') as HTMLSelectElement;
-    const customFolderField = document.getElementById('customFolderField');
-
-    if (defaultFolderSelect && customFolderField) {
-      const toggleCustomFolder = () => {
-        if (defaultFolderSelect.value === 'custom') {
-          customFolderField.classList.remove('pw-hidden');
-        } else {
-          customFolderField.classList.add('pw-hidden');
-        }
-      };
-
-      defaultFolderSelect.addEventListener('change', toggleCustomFolder);
-      toggleCustomFolder(); // Initial state
-    }
-  }
-  private async saveSettings(): Promise<void> {
+    conDocuments organized by domain - no conditional fields neededvate async saveSettings(): Promise<void> {
     try {
       // Clear previous validation messages
       this.clearValidationMessages();
@@ -517,9 +498,7 @@ export class PrismWeaveOptions {
     };
   }
   // Helper methods for form manipulation
-  private setInputValue(id: string, value: string): void {
-    const element = document.getElementById(id) as HTMLInputElement | HTMLTextAreaElement;
-    if (element) element.value = value;
+  priv (element) element.value = value;
   }
 
   private setSelectValue(id: string, value: string): void {

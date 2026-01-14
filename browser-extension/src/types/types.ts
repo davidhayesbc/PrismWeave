@@ -7,8 +7,6 @@ export interface ISettings {
   githubRepo: string;
 
   // File Organization Settings
-  defaultFolder: string;
-  customFolder: string;
   fileNamingPattern: string;
 
   // Automation Settings
@@ -191,8 +189,6 @@ export interface IBookmarkletConfig {
     includeMetadata: boolean;
   };
   commitMessageTemplate?: string;
-  defaultFolder?: string;
-  customFolder?: string;
   fileNamingPattern?: string;
   captureImages?: boolean;
   removeAds?: boolean;

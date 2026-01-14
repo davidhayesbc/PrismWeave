@@ -57,32 +57,6 @@ class SettingsManager {
       },
 
       // File Organization
-      defaultFolder: {
-        type: 'string',
-        default: 'unsorted',
-        required: true,
-        sensitive: false,
-        options: [
-          'tech',
-          'business',
-          'research',
-          'news',
-          'tutorial',
-          'reference',
-          'blog',
-          'social',
-          'unsorted',
-          'custom',
-        ],
-        description: 'Default folder for captured documents',
-      },
-      customFolder: {
-        type: 'string',
-        default: '',
-        required: false,
-        sensitive: false,
-        description: 'Custom folder name when defaultFolder is "custom"',
-      },
       fileNamingPattern: {
         type: 'string',
         default: 'YYYY-MM-DD-domain-title',

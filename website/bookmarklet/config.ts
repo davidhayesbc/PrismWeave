@@ -5,7 +5,6 @@ export const BOOKMARKLET_CONFIG = {
   DEFAULT_INJECTABLE_BASE: 'https://davidhayesbc.github.io/PrismWeave/injectable',
   LOCAL_INJECTABLE_BASE: 'http://localhost:8080/injectable',
   DEFAULT_BRANCH: 'main',
-  DEFAULT_FOLDER: 'documents',
   DEFAULT_COMMIT_TEMPLATE: 'PrismWeave: Add {title}',
   UI_Z_INDEX: 999999,
   MAX_CONTENT_LENGTH: 1000000,

@@ -7,7 +7,6 @@ import { BOOKMARKLET_CONFIG } from './config';
 interface IFormData {
   githubToken: string;
   githubRepo: string;
-  defaultFolder: string;
   commitMessage: string;
   fileNaming: string;
 }
@@ -19,7 +18,6 @@ interface IFormData {
 interface IBookmarkletConfig {
   githubToken: string;
   githubRepo: string;
-  defaultFolder?: string;
   commitMessageTemplate?: string;
   fileNamingPattern?: string;
   captureImages?: boolean;
@@ -138,10 +136,6 @@ class BookmarkletGeneratorUI {
         if (settings.githubRepo) {
           (document.getElementById('github-repo') as HTMLInputElement).value = settings.githubRepo;
         }
-        if (settings.defaultFolder) {
-          (document.getElementById('default-folder') as HTMLSelectElement).value =
-            settings.defaultFolder;
-        }
         if (settings.commitMessage) {
           (document.getElementById('commit-message') as HTMLInputElement).value =
             settings.commitMessage;
@@ -166,12 +160,10 @@ class BookmarkletGeneratorUI {
     try {
       const settingsToSave = {
         githubRepo: formData.githubRepo,
-        defaultFolder: formData.defaultFolder,
         commitMessage: formData.commitMessage,
         fileNaming: formData.fileNaming,
         // Intentionally not saving the token
       };
-
       localStorage.setItem('prismweave_generator_settings', JSON.stringify(settingsToSave));
     } catch (error) {
       console.warn('Failed to save settings:', error);
@@ -222,13 +214,11 @@ class BookmarkletGeneratorUI {
     return {
       githubToken: (document.getElementById('github-token') as HTMLInputElement).value.trim(),
       githubRepo: (document.getElementById('github-repo') as HTMLInputElement).value.trim(),
-      defaultFolder: (document.getElementById('default-folder') as HTMLSelectElement).value,
       commitMessage: (document.getElementById('commit-message') as HTMLInputElement).value.trim(),
       fileNaming: (document.getElementById('file-naming') as HTMLSelectElement).value,
     };
   }
 
-  /**
    * Converts form data to the bookmarklet configuration format.
    * Maps form field values to the configuration structure expected by the bookmarklet.
    * Sets sensible defaults for optional configuration values.
@@ -240,9 +230,7 @@ class BookmarkletGeneratorUI {
     return {
       githubToken: formData.githubToken,
       githubRepo: formData.githubRepo,
-      defaultFolder: formData.defaultFolder,
       commitMessageTemplate: formData.commitMessage,
-      fileNamingPattern: formData.fileNaming,
       captureImages: true,
       removeAds: true,
       removeNavigation: true,
@@ -264,14 +252,13 @@ class BookmarkletGeneratorUI {
   generateCompactBookmarklet(formData: IFormData): string {
     const t = this.escapeJavaScriptString(formData.githubToken);
     const r = this.escapeJavaScriptString(formData.githubRepo);
-    const f = this.escapeJavaScriptString(formData.defaultFolder);
     const m = this.escapeJavaScriptString(formData.commitMessage || 'PrismWeave: Add {title}');
     const u = this.escapeJavaScriptString(
       this.injectableBaseUrl + '/content-extractor-injectable.js',
     );
 
     // Ultra-compact bookmarklet JavaScript - optimized for minimal size
-    const jsCode = `(function(){var c={token:'${t}',repository:'${r}',folder:'${f}',commitMessage:'${m}'},n=function(a,b){(window.prismweaveShowToast||alert)(a,b||{})},l=function(){return new Promise(function(s,j){if(window.prismweaveExtractAndCommit)return s();var e=document.createElement('script');e.src='${u}';e.onload=function(){window.prismweaveExtractAndCommit?s():j(Error('API load failed'))};e.onerror=function(){j(Error('Script load failed'))};document.head.appendChild(e)})};l().then(function(){return window.prismweaveExtractAndCommit(c,{includeImages:!0,includeLinks:!0,cleanHtml:!0,generateFrontmatter:!0,includeMetadata:!0})}).then(function(r){r.success?n('✅ Captured!',{type:'success',clickUrl:r.data&&r.data.html_url,linkLabel:'View'}):n('❌ Failed: '+(r.error||'Unknown'),{type:'error'})}).catch(function(e){n('❌ Error: '+e.message,{type:'error'})})})();`;
+    const jsCode = `(function(){var c={token:'${t}',repository:'${r}',commitMessage:'${m}'},n=function(a,b){(window.prismweaveShowToast||alert)(a,b||{})},l=function(){return new Promise(function(s,j){if(window.prismweaveExtractAndCommit)return s();var e=document.createElement('script');e.src='${u}';e.onload=function(){window.prismweaveExtractAndCommit?s():j(Error('API load failed'))};e.onerror=function(){j(Error('Script load failed'))};document.head.appendChild(e)})};l().then(function(){return window.prismweaveExtractAndCommit(c,{includeImages:!0,includeLinks:!0,cleanHtml:!0,generateFrontmatter:!0,includeMetadata:!0})}).then(function(r){r.success?n('✅ Captured!',{type:'success',clickUrl:r.data&&r.data.html_url,linkLabel:'View'}):n('❌ Failed: '+(r.error||'Unknown'),{type:'error'})}).catch(function(e){n('❌ Error: '+e.message,{type:'error'})})})();`;
 
     return 'javascript:' + encodeURIComponent(jsCode);
   }

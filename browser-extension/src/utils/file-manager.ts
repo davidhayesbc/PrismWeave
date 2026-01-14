@@ -7,10 +7,6 @@ import { createLogger } from './logger.js';
 
 const logger = createLogger('FileManager');
 
-interface IFolderMapping {
-  [key: string]: string[];
-}
-
 interface IFileNameComponents {
   date: string;
   domain: string;
@@ -19,10 +15,7 @@ interface IFileNameComponents {
 }
 
 interface IFileManagerOptions {
-  customNamingPattern?: string;
   fileNamingPattern?: string;
-  defaultFolder?: string;
-  customFolder?: string;
 }
 
 export interface IGitHubSettings {
@@ -64,104 +57,8 @@ export interface IRepositoryInfo {
 export class FileManager {
   private static readonly API_BASE = 'https://api.github.com';
   private static readonly USER_AGENT = 'PrismWeave-Extension/1.0';
-  private readonly folderMapping: IFolderMapping;
 
-  constructor() {
-    this.folderMapping = {
-      tech: [
-        'programming',
-        'software',
-        'coding',
-        'development',
-        'technology',
-        'tech',
-        'javascript',
-        'python',
-        'react',
-        'node',
-        'github',
-        'stackoverflow',
-        'dev',
-        'developer',
-        'mozilla',
-        'typescript',
-        'haskell',
-        'unison',
-        'testing',
-        'frontend',
-        'backend',
-        'api',
-        'web',
-        'code',
-        'engineering',
-        'computer',
-        'ai',
-        'machine-learning',
-        'ocr',
-        'document-processing',
-        'ai-assisted-programming',
-        'llm',
-      ],
-      business: [
-        'business',
-        'marketing',
-        'finance',
-        'startup',
-        'entrepreneur',
-        'sales',
-        'management',
-        'strategy',
-        'linkedin',
-        'leadership',
-        'ceo',
-        'fortune',
-      ],
-      tutorial: [
-        'tutorial',
-        'guide',
-        'how-to',
-        'learn',
-        'course',
-        'lesson',
-        'walkthrough',
-        'step-by-step',
-        'complete',
-        'beginner',
-        'introduction',
-        'getting-started',
-        'setup',
-        'install',
-        'configure',
-      ],
-      news: [
-        'news',
-        'article',
-        'blog',
-        'opinion',
-        'analysis',
-        'update',
-        'announcement',
-        'breaking',
-        'industry',
-      ],
-      research: [
-        'research',
-        'study',
-        'paper',
-        'academic',
-        'journal',
-        'thesis',
-        'analysis',
-        'data',
-        'arxiv',
-        'institute',
-      ],
-      design: ['design', 'ui', 'ux', 'css', 'figma', 'adobe', 'creative', 'visual', 'art'],
-      tools: ['tool', 'utility', 'software', 'app', 'service', 'platform', 'extension'],
-      personal: ['personal', 'diary', 'journal', 'thoughts', 'reflection', 'life', 'experience'],
-      reference: ['reference', 'documentation', 'manual', 'spec', 'api', 'docs', 'wiki'],
-    };
-  }
+  constructor() {}
 
   // =============================================================================
   // FILE NAMING AND ORGANIZATION METHODS
@@ -183,21 +80,12 @@ export class FileManager {
   }
 
   /**
-   * Determine appropriate folder for content based on metadata
+   * Determine folder based on domain name of the captured URL
+   * Extracts domain and uses it as the folder name for organization
    */
   determineFolder(metadata: IDocumentMetadata, options: IFileManagerOptions = {}): string {
-    // Use explicit folder setting if provided
-    if (options.defaultFolder === 'custom' && options.customFolder) {
-      return this.sanitizeFolderName(options.customFolder);
-    }
-
-    if (options.defaultFolder && options.defaultFolder !== 'auto') {
-      return options.defaultFolder;
-    }
-
-    // Auto-detect folder based on content
-    const detectedFolder = this.autoDetectFolder(metadata);
-    return detectedFolder || 'unsorted';
+    const domain = this.extractDomain(metadata.url);
+    return domain || 'unknown-domain';
   }
 
   /**
@@ -535,26 +423,6 @@ export class FileManager {
   }
 
   // Public utility methods
-  getAvailableFolders(): string[] {
-    return Object.keys(this.folderMapping);
-  }
-
-  getFolderKeywords(folder: string): string[] {
-    return this.folderMapping[folder] || [];
-  }
-
-  addFolderKeywords(folder: string, keywords: string[]): void {
-    if (!this.folderMapping[folder]) {
-      this.folderMapping[folder] = [];
-    }
-
-    keywords.forEach(keyword => {
-      if (!this.folderMapping[folder].includes(keyword.toLowerCase())) {
-        this.folderMapping[folder].push(keyword.toLowerCase());
-      }
-    });
-  }
-
   getFileStats(filePath: string): { folder: string; filename: string; extension: string } {
     const parts = filePath.split('/');
     const filename = parts.pop() || '';
@@ -674,107 +542,6 @@ export class FileManager {
     const title = this.sanitizeTitle(metadata.title || 'untitled');
     return `${date}-${title}.md`;
   }
-
-  private autoDetectFolder(metadata: IDocumentMetadata): string | null {
-    // Prepare search content from multiple sources
-    const searchSources = [
-      metadata.title.toLowerCase(),
-      metadata.url.toLowerCase(),
-      ...metadata.tags.map(tag => tag.toLowerCase()),
-      ...(metadata.sourceKeywords || []).map(k => k.toLowerCase()),
-      ...this.extractUrlKeywords(metadata.url),
-    ];
-
-    const searchText = searchSources.join(' ');
-
-    // Score each folder based on keyword matches
-    const folderScores: Record<string, number> = {};
-
-    Object.entries(this.folderMapping).forEach(([folder, keywords]) => {
-      let score = 0;
-
-      keywords.forEach(keyword => {
-        // Check for exact word matches (word boundaries)
-        const wordBoundaryRegex = new RegExp(
-          `\\b${keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`,
-          'gi'
-        );
-        const matches = searchText.match(wordBoundaryRegex);
-        if (matches) {
-          score += matches.length;
-        }
-
-        // Additional scoring for URL domain matches
-        if (metadata.url.toLowerCase().includes(keyword)) {
-          score += 0.5; // Bonus points for URL matches
-        }
-      });
-
-      if (score > 0) {
-        folderScores[folder] = score;
-      }
-    });
-
-    // Return folder with highest score, but only if score is meaningful
-    const sortedFolders = Object.entries(folderScores).sort(([, a], [, b]) => b - a);
-    const bestMatch = sortedFolders[0];
-
-    // Require minimum score threshold to avoid false positives
-    return bestMatch && bestMatch[1] >= 1 ? bestMatch[0] : null;
-  }
-
-  /**
-   * Extract keywords from URL for enhanced folder detection
-   */
-  private extractUrlKeywords(url: string): string[] {
-    try {
-      const urlObj = new URL(url);
-      const keywords: string[] = [];
-
-      // Extract from hostname
-      const hostname = urlObj.hostname.toLowerCase();
-
-      // Remove www prefix and split by dots
-      const domainParts = hostname.replace(/^www\./, '').split('.');
-      keywords.push(...domainParts);
-
-      // Extract meaningful parts from domain
-      if (hostname.includes('github')) keywords.push('github', 'development', 'code');
-      if (hostname.includes('stackoverflow'))
-        keywords.push('stackoverflow', 'programming', 'development');
-      if (hostname.includes('developer')) keywords.push('developer', 'development', 'tech');
-      if (hostname.includes('mozilla')) keywords.push('mozilla', 'developer', 'web', 'tech');
-      if (hostname.includes('linkedin')) keywords.push('linkedin', 'business', 'professional');
-      if (hostname.includes('dev.to') || hostname.includes('dev'))
-        keywords.push('dev', 'development', 'programming');
-      if (hostname.includes('blog')) keywords.push('blog', 'article');
-      if (hostname.includes('tutorial')) keywords.push('tutorial', 'guide');
-      if (hostname.includes('news')) keywords.push('news', 'article');
-      if (hostname.includes('research') || hostname.includes('arxiv'))
-        keywords.push('research', 'academic');
-
-      // Extract from pathname
-      const pathParts = urlObj.pathname
-        .toLowerCase()
-        .split('/')
-        .filter(part => part.length > 2);
-      keywords.push(...pathParts);
-
-      // Clean and filter keywords
-      return keywords
-        .map(keyword => keyword.replace(/[^a-z0-9]/g, ''))
-        .filter(keyword => keyword.length > 2)
-        .filter(keyword => !['com', 'org', 'net', 'www', 'http', 'https'].includes(keyword));
-    } catch (error) {
-      // If URL parsing fails, return empty array
-      return [];
-    }
-  }
-
-  private splitFilename(filename: string): [string, string] {
-    const lastDot = filename.lastIndexOf('.');
-    if (lastDot === -1) {
-      return [filename, 'md'];
     }
 
     return [filename.substring(0, lastDot), filename.substring(lastDot + 1)];

@@ -80,140 +80,7 @@ export class ContentCaptureService implements IContentExtractor, IDocumentProces
   private static readonly SCRIPT_INIT_DELAY = 500; // 500ms
 
   // Processing constants
-  private static readonly DEFAULT_FOLDER = 'unsorted';
   private static readonly DEFAULT_FILENAME_PATTERN = 'YYYY-MM-DD-domain-title';
-
-  // Folder classification mapping
-  private static readonly FOLDER_MAPPING: Record<string, string[]> = {
-    tech: [
-      'programming',
-      'software',
-      'coding',
-      'development',
-      'technology',
-      'tech',
-      'javascript',
-      'python',
-      'react',
-      'node',
-      'github',
-      'stackoverflow',
-      'dev.to',
-      'css',
-      'html',
-      'typescript',
-      'api',
-      'framework',
-      'library',
-    ],
-    business: [
-      'business',
-      'marketing',
-      'finance',
-      'startup',
-      'entrepreneur',
-      'sales',
-      'management',
-      'strategy',
-      'linkedin',
-      'enterprise',
-      'corporate',
-      'economics',
-      'market',
-      'revenue',
-      'profit',
-    ],
-    tutorial: [
-      'tutorial',
-      'guide',
-      'how-to',
-      'learn',
-      'course',
-      'lesson',
-      'walkthrough',
-      'step-by-step',
-      'instructions',
-      'tips',
-      'howto',
-      'example',
-    ],
-    news: [
-      'news',
-      'article',
-      'blog',
-      'opinion',
-      'analysis',
-      'update',
-      'announcement',
-      'breaking',
-      'report',
-      'current',
-      'events',
-    ],
-    research: [
-      'research',
-      'study',
-      'paper',
-      'academic',
-      'journal',
-      'thesis',
-      'analysis',
-      'data',
-      'science',
-      'experiment',
-      'findings',
-      'methodology',
-    ],
-    design: [
-      'design',
-      'ui',
-      'ux',
-      'css',
-      'figma',
-      'adobe',
-      'creative',
-      'visual',
-      'art',
-      'layout',
-      'typography',
-      'color',
-      'interface',
-    ],
-    tools: [
-      'tool',
-      'utility',
-      'software',
-      'app',
-      'service',
-      'platform',
-      'extension',
-      'plugin',
-      'resource',
-      'toolkit',
-    ],
-    personal: [
-      'personal',
-      'diary',
-      'journal',
-      'thoughts',
-      'reflection',
-      'life',
-      'experience',
-      'blog',
-      'opinion',
-    ],
-    reference: [
-      'reference',
-      'documentation',
-      'manual',
-      'spec',
-      'api',
-      'docs',
-      'wiki',
-      'handbook',
-      'guide',
-    ],
-  };
 
   private fileManager: FileManager;
   private settingsManager: SettingsManager;
@@ -1593,69 +1460,16 @@ export class ContentCaptureService implements IContentExtractor, IDocumentProces
   }
 
   private determineFolder(metadata: IDocumentMetadata, settings: Partial<ISettings>): string {
-    logger.debug('Determining folder for document:', {
-      title: metadata.title,
-      url: metadata.url,
-      tags: metadata.tags,
-      sourceKeywords: metadata.sourceKeywords,
-      defaultFolder: settings.defaultFolder,
-    });
-
-    // Use explicit folder setting if provided
-    if (
-      settings.defaultFolder &&
-      settings.defaultFolder !== 'auto' &&
-      settings.defaultFolder !== 'custom'
-    ) {
-      logger.debug('Using explicit folder setting:', settings.defaultFolder);
-      return settings.defaultFolder;
+    // Extract domain from URL and use it as the folder name
+    try {
+      const url = new URL(metadata.url);
+      const domain = url.hostname.replace('www.', '');
+      logger.debug('Using domain-based folder:', domain);
+      return domain || 'unknown-domain';
+    } catch {
+      logger.debug('Failed to parse URL for domain, using fallback');
+      return 'unknown-domain';
     }
-
-    // Use custom folder if specified
-    if (settings.defaultFolder === 'custom' && settings.customFolder) {
-      const sanitized = SharedUtils.sanitizeForFilename(settings.customFolder);
-      logger.debug('Using custom folder:', sanitized);
-      return sanitized;
-    }
-
-    // Auto-detect folder based on content
-    const detected = this.autoDetectFolder(metadata);
-    const final = detected || ContentCaptureService.DEFAULT_FOLDER;
-
-    logger.debug('Auto-detected folder:', { detected, final });
-    return final;
-  }
-
-  private autoDetectFolder(metadata: IDocumentMetadata): string | null {
-    const searchText = [
-      metadata.title.toLowerCase(),
-      metadata.url.toLowerCase(),
-      ...metadata.tags.map(tag => tag.toLowerCase()),
-      ...(metadata.sourceKeywords || []).map(k => k.toLowerCase()),
-    ].join(' ');
-
-    // Score each folder based on keyword matches
-    const folderScores: Record<string, number> = {};
-
-    Object.entries(ContentCaptureService.FOLDER_MAPPING).forEach(([folder, keywords]) => {
-      let score = 0;
-      keywords.forEach(keyword => {
-        const regex = new RegExp(`\\b${keyword}\\b`, 'gi');
-        const matches = searchText.match(regex);
-        if (matches) {
-          score += matches.length;
-        }
-      });
-
-      if (score > 0) {
-        folderScores[folder] = score;
-      }
-    });
-
-    // Return folder with highest score
-    const bestFolder = Object.entries(folderScores).sort(([, a], [, b]) => b - a)[0];
-
-    return bestFolder ? bestFolder[0] : null;
   }
 
   private buildFilePath(filename: string, folder: string): string {

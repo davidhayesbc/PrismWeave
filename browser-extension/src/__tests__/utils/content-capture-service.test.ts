@@ -125,8 +125,6 @@ describe('ContentCaptureService - Consolidated Manager Tests', () => {
     mockSettingsManager.getSettings.mockResolvedValue({
       githubToken: 'test-token',
       githubRepo: 'test-user/test-repo',
-      defaultFolder: 'auto',
-      customFolder: '',
       autoCommit: true,
       fileNamingPattern: 'YYYY-MM-DD-domain-title',
       captureImages: true,
@@ -258,8 +256,6 @@ describe('ContentCaptureService - Consolidated Manager Tests', () => {
 
   describe('II. Document Processing', () => {
     const mockSettings = {
-      defaultFolder: 'auto',
-      customFolder: '',
       fileNamingPattern: 'YYYY-MM-DD-domain-title',
     };
 
@@ -289,7 +285,7 @@ describe('ContentCaptureService - Consolidated Manager Tests', () => {
       // Tags are extracted only from keywords, category, and tags fields (not description or author)
     });
 
-    test('II.2 - Should auto-detect folder based on content', () => {
+    test('II.2 - Should use domain-based folder organization', () => {
       const content = '# JavaScript Tutorial\n\nLearn JavaScript programming.';
       const title = 'JavaScript Tutorial';
       const url = 'https://developer.mozilla.org/javascript-tutorial';
@@ -297,16 +293,11 @@ describe('ContentCaptureService - Consolidated Manager Tests', () => {
 
       const result = service.processDocument(content, title, url, metadata, mockSettings);
 
-      expect(result.folder).toBe('tech'); // Should detect as tech content
+      expect(result.folder).toBe('developer.mozilla.org'); // Should use domain name
     });
 
-    test('II.3 - Should use custom folder when specified', () => {
-      const customSettings = {
-        ...mockSettings,
-        defaultFolder: 'custom',
-        customFolder: 'my-custom-folder',
-      };
-
+    test('II.3 - Should handle domain extraction correctly', () => {
+      const customSettings = mockSettings;
       const result = service.processDocument(
         '# Test',
         'Test',
@@ -315,7 +306,7 @@ describe('ContentCaptureService - Consolidated Manager Tests', () => {
         customSettings
       );
 
-      expect(result.folder).toBe('my-custom-folder');
+      expect(result.folder).toBe('example.com');
     });
 
     test('II.4 - Should handle filename generation edge cases', () => {
@@ -537,13 +528,7 @@ describe('ContentCaptureService - Consolidated Manager Tests', () => {
     });
 
     test('V.3 - Should handle empty content gracefully', () => {
-      const result = service.processDocument(
-        '',
-        '',
-        'https://example.com',
-        {},
-        { defaultFolder: 'auto' }
-      );
+      const result = service.processDocument('', '', 'https://example.com', {}, {});
 
       expect(result.filename).toMatch(/\.md$/);
       expect(result.content).toContain('---\n'); // Should still have frontmatter

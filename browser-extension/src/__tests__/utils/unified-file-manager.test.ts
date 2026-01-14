@@ -358,34 +358,34 @@ describe('FileManager - Folder Detection and File Organization', () => {
         estimatedReadingTime: 2,
       };
 
-      const options = {
-        defaultFolder: 'custom' as const,
-        customFolder: 'my-special-folder',
-      };
-
-      const filePath = fileManager.generateFilePath(metadata, options);
-      expect(filePath).toMatch(
-        /^documents\/my-special-folder\/\d{4}-\d{2}-\d{2}-example-com-custom-content\.md$/
-      );
-    });
-
-    test('should use explicit folder when specified', () => {
       const metadata: IDocumentMetadata = {
-        title: 'Some Content',
-        url: 'https://example.com',
+        title: 'Custom Content',
+        url: 'https://example.com/custom-article',
         captureDate: '2025-07-03T12:00:00Z',
         tags: [],
         wordCount: 100,
         estimatedReadingTime: 2,
       };
 
-      const options = {
-        defaultFolder: 'tutorial' as any,
+      const filePath = fileManager.generateFilePath(metadata, {});
+      expect(filePath).toMatch(
+        /^documents\/example\.com\/\d{4}-\d{2}-\d{2}-example-com-custom-content\.md$/
+      );
+    });
+
+    test('should use domain-based folder for all documents', () => {
+      const metadata: IDocumentMetadata = {
+        title: 'Tutorial Article',
+        url: 'https://github.com/user/repo',
+        captureDate: '2025-07-03T12:00:00Z',
+        tags: [],
+        wordCount: 100,
+        estimatedReadingTime: 2,
       };
 
-      const filePath = fileManager.generateFilePath(metadata, options);
+      const filePath = fileManager.generateFilePath(metadata, {});
       expect(filePath).toMatch(
-        /^documents\/tutorial\/\d{4}-\d{2}-\d{2}-example-com-some-content\.md$/
+        /^documents\/github\.com\/\d{4}-\d{2}-\d{2}-github-com-tutorial-article\.md$/
       );
     });
   });

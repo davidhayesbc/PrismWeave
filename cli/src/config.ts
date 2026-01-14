@@ -8,7 +8,6 @@ import { join } from 'path';
 export interface ICliConfig {
   githubToken?: string;
   githubRepo?: string;
-  defaultFolder?: string;
   includeImages?: boolean;
   includeLinks?: boolean;
   timeout?: number;
