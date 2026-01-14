@@ -9,8 +9,8 @@ on:
   workflow_dispatch:
 
 env:
-  NODE_VERSION: '20'
-  PYTHON_VERSION: '3.11'
+  NODE_VERSION: "20"
+  PYTHON_VERSION: "3.11"
 
 jobs:
   test-browser-extension:
@@ -25,7 +25,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
+          cache: "npm"
 
       - name: Install root dependencies
         run: npm install
@@ -159,7 +159,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
+          cache: "npm"
 
       - name: Install root dependencies
         run: npm install
@@ -190,7 +190,7 @@ jobs:
           test -f dist/web/index.html || (echo "❌ Missing index.html" && exit 1)
           test -d dist/web/extension || (echo "❌ Missing extension directory" && exit 1)
           test -d dist/web/bookmarklet || (echo "❌ Missing bookmarklet directory" && exit 1)
-          
+
           # Verify browser extension build
           test -f dist/browser-extension/manifest.json || (echo "❌ Missing browser extension manifest.json" && exit 1)
           test -f dist/browser-extension/background/service-worker.js || (echo "❌ Missing service worker" && exit 1)
@@ -231,7 +231,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
+          cache: "npm"
 
       - name: Install dependencies
         run: npm install
