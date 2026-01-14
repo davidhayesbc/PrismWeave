@@ -169,7 +169,7 @@ def rebuild_everything_cmd(
                         options=ProposalRunOptions(sample_size=sample_size),
                     )
                     state.write(f"   ✅ Generated {proposals_result['proposals']} proposals")
-                    state.write(f"   📦 Artifacts: {proposals_result['artifacts_dir']}")
+                    state.write(f"   📦 Artifacts: {proposals_result.get('artifacts_dir') or taxonomy_artifacts_dir}")
                     state.write()
 
                 state.write("🗂️  taxonomy.json missing; regenerating taxonomy via normalize...")
@@ -178,7 +178,7 @@ def rebuild_everything_cmd(
                     f"   ✅ Stored taxonomy: {normalize_result['categories']} categories, {normalize_result['tags']} tags"
                 )
                 state.write(f"   🗄️  SQLite: {normalize_result['sqlite']}")
-                state.write(f"   📦 Artifacts: {normalize_result['artifacts_dir']}")
+                state.write(f"   📦 Artifacts: {normalize_result.get('artifacts_dir') or taxonomy_artifacts_dir}")
                 state.write()
 
                 if not taxonomy_json.exists():
@@ -340,7 +340,7 @@ def rebuild_everything_cmd(
         state.write(
             f"   ✅ Clustered {result['articles']} articles into {result['clusters']} clusters in {time.time() - phase_start:.1f}s"
         )
-        state.write(f"   📦 Artifacts: {result['artifacts_dir']}")
+        state.write(f"   📦 Artifacts: {result.get('artifacts_dir') or taxonomy_artifacts_dir}")
         state.write()
 
         # Phase 4: LLM proposals
@@ -348,7 +348,7 @@ def rebuild_everything_cmd(
         state.write("[4/6] 🧠 Generating LLM proposals (category/subcategory/tags) per cluster...")
         result = run_cluster_proposals(state.config, options=ProposalRunOptions(sample_size=sample_size))
         state.write(f"   ✅ Generated {result['proposals']} proposals in {time.time() - phase_start:.1f}s")
-        state.write(f"   📦 Artifacts: {result['artifacts_dir']}")
+        state.write(f"   📦 Artifacts: {result.get('artifacts_dir') or taxonomy_artifacts_dir}")
         state.write()
 
         # Phase 5: normalize taxonomy + embed tags
@@ -359,7 +359,7 @@ def rebuild_everything_cmd(
             f"   ✅ Stored taxonomy: {normalize_result['categories']} categories, {normalize_result['tags']} tags"
         )
         state.write(f"   🗄️  SQLite: {normalize_result['sqlite']}")
-        state.write(f"   📦 Artifacts: {normalize_result['artifacts_dir']}")
+        state.write(f"   📦 Artifacts: {normalize_result.get('artifacts_dir') or taxonomy_artifacts_dir}")
 
         embed_result = embed_and_store_tags(state.config, options=TagEmbeddingOptions(use_description=True))
         state.write(f"   ✅ Embedded {embed_result['tags']} tags into {embed_result['tag_embeddings_collection']}")
@@ -377,7 +377,7 @@ def rebuild_everything_cmd(
             f"   ✅ Wrote {assign_result['assignments']} tag assignments for {assign_result['articles']} articles in {time.time() - phase_start:.1f}s"
         )
         state.write(f"   🗄️  SQLite: {assign_result['sqlite']}")
-        state.write(f"   📦 Artifacts: {assign_result['artifacts_dir']}")
+        state.write(f"   📦 Artifacts: {assign_result.get('artifacts_dir') or taxonomy_artifacts_dir}")
 
         state.write()
         state.write(f"✅ Full rebuild completed in {time.time() - overall_start:.1f}s")

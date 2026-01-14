@@ -48,39 +48,49 @@ class ProcessingStateStore:
         self._init_schema()
 
     def _connect(self) -> sqlite3.Connection:
+        created = not self.sqlite_path.exists()
         conn = sqlite3.connect(self.sqlite_path)
         conn.row_factory = sqlite3.Row
+        if created:
+            self._init_schema_on_connection(conn)
         return conn
 
     def _init_schema(self) -> None:
-        with self._connect() as conn:
-            conn.execute("PRAGMA journal_mode=WAL")
-            conn.execute(
-                """
-                CREATE TABLE IF NOT EXISTS processing_meta (
-                    key TEXT PRIMARY KEY,
-                    value TEXT
-                )
-                """
-            )
-            conn.execute(
-                """
-                CREATE TABLE IF NOT EXISTS processed_files (
-                    path TEXT PRIMARY KEY,
-                    processed_at TEXT,
-                    commit_hash TEXT,
-                    content_hash TEXT,
-                    file_size INTEGER,
-                    last_modified TEXT
-                )
-                """
-            )
-            conn.execute("CREATE INDEX IF NOT EXISTS idx_processed_files_commit_hash ON processed_files(commit_hash)")
+        with sqlite3.connect(self.sqlite_path) as conn:
+            conn.row_factory = sqlite3.Row
+            self._init_schema_on_connection(conn)
 
-            # Ensure default version is present.
-            version = self.get_meta("version")
-            if not version:
-                self.set_meta("version", DEFAULT_VERSION)
+    def _init_schema_on_connection(self, conn: sqlite3.Connection) -> None:
+        conn.execute("PRAGMA journal_mode=WAL")
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS processing_meta (
+                key TEXT PRIMARY KEY,
+                value TEXT
+            )
+            """
+        )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS processed_files (
+                path TEXT PRIMARY KEY,
+                processed_at TEXT,
+                commit_hash TEXT,
+                content_hash TEXT,
+                file_size INTEGER,
+                last_modified TEXT
+            )
+            """
+        )
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_processed_files_commit_hash ON processed_files(commit_hash)")
+
+        # Ensure default version is present.
+        row = conn.execute("SELECT value FROM processing_meta WHERE key = ?", ("version",)).fetchone()
+        if not row:
+            conn.execute(
+                "INSERT OR IGNORE INTO processing_meta(key, value) VALUES(?, ?)",
+                ("version", DEFAULT_VERSION),
+            )
 
     def get_meta(self, key: str) -> str | None:
         with self._connect() as conn:
