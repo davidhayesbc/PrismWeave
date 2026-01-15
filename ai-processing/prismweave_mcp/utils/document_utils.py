@@ -12,6 +12,7 @@ from typing import Any, Optional
 
 import frontmatter
 import markdown
+import yaml
 
 
 def parse_frontmatter(content: str) -> tuple[dict[str, Any], str]:
@@ -37,7 +38,7 @@ def parse_frontmatter(content: str) -> tuple[dict[str, Any], str]:
     try:
         post = frontmatter.loads(content)
         return dict(post.metadata), post.content
-    except Exception:
+    except (ValueError, yaml.YAMLError):
         # If parsing fails, return empty metadata and original content
         return {}, content
 

@@ -42,16 +42,28 @@ class EmbeddingStore:
         self.retriever = ChromaEmbeddingRetriever(document_store=self.document_store)
 
     def _clean_metadata(self, metadata: Dict[str, Any]) -> Dict[str, Any]:
-        """Clean metadata to ensure ChromaDB compatibility"""
+        """Clean metadata to ensure ChromaDB compatibility.
+
+        ChromaDB supports: str, int, float, bool, and in some versions lists/dicts.
+        We prioritize preserving structure where possible.
+        """
         cleaned = {}
         for key, value in metadata.items():
             if value is None:
                 continue
             elif isinstance(value, (str, int, float, bool)):
                 cleaned[key] = value
-            elif isinstance(value, list):
-                # Convert lists to comma-separated strings
-                cleaned[key] = ", ".join(str(item) for item in value)
+            elif isinstance(value, (list, dict)):
+                # Try to preserve structure; ChromaDB >= 0.4 supports JSON-serializable types
+                try:
+                    # For lists, keep them as-is if they contain primitive types
+                    if isinstance(value, list) and all(isinstance(item, (str, int, float, bool)) for item in value):
+                        cleaned[key] = value
+                    else:
+                        # Fall back to string representation
+                        cleaned[key] = str(value) if isinstance(value, dict) else ", ".join(str(item) for item in value)
+                except (TypeError, ValueError):
+                    cleaned[key] = str(value)
             else:
                 # Convert other types to string
                 cleaned[key] = str(value)
@@ -102,11 +114,15 @@ class EmbeddingStore:
                 try:
                     self.git_tracker.mark_file_processed(file_path)
                     print(f"Marked {file_path.name} as processed in git tracker")
-                except Exception as e:
+                except (OSError, ValueError) as e:
                     print(f"Warning: Failed to mark file as processed in git tracker: {e}")
 
+        except (ConnectionError, TimeoutError) as e:
+            raise RuntimeError(f"Failed to connect to embedding service for {file_path}: {e}") from e
+        except (ValueError, KeyError) as e:
+            raise RuntimeError(f"Invalid document data for {file_path}: {e}") from e
         except Exception as e:
-            raise Exception(f"Failed to add chunks for {file_path}: {e}")
+            raise RuntimeError(f"Failed to add chunks for {file_path}: {e}") from e
 
     def search_similar(self, query: str, k: int = 5) -> List[Document]:
         """

@@ -85,9 +85,14 @@ class SearchTools:
 
             return response.model_dump(mode="json")
 
-        except Exception as e:
+        except (ValueError, RuntimeError, KeyError) as e:
             error = ErrorResponse(
                 error=f"Search failed: {str(e)}", error_code="SEARCH_FAILED", details={"query": request.query}
+            )
+            return error.model_dump(mode="json")
+        except Exception as e:
+            error = ErrorResponse(
+                error=f"Unexpected search error: {str(e)}", error_code="SEARCH_ERROR", details={"query": request.query}
             )
             return error.model_dump(mode="json")
 

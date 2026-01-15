@@ -112,8 +112,11 @@ class SearchManager:
                 search_result = self._build_search_result(source_path, haystack_doc, score, query)
                 search_results.append(search_result)
                 seen_documents.add(source_path)
-            except Exception:
+            except (FileNotFoundError, PermissionError, ValueError) as e:
                 # Skip documents that can't be processed
+                import logging
+
+                logging.getLogger(__name__).debug(f"Skipping document {source_path}: {e}")
                 continue
 
             # Check if we have enough results
@@ -178,8 +181,11 @@ class SearchManager:
                         if doc_date > to_date:
                             return False
 
-                except (ValueError, TypeError):
+                except (ValueError, TypeError) as e:
                     # If date parsing fails, skip date filtering for this doc
+                    import logging
+
+                    logging.getLogger(__name__).debug(f"Date parsing failed: {e}")
                     pass
 
         return True

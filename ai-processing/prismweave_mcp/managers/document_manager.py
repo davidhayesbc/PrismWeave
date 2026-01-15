@@ -79,7 +79,7 @@ class DocumentManager:
 
     def _get_path_from_embedding_store(self, document_id: str) -> Optional[str]:
         """
-        Get document path from embedding store by ID
+        Get document path from embedding store by ID using ChromaDB metadata filtering
 
         Args:
             document_id: Document ID to look up
@@ -87,16 +87,23 @@ class DocumentManager:
         Returns:
             Path to the document file if found, None otherwise
         """
+        if not self.embedding_store or not hasattr(self.embedding_store, "document_store"):
+            return None
+
         try:
-            if self.embedding_store and hasattr(self.embedding_store, "document_store"):
-                # Get all documents and filter in memory
-                # This is efficient enough for document lookup since we only need metadata
-                all_docs = self.embedding_store.document_store.filter_documents()
-                for doc in all_docs:
-                    if doc.meta.get("id") == document_id:
-                        return doc.meta.get("source_file")
-        except Exception:
-            pass
+            # Use ChromaDB's native filtering for O(1) lookup instead of O(n) scan
+            results = self.embedding_store.document_store.filter_documents(filters={"id": {"$eq": document_id}})
+            if results:
+                return results[0].meta.get("source_file")
+        except (AttributeError, KeyError, IndexError) as e:
+            # Log specific errors for debugging
+            import logging
+
+            logging.getLogger(__name__).debug(f"Failed to lookup document {document_id}: {e}")
+        except Exception as e:
+            import logging
+
+            logging.getLogger(__name__).warning(f"Unexpected error in document lookup: {e}")
 
         return None
 
@@ -154,7 +161,9 @@ class DocumentManager:
             # Parse frontmatter
             metadata, content = parse_frontmatter(file_content)
             return self._build_document(doc_path, metadata, content)
-        except Exception as e:
+        except (FileNotFoundError, PermissionError) as e:
+            raise ValueError(f"Cannot read document file: {e}") from e
+        except (UnicodeDecodeError, ValueError) as e:
             raise ValueError(f"Failed to parse document: {e}") from e
 
     def list_documents(
@@ -237,8 +246,11 @@ class DocumentManager:
                 doc_metadata = self._build_document_metadata(doc_path, metadata, content)
                 documents.append(doc_metadata)
 
-            except Exception:
+            except (FileNotFoundError, PermissionError, UnicodeDecodeError, ValueError) as e:
                 # Skip files that can't be parsed
+                import logging
+
+                logging.getLogger(__name__).debug(f"Skipping file {doc_path}: {e}")
                 continue
 
         # Sort documents

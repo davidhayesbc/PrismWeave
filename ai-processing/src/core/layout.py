@@ -104,7 +104,14 @@ def compute_layout_from_embeddings(embeddings: Dict[str, List[float]]) -> Dict[s
         reducer = umap.UMAP(n_components=2, random_state=42)
         coords_array = reducer.fit_transform(vectors)
         return {doc_id: (float(x), float(y)) for doc_id, (x, y) in zip(ids, coords_array)}
-    except Exception:
+    except ImportError:
+        # UMAP not available, use grid fallback
+        return _fallback_grid_layout(embeddings.keys())
+    except (ValueError, RuntimeError) as e:
+        # UMAP computation failed, use grid fallback
+        import logging
+
+        logging.getLogger(__name__).warning(f"UMAP layout failed, using grid fallback: {e}")
         return _fallback_grid_layout(embeddings.keys())
 
 
