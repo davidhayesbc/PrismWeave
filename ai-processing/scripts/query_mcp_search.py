@@ -4,12 +4,13 @@
 This script invokes the SearchTools directly (bypassing the HTTP/SSE layer)
 so it can run a quick semantic search from the repository environment.
 """
+
 import asyncio
 import json
 import sys
 
-from prismweave_mcp.tools.search import SearchTools
 from prismweave_mcp.schemas.requests import SearchDocumentsRequest
+from prismweave_mcp.tools.search import SearchTools
 from src.core.config import load_config
 
 
