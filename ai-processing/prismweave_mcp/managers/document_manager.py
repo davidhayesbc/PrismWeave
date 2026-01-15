@@ -19,7 +19,9 @@ from prismweave_mcp.utils.document_utils import (
     generate_document_id,
     generate_filename,
     generate_frontmatter,
+    normalize_tags,
     parse_frontmatter,
+    safe_parse_datetime,
     validate_markdown,
 )
 from prismweave_mcp.utils.path_utils import (
@@ -135,9 +137,11 @@ class DocumentManager:
         if doc_path is None:
             return None
 
-        # Double-check path safety
-        if not validate_path_safety(doc_path, self.docs_root):
-            raise ValueError(f"Path is not safe or outside documents root: {path}")
+        # Validate path safety (raises ValueError if unsafe)
+        try:
+            validate_path_safety(doc_path, self.docs_root)
+        except ValueError as e:
+            raise ValueError(f"Path is not safe or outside documents root: {path}") from e
 
         # Check if file exists
         if not doc_path.exists():
@@ -202,8 +206,7 @@ class DocumentManager:
         for doc_path in all_disk_files:
             try:
                 # Verify file is safe
-                if not validate_path_safety(doc_path, self.docs_root):
-                    continue
+                validate_path_safety(doc_path, self.docs_root)
 
                 # Apply generated/captured filters early
                 is_generated = is_generated_document(doc_path, self.docs_root)
@@ -396,9 +399,11 @@ class DocumentManager:
         else:
             raise ValueError("Must provide either document_id or path")
 
-        # Validate path safety
-        if not validate_path_safety(doc_path, self.docs_root):
-            raise ValueError(f"Path is not safe or outside documents root: {doc_path}")
+        # Validate path safety (raises ValueError if unsafe)
+        try:
+            validate_path_safety(doc_path, self.docs_root)
+        except ValueError as e:
+            raise ValueError(f"Path is not safe or outside documents root: {doc_path}") from e
 
         # Verify document is generated (only generated documents can be updated)
         if not is_generated_document(doc_path, self.docs_root):
@@ -499,35 +504,16 @@ class DocumentManager:
         # Get file stats
         file_stat = file_path.stat()
 
-        # Parse dates - support both created_date/created_at for compatibility
-        import contextlib
-
-        created_at = None
-        if "created_at" in metadata:
-            with contextlib.suppress(ValueError, TypeError):
-                created_at = datetime.fromisoformat(metadata["created_at"])
-        elif "created_date" in metadata:
-            with contextlib.suppress(ValueError, TypeError):
-                created_at = datetime.fromisoformat(metadata["created_date"])
-
-        modified_at = None
-        if "modified_at" in metadata:
-            try:
-                modified_at = datetime.fromisoformat(metadata["modified_at"])
-            except (ValueError, TypeError):
-                modified_at = datetime.fromtimestamp(file_stat.st_mtime)
-        elif "modified_date" in metadata:
-            try:
-                modified_at = datetime.fromisoformat(metadata["modified_date"])
-            except (ValueError, TypeError):
-                modified_at = datetime.fromtimestamp(file_stat.st_mtime)
-        else:
+        # Parse dates using utility function
+        created_at = safe_parse_datetime(metadata.get("created_at") or metadata.get("created_date"))
+        modified_at = safe_parse_datetime(metadata.get("modified_at") or metadata.get("modified_date"))
+        
+        # Fallback to file system modified time if no metadata
+        if modified_at is None:
             modified_at = datetime.fromtimestamp(file_stat.st_mtime)
 
-        # Get tags
-        tags = metadata.get("tags", [])
-        if isinstance(tags, str):
-            tags = [t.strip() for t in tags.split(",")]
+        # Get tags and normalize them
+        tags = normalize_tags(metadata.get("tags", []))
 
         # Get category from path or metadata
         category = get_document_category(file_path, self.docs_root)

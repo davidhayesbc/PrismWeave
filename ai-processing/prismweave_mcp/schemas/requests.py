@@ -33,6 +33,9 @@ class SearchDocumentsRequest(BaseModel):
         default=False,
         description="(Optional) When True, only return AI-generated documents. Defaults to False.",
     )
+    # TODO: Date filtering not yet implemented
+    # date_from: Optional[str] = Field(default=None, description="TODO: Not implemented")
+    # date_to: Optional[str] = Field(default=None, description="TODO: Not implemented")
 
     class Config:
         json_schema_extra = {

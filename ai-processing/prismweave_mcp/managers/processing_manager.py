@@ -17,7 +17,7 @@ from typing import Optional
 
 import requests
 
-from prismweave_mcp.utils.document_utils import generate_frontmatter, parse_frontmatter
+from prismweave_mcp.utils.document_utils import generate_frontmatter, normalize_tags, parse_frontmatter
 from src.core.config import Config
 from src.core.document_processor import DocumentProcessor
 from src.core.embedding_store import EmbeddingStore
@@ -181,7 +181,7 @@ class ProcessingManager:
             existing_metadata, clean_content = parse_frontmatter(file_text)
 
             existing_tags = existing_metadata.get("tags")
-            normalized_existing = self._normalize_tags(existing_tags)
+            normalized_existing = normalize_tags(existing_tags)
             if normalized_existing and not force_regenerate:
                 return {
                     "success": True,
@@ -193,7 +193,7 @@ class ProcessingManager:
 
             title = str(existing_metadata.get("title") or document_path.stem)
             source_keywords = existing_metadata.get("source_keywords") or existing_metadata.get("sourceKeywords")
-            source_keywords_list = self._normalize_tags(source_keywords)
+            source_keywords_list = normalize_tags(source_keywords)
 
             # 1) Try Ollama-based semantic tagging
             tags, confidence = await self._generate_tags_via_ollama(
@@ -258,7 +258,7 @@ class ProcessingManager:
             data = await asyncio.to_thread(_do_request)
             raw = str(data.get("response") or "").strip()
             tags = self._parse_tag_list(raw)
-            tags = self._normalize_tags(tags)[:max_tags]
+            tags = normalize_tags(tags)[:max_tags]
             if not tags:
                 return [], 0.0
             return tags, 0.8
@@ -318,90 +318,24 @@ class ProcessingManager:
         return []
 
     @staticmethod
-    def _normalize_tags(value: object) -> list[str]:
-        """Normalize tags to lowercase kebab-case and dedupe while preserving order."""
-        if value is None:
-            return []
-
-        if isinstance(value, str):
-            # Support comma-separated or YAML-ish strings.
-            raw_items = re.split(r"[,;|]", value)
-        elif isinstance(value, list):
-            raw_items = [str(v) for v in value]
-        else:
-            raw_items = [str(value)]
-
-        seen: set[str] = set()
-        out: list[str] = []
-        for item in raw_items:
-            t = item.strip().lower()
-            if not t:
-                continue
-            # Convert spaces/underscores to hyphens
-            t = re.sub(r"[\s_]+", "-", t)
-            # Remove invalid chars
-            t = re.sub(r"[^a-z0-9-]", "", t)
-            # Collapse hyphens
-            t = re.sub(r"-+", "-", t).strip("-")
-            if len(t) < 2 or len(t) > 40:
-                continue
-            if t in seen:
-                continue
-            seen.add(t)
-            out.append(t)
-        return out
-
-    @staticmethod
     def _extract_tags_fallback(content: str, source_keywords: list[str], max_tags: int) -> list[str]:
-        """Deterministic fallback tag extraction: use source keywords first, then frequent terms."""
-        tags: list[str] = []
-        tags.extend(source_keywords)
-
-        # Light-weight frequency-based fallback
-        stop = {
-            "this",
-            "that",
-            "with",
-            "from",
-            "your",
-            "have",
-            "will",
-            "what",
-            "when",
-            "where",
-            "which",
-            "their",
-            "about",
-            "there",
-            "into",
-            "also",
-            "because",
-            "https",
-            "http",
-        }
-        words = re.findall(r"[a-zA-Z][a-zA-Z0-9_-]{2,}", content.lower())
-        freq: dict[str, int] = {}
-        for w in words:
-            w = re.sub(r"[^a-z0-9-]", "", w)
-            w = re.sub(r"-+", "-", w).strip("-")
-            if len(w) < 3:
-                continue
-            if w in stop:
-                continue
-            freq[w] = freq.get(w, 0) + 1
-
-        for w, _ in sorted(freq.items(), key=lambda kv: kv[1], reverse=True):
-            tags.append(w)
-            if len(tags) >= max_tags * 3:
-                break
-
-        # Normalize + clamp
-        return ProcessingManager._normalize_tags(tags)[:max_tags]
+        """Simple fallback using source keywords when Ollama is unavailable.
+        
+        This is a lightweight fallback that relies on pre-existing metadata
+        rather than complex text analysis.
+        """
+        # Use source keywords if available
+        if source_keywords:
+            return source_keywords[:max_tags]
+        
+        # If no source keywords, return empty list
+        # Complex frequency analysis is overkill for a fallback
+        return []
 
     @staticmethod
     def _update_document_tags_frontmatter(document_path: Path, tags: object) -> None:
         """Update (or create) frontmatter tags for a markdown document."""
-        normalized_tags = ProcessingManager._normalize_tags(tags)
+        normalized_tags = normalize_tags(tags)
         if not normalized_tags:
             return
 

@@ -5,6 +5,8 @@ Tests for path utility functions
 import tempfile
 from pathlib import Path
 
+import pytest
+
 from prismweave_mcp.utils.path_utils import (
     ensure_directory_exists,
     get_document_category,
@@ -92,10 +94,10 @@ class TestValidatePathSafety:
             temp_path = Path(temp_dir)
             safe_file = temp_path / "document.md"
 
-            is_safe, error = validate_path_safety(safe_file, temp_path)
+            # Should return True without raising exception
+            is_safe = validate_path_safety(safe_file, temp_path)
 
             assert is_safe is True
-            assert error is None
 
     def test_directory_traversal(self) -> None:
         """Test detecting directory traversal"""
@@ -103,10 +105,9 @@ class TestValidatePathSafety:
             temp_path = Path(temp_dir)
             unsafe_path = temp_path / ".." / ".." / "etc" / "passwd"
 
-            is_safe, error = validate_path_safety(unsafe_path, temp_path)
-
-            assert is_safe is False
-            assert error is not None
+            # Should raise ValueError for unsafe path
+            with pytest.raises(ValueError, match="outside allowed directory"):
+                validate_path_safety(unsafe_path, temp_path)
 
     def test_path_outside_root(self) -> None:
         """Test detecting paths outside allowed root"""
@@ -114,10 +115,9 @@ class TestValidatePathSafety:
             temp_path = Path(temp_dir)
             outside_path = Path("/tmp/outside.md")
 
-            is_safe, error = validate_path_safety(outside_path, temp_path)
-
-            assert is_safe is False
-            assert "outside allowed directory" in error.lower()
+            # Should raise ValueError for path outside root
+            with pytest.raises(ValueError, match="outside allowed directory"):
+                validate_path_safety(outside_path, temp_path)
 
 
 class TestIsGeneratedDocument:

@@ -46,13 +46,7 @@ class GitManager:
 
     def _is_git_repo(self, path: Path) -> bool:
         """Check if path is a git repository"""
-        try:
-            result = subprocess.run(
-                ["git", "rev-parse", "--git-dir"], cwd=path, capture_output=True, text=True, check=True
-            )
-            return result.returncode == 0
-        except (subprocess.CalledProcessError, FileNotFoundError):
-            return False
+        return (path / ".git").exists()
 
     def _ensure_initialized(self) -> None:
         """

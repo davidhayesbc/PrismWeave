@@ -91,7 +91,7 @@ def resolve_document_path(
     return None
 
 
-def validate_path_safety(path: Path, allowed_root: Path) -> tuple[bool, Optional[str]]:
+def validate_path_safety(path: Path, allowed_root: Path) -> bool:
     """
     Validate that a path is safe (no directory traversal, within allowed root).
 
@@ -100,18 +100,20 @@ def validate_path_safety(path: Path, allowed_root: Path) -> tuple[bool, Optional
         allowed_root: Root directory that path must be within
 
     Returns:
-        Tuple of (is_safe, error_message)
+        True if path is safe
+        
+    Raises:
+        ValueError: If path is unsafe with detailed reason
 
     Example:
         >>> root = Path("/tmp/test")
         >>> safe_path = root / "document.md"
-        >>> is_safe, error = validate_path_safety(safe_path, root)
-        >>> is_safe
+        >>> validate_path_safety(safe_path, root)
         True
         >>> unsafe_path = root / ".." / ".." / "etc" / "passwd"
-        >>> is_safe, error = validate_path_safety(unsafe_path, root)
-        >>> is_safe
-        False
+        >>> validate_path_safety(unsafe_path, root)  # doctest: +SKIP
+        Traceback (most recent call last):
+        ValueError: Path is outside allowed directory
     """
     try:
         # Resolve to absolute path
@@ -122,21 +124,23 @@ def validate_path_safety(path: Path, allowed_root: Path) -> tuple[bool, Optional
         try:
             abs_path.relative_to(abs_root)
         except ValueError:
-            return False, f"Path is outside allowed directory: {allowed_root}"
+            raise ValueError(f"Path is outside allowed directory: {allowed_root}")
 
         # Check for suspicious patterns
         path_str = str(path)
         if ".." in path_str:
-            return False, "Path contains directory traversal (..)"
+            raise ValueError("Path contains directory traversal (..)")
 
         # Check for null bytes (security)
         if "\x00" in path_str:
-            return False, "Path contains null bytes"
+            raise ValueError("Path contains null bytes")
 
-        return True, None
+        return True
 
+    except ValueError:
+        raise
     except Exception as e:
-        return False, f"Path validation error: {str(e)}"
+        raise ValueError(f"Path validation error: {str(e)}") from e
 
 
 def is_generated_document(path: Path, documents_root: Optional[Path] = None) -> bool:

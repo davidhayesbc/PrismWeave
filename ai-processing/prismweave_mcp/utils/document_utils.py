@@ -272,6 +272,75 @@ def calculate_reading_time(content: str, words_per_minute: int = 200) -> int:
     return minutes
 
 
+def normalize_tags(value: object) -> list[str]:
+    """Normalize tags to lowercase kebab-case and dedupe while preserving order.
+    
+    Args:
+        value: Tags as string, list, or other object
+        
+    Returns:
+        Normalized list of tags
+        
+    Example:
+        >>> normalize_tags("AI, Machine Learning")
+        ['ai', 'machine-learning']
+        >>> normalize_tags(['Python', 'machine_learning'])
+        ['python', 'machine-learning']
+    """
+    if value is None:
+        return []
+
+    if isinstance(value, str):
+        # Support comma-separated or YAML-ish strings.
+        raw_items = re.split(r"[,;|]", value)
+    elif isinstance(value, list):
+        raw_items = [str(v) for v in value]
+    else:
+        raw_items = [str(value)]
+
+    seen: set[str] = set()
+    out: list[str] = []
+    for item in raw_items:
+        t = item.strip().lower()
+        if not t:
+            continue
+        # Convert spaces/underscores to hyphens
+        t = re.sub(r"[\s_]+", "-", t)
+        # Remove invalid chars
+        t = re.sub(r"[^a-z0-9-]", "", t)
+        # Collapse hyphens
+        t = re.sub(r"-+", "-", t).strip("-")
+        if len(t) < 2 or len(t) > 40:
+            continue
+        if t in seen:
+            continue
+        seen.add(t)
+        out.append(t)
+    return out
+
+
+def safe_parse_datetime(value: Optional[str]) -> Optional[datetime]:
+    """Parse datetime string with fallback to None.
+    
+    Args:
+        value: ISO format datetime string
+        
+    Returns:
+        Parsed datetime or None if invalid
+        
+    Example:
+        >>> dt = safe_parse_datetime("2024-01-15T10:30:00")
+        >>> dt is not None
+        True
+    """
+    if not value:
+        return None
+    try:
+        return datetime.fromisoformat(value)
+    except (ValueError, TypeError):
+        return None
+
+
 def merge_metadata(existing: dict[str, Any], updates: dict[str, Any], merge_lists: bool = True) -> dict[str, Any]:
     """
     Merge metadata dictionaries intelligently.
