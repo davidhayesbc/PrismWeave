@@ -507,7 +507,7 @@ class DocumentManager:
         # Parse dates using utility function
         created_at = safe_parse_datetime(metadata.get("created_at") or metadata.get("created_date"))
         modified_at = safe_parse_datetime(metadata.get("modified_at") or metadata.get("modified_date"))
-        
+
         # Fallback to file system modified time if no metadata
         if modified_at is None:
             modified_at = datetime.fromtimestamp(file_stat.st_mtime)

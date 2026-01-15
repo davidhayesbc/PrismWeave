@@ -274,13 +274,13 @@ def calculate_reading_time(content: str, words_per_minute: int = 200) -> int:
 
 def normalize_tags(value: object) -> list[str]:
     """Normalize tags to lowercase kebab-case and dedupe while preserving order.
-    
+
     Args:
         value: Tags as string, list, or other object
-        
+
     Returns:
         Normalized list of tags
-        
+
     Example:
         >>> normalize_tags("AI, Machine Learning")
         ['ai', 'machine-learning']
@@ -321,13 +321,13 @@ def normalize_tags(value: object) -> list[str]:
 
 def safe_parse_datetime(value: Optional[str]) -> Optional[datetime]:
     """Parse datetime string with fallback to None.
-    
+
     Args:
         value: ISO format datetime string
-        
+
     Returns:
         Parsed datetime or None if invalid
-        
+
     Example:
         >>> dt = safe_parse_datetime("2024-01-15T10:30:00")
         >>> dt is not None

@@ -320,14 +320,14 @@ class ProcessingManager:
     @staticmethod
     def _extract_tags_fallback(content: str, source_keywords: list[str], max_tags: int) -> list[str]:
         """Simple fallback using source keywords when Ollama is unavailable.
-        
+
         This is a lightweight fallback that relies on pre-existing metadata
         rather than complex text analysis.
         """
         # Use source keywords if available
         if source_keywords:
             return source_keywords[:max_tags]
-        
+
         # If no source keywords, return empty list
         # Complex frequency analysis is overkill for a fallback
         return []

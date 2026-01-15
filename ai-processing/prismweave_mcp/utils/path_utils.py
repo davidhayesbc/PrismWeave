@@ -101,7 +101,7 @@ def validate_path_safety(path: Path, allowed_root: Path) -> bool:
 
     Returns:
         True if path is safe
-        
+
     Raises:
         ValueError: If path is unsafe with detailed reason
 
