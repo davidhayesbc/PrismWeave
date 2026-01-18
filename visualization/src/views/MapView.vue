@@ -918,8 +918,8 @@ watch(
 
 .sidebar {
   width: 280px;
-  background: white;
-  border-right: 1px solid #ddd;
+  background: var(--pw-panel-bg);
+  border-right: 1px solid var(--pw-border-color);
   padding: 1.5rem;
   overflow-y: auto;
 }
@@ -927,7 +927,7 @@ watch(
 .sidebar h2 {
   font-size: 1.2rem;
   margin-bottom: 1.5rem;
-  color: #2c3e50;
+  color: var(--pw-text-primary);
 }
 
 .filter-section {
@@ -938,7 +938,7 @@ watch(
   display: block;
   font-weight: 600;
   margin-bottom: 0.5rem;
-  color: #555;
+  color: var(--pw-text-secondary);
 }
 
 .filter-section input[type='search'] {
@@ -950,9 +950,9 @@ watch(
   flex-direction: column;
   gap: 0.75rem;
   padding: 0.75rem;
-  border: 1px solid #eee;
+  border: 1px solid var(--pw-border-color);
   border-radius: 6px;
-  background: #fafafa;
+  background: var(--pw-bg-secondary);
 }
 
 .graph-control {
@@ -966,7 +966,7 @@ watch(
 .graph-control-label {
   grid-column: 1 / -1;
   font-size: 0.85rem;
-  color: #555;
+  color: var(--pw-text-secondary);
   font-weight: 600;
 }
 
@@ -977,7 +977,7 @@ watch(
 
 .range-value {
   font-size: 0.85rem;
-  color: #666;
+  color: var(--pw-text-secondary);
   font-weight: 600;
   min-width: 40px;
   display: inline-block;
@@ -991,7 +991,7 @@ watch(
   max-height: 200px;
   overflow-y: auto;
   padding: 0.5rem;
-  border: 1px solid #eee;
+  border: 1px solid var(--pw-border-color);
   border-radius: 4px;
 }
 
@@ -1056,7 +1056,7 @@ watch(
 .matches-subtitle {
   margin-top: 0.35rem;
   font-size: 0.8rem;
-  color: #777;
+  color: var(--pw-text-muted);
 }
 
 .matches-list {
@@ -1071,20 +1071,20 @@ watch(
 
 .match-item {
   text-align: left;
-  background: #fff;
-  border: 1px solid #eee;
+  background: var(--pw-surface-bg);
+  border: 1px solid var(--pw-border-color);
   border-radius: 6px;
   padding: 0.6rem 0.65rem;
 }
 
 .match-item:hover {
-  background: #f7f7f7;
+  background: var(--pw-bg-secondary);
 }
 
 .match-title {
   font-size: 0.85rem;
   font-weight: 600;
-  color: #2c3e50;
+  color: var(--pw-text-primary);
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -1096,7 +1096,7 @@ watch(
   justify-content: space-between;
   gap: 0.5rem;
   font-size: 0.78rem;
-  color: #666;
+  color: var(--pw-text-secondary);
 }
 
 .match-topic {
@@ -1120,18 +1120,18 @@ watch(
 .stats {
   margin-top: 2rem;
   padding-top: 1rem;
-  border-top: 1px solid #eee;
+  border-top: 1px solid var(--pw-border-color);
 }
 
 .stats p {
   margin: 0.25rem 0;
-  color: #666;
+  color: var(--pw-text-secondary);
 }
 
 .visualization-area {
   flex: 1;
   position: relative;
-  background: #fafafa;
+  background: var(--pw-bg-secondary);
 }
 
 .empty {
@@ -1140,7 +1140,7 @@ watch(
   align-items: center;
   height: 100%;
   font-size: 1rem;
-  color: #777;
+  color: var(--pw-text-secondary);
 }
 
 .visualization-svg {
@@ -1150,11 +1150,11 @@ watch(
 
 .tooltip {
   position: fixed;
-  background: white;
-  border: 1px solid #ddd;
+  background: var(--pw-panel-bg);
+  border: 1px solid var(--pw-border-color);
   border-radius: 6px;
   padding: 1rem;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--pw-shadow-md);
   max-width: 300px;
   pointer-events: none;
   z-index: 1000;
@@ -1163,12 +1163,12 @@ watch(
 .tooltip h3 {
   font-size: 1rem;
   margin: 0 0 0.5rem 0;
-  color: #2c3e50;
+  color: var(--pw-text-primary);
 }
 
 .tooltip .excerpt {
   font-size: 0.85rem;
-  color: #666;
+  color: var(--pw-text-secondary);
   margin: 0 0 0.5rem 0;
   line-height: 1.4;
 }
@@ -1185,8 +1185,8 @@ watch(
   align-items: center;
   gap: 0.35rem;
   padding: 0.2rem 0.5rem;
-  background: #e3f2fd;
-  color: #1976d2;
+  background: var(--pw-surface-primary-muted);
+  color: var(--pw-primary-600);
   border-radius: 3px;
   font-size: 0.75rem;
   font-weight: 600;
@@ -1194,16 +1194,16 @@ watch(
 
 .tooltip .tags {
   font-size: 0.75rem;
-  color: #999;
+  color: var(--pw-text-muted);
 }
 
 .tooltip .stats-line {
   display: flex;
   justify-content: space-between;
   font-size: 0.75rem;
-  color: #999;
+  color: var(--pw-text-muted);
   padding-top: 0.5rem;
-  border-top: 1px solid #eee;
+  border-top: 1px solid var(--pw-border-color);
 }
 
 .article-node text {
@@ -1214,7 +1214,7 @@ watch(
 .article-node .node-title {
   font-size: 0.7rem;
   font-weight: 600;
-  fill: #fff;
+  fill: var(--pw-btn-primary-text);
 }
 
 .article-node .node-date {

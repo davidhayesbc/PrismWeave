@@ -1052,7 +1052,7 @@ export class PrismWeavePopup {
     if (!container) return;
 
     // Update container class
-    container.className = `pw-card pw-card--static capture-status-container ${type}`;
+    container.className = `pw-card pw-card--static pw-status-card pw-status-card--${type}`;
 
     // Update icon based on type
     const iconElement = this.document.getElementById('status-icon');
@@ -1082,7 +1082,7 @@ export class PrismWeavePopup {
 
     // Handle progress bar
     const progressBar = this.document.getElementById('progress-bar');
-    const progressFill = progressBar?.querySelector('.progress-fill') as HTMLElement;
+    const progressFill = progressBar?.querySelector('.pw-progress-fill') as HTMLElement;
     if (options.showProgress && progressBar && progressFill) {
       progressBar.style.display = 'block';
       progressFill.style.width = `${options.progressValue || 0}%`;
@@ -1096,7 +1096,7 @@ export class PrismWeavePopup {
       actionsContainer.innerHTML = '';
       options.actions.forEach(action => {
         const button = this.document.createElement('button');
-        button.className = `status-action-btn ${action.primary ? 'primary' : ''}`;
+        button.className = `pw-status-action ${action.primary ? 'pw-status-action--primary' : ''}`;
         button.textContent = action.label;
 
         // Add data attribute to track action type for debugging
@@ -1163,38 +1163,36 @@ export class PrismWeavePopup {
 
     // Custom HTML for missing settings
     container.innerHTML = `
-      <div class="status-card">
-        <div class="status-header">
-          <div class="status-icon-wrapper">
-            <div class="status-icon">⚙️</div>
-          </div>
-          <div class="status-content">
-            <div class="status-title">Configuration Required</div>
-            <div class="status-message">${message}</div>
-          </div>
-          <button class="status-close" id="missing-settings-close" aria-label="Close">×</button>
+      <div class="pw-status-header">
+        <div class="pw-status-icon-wrapper">
+          <div class="pw-status-icon">⚙️</div>
         </div>
-        <div class="status-details" style="display: block;">
-          <div class="missing-settings-content">
-            ${
-              missingSettings.length > 0
-                ? `
+        <div class="pw-status-content">
+          <div class="pw-status-title">Configuration Required</div>
+          <div class="pw-status-message">${message}</div>
+        </div>
+        <button class="pw-status-close" id="missing-settings-close" aria-label="Close">×</button>
+      </div>
+      <div class="pw-status-details" style="display: block;">
+        <div class="missing-settings-content">
+          ${
+            missingSettings.length > 0
+              ? `
 
-              <div class="missing-settings-text">
-                <strong>Missing settings:</strong> ${missingSettings.join(', ')}
-              </div>
-            `
-                : ''
-            }
-            <button id="open-settings-action" class="settings-action-btn">
-              ⚙️ Configure Settings
-            </button>
-          </div>
+            <div class="missing-settings-text">
+              <strong>Missing settings:</strong> ${missingSettings.join(', ')}
+            </div>
+          `
+              : ''
+          }
+          <button id="open-settings-action" class="pw-status-action pw-status-action--primary">
+            ⚙️ Configure Settings
+          </button>
         </div>
       </div>
     `;
 
-    container.className = 'pw-card pw-card--static capture-status-container missing-settings';
+    container.className = 'pw-card pw-card--static pw-status-card pw-status-card--warning missing-settings';
     container.style.display = 'block';
 
     // Setup event handlers
@@ -1228,7 +1226,7 @@ export class PrismWeavePopup {
       }
 
       statusElement.style.display = 'none';
-      statusElement.className = 'pw-card pw-card--static capture-status-container hidden';
+      statusElement.className = 'pw-card pw-card--static pw-status-card pw-hidden';
     }
     this.lastCapturedContent = null;
   }
@@ -1355,15 +1353,15 @@ export class PrismWeavePopup {
 
     // Create preview modal
     const modal = this.document.createElement('div');
-    modal.className = 'markdown-preview-modal';
+    modal.className = 'pw-modal';
     modal.innerHTML = `
-      <div class="modal-backdrop"></div>
-      <div class="modal-content">
-        <div class="modal-header">
+      <div class="pw-modal-backdrop"></div>
+      <div class="pw-modal-content">
+        <div class="pw-modal-header">
           <h3>Markdown Preview</h3>
-          <button class="modal-close" aria-label="Close">×</button>
+          <button class="pw-modal-close" aria-label="Close">×</button>
         </div>
-        <div class="modal-body">
+        <div class="pw-modal-body">
           <div class="preview-controls">
             <button class="copy-button" title="Copy to clipboard">📋 Copy</button>
             <span class="content-stats">${this.lastCapturedContent.length} characters</span>
@@ -1377,8 +1375,8 @@ export class PrismWeavePopup {
     this.document.body.appendChild(modal);
 
     // Setup event listeners
-    const closeBtn = modal.querySelector('.modal-close') as HTMLButtonElement;
-    const backdrop = modal.querySelector('.modal-backdrop') as HTMLDivElement;
+    const closeBtn = modal.querySelector('.pw-modal-close') as HTMLButtonElement;
+    const backdrop = modal.querySelector('.pw-modal-backdrop') as HTMLDivElement;
     const copyBtn = modal.querySelector('.copy-button') as HTMLButtonElement;
 
     const closeModal = () => {

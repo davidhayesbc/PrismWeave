@@ -56,9 +56,9 @@ function clearToast() {
   justify-content: space-between;
   align-items: center;
   padding: 1rem 2rem;
-  background: #2c3e50;
-  color: white;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  background: var(--pw-ui-accent-strong);
+  color: var(--pw-btn-primary-text);
+  box-shadow: var(--pw-shadow-sm);
 }
 
 .app-header h1 {
@@ -73,16 +73,16 @@ function clearToast() {
 }
 
 .nav-link {
-  color: white;
+  color: var(--pw-btn-primary-text);
   text-decoration: none;
   padding: 0.5rem 1rem;
-  border-radius: 4px;
+  border-radius: var(--pw-radius);
   transition: background-color 0.2s;
 }
 
 .nav-link:hover,
 .nav-link.router-link-active {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--pw-ui-accent-soft);
 }
 
 .app-main {
@@ -95,19 +95,19 @@ function clearToast() {
   bottom: 2rem;
   right: 2rem;
   padding: 1rem 1.5rem;
-  color: white;
-  border-radius: 4px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  color: var(--pw-btn-primary-text);
+  border-radius: var(--pw-radius);
+  box-shadow: var(--pw-shadow-md);
   cursor: pointer;
   animation: slideIn 0.3s ease;
 }
 
 .toast--error {
-  background: #dc3545;
+  background: var(--pw-error-600);
 }
 
 .toast--notice {
-  background: #198754;
+  background: var(--pw-success-600);
 }
 
 @keyframes slideIn {

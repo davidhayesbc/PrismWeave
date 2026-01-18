@@ -177,23 +177,8 @@ body {
 
 /* Ensure better contrast for placeholders and input text */
 .pw-input::placeholder,
-.pw-input::-webkit-input-placeholder,
-.pw-input::-moz-placeholder,
 .pw-textarea::placeholder,
-.pw-textarea::-webkit-input-placeholder,
-.pw-textarea::-moz-placeholder,
-.pw-select::placeholder,
-.pw-select::-webkit-input-placeholder,
-.pw-select::-moz-placeholder {
-  color: var(--pw-text-secondary);
-  opacity: 0.7;
-}
-
-input[type="text"]::placeholder,
-input[type="password"]::placeholder,
-input[type="url"]::placeholder,
-textarea::placeholder,
-select::placeholder {
+.pw-select::placeholder {
   color: var(--pw-text-secondary);
   opacity: 0.7;
 }
@@ -211,26 +196,14 @@ select::placeholder {
 
   .pw-input:focus,
   .pw-textarea:focus,
-  .pw-select:focus,
-  input[type="text"]:focus,
-  input[type="password"]:focus,
-  input[type="url"]:focus,
-  textarea:focus,
-  select:focus {
+  .pw-select:focus {
     background: rgba(15, 23, 42, 0.98) !important;
     border-color: var(--pw-primary-500) !important;
   }
 
   .pw-input::placeholder,
-  .pw-input::-webkit-input-placeholder,
-  .pw-input::-moz-placeholder,
   .pw-textarea::placeholder,
-  .pw-textarea::-webkit-input-placeholder,
-  .pw-textarea::-moz-placeholder,
-  input[type="text"]::placeholder,
-  input[type="password"]::placeholder,
-  input[type="url"]::placeholder,
-  textarea::placeholder {
+  .pw-select::placeholder {
     color: #94a3b8;
     opacity: 0.9;
   }
@@ -247,52 +220,7 @@ select::placeholder {
   border-left: 3px solid var(--pw-error-500);
 }
 
-/* Legacy form styles for backward compatibility */
-input[type="text"],
-input[type="password"],
-input[type="url"],
-textarea,
-select {
-  width: 100%;
-  padding: var(--pw-space-3) var(--pw-space-4);
-  border: 2px solid var(--pw-border-color);
-  border-radius: var(--pw-radius-lg);
-  font-size: 14px;
-  transition: all 0.2s ease;
-  background: var(--pw-bg-primary);
-  color: var(--pw-text-primary);
-  box-sizing: border-box;
-}
 
-@media (prefers-color-scheme: dark) {
-  input[type="text"],
-  input[type="password"],
-  input[type="url"],
-  textarea,
-  select {
-    background: rgba(10, 16, 26, 0.94) !important;
-    color: #e2e8f0 !important;
-    border-color: rgba(148, 163, 184, 0.2) !important;
-  }
-}
-
-input[type="text"]:focus,
-input[type="password"]:focus,
-input[type="url"]:focus,
-textarea:focus,
-select:focus {
-  outline: none;
-  border-color: var(--pw-primary-500);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-}
-
-label {
-  display: block;
-  margin-bottom: var(--pw-space-2);
-  font-weight: 600;
-  color: var(--pw-text-primary);
-  font-size: 14px;
-}
 
 /* Checkbox Groups */
 .checkbox-group,
@@ -347,7 +275,6 @@ label {
 }
 
 /* Button Groups */
-.button-group,
 .pw-button-group {
   display: flex;
   gap: var(--pw-space-3);
@@ -361,55 +288,6 @@ label {
   gap: var(--pw-space-3);
   max-width: 300px;
   margin: var(--pw-space-8) auto;
-}
-
-/* Button Styles */
-.btn {
-  padding: var(--pw-space-3) var(--pw-space-5);
-  border: none;
-  border-radius: var(--pw-radius-lg);
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--pw-space-2);
-  text-decoration: none;
-  position: relative;
-  overflow: hidden;
-}
-
-.btn-primary {
-  background: var(--pw-gradient-primary);
-  color: white;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-}
-
-.btn-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
-}
-
-.btn-secondary {
-  background: var(--pw-bg-primary);
-  color: var(--pw-primary-600);
-  border: 2px solid var(--pw-primary-600);
-}
-
-.btn-secondary:hover {
-  background: var(--pw-primary-600);
-  color: white;
-  transform: translateY(-1px);
-  box-shadow: var(--pw-shadow);
-}
-
-.btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  transform: none !important;
-  box-shadow: none !important;
 }
 
 /* Special Components */
@@ -480,8 +358,6 @@ label {
 }
 
 /* Status and Alert Messages */
-.message,
-.status,
 .pw-alert {
   padding: var(--pw-space-4);
   border-radius: var(--pw-radius-lg);
@@ -490,32 +366,24 @@ label {
   animation: slideDown 0.4s ease-out;
 }
 
-.message.success,
-.status.success,
 .pw-alert.success {
   background: var(--pw-success-50);
   border-left-color: var(--pw-success-500);
   color: var(--pw-success-700);
 }
 
-.message.error,
-.status.error,
 .pw-alert.error {
   background: var(--pw-error-50);
   border-left-color: var(--pw-error-500);
   color: var(--pw-error-700);
 }
 
-.message.warning,
-.status.warning,
 .pw-alert.warning {
   background: var(--pw-warning-50);
   border-left-color: var(--pw-warning-500);
   color: var(--pw-warning-700);
 }
 
-.message.info,
-.status.info,
 .pw-alert.info {
   background: var(--pw-primary-50);
   border-left-color: var(--pw-primary-500);
@@ -605,23 +473,6 @@ a:hover {
   color: var(--pw-text-secondary);
   margin-top: var(--pw-space-2);
   line-height: 1.4;
-}
-
-/* Utility Classes */
-.hidden {
-  display: none !important;
-}
-
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
 }
 
 /* Animations */

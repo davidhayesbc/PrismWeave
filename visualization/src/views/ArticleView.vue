@@ -219,13 +219,13 @@ onMounted(async () => {
 .article-container {
   display: flex;
   height: 100%;
-  background: white;
+  background: var(--pw-panel-bg);
 }
 
 .article-sidebar {
   width: 320px;
-  background: #fafafa;
-  border-right: 1px solid #ddd;
+  background: var(--pw-bg-secondary);
+  border-right: 1px solid var(--pw-border-color);
   padding: 1.5rem;
   overflow-y: auto;
 }
@@ -237,7 +237,7 @@ onMounted(async () => {
 .metadata-section h3 {
   font-size: 1rem;
   margin-bottom: 1rem;
-  color: #2c3e50;
+  color: var(--pw-text-primary);
 }
 
 .field {
@@ -248,7 +248,7 @@ onMounted(async () => {
   display: block;
   font-size: 0.85rem;
   font-weight: 600;
-  color: #666;
+  color: var(--pw-text-secondary);
   margin-bottom: 0.25rem;
 }
 
@@ -259,7 +259,7 @@ onMounted(async () => {
 
 .field p {
   margin: 0;
-  color: #333;
+  color: var(--pw-text-primary);
 }
 
 .taxonomy-tags {
@@ -276,11 +276,11 @@ onMounted(async () => {
 }
 
 .taxonomy-tag-name {
-  color: #2c3e50;
+  color: var(--pw-text-primary);
 }
 
 .taxonomy-tag-confidence {
-  color: #666;
+  color: var(--pw-text-secondary);
   font-size: 0.85rem;
 }
 
@@ -290,7 +290,7 @@ onMounted(async () => {
   gap: 0.5rem;
   margin-top: 2rem;
   padding-top: 1rem;
-  border-top: 1px solid #ddd;
+  border-top: 1px solid var(--pw-border-color);
 }
 
 .actions-section button {
@@ -305,18 +305,20 @@ onMounted(async () => {
 
 .editor h2 {
   margin-bottom: 1rem;
-  color: #2c3e50;
+  color: var(--pw-text-primary);
 }
 
 .content-editor {
   width: 100%;
   height: calc(100vh - 200px);
   padding: 1rem;
-  font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+  font-family: var(--pw-font-mono);
   font-size: 0.9rem;
   line-height: 1.6;
-  border: 1px solid #ddd;
-  border-radius: 4px;
+  border: 1px solid var(--pw-border-color);
+  border-radius: var(--pw-radius);
+  background: var(--pw-bg-primary);
+  color: var(--pw-text-primary);
   resize: vertical;
 }
 
@@ -328,19 +330,19 @@ onMounted(async () => {
 .content-viewer :deep(h1) {
   font-size: 2rem;
   margin: 2rem 0 1rem 0;
-  color: #2c3e50;
+  color: var(--pw-text-primary);
 }
 
 .content-viewer :deep(h2) {
   font-size: 1.5rem;
   margin: 1.5rem 0 0.75rem 0;
-  color: #2c3e50;
+  color: var(--pw-text-primary);
 }
 
 .content-viewer :deep(h3) {
   font-size: 1.25rem;
   margin: 1.25rem 0 0.5rem 0;
-  color: #2c3e50;
+  color: var(--pw-text-primary);
 }
 
 .content-viewer :deep(p) {
@@ -359,15 +361,15 @@ onMounted(async () => {
 }
 
 .content-viewer :deep(code) {
-  background: #f5f5f5;
+  background: var(--pw-bg-secondary);
   padding: 0.2rem 0.4rem;
   border-radius: 3px;
-  font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+  font-family: var(--pw-font-mono);
   font-size: 0.9em;
 }
 
 .content-viewer :deep(pre) {
-  background: #f5f5f5;
+  background: var(--pw-bg-secondary);
   padding: 1rem;
   border-radius: 4px;
   overflow-x: auto;
@@ -380,14 +382,14 @@ onMounted(async () => {
 }
 
 .content-viewer :deep(blockquote) {
-  border-left: 4px solid #ddd;
+  border-left: 4px solid var(--pw-border-color);
   padding-left: 1rem;
   margin: 1rem 0;
-  color: #666;
+  color: var(--pw-text-secondary);
 }
 
 .content-viewer :deep(a) {
-  color: #007bff;
+  color: var(--pw-primary-600);
   text-decoration: none;
 }
 
