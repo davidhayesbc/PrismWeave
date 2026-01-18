@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict
 
@@ -94,7 +94,7 @@ def test_load_existing_index_handles_missing_file(tmp_path: Path) -> None:
 
 def test_save_and_load_round_trip(tmp_path: Path) -> None:
     index_path = tmp_path / "articles.json"
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     article = ArticleMetadata(
         id="id1",
         path="documents/doc.md",

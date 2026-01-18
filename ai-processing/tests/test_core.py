@@ -61,11 +61,11 @@ class TestDocumentProcessor:
         processor = DocumentProcessor(config)
         
         expected_extensions = {'.md', '.txt', '.pdf', '.html', '.htm'}
-        loaders = set(processor.loaders.keys())
-        assert expected_extensions.issubset(loaders)
+        converters = set(processor.converters.keys())
+        assert expected_extensions.issubset(converters)
         # Docx support is optional; verify gracefully if available
-        if '.docx' in loaders:
-            assert processor.loaders['.docx'] is not None
+        if '.docx' in converters:
+            assert processor.converters['.docx'] is not None
     
     def test_markdown_with_frontmatter(self):
         """Test processing markdown file with frontmatter"""

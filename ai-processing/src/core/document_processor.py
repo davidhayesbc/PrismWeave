@@ -59,9 +59,6 @@ class DocumentProcessor:
                 # Provide graceful degradation if python-docx or other deps are missing
                 print(f"Warning: Docx support unavailable ({exc})")
 
-        # Backward compatibility for older interfaces that referenced loaders directly
-        self.loaders = self.converters
-
     def process_document(self, file_path: Path) -> List[Document]:
         """
         Process a document file and return chunks as Haystack Documents
@@ -89,15 +86,12 @@ class DocumentProcessor:
             result = converter.run(sources=[file_path])
             documents = result.get("documents", [])
 
-        # Ensure metadata alias is available on all base documents
-        documents = [self._ensure_metadata_alias(doc) for doc in documents]
-
         # Split documents into chunks
         chunks = []
         for doc in documents:
             split_result = self.text_splitter.run(documents=[doc])
             doc_chunks = split_result.get("documents", [])
-            chunks.extend(self._ensure_metadata_alias(chunk) for chunk in doc_chunks)
+            chunks.extend(doc_chunks)
 
         # Add file metadata to all chunks
         for i, chunk in enumerate(chunks):
@@ -131,9 +125,6 @@ class DocumentProcessor:
                     # Don't fail processing if git operations fail
                     print(f"Warning: Failed to get git metadata for {file_path}: {e}")
 
-            # Keep metadata alias in sync after updates
-            self._ensure_metadata_alias(chunk)
-
         return chunks
 
     def _load_markdown(self, file_path: Path) -> List[Document]:
@@ -162,7 +153,7 @@ class DocumentProcessor:
 
             document = Document(content=post.content, meta=metadata)
 
-            return [self._ensure_metadata_alias(document)]
+            return [document]
 
         except Exception as e:
             # Fallback to regular text loading if frontmatter parsing fails
@@ -180,14 +171,5 @@ class DocumentProcessor:
                         "source": str(file_path),
                     }
                 )
-                self._ensure_metadata_alias(doc)
 
             return documents
-
-    @staticmethod
-    def _ensure_metadata_alias(document: Document) -> Document:
-        """Ensure Document exposes a metadata attribute mirroring meta for backward compatibility."""
-
-        # Avoid clobbering existing attributes while keeping alias in sync
-        setattr(document, "metadata", document.meta)
-        return document
