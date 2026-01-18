@@ -908,7 +908,6 @@ watch(
     }
   },
 );
-
 </script>
 
 <style scoped>
