@@ -8,21 +8,6 @@ interface IFormData {
   githubToken: string;
   githubRepo: string;
   commitMessage: string;
-  fileNaming: string;
-}
-
-/**
- * Configuration interface for bookmarklet functionality.
- * Defines the complete set of options that can be embedded in a generated bookmarklet.
- */
-interface IBookmarkletConfig {
-  githubToken: string;
-  githubRepo: string;
-  commitMessageTemplate?: string;
-  fileNamingPattern?: string;
-  captureImages?: boolean;
-  removeAds?: boolean;
-  removeNavigation?: boolean;
 }
 
 /**
@@ -36,7 +21,7 @@ interface IBookmarkletConfig {
  * - Real-time form validation with user-friendly error messages
  * - Automatic detection of injectable script URLs (local vs production)
  * - Secure handling of GitHub tokens (not saved in localStorage)
- * - Generation of compact, self-contained bookmarklets
+ * - Generation of compact loader bookmarklets
  * - Download functionality for bookmarklet HTML pages
  * - Clipboard copy functionality with fallback for older browsers
  *
@@ -51,7 +36,6 @@ class BookmarkletGeneratorUI {
   private resultSection: HTMLElement;
   private bookmarkletLink: HTMLAnchorElement;
   private bookmarkletCodeDisplay: HTMLElement;
-  private currentBookmarkletCode: string = '';
 
   private readonly injectableBaseUrl: string = this.detectInjectableBaseUrl();
 
@@ -85,13 +69,6 @@ class BookmarkletGeneratorUI {
     if (configElement?.dataset.injectableUrl) {
       return configElement.dataset.injectableUrl;
     }
-
-    const currentUrl = window.location.href;
-
-    if (currentUrl.includes('localhost') || currentUrl.startsWith('file://')) {
-      return BOOKMARKLET_CONFIG.LOCAL_INJECTABLE_BASE;
-    }
-
     return BOOKMARKLET_CONFIG.DEFAULT_INJECTABLE_BASE;
   }
 
@@ -140,9 +117,6 @@ class BookmarkletGeneratorUI {
           (document.getElementById('commit-message') as HTMLInputElement).value =
             settings.commitMessage;
         }
-        if (settings.fileNaming) {
-          (document.getElementById('file-naming') as HTMLSelectElement).value = settings.fileNaming;
-        }
       }
     } catch (error) {
       console.warn('Failed to load saved settings:', error);
@@ -161,7 +135,6 @@ class BookmarkletGeneratorUI {
       const settingsToSave = {
         githubRepo: formData.githubRepo,
         commitMessage: formData.commitMessage,
-        fileNaming: formData.fileNaming,
         // Intentionally not saving the token
       };
       localStorage.setItem('prismweave_generator_settings', JSON.stringify(settingsToSave));
@@ -190,10 +163,8 @@ class BookmarkletGeneratorUI {
     this.showStatus('Generating your personalized bookmarklet...', 'info');
 
     try {
-      // Generate a compact, self-contained bookmarklet instead of the loader version
+      // Generate a compact loader bookmarklet with embedded configuration
       const bookmarkletCode = this.generateCompactBookmarklet(formData);
-
-      this.currentBookmarkletCode = bookmarkletCode;
       this.displayResult(bookmarkletCode, formData);
       this.saveSettings(formData);
 
@@ -215,26 +186,6 @@ class BookmarkletGeneratorUI {
       githubToken: (document.getElementById('github-token') as HTMLInputElement).value.trim(),
       githubRepo: (document.getElementById('github-repo') as HTMLInputElement).value.trim(),
       commitMessage: (document.getElementById('commit-message') as HTMLInputElement).value.trim(),
-      fileNaming: (document.getElementById('file-naming') as HTMLSelectElement).value,
-    };
-  }
-
-  /**
-   * Converts form data to the bookmarklet configuration format.
-   * Maps form field values to the configuration structure expected by the bookmarklet.
-   * Sets sensible defaults for optional configuration values.
-   *
-   * @param formData - The form data to convert
-   * @returns The bookmarklet configuration object
-   */
-  convertToBookmarkletConfig(formData: IFormData): IBookmarkletConfig {
-    return {
-      githubToken: formData.githubToken,
-      githubRepo: formData.githubRepo,
-      commitMessageTemplate: formData.commitMessage,
-      captureImages: true,
-      removeAds: true,
-      removeNavigation: true,
     };
   }
 
@@ -253,7 +204,9 @@ class BookmarkletGeneratorUI {
   generateCompactBookmarklet(formData: IFormData): string {
     const t = this.escapeJavaScriptString(formData.githubToken);
     const r = this.escapeJavaScriptString(formData.githubRepo);
-    const m = this.escapeJavaScriptString(formData.commitMessage || 'PrismWeave: Add {title}');
+    const m = this.escapeJavaScriptString(
+      formData.commitMessage || BOOKMARKLET_CONFIG.DEFAULT_COMMIT_TEMPLATE,
+    );
     const u = this.escapeJavaScriptString(
       this.injectableBaseUrl + '/content-extractor-injectable.js',
     );
@@ -382,12 +335,14 @@ class BookmarkletGeneratorUI {
    * @param type - The type of status message (info, success, or error)
    */
   showStatus(message: string, type: 'info' | 'success' | 'error'): void {
-    this.statusMessage.innerHTML = `<div class="status-message status-${type}">${message}</div>`;
+    this.statusMessage.textContent = message;
+    this.statusMessage.classList.remove('status-info', 'status-success', 'status-error');
+    this.statusMessage.classList.add('status-message', `status-${type}`);
 
     // Auto-hide success messages
     if (type === 'success') {
       setTimeout(() => {
-        this.statusMessage.innerHTML = '';
+        this.statusMessage.textContent = '';
       }, 5000);
     }
   }

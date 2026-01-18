@@ -1,7 +1,7 @@
 # PrismWeave Personal Bookmarklet Generator
 
 This directory contains the personal bookmarklet generator for PrismWeave,
-providing a simple way to create self-contained bookmarklets with embedded
+providing a simple way to create lightweight loader bookmarklets with embedded
 GitHub credentials for seamless content capture.
 
 ## Architecture Overview
@@ -10,9 +10,8 @@ GitHub credentials for seamless content capture.
 
 #### Personal Bookmarklet Generator
 
-- **`generator.ts`** - Complete bookmarklet generator interface that creates
-  personalized bookmarklets with embedded content extraction and GitHub
-  integration
+- **`generator.ts`** - Bookmarklet generator interface that creates
+  personalized loader bookmarklets with embedded GitHub integration
 - **`generator.html`** - User-friendly interface for generating custom
   bookmarklets
 - **`config.ts`** - Shared configuration constants and settings
@@ -30,12 +29,12 @@ GitHub credentials for seamless content capture.
 - **Metadata Enhancement**: Comprehensive extraction of structured data and
   social meta tags
 
-#### Self-Contained Design
+#### Lightweight Loader Design
 
-- **No External Dependencies**: Everything needed is embedded in the bookmarklet
-- **Instant Execution**: No loading delays or network requests during operation
-- **Privacy-Focused**: No external service calls or tracking
-- **Reliable Operation**: No external failure points or CDN dependencies
+- **Hosted Injectable**: Loads the PrismWeave injector script at runtime
+- **Fast Setup**: Small bookmarklet size with minimal embedded logic
+- **Privacy-Focused**: No analytics or tracking calls
+- **Config Embedded**: GitHub settings are embedded at generation time
 
 #### Advanced User Experience
 
@@ -43,7 +42,6 @@ GitHub credentials for seamless content capture.
 - **Progress Tracking**: Real-time feedback with detailed processing steps
 - **Error Handling**: Contextual error messages with actionable troubleshooting
   steps
-- **Smart Filename Generation**: Intelligent file naming based on content
   analysis
 
 ## Build System
@@ -69,8 +67,7 @@ npm run cleanup:bookmarklet
 #### Personal Bookmarklet Files (dist/bookmarklet/)
 
 - **`generator.html`** - Interactive bookmarklet generator interface
-- **`generator.js`** - Compiled generator with embedded content extraction and
-  GitHub integration
+- **`generator.js`** - Compiled generator with loader bookmarklet logic
 - **`README.md`** - Documentation
 
 ## Local Testing & Development
@@ -134,24 +131,14 @@ When the server is running on `http://localhost:8080`:
 #### Modifying the Generator
 
 To modify the personal bookmarklet generator, edit
-`src/bookmarklet/generator.ts`:
-
-```typescript
-// Configuration for the generator interface
-const config = {
-  apiUrl: 'https://api.github.com',
-  defaultBranch: 'main',
-  maxContentSize: 1000000, // 1MB limit for content
-  timeout: 30000, // 30 second timeout
-};
-```
+`src/bookmarklet/generator.ts` and the shared defaults in
+`src/bookmarklet/config.ts`.
 
 #### Generator Development
 
 The personal bookmarklet generator is built from:
 
-- `generator.ts` - Complete generator interface with embedded content extraction
-  and GitHub integration
+- `generator.ts` - Generator UI and loader bookmarklet creation
 - `config.ts` - Shared configuration constants
 
 Changes to these files require rebuilding with `npm run build:bookmarklet`.
@@ -161,7 +148,7 @@ Changes to these files require rebuilding with `npm run build:bookmarklet`.
 ```
 browser-extension/
 ├── src/bookmarklet/           # Source files
-│   ├── generator.ts           # Complete bookmarklet generator with embedded functionality
+│   ├── generator.ts           # Bookmarklet generator UI and loader generation logic
 │   ├── generator.html         # Generator interface template
 │   ├── config.ts              # Shared configuration constants
 │   └── README.md              # This documentation
@@ -170,7 +157,7 @@ browser-extension/
 │   └── ...
 └── dist/bookmarklet/          # Built files (auto-generated)
     ├── generator.html         # Interactive bookmarklet generator interface
-    ├── generator.js           # Compiled generator with all functionality
+    ├── generator.js           # Compiled generator with loader logic
     └── README.md              # Documentation
 ```
 
@@ -201,13 +188,13 @@ Once generated, using your personal bookmarklet is simple:
 const config = {
   token: 'your_github_token_here',
   repository: 'your_username/your_repo',
-  branch: 'main',
+  commitMessage: 'PrismWeave: Add {title}',
 };
 ```
 
 ## Configuration
 
-The personal bookmarklet generator creates self-contained bookmarklets with
+The personal bookmarklet generator creates loader-based bookmarklets with
 embedded configuration:
 
 ```typescript
@@ -215,18 +202,14 @@ interface IPersonalBookmarkletConfig {
   // GitHub Integration (embedded at generation time)
   githubToken: string; // Your Personal Access Token
   githubRepo: string; // Repository name (owner/repo)
-  githubBranch: string; // Target branch (default: 'main')
-  folderPath: string; // Target folder (default: 'documents')
+  commitMessageTemplate: string; // Commit template (default: PrismWeave: Add {title})
 
-  // Content Processing (embedded defaults)
+  // Content Processing (runtime defaults)
   includeImages: boolean; // Extract and reference images
   includeLinks: boolean; // Preserve links in markdown
   cleanHtml: boolean; // Remove unwanted elements
-
-  // Runtime Behavior
-  smartFilenames: boolean; // Generate intelligent filenames
-  showPreview: boolean; // Show content preview (when possible)
-  timeoutMs: number; // API timeout (default: 30000)
+  generateFrontmatter: boolean; // Include YAML frontmatter
+  includeMetadata: boolean; // Include extracted metadata
 }
 ```
 
@@ -240,21 +223,21 @@ interface IPersonalBookmarkletConfig {
 
 ## Size Considerations
 
-The personal bookmarklet approach generates compact, self-contained
+The personal bookmarklet approach generates compact, loader-based
 bookmarklets:
 
-- **Personal Bookmarklet**: ~8-12KB (varies with configuration)
+- **Personal Bookmarklet**: Small loader (size varies with configuration)
 - **Browser Limit**: Modern browsers support larger bookmarklets
-- **No External Dependencies**: Complete functionality embedded
+- **Hosted Injectable**: Full extraction logic lives in the injectable script
 
-### Self-Contained Approach Benefits
+### Loader Approach Benefits
 
 The personal bookmarklet is designed for modern browsers:
 
-1. **All-in-One**: Complete functionality without external runtime loading
-2. **Reliable**: No dependency on external services or CDNs
-3. **Private**: No tracking or analytics, works entirely within your browser
-4. **Immediate**: No loading delays or network timeouts
+1. **Lightweight**: Minimal embedded code
+2. **Maintainable**: Updates ship via the injectable script
+3. **Private**: No tracking or analytics
+4. **Reliable**: Clear error handling when the injectable fails to load
 
 ### Generated Components
 
@@ -267,26 +250,24 @@ When you build the personal bookmarklet system:
 #### Personal Bookmarklet Architecture
 
 ```javascript
-// Personal bookmarklet (self-contained)
+// Personal bookmarklet (loader)
 javascript: (function () {
-  // ... Complete personal bookmarklet with embedded GitHub API access
+  // ... Loads the PrismWeave injectable script and runs extraction
 })();
 ```
 
 The personal bookmarklet:
 
-- ✅ Self-contained with no external dependencies
-- ✅ Embeds GitHub Personal Access Token and repository configuration
-- ✅ Direct GitHub API integration for immediate content upload
-- ✅ Works offline once generated (no network dependencies for runtime)
-- ✅ Privacy-focused with no external service tracking
+- ✅ Lightweight loader with embedded GitHub configuration
+- ✅ Loads the PrismWeave injectable extractor at runtime
+- ✅ Direct GitHub API integration via the injected script
+- ✅ Privacy-focused with no tracking or analytics calls
 
 #### Benefits of Personal Bookmarklet Approach
 
-- **No External Dependencies**: Complete functionality embedded in bookmarklet
-- **Instant Execution**: No loading delays or network requests for runtime
-- **Privacy-Focused**: No tracking, analytics, or external service calls
-- **Reliable Operation**: Works regardless of CDN availability or network issues
+- **Small Bookmarklet Size**: Minimal embedded code
+- **Centralized Updates**: Update the injectable once, bookmarklet stays current
+- **Privacy-Focused**: No tracking or analytics
 - **Simple Deployment**: Generate once, use anywhere
 - **Full GitHub Integration**: Direct API access with proper authentication
 
@@ -361,8 +342,8 @@ npm run build:bookmarklet
 
 #### Generator Interface Issues
 
-- Current generator includes complete embedded functionality
-- Size typically 8-12KB for generated bookmarklets
+- Current generator loads the injectable script for extraction
+- Size typically small for generated bookmarklets
 - If issues occur, verify generator.ts builds correctly
 
 ### Personal Bookmarklet Usage
@@ -378,9 +359,8 @@ For optimal use of personal bookmarklets:
 
 The personal bookmarklet includes:
 
-- **Direct GitHub Integration**: No external services required
-- **Complete Content Extraction**: Smart content detection and markdown
-  conversion embedded
+- **Direct GitHub Integration**: GitHub calls are handled by the injectable
+- **Complete Content Extraction**: Smart extraction runs via the injectable
 - **Error Handling**: Clear feedback for any issues encountered
 - **Security Focus**: All operations happen locally in your browser
 

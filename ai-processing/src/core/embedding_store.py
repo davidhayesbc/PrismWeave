@@ -45,7 +45,8 @@ class EmbeddingStore:
         """Clean metadata to ensure ChromaDB compatibility.
 
         ChromaDB supports: str, int, float, bool, and in some versions lists/dicts.
-        We prioritize preserving structure where possible.
+        For consistency in downstream filtering, lists are normalized to
+        comma-separated strings.
         """
         cleaned = {}
         for key, value in metadata.items():
@@ -53,17 +54,14 @@ class EmbeddingStore:
                 continue
             elif isinstance(value, (str, int, float, bool)):
                 cleaned[key] = value
-            elif isinstance(value, (list, dict)):
-                # Try to preserve structure; ChromaDB >= 0.4 supports JSON-serializable types
+            elif isinstance(value, list):
+                # Normalize lists to comma-separated strings
                 try:
-                    # For lists, keep them as-is if they contain primitive types
-                    if isinstance(value, list) and all(isinstance(item, (str, int, float, bool)) for item in value):
-                        cleaned[key] = value
-                    else:
-                        # Fall back to string representation
-                        cleaned[key] = str(value) if isinstance(value, dict) else ", ".join(str(item) for item in value)
+                    cleaned[key] = ", ".join(str(item) for item in value)
                 except (TypeError, ValueError):
                     cleaned[key] = str(value)
+            elif isinstance(value, dict):
+                cleaned[key] = str(value)
             else:
                 # Convert other types to string
                 cleaned[key] = str(value)
