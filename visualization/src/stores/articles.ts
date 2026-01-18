@@ -190,11 +190,11 @@ export const useArticlesStore = defineStore('articles', () => {
   // Actions
   async function fetchArticles() {
     loading.value = true;
-    error.value = null;
+    setError(null);
     try {
       articles.value = await articlesApi.getArticles();
     } catch (e) {
-      error.value = e instanceof Error ? e.message : 'Failed to fetch articles';
+      setError(e instanceof Error ? e.message : 'Failed to fetch articles');
       console.error('Error fetching articles:', e);
     } finally {
       loading.value = false;
@@ -203,11 +203,11 @@ export const useArticlesStore = defineStore('articles', () => {
 
   async function fetchArticle(id: string) {
     loading.value = true;
-    error.value = null;
+    setError(null);
     try {
       currentArticle.value = await articlesApi.getArticle(id);
     } catch (e) {
-      error.value = e instanceof Error ? e.message : 'Failed to fetch article';
+      setError(e instanceof Error ? e.message : 'Failed to fetch article');
       console.error('Error fetching article:', e);
     } finally {
       loading.value = false;
@@ -216,7 +216,7 @@ export const useArticlesStore = defineStore('articles', () => {
 
   async function updateArticle(id: string, updates: UpdateArticleRequest) {
     loading.value = true;
-    error.value = null;
+    setError(null);
     try {
       currentArticle.value = await articlesApi.updateArticle(id, updates);
       // Update in list
@@ -225,7 +225,7 @@ export const useArticlesStore = defineStore('articles', () => {
         articles.value[index] = { ...articles.value[index], ...updates };
       }
     } catch (e) {
-      error.value = e instanceof Error ? e.message : 'Failed to update article';
+      setError(e instanceof Error ? e.message : 'Failed to update article');
       console.error('Error updating article:', e);
       throw e;
     } finally {
@@ -235,7 +235,7 @@ export const useArticlesStore = defineStore('articles', () => {
 
   async function deleteArticle(id: string) {
     loading.value = true;
-    error.value = null;
+    setError(null);
     try {
       await articlesApi.deleteArticle(id);
       articles.value = articles.value.filter((a) => a.id !== id);
@@ -243,7 +243,7 @@ export const useArticlesStore = defineStore('articles', () => {
         currentArticle.value = null;
       }
     } catch (e) {
-      error.value = e instanceof Error ? e.message : 'Failed to delete article';
+      setError(e instanceof Error ? e.message : 'Failed to delete article');
       console.error('Error deleting article:', e);
       throw e;
     } finally {
@@ -253,13 +253,13 @@ export const useArticlesStore = defineStore('articles', () => {
 
   async function rebuildVisualization() {
     loading.value = true;
-    error.value = null;
+    setError(null);
     try {
       const response = await articlesApi.rebuildVisualization();
       await fetchArticles(); // Refresh articles after rebuild
       return response;
     } catch (e) {
-      error.value = e instanceof Error ? e.message : 'Failed to rebuild visualization';
+      setError(e instanceof Error ? e.message : 'Failed to rebuild visualization');
       console.error('Error rebuilding visualization:', e);
       throw e;
     } finally {
@@ -285,6 +285,10 @@ export const useArticlesStore = defineStore('articles', () => {
     notice.value = message;
   }
 
+  function setError(message: string | null) {
+    error.value = message;
+  }
+
   return {
     // State
     articles,
@@ -307,5 +311,6 @@ export const useArticlesStore = defineStore('articles', () => {
     setFilters,
     clearFilters,
     setNotice,
+    setError,
   };
 });

@@ -241,7 +241,6 @@ type ForceLink = {
 
 const svgRef = ref<SVGSVGElement | null>(null);
 const searchQuery = ref('');
-const selectedTopics = ref<string[]>([]);
 const selectedCategories = ref<string[]>([]);
 const selectedTagValues = ref<string[]>([]);
 
@@ -277,7 +276,7 @@ let filterDebounceTimer: number | null = null;
 function applyFilters() {
   store.setFilters({
     searchQuery: searchQuery.value,
-    topics: selectedTopics.value,
+    topics: [],
     categories: selectedCategories.value,
     tagValues: selectedTagValues.value,
   });
@@ -305,7 +304,6 @@ function updateFiltersDebounced() {
 
 function clearFilters() {
   searchQuery.value = '';
-  selectedTopics.value = [];
   selectedCategories.value = [];
   selectedTagValues.value = [];
   store.clearFilters();
@@ -441,13 +439,7 @@ function getCategoryColor(category: string): string {
   return CATEGORY_COLOR_PALETTE[index] ?? NO_CATEGORY_COLOR;
 }
 
-function getGraphArticles(): ArticleSummary[] {
-  const filtered = store.filteredArticles;
-
-  return filtered;
-}
-
-const graphArticles = computed(() => getGraphArticles());
+const graphArticles = computed(() => store.filteredArticles);
 
 const topMatches = computed(() => {
   const articles = [...graphArticles.value];
@@ -607,7 +599,7 @@ function renderVisualization() {
     return;
   }
 
-  const articles = getGraphArticles();
+  const articles = graphArticles.value;
 
   if (articles.length === 0) {
     d3.select(svgRef.value).selectAll('*').remove();
@@ -917,12 +909,6 @@ watch(
   },
 );
 
-watch(
-  () => matchSort.value,
-  () => {
-    // No render needed; list is computed.
-  },
-);
 </script>
 
 <style scoped>

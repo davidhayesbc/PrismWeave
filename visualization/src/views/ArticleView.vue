@@ -176,9 +176,9 @@ async function saveChanges() {
     });
 
     editing.value = false;
-    alert('Article saved successfully!');
+    store.setNotice('Article saved successfully.');
   } catch (e) {
-    alert('Failed to save article. See console for details.');
+    store.setError('Failed to save article. See console for details.');
   } finally {
     saving.value = false;
   }
@@ -202,10 +202,10 @@ async function confirmDelete() {
   if (confirmed) {
     try {
       await store.deleteArticle(article.value.id);
-      alert('Article deleted successfully');
-      router.push({ name: 'map' });
+      store.setNotice('Article deleted successfully.');
+      router.push({ name: 'graph' });
     } catch (e) {
-      alert('Failed to delete article. See console for details.');
+      store.setError('Failed to delete article. See console for details.');
     }
   }
 }

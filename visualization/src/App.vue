@@ -12,12 +12,8 @@
     <main class="app-main">
       <router-view />
     </main>
-    <div v-if="error" class="error-toast" @click="clearError">
-      {{ error }}
-    </div>
-
-    <div v-if="notice" class="notice-toast" @click="clearNotice">
-      {{ notice }}
+    <div v-if="toastMessage" class="toast" :class="toastClass" @click="clearToast">
+      {{ toastMessage }}
     </div>
   </div>
 </template>
@@ -30,6 +26,8 @@ const store = useArticlesStore();
 const loading = computed(() => store.loading);
 const error = computed(() => store.error);
 const notice = computed(() => store.notice);
+const toastMessage = computed(() => notice.value || error.value);
+const toastClass = computed(() => (notice.value ? 'toast--notice' : 'toast--error'));
 
 async function handleRebuild() {
   try {
@@ -40,11 +38,8 @@ async function handleRebuild() {
   }
 }
 
-function clearError() {
-  store.error = null;
-}
-
-function clearNotice() {
+function clearToast() {
+  store.setError(null);
   store.setNotice(null);
 }
 </script>
@@ -95,12 +90,11 @@ function clearNotice() {
   overflow: hidden;
 }
 
-.error-toast {
+.toast {
   position: fixed;
   bottom: 2rem;
   right: 2rem;
   padding: 1rem 1.5rem;
-  background: #dc3545;
   color: white;
   border-radius: 4px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
@@ -108,17 +102,12 @@ function clearNotice() {
   animation: slideIn 0.3s ease;
 }
 
-.notice-toast {
-  position: fixed;
-  bottom: 2rem;
-  right: 2rem;
-  padding: 1rem 1.5rem;
+.toast--error {
+  background: #dc3545;
+}
+
+.toast--notice {
   background: #198754;
-  color: white;
-  border-radius: 4px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  cursor: pointer;
-  animation: slideIn 0.3s ease;
 }
 
 @keyframes slideIn {
