@@ -27,7 +27,9 @@ button {
   border-radius: var(--pw-radius);
   cursor: pointer;
   font-size: 0.9rem;
-  transition: background-color 0.2s, box-shadow 0.2s;
+  transition:
+    background-color 0.2s,
+    box-shadow 0.2s;
 }
 
 button:hover {

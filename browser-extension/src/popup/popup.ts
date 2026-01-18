@@ -1192,7 +1192,8 @@ export class PrismWeavePopup {
       </div>
     `;
 
-    container.className = 'pw-card pw-card--static pw-status-card pw-status-card--warning missing-settings';
+    container.className =
+      'pw-card pw-card--static pw-status-card pw-status-card--warning missing-settings';
     container.style.display = 'block';
 
     // Setup event handlers
