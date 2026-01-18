@@ -4,7 +4,7 @@ Document processor using Haystack for text splitting and document conversion
 
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import List, Optional
 
 import frontmatter
 
@@ -139,7 +139,7 @@ class DocumentProcessor:
         """
 
         try:
-            with open(file_path, "r", encoding="utf-8") as f:
+            with open(file_path, encoding="utf-8") as f:
                 post = frontmatter.load(f)
 
             # Create Haystack document with content and metadata from frontmatter
