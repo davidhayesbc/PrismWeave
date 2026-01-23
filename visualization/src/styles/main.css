@@ -1,75 +1,27 @@
-@import '../../../shared-styles/design-tokens.css';
-@import '../../../shared-styles/shared-ui.css';
+@import '../../../website/assets/styles.css';
 
 * {
-  margin: 0;
-  padding: 0;
   box-sizing: border-box;
 }
 
 body {
-  font-family: var(--pw-font-family);
-  line-height: 1.6;
-  color: var(--pw-text-primary);
-  background: var(--pw-page-bg);
+  margin: 0;
 }
 
 #app {
   width: 100%;
-  height: 100vh;
-  overflow: hidden;
+  min-height: 100vh;
 }
 
-/* Common styles */
-button {
-  padding: 0.5rem 1rem;
-  border: none;
-  border-radius: var(--pw-radius);
-  cursor: pointer;
-  font-size: 0.9rem;
-  transition:
-    background-color 0.2s,
-    box-shadow 0.2s;
+.viz-page {
+  width: min(1200px, 100%);
+  min-height: calc(100vh - (clamp(24px, 6vw, 60px) * 2));
+  height: calc(100vh - (clamp(24px, 6vw, 60px) * 2));
 }
 
-button:hover {
-  opacity: 0.9;
-}
-
-button.primary {
-  background: var(--pw-btn-primary-bg);
-  color: var(--pw-btn-primary-text);
-}
-
-button.danger {
-  background: var(--pw-btn-error-bg);
-  color: var(--pw-btn-error-text);
-}
-
-button.secondary {
-  background: var(--pw-bg-primary);
-  color: var(--pw-text-primary);
-  border: 1px solid var(--pw-border-color);
-}
-
-input[type='text'],
-input[type='search'],
-textarea {
-  padding: 0.5rem;
-  border: 1px solid var(--pw-border-color);
-  border-radius: var(--pw-radius);
-  font-family: inherit;
-  background: var(--pw-bg-primary);
-  color: var(--pw-text-primary);
-}
-
-select {
-  padding: 0.5rem;
-  border: 1px solid var(--pw-border-color);
-  border-radius: var(--pw-radius);
-  background: var(--pw-bg-primary);
-  color: var(--pw-text-primary);
-  cursor: pointer;
+.viz-main {
+  flex: 1;
+  min-height: 0;
 }
 
 .loading {
@@ -77,14 +29,18 @@ select {
   justify-content: center;
   align-items: center;
   height: 100%;
-  font-size: 1.2rem;
-  color: var(--pw-text-secondary);
+  font-size: 1rem;
+  color: var(--text-color);
+  background: var(--page-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  padding: 1rem;
 }
 
 .error {
   padding: 1rem;
-  background: var(--pw-error-50);
+  background: rgba(239, 68, 68, 0.12);
   color: var(--pw-error-600);
-  border-radius: var(--pw-radius);
-  margin: 1rem;
+  border-radius: var(--radius);
+  border: 1px solid rgba(239, 68, 68, 0.3);
 }

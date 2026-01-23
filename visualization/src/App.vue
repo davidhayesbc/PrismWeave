@@ -1,18 +1,23 @@
 <template>
-  <div class="app-container">
-    <header class="app-header">
-      <h1>PrismWeave</h1>
-      <nav>
-        <router-link to="/" class="nav-link">Graph</router-link>
-        <button @click="handleRebuild" :disabled="loading" class="secondary">
+  <div class="page viz-page">
+    <header class="site-header">
+      <div class="brand">
+        <div class="brand__meta">
+          <h1>PrismWeave</h1>
+          <p>Visualization</p>
+        </div>
+      </div>
+      <nav class="viz-nav">
+        <router-link to="/" class="pw-btn pw-btn-secondary">Graph</router-link>
+        <button @click="handleRebuild" :disabled="loading" class="pw-btn pw-btn-primary">
           {{ loading ? 'Rebuilding...' : 'Rebuild Index' }}
         </button>
       </nav>
     </header>
-    <main class="app-main">
+    <main class="page-main viz-main">
       <router-view />
     </main>
-    <div v-if="toastMessage" class="toast" :class="toastClass" @click="clearToast">
+    <div v-if="toastMessage" class="pw-toast" :class="toastClass" @click="clearToast">
       {{ toastMessage }}
     </div>
   </div>
@@ -27,7 +32,7 @@ const loading = computed(() => store.loading);
 const error = computed(() => store.error);
 const notice = computed(() => store.notice);
 const toastMessage = computed(() => notice.value || error.value);
-const toastClass = computed(() => (notice.value ? 'toast--notice' : 'toast--error'));
+const toastClass = computed(() => (notice.value ? 'pw-toast-success' : 'pw-toast-error'));
 
 async function handleRebuild() {
   try {
@@ -45,79 +50,9 @@ function clearToast() {
 </script>
 
 <style scoped>
-.app-container {
+.viz-nav {
   display: flex;
-  flex-direction: column;
-  height: 100vh;
-}
-
-.app-header {
-  display: flex;
-  justify-content: space-between;
+  gap: var(--pw-space-3);
   align-items: center;
-  padding: 1rem 2rem;
-  background: var(--pw-ui-accent-strong);
-  color: var(--pw-btn-primary-text);
-  box-shadow: var(--pw-shadow-sm);
-}
-
-.app-header h1 {
-  font-size: 1.5rem;
-  font-weight: 600;
-}
-
-.app-header nav {
-  display: flex;
-  gap: 1rem;
-  align-items: center;
-}
-
-.nav-link {
-  color: var(--pw-btn-primary-text);
-  text-decoration: none;
-  padding: 0.5rem 1rem;
-  border-radius: var(--pw-radius);
-  transition: background-color 0.2s;
-}
-
-.nav-link:hover,
-.nav-link.router-link-active {
-  background: var(--pw-ui-accent-soft);
-}
-
-.app-main {
-  flex: 1;
-  overflow: hidden;
-}
-
-.toast {
-  position: fixed;
-  bottom: 2rem;
-  right: 2rem;
-  padding: 1rem 1.5rem;
-  color: var(--pw-btn-primary-text);
-  border-radius: var(--pw-radius);
-  box-shadow: var(--pw-shadow-md);
-  cursor: pointer;
-  animation: slideIn 0.3s ease;
-}
-
-.toast--error {
-  background: var(--pw-error-600);
-}
-
-.toast--notice {
-  background: var(--pw-success-600);
-}
-
-@keyframes slideIn {
-  from {
-    transform: translateY(100%);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
 }
 </style>

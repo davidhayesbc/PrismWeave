@@ -143,7 +143,7 @@
       </div>
 
       <div class="filter-section">
-        <button @click="clearFilters" class="secondary">Clear Filters</button>
+        <button @click="clearFilters" class="pw-btn pw-btn-secondary">Clear Filters</button>
       </div>
 
       <div class="stats">

@@ -4,7 +4,7 @@
     <div v-else-if="store.error" class="error">{{ store.error }}</div>
     <template v-else-if="article">
       <aside class="article-sidebar">
-        <button @click="goBack" class="secondary">← Back to Graph</button>
+        <button @click="goBack" class="pw-btn pw-btn-secondary">← Back to Graph</button>
 
         <div class="metadata-section">
           <h3>Metadata</h3>
@@ -76,15 +76,15 @@
 
         <div class="actions-section">
           <template v-if="editing">
-            <button @click="saveChanges" class="primary" :disabled="saving">
+            <button @click="saveChanges" class="pw-btn pw-btn-primary" :disabled="saving">
               {{ saving ? 'Saving...' : 'Save' }}
             </button>
-            <button @click="cancelEdit" class="secondary">Cancel</button>
+            <button @click="cancelEdit" class="pw-btn pw-btn-secondary">Cancel</button>
           </template>
           <template v-else>
-            <button @click="startEdit" class="primary">Edit</button>
-            <button @click="openInVSCode" class="secondary">Open in VS Code</button>
-            <button @click="confirmDelete" class="danger">Delete</button>
+            <button @click="startEdit" class="pw-btn pw-btn-primary">Edit</button>
+            <button @click="openInVSCode" class="pw-btn pw-btn-secondary">Open in VS Code</button>
+            <button @click="confirmDelete" class="pw-btn pw-btn-error">Delete</button>
           </template>
         </div>
       </aside>
