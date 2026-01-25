@@ -48,6 +48,9 @@ export default defineConfig({
   server: {
     host: true,
     port: Number(process.env.PORT || 3001),
+    fs: {
+      allow: [fileURLToPath(new URL('..', import.meta.url))],
+    },
     proxy: {
       '/api': {
         target: process.env.API_URL || 'http://localhost:8000',

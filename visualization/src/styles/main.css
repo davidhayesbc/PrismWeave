@@ -6,6 +6,10 @@
 
 body {
   margin: 0;
+  --viz-body-pad: clamp(12px, 2.5vw, 32px);
+  padding: var(--viz-body-pad);
+  align-items: stretch;
+  justify-content: stretch;
 }
 
 #app {
@@ -14,14 +18,18 @@ body {
 }
 
 .viz-page {
-  width: min(1200px, 100%);
-  min-height: calc(100vh - (clamp(24px, 6vw, 60px) * 2));
-  height: calc(100vh - (clamp(24px, 6vw, 60px) * 2));
+  width: 100%;
+  max-width: none;
+  min-height: calc(100vh - (var(--viz-body-pad) * 2));
+  height: calc(100vh - (var(--viz-body-pad) * 2));
+  padding: clamp(12px, 2vw, 24px);
+  gap: 12px;
 }
 
 .viz-main {
   flex: 1;
   min-height: 0;
+  gap: 0;
 }
 
 .loading {

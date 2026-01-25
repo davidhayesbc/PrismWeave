@@ -1,18 +1,10 @@
 <template>
   <div class="page viz-page">
-    <header class="site-header">
-      <div class="brand">
-        <div class="brand__meta">
-          <h1>PrismWeave</h1>
-          <p>Visualization</p>
-        </div>
+    <header class="viz-header">
+      <div class="viz-brand">
+        <img :src="logoUrl" alt="PrismWeave" class="viz-logo" />
+        <span class="viz-title">PrismWeave</span>
       </div>
-      <nav class="viz-nav">
-        <router-link to="/" class="pw-btn pw-btn-secondary">Graph</router-link>
-        <button @click="handleRebuild" :disabled="loading" class="pw-btn pw-btn-primary">
-          {{ loading ? 'Rebuilding...' : 'Rebuild Index' }}
-        </button>
-      </nav>
     </header>
     <main class="page-main viz-main">
       <router-view />
@@ -28,20 +20,11 @@ import { useArticlesStore } from '@/stores/articles';
 import { computed } from 'vue';
 
 const store = useArticlesStore();
-const loading = computed(() => store.loading);
+const logoUrl = new URL('../../logo.png', import.meta.url).href;
 const error = computed(() => store.error);
 const notice = computed(() => store.notice);
 const toastMessage = computed(() => notice.value || error.value);
 const toastClass = computed(() => (notice.value ? 'pw-toast-success' : 'pw-toast-error'));
-
-async function handleRebuild() {
-  try {
-    const response = await store.rebuildVisualization();
-    store.setNotice(response.message || 'Visualization index rebuilt successfully');
-  } catch (e) {
-    console.error('Rebuild failed:', e);
-  }
-}
 
 function clearToast() {
   store.setError(null);
@@ -50,9 +33,30 @@ function clearToast() {
 </script>
 
 <style scoped>
-.viz-nav {
+.viz-header {
   display: flex;
-  gap: var(--pw-space-3);
   align-items: center;
+  justify-content: flex-start;
+}
+
+.viz-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.viz-logo {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  box-shadow: 0 10px 20px -16px rgba(79, 70, 229, 0.45);
+}
+
+.viz-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--pw-text-primary);
+  letter-spacing: -0.01em;
 }
 </style>
+

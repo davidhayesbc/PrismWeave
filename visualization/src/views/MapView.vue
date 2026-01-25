@@ -1,6 +1,12 @@
 <template>
   <div class="map-container">
     <aside class="sidebar">
+      <div class="sidebar-actions">
+        <button @click="handleRebuild" :disabled="rebuilding" class="pw-btn pw-btn-primary">
+          {{ rebuilding ? 'Rebuilding...' : 'Rebuild Index' }}
+        </button>
+      </div>
+
       <h2>Filters</h2>
 
       <div class="filter-section">
@@ -202,6 +208,7 @@ import { useRouter } from 'vue-router';
 
 const router = useRouter();
 const store = useArticlesStore();
+const rebuilding = ref(false);
 const linkDistance = ref(80);
 const chargeStrength = ref(-100);
 const linkCount = ref(0);
@@ -308,6 +315,20 @@ function clearFilters() {
   selectedTagValues.value = [];
   store.clearFilters();
   renderVisualization();
+}
+
+async function handleRebuild() {
+  if (rebuilding.value) return;
+  rebuilding.value = true;
+  try {
+    const response = await store.rebuildVisualization();
+    store.setNotice(response.message || 'Visualization index rebuilt successfully');
+  } catch (e) {
+    console.error('Rebuild failed:', e);
+    store.setError('Failed to rebuild visualization index.');
+  } finally {
+    rebuilding.value = false;
+  }
 }
 
 function formatDate(dateStr: string | undefined): string {
@@ -922,6 +943,13 @@ watch(
   border-right: 1px solid var(--pw-border-color);
   padding: 1.5rem;
   overflow-y: auto;
+  color: var(--pw-text-primary);
+}
+
+.sidebar-actions {
+  display: grid;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
 }
 
 .sidebar h2 {
@@ -938,7 +966,7 @@ watch(
   display: block;
   font-weight: 600;
   margin-bottom: 0.5rem;
-  color: var(--pw-text-secondary);
+  color: var(--pw-text-primary);
 }
 
 .filter-section input[type='search'] {
@@ -951,8 +979,8 @@ watch(
   gap: 0.75rem;
   padding: 0.75rem;
   border: 1px solid var(--pw-border-color);
-  border-radius: 6px;
-  background: var(--pw-bg-secondary);
+  border-radius: 8px;
+  background: var(--pw-panel-bg);
 }
 
 .graph-control {
@@ -966,18 +994,19 @@ watch(
 .graph-control-label {
   grid-column: 1 / -1;
   font-size: 0.85rem;
-  color: var(--pw-text-secondary);
+  color: var(--pw-text-primary);
   font-weight: 600;
 }
 
 .filter-section input[type='range'] {
   width: calc(100% - 50px);
   margin-right: 0.5rem;
+  accent-color: var(--pw-ui-accent-strong);
 }
 
 .range-value {
   font-size: 0.85rem;
-  color: var(--pw-text-secondary);
+  color: var(--pw-text-primary);
   font-weight: 600;
   min-width: 40px;
   display: inline-block;
@@ -1001,6 +1030,7 @@ watch(
   gap: 0.5rem;
   font-weight: normal;
   cursor: pointer;
+  color: var(--pw-text-primary);
 }
 
 .category-swatch {
@@ -1056,7 +1086,8 @@ watch(
 .matches-subtitle {
   margin-top: 0.35rem;
   font-size: 0.8rem;
-  color: var(--pw-text-muted);
+  color: var(--pw-text-secondary);
+  font-weight: 500;
 }
 
 .matches-list {
@@ -1096,7 +1127,7 @@ watch(
   justify-content: space-between;
   gap: 0.5rem;
   font-size: 0.78rem;
-  color: var(--pw-text-secondary);
+  color: var(--pw-text-primary);
 }
 
 .match-topic {
@@ -1125,7 +1156,7 @@ watch(
 
 .stats p {
   margin: 0.25rem 0;
-  color: var(--pw-text-secondary);
+  color: var(--pw-text-primary);
 }
 
 .visualization-area {

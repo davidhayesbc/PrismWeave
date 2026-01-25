@@ -4,7 +4,11 @@
     <div v-else-if="store.error" class="error">{{ store.error }}</div>
     <template v-else-if="article">
       <aside class="article-sidebar">
-        <button @click="goBack" class="pw-btn pw-btn-secondary">← Back to Graph</button>
+        <div class="sidebar-actions">
+          <button @click="handleRebuild" :disabled="rebuilding" class="pw-btn pw-btn-primary">
+            {{ rebuilding ? 'Rebuilding...' : 'Rebuild Index' }}
+          </button>
+        </div>
 
         <div class="metadata-section">
           <h3>Metadata</h3>
@@ -119,6 +123,7 @@ const store = useArticlesStore();
 
 const editing = ref(false);
 const saving = ref(false);
+const rebuilding = ref(false);
 const editForm = ref({
   title: '',
   topic: '',
@@ -133,8 +138,19 @@ const renderedContent = computed(() => {
   return marked(article.value.content);
 });
 
-function goBack() {
-  router.push({ name: 'graph' });
+
+async function handleRebuild() {
+  if (rebuilding.value) return;
+  rebuilding.value = true;
+  try {
+    const response = await store.rebuildVisualization();
+    store.setNotice(response.message || 'Visualization index rebuilt successfully');
+  } catch (e) {
+    console.error('Rebuild failed:', e);
+    store.setError('Failed to rebuild visualization index.');
+  } finally {
+    rebuilding.value = false;
+  }
 }
 
 function formatDate(dateStr: string): string {
@@ -219,15 +235,25 @@ onMounted(async () => {
 .article-container {
   display: flex;
   height: 100%;
+  flex: 1;
+  min-height: 0;
   background: var(--pw-panel-bg);
 }
 
+.sidebar-actions {
+  display: grid;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
 .article-sidebar {
-  width: 320px;
+  width: 300px;
   background: var(--pw-bg-secondary);
   border-right: 1px solid var(--pw-border-color);
-  padding: 1.5rem;
+  padding: 1.25rem;
   overflow-y: auto;
+  min-height: 0;
+  color: var(--pw-text-primary);
 }
 
 .metadata-section {
@@ -248,7 +274,7 @@ onMounted(async () => {
   display: block;
   font-size: 0.85rem;
   font-weight: 600;
-  color: var(--pw-text-secondary);
+  color: var(--pw-text-primary);
   margin-bottom: 0.25rem;
 }
 
@@ -280,7 +306,7 @@ onMounted(async () => {
 }
 
 .taxonomy-tag-confidence {
-  color: var(--pw-text-secondary);
+  color: var(--pw-text-primary);
   font-size: 0.85rem;
 }
 
@@ -300,7 +326,17 @@ onMounted(async () => {
 .article-content {
   flex: 1;
   overflow-y: auto;
-  padding: 2rem;
+  padding: 1.5rem 2rem;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.editor {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1;
 }
 
 .editor h2 {
@@ -310,7 +346,9 @@ onMounted(async () => {
 
 .content-editor {
   width: 100%;
-  height: calc(100vh - 200px);
+  flex: 1;
+  height: auto;
+  min-height: 300px;
   padding: 1rem;
   font-family: var(--pw-font-mono);
   font-size: 0.9rem;
@@ -323,8 +361,9 @@ onMounted(async () => {
 }
 
 .content-viewer {
-  max-width: 800px;
-  margin: 0 auto;
+  max-width: 100%;
+  margin: 0;
+  flex: 1;
 }
 
 .content-viewer :deep(h1) {
