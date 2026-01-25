@@ -1,44 +1,7 @@
 <template>
   <div class="map-container">
     <aside class="sidebar">
-      <div class="sidebar-actions">
-        <button @click="handleRebuild" :disabled="rebuilding" class="pw-btn pw-btn-primary">
-          {{ rebuilding ? 'Rebuilding...' : 'Rebuild Index' }}
-        </button>
-      </div>
-
       <h2>Filters</h2>
-
-      <div class="filter-section">
-        <label>Graph</label>
-        <div class="graph-controls">
-          <div class="graph-control">
-            <span class="graph-control-label">Link Distance</span>
-            <input
-              type="range"
-              v-model.number="linkDistance"
-              min="30"
-              max="200"
-              step="10"
-              @input="renderVisualization"
-            />
-            <span class="range-value">{{ linkDistance }}</span>
-          </div>
-
-          <div class="graph-control">
-            <span class="graph-control-label">Charge</span>
-            <input
-              type="range"
-              v-model.number="chargeStrength"
-              min="-300"
-              max="-10"
-              step="10"
-              @input="renderVisualization"
-            />
-            <span class="range-value">{{ chargeStrength }}</span>
-          </div>
-        </div>
-      </div>
 
       <div class="filter-section">
         <label>Search</label>
@@ -88,23 +51,9 @@
         </select>
       </div>
 
+      <!-- Clear Filters placed with filter controls -->
       <div class="filter-section">
-        <label>Clustering</label>
-        <div class="checkbox-group">
-          <label class="checkbox-label">
-            <input type="radio" value="taxonomy" v-model="linkMode" @change="renderVisualization" />
-            Taxonomy clusters
-          </label>
-          <label class="checkbox-label">
-            <input
-              type="radio"
-              value="neighbors"
-              v-model="linkMode"
-              @change="renderVisualization"
-            />
-            Nearest neighbors
-          </label>
-        </div>
+        <button @click="clearFilters" class="pw-btn pw-btn-primary">Clear Filters</button>
       </div>
 
       <div class="filter-section">
@@ -148,15 +97,93 @@
         </div>
       </div>
 
+      <!-- Move Graph controls to bottom of sidebar -->
       <div class="filter-section">
-        <button @click="clearFilters" class="pw-btn pw-btn-secondary">Clear Filters</button>
+        <label>Graph</label>
+        <div class="graph-controls">
+          <div class="graph-control">
+            <span class="graph-control-label">Link Distance</span>
+            <input
+              type="range"
+              v-model.number="linkDistance"
+              min="30"
+              max="200"
+              step="10"
+              @input="renderVisualization"
+            />
+            <span class="range-value">{{ linkDistance }}</span>
+          </div>
+
+          <div class="graph-control">
+            <span class="graph-control-label">Charge</span>
+            <input
+              type="range"
+              v-model.number="chargeStrength"
+              min="-300"
+              max="-10"
+              step="10"
+              @input="renderVisualization"
+            />
+            <span class="range-value">{{ chargeStrength }}</span>
+          </div>
+
+          <div class="graph-control">
+            <span class="graph-control-label">Clustering Mode</span>
+            <div class="radio-group">
+              <label class="checkbox-label">
+                <input
+                  type="radio"
+                  value="taxonomy"
+                  v-model="linkMode"
+                  @change="renderVisualization"
+                />
+                Taxonomy clusters
+              </label>
+              <label class="checkbox-label">
+                <input
+                  type="radio"
+                  value="neighbors"
+                  v-model="linkMode"
+                  @change="renderVisualization"
+                />
+                Nearest neighbors
+              </label>
+            </div>
+          </div>
+
+          <div class="graph-control" v-if="linkMode === 'taxonomy'">
+            <span class="graph-control-label">Similarity Threshold</span>
+            <input
+              type="range"
+              v-model.number="similarityThreshold"
+              min="0"
+              max="1"
+              step="0.05"
+              @input="renderVisualization"
+            />
+            <span class="range-value">{{ similarityThreshold.toFixed(2) }}</span>
+          </div>
+
+          <div class="graph-control" v-if="linkMode === 'taxonomy'">
+            <span class="graph-control-label">Max Neighbors per Node</span>
+            <input
+              type="range"
+              v-model.number="maxClusterNeighbors"
+              min="1"
+              max="8"
+              step="1"
+              @input="renderVisualization"
+            />
+            <span class="range-value">{{ maxClusterNeighbors }}</span>
+          </div>
+        </div>
       </div>
 
-      <div class="stats">
-        <p><strong>Total:</strong> {{ store.articles.length }}</p>
-        <p><strong>Visible:</strong> {{ store.filteredArticles.length }}</p>
-        <p><strong>Graph nodes:</strong> {{ graphArticles.length }}</p>
-        <p><strong>Links:</strong> {{ linkCount }}</p>
+      <!-- Actions moved to bottom -->
+      <div class="sidebar-actions">
+        <button @click="handleRebuild" :disabled="rebuilding" class="pw-btn pw-btn-primary">
+          {{ rebuilding ? 'Rebuilding...' : 'Rebuild Index' }}
+        </button>
       </div>
     </aside>
 
@@ -165,6 +192,16 @@
       <div v-else-if="store.error" class="error">{{ store.error }}</div>
       <div v-else-if="graphArticles.length === 0" class="empty">No articles to display.</div>
       <svg ref="svgRef" class="visualization-svg"></svg>
+      <!-- Small footer with stats -->
+      <div class="footer-stats">
+        <span><strong>Total:</strong> {{ store.articles.length }}</span>
+        <span>•</span>
+        <span><strong>Visible:</strong> {{ store.filteredArticles.length }}</span>
+        <span>•</span>
+        <span><strong>Graph nodes:</strong> {{ graphArticles.length }}</span>
+        <span>•</span>
+        <span><strong>Links:</strong> {{ linkCount }}</span>
+      </div>
       <div v-if="tooltip.visible" class="tooltip" :style="tooltipStyle">
         <h3>{{ tooltip.article?.title }}</h3>
         <p class="excerpt">{{ tooltip.article?.excerpt }}</p>
@@ -232,6 +269,10 @@ const CATEGORY_COLOR_PALETTE: string[] = Array.from(
 );
 const NO_CATEGORY_COLOR = '#6c757d';
 const NO_TOPIC_LABEL = 'No category';
+
+// Similarity-driven clustering controls
+const similarityThreshold = ref(0.3); // Jaccard similarity threshold for tag-based links
+const maxClusterNeighbors = ref(4); // Max neighbors per node in taxonomy clusters
 
 type SimulationNode = d3.SimulationNodeDatum & {
   article: ArticleSummary;
@@ -458,6 +499,24 @@ function getCategoryColor(category: string): string {
   if (normalized === NO_TOPIC_LABEL) return NO_CATEGORY_COLOR;
   const index = hashString(normalized) % CATEGORY_COLOR_PALETTE.length;
   return CATEGORY_COLOR_PALETTE[index] ?? NO_CATEGORY_COLOR;
+}
+
+function getTagSet(article: ArticleSummary): Set<string> {
+  const tags =
+    article.taxonomy_tags && article.taxonomy_tags.length > 0
+      ? article.taxonomy_tags
+      : article.tags || [];
+  return new Set(tags.map((t) => t.toLowerCase()));
+}
+
+function jaccardSimilarity(a: Set<string>, b: Set<string>): number {
+  if (a.size === 0 && b.size === 0) return 0;
+  let intersection = 0;
+  a.forEach((value) => {
+    if (b.has(value)) intersection += 1;
+  });
+  const union = a.size + b.size - intersection;
+  return union === 0 ? 0 : intersection / union;
 }
 
 const graphArticles = computed(() => store.filteredArticles);
@@ -708,9 +767,42 @@ function renderForceLayout(articles: ArticleSummary[]) {
 
     clusters.forEach((clusterNodes) => {
       if (clusterNodes.length < 2) return;
-      const hub = clusterNodes[0];
-      for (let i = 1; i < clusterNodes.length; i += 1) {
-        addLink(hub, clusterNodes[i], 0.9);
+
+      // Compute pairwise tag similarity within the cluster and link top-N neighbors
+      const tagSets = new Map<string, Set<string>>();
+      clusterNodes.forEach((n) => tagSets.set(n.article.id, getTagSet(n.article)));
+
+      let edgesAdded = 0;
+
+      clusterNodes.forEach((source, idx) => {
+        const sourceTags = tagSets.get(source.article.id) || new Set<string>();
+        const sims: Array<{ target: SimulationNode; sim: number }> = [];
+
+        for (let j = 0; j < clusterNodes.length; j += 1) {
+          if (j === idx) continue;
+          const target = clusterNodes[j];
+          const targetTags = tagSets.get(target.article.id) || new Set<string>();
+          const sim = jaccardSimilarity(sourceTags, targetTags);
+          if (sim >= similarityThreshold.value) {
+            sims.push({ target, sim });
+          }
+        }
+
+        sims.sort((a, b) => b.sim - a.sim);
+        const neighbors = sims.slice(0, Math.max(1, maxClusterNeighbors.value));
+        neighbors.forEach(({ target, sim }) => {
+          addLink(source, target, Math.max(0.1, Math.min(1, sim)));
+          edgesAdded += 1;
+        });
+      });
+
+      // Fallback to a simple ring to keep cluster connected if no tag-based edges
+      if (edgesAdded === 0) {
+        for (let i = 0; i < clusterNodes.length; i += 1) {
+          const a = clusterNodes[i];
+          const b = clusterNodes[(i + 1) % clusterNodes.length];
+          addLink(a, b, 0.6);
+        }
       }
     });
   } else {
@@ -762,8 +854,14 @@ function renderForceLayout(articles: ArticleSummary[]) {
     .attr('data-source-id', (d) => (d.source as SimulationNode).article.id)
     .attr('data-target-id', (d) => (d.target as SimulationNode).article.id)
     .attr('stroke', '#999')
-    .attr('stroke-opacity', 0.4)
-    .attr('stroke-width', 1.5);
+    .attr('stroke-opacity', (d) => {
+      const s = Math.max(0.1, Math.min(1, d.strength));
+      return 0.2 + 0.6 * s; // 0.2..0.8 based on similarity
+    })
+    .attr('stroke-width', (d) => {
+      const s = Math.max(0.1, Math.min(1, d.strength));
+      return 0.8 + 3.2 * s; // 0.8..4.0 based on similarity
+    });
 
   // Draw nodes
   const nodeGroups = g
@@ -998,6 +1096,12 @@ watch(
   font-weight: 600;
 }
 
+.radio-group {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
 .filter-section input[type='range'] {
   width: calc(100% - 50px);
   margin-right: 0.5rem;
@@ -1181,6 +1285,22 @@ watch(
 .visualization-svg {
   width: 100%;
   height: 100%;
+}
+
+.footer-stats {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  align-items: center;
+  padding: 0.4rem 0.6rem;
+  font-size: 0.78rem;
+  color: var(--pw-text-secondary);
+  background: var(--pw-panel-bg);
+  border-top: 1px solid var(--pw-border-color);
 }
 
 .tooltip {
