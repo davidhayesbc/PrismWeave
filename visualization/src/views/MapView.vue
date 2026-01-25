@@ -1106,6 +1106,7 @@ watch(
   border: 1px solid var(--pw-border-color);
   border-radius: 6px;
   padding: 0.6rem 0.65rem;
+  overflow-wrap: anywhere;
 }
 
 .match-item:hover {
@@ -1119,6 +1120,7 @@ watch(
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+  overflow-wrap: anywhere;
 }
 
 .match-meta {
@@ -1128,6 +1130,7 @@ watch(
   gap: 0.5rem;
   font-size: 0.78rem;
   color: var(--pw-text-primary);
+  overflow-wrap: anywhere;
 }
 
 .match-topic {
@@ -1141,6 +1144,7 @@ watch(
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+  overflow-wrap: anywhere;
   min-width: 0;
 }
 
@@ -1195,6 +1199,7 @@ watch(
   font-size: 1rem;
   margin: 0 0 0.5rem 0;
   color: var(--pw-text-primary);
+  overflow-wrap: anywhere;
 }
 
 .tooltip .excerpt {

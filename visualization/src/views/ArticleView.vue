@@ -138,7 +138,6 @@ const renderedContent = computed(() => {
   return marked(article.value.content);
 });
 
-
 async function handleRebuild() {
   if (rebuilding.value) return;
   rebuilding.value = true;

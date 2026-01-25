@@ -59,4 +59,3 @@ function clearToast() {
   letter-spacing: -0.01em;
 }
 </style>
-
