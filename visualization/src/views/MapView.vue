@@ -505,6 +505,26 @@ function getCategoryColor(category: string): string {
   return CATEGORY_COLOR_PALETTE[index] ?? NO_CATEGORY_COLOR;
 }
 
+function getNodeTextColors(backgroundColor: string): { title: string; date: string } {
+  const color = d3.color(backgroundColor);
+  if (!color) {
+    return { title: '#1f2937', date: 'rgba(31, 41, 55, 0.7)' };
+  }
+
+  const rgb = color.rgb();
+  const toLinear = (channel: number) => {
+    const c = channel / 255;
+    return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  };
+
+  const luminance = 0.2126 * toLinear(rgb.r) + 0.7152 * toLinear(rgb.g) + 0.0722 * toLinear(rgb.b);
+  const isLight = luminance > 0.55;
+
+  return isLight
+    ? { title: '#1f2937', date: 'rgba(31, 41, 55, 0.7)' }
+    : { title: '#f9fafb', date: 'rgba(249, 250, 251, 0.85)' };
+}
+
 function getTagSet(article: ArticleSummary): Set<string> {
   const tags =
     article.taxonomy_tags && article.taxonomy_tags.length > 0
@@ -958,6 +978,10 @@ function renderForceLayout(articles: ArticleSummary[]) {
   nodeGroups
     .append('text')
     .attr('class', 'node-title')
+    .style('fill', (d) => {
+      const colors = getNodeTextColors(getCategoryColor(getCategoryLabel(d.article)));
+      return colors.title;
+    })
     .each(function (d) {
       renderWrappedTitle(
         this as SVGTextElement,
@@ -971,6 +995,10 @@ function renderForceLayout(articles: ArticleSummary[]) {
   nodeGroups
     .append('text')
     .attr('class', 'node-date')
+    .style('fill', (d) => {
+      const colors = getNodeTextColors(getCategoryColor(getCategoryLabel(d.article)));
+      return colors.date;
+    })
     .attr('x', 0)
     .attr('y', (d) => d.height / 2 - 12)
     .attr('text-anchor', 'middle')

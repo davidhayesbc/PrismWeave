@@ -4,12 +4,6 @@
     <div v-else-if="store.error" class="error">{{ store.error }}</div>
     <template v-else-if="article">
       <aside class="article-sidebar">
-        <div class="sidebar-actions">
-          <button @click="handleRebuild" :disabled="rebuilding" class="pw-btn pw-btn-primary">
-            {{ rebuilding ? 'Rebuilding...' : 'Rebuild Index' }}
-          </button>
-        </div>
-
         <div class="metadata-section">
           <h3>Metadata</h3>
 
@@ -87,7 +81,9 @@
           </template>
           <template v-else>
             <button @click="startEdit" class="pw-btn pw-btn-primary">Edit</button>
-            <button @click="openInVSCode" class="pw-btn pw-btn-secondary">Open in VS Code</button>
+            <button @click="openInVSCode" class="pw-btn pw-btn-secondary open-vscode-button">
+              Open in VS Code
+            </button>
             <button @click="confirmDelete" class="pw-btn pw-btn-error">Delete</button>
           </template>
         </div>
@@ -123,7 +119,6 @@ const store = useArticlesStore();
 
 const editing = ref(false);
 const saving = ref(false);
-const rebuilding = ref(false);
 const editForm = ref({
   title: '',
   topic: '',
@@ -137,20 +132,6 @@ const renderedContent = computed(() => {
   if (!article.value) return '';
   return marked(article.value.content);
 });
-
-async function handleRebuild() {
-  if (rebuilding.value) return;
-  rebuilding.value = true;
-  try {
-    const response = await store.rebuildVisualization();
-    store.setNotice(response.message || 'Visualization index rebuilt successfully');
-  } catch (e) {
-    console.error('Rebuild failed:', e);
-    store.setError('Failed to rebuild visualization index.');
-  } finally {
-    rebuilding.value = false;
-  }
-}
 
 function formatDate(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString('en-US', {
@@ -239,15 +220,8 @@ onMounted(async () => {
   background: var(--pw-panel-bg);
 }
 
-.sidebar-actions {
-  display: grid;
-  gap: 0.5rem;
-  margin-bottom: 1.5rem;
-}
-
 .article-sidebar {
   width: 300px;
-  background: var(--pw-bg-secondary);
   border-right: 1px solid var(--pw-border-color);
   padding: 1.25rem;
   overflow-y: auto;
@@ -257,6 +231,10 @@ onMounted(async () => {
 
 .metadata-section {
   margin: 1.5rem 0;
+  background: var(--pw-panel-bg);
+  border: 1px solid var(--pw-border-color);
+  border-radius: var(--pw-radius);
+  padding: 1rem;
 }
 
 .metadata-section h3 {
@@ -273,7 +251,7 @@ onMounted(async () => {
   display: block;
   font-size: 0.85rem;
   font-weight: 600;
-  color: var(--pw-text-primary);
+  color: var(--pw-text-secondary);
   margin-bottom: 0.25rem;
 }
 
@@ -305,7 +283,7 @@ onMounted(async () => {
 }
 
 .taxonomy-tag-confidence {
-  color: var(--pw-text-primary);
+  color: var(--pw-text-secondary);
   font-size: 0.85rem;
 }
 
@@ -320,6 +298,17 @@ onMounted(async () => {
 
 .actions-section button {
   width: 100%;
+}
+
+.open-vscode-button {
+  background: var(--pw-primary-600);
+  color: var(--pw-btn-primary-text);
+  border: 1px solid var(--pw-primary-600);
+}
+
+.open-vscode-button:hover:not(:disabled) {
+  background: var(--pw-primary-700);
+  border-color: var(--pw-primary-700);
 }
 
 .article-content {
