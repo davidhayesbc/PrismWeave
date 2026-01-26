@@ -274,6 +274,10 @@ const NO_TOPIC_LABEL = 'No category';
 const similarityThreshold = ref(0.3); // Jaccard similarity threshold for tag-based links
 const maxClusterNeighbors = ref(4); // Max neighbors per node in taxonomy clusters
 
+// Hover behavior: highlight top-k nearest linked neighbors
+const HOVER_NEIGHBOR_COUNT = 5;
+let adjacencyByArticleId: Map<string, Array<{ id: string; strength: number }>> = new Map();
+
 type SimulationNode = d3.SimulationNodeDatum & {
   article: ArticleSummary;
   width: number;
@@ -569,29 +573,35 @@ function applyHighlight() {
     links.classed('is-dimmed', false).classed('is-highlighted', false);
     return;
   }
-
-  const connected = new Set<string>([selectedId]);
-  if (linkMode.value === 'taxonomy') {
-    const selected = graphArticles.value.find((a) => a.id === selectedId);
-    const clusterId = selected?.taxonomy_cluster_id;
-    if (clusterId) {
-      graphArticles.value.forEach((article) => {
-        if (article.taxonomy_cluster_id === clusterId) {
-          connected.add(article.id);
-        }
-      });
+  // Prefer adjacency derived from actual rendered links
+  const neighborList = adjacencyByArticleId.get(selectedId) || [];
+  const selectedNeighbors = new Set(neighborList.slice(0, HOVER_NEIGHBOR_COUNT).map((n) => n.id));
+  // Fallback to previous behavior if no adjacency available
+  if (selectedNeighbors.size === 0) {
+    const fallbackNeighbors = new Set<string>();
+    if (linkMode.value === 'taxonomy') {
+      const selected = graphArticles.value.find((a) => a.id === selectedId);
+      const clusterId = selected?.taxonomy_cluster_id;
+      if (clusterId) {
+        graphArticles.value.forEach((article) => {
+          if (article.taxonomy_cluster_id === clusterId) fallbackNeighbors.add(article.id);
+        });
+      }
+    } else {
+      const selectedArticle = graphArticles.value.find((a) => a.id === selectedId);
+      (selectedArticle?.neighbors || []).forEach((id) => fallbackNeighbors.add(id));
     }
-  } else {
-    graphArticles.value.forEach((article) => {
-      if (article.id !== selectedId) return;
-      (article.neighbors || []).forEach((neighborId) => connected.add(neighborId));
-    });
+    // Use up to HOVER_NEIGHBOR_COUNT from fallback
+    const limited = Array.from(fallbackNeighbors).slice(0, HOVER_NEIGHBOR_COUNT);
+    limited.forEach((id) => selectedNeighbors.add(id));
   }
+
+  const connected = new Set<string>([selectedId, ...selectedNeighbors]);
 
   nodes
     .classed('is-highlighted', function () {
       const id = d3.select(this).attr('data-article-id');
-      return id === selectedId;
+      return !!id && connected.has(id);
     })
     .classed('is-dimmed', function () {
       const id = d3.select(this).attr('data-article-id');
@@ -602,13 +612,19 @@ function applyHighlight() {
     .classed('is-highlighted', function () {
       const sourceId = d3.select(this).attr('data-source-id');
       const targetId = d3.select(this).attr('data-target-id');
-      return sourceId === selectedId || targetId === selectedId;
+      if (!sourceId || !targetId) return false;
+      // Highlight if the link connects the selected node to one of its top neighbors
+      if (sourceId === selectedId && selectedNeighbors.has(targetId)) return true;
+      if (targetId === selectedId && selectedNeighbors.has(sourceId)) return true;
+      return false;
     })
     .classed('is-dimmed', function () {
       const sourceId = d3.select(this).attr('data-source-id');
       const targetId = d3.select(this).attr('data-target-id');
       if (!sourceId || !targetId) return false;
-      return !connected.has(sourceId) && !connected.has(targetId);
+      // Dim if link doesn't connect any of the highlighted nodes (selected + its neighbors)
+      const bothConnected = connected.has(sourceId) && connected.has(targetId);
+      return !bothConnected;
     });
 }
 
@@ -862,6 +878,19 @@ function renderForceLayout(articles: ArticleSummary[]) {
       const s = Math.max(0.1, Math.min(1, d.strength));
       return 0.8 + 3.2 * s; // 0.8..4.0 based on similarity
     });
+
+  // Build adjacency map for hover highlighting (by link strength desc)
+  adjacencyByArticleId = new Map();
+  links.forEach((l) => {
+    const sId = (l.source as SimulationNode).article.id;
+    const tId = (l.target as SimulationNode).article.id;
+    const s = Math.max(0.1, Math.min(1, l.strength));
+    if (!adjacencyByArticleId.has(sId)) adjacencyByArticleId.set(sId, []);
+    if (!adjacencyByArticleId.has(tId)) adjacencyByArticleId.set(tId, []);
+    adjacencyByArticleId.get(sId)!.push({ id: tId, strength: s });
+    adjacencyByArticleId.get(tId)!.push({ id: sId, strength: s });
+  });
+  adjacencyByArticleId.forEach((list) => list.sort((a, b) => b.strength - a.strength));
 
   // Draw nodes
   const nodeGroups = g
@@ -1362,42 +1391,42 @@ watch(
   border-top: 1px solid var(--pw-border-color);
 }
 
-.article-node text {
+:deep(.article-node) text {
   font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, sans-serif;
   pointer-events: none;
 }
 
-.article-node .node-title {
+:deep(.article-node) .node-title {
   font-size: 0.7rem;
   font-weight: 600;
   fill: var(--pw-btn-primary-text);
 }
 
-.article-node .node-date {
+:deep(.article-node) .node-date {
   font-size: 0.62rem;
   fill: rgba(255, 255, 255, 0.9);
   text-anchor: middle;
 }
 
-line.link {
+:deep(line.link) {
   transition:
     stroke-opacity 0.2s,
     stroke-width 0.2s;
 }
 
-.article-node.is-dimmed {
+:deep(.article-node.is-dimmed) {
   opacity: 0.25;
 }
 
-line.link.is-dimmed {
+:deep(line.link.is-dimmed) {
   stroke-opacity: 0.1;
 }
 
-.article-node.is-highlighted {
+:deep(.article-node.is-highlighted) {
   opacity: 1;
 }
 
-line.link.is-highlighted {
+:deep(line.link.is-highlighted) {
   stroke-opacity: 1;
   stroke-width: 3;
 }
