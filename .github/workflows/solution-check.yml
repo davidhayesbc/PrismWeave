@@ -1,54 +1,54 @@
 name: Solution Check
 
 on:
-  workflow_dispatch:
-  pull_request:
-    branches: [main, develop]
+    workflow_dispatch:
+    pull_request:
+        branches: [main, develop]
 
 env:
-  NODE_VERSION: "20"
-  PYTHON_VERSION: "3.11"
+    NODE_VERSION: "20"
+    PYTHON_VERSION: "3.11"
 
 jobs:
-  solution-check:
-    runs-on: ubuntu-latest
-    name: Run root scripts
+    solution-check:
+        runs-on: ubuntu-latest
+        name: Run root scripts
 
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: "npm"
+            - name: Setup Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: ${{ env.NODE_VERSION }}
+                  cache: "npm"
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
+            - name: Setup Python
+              uses: actions/setup-python@v5
+              with:
+                  python-version: ${{ env.PYTHON_VERSION }}
 
-      - name: Install uv
-        run: pip install uv
+            - name: Install uv
+              run: pip install uv
 
-      - name: Install AI processing dependencies
-        working-directory: ai-processing
-        run: uv sync
+            - name: Install AI processing dependencies
+              working-directory: ai-processing
+              run: uv sync
 
-      - name: Install root dependencies
-        run: npm install
+            - name: Install root dependencies
+              run: npm install
 
-      - name: Install CLI dependencies
-        working-directory: cli
-        run: npm install
+            - name: Install CLI dependencies
+              working-directory: cli
+              run: npm install
 
-      - name: Install browser extension dependencies
-        working-directory: browser-extension
-        run: npm install
+            - name: Install browser extension dependencies
+              working-directory: browser-extension
+              run: npm install
 
-      - name: Run root tests
-        run: npm run test
+            - name: Run root tests
+              run: npm run test
 
-      - name: Run root build
-        run: npm run build
+            - name: Run root build
+              run: npm run build

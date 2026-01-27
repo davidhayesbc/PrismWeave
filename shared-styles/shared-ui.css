@@ -121,7 +121,9 @@ body {
   background: var(--pw-bg-primary);
   color: var(--pw-text-primary);
   font-size: 0.95rem;
-  transition: border-color var(--pw-transition), box-shadow var(--pw-transition);
+  transition:
+    border-color var(--pw-transition),
+    box-shadow var(--pw-transition);
 }
 
 .pw-input:focus,
@@ -244,7 +246,9 @@ body {
   color: var(--pw-text-primary);
   cursor: pointer;
   font-size: 0.85rem;
-  transition: background var(--pw-transition), border-color var(--pw-transition);
+  transition:
+    background var(--pw-transition),
+    border-color var(--pw-transition);
 }
 
 .pw-theme-toggle__icon {
