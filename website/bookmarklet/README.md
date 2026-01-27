@@ -116,15 +116,17 @@ When the server is running on `http://localhost:8080`:
 
 ### Testing Workflow
 
-1. **Start Local Server**: Run `npm run serve:web` from project root
+1. **Start Development Server**: Run `npm run dev` from project root
 2. **Open Generator Page**: Navigate to
-   `http://localhost:8080/bookmarklet/generator.html`
+   `http://localhost:4003/bookmarklet/generator.html`
 3. **Generate Personal Bookmarklet**: Configure your GitHub settings and
    generate
 4. **Install Bookmarklet**: Drag the generated button to your bookmarks bar
 5. **Test on Web Pages**: Click the bookmark on various websites
 6. **Configure GitHub**: Set up your GitHub token and repository on first use
 7. **Verify Capture**: Check that content is properly extracted and committed
+
+Note: `npm run dev` starts Aspire which serves the website at port 4003.
 
 ### Development Configuration
 

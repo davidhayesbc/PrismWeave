@@ -67,6 +67,53 @@ VS Code integration for document management and content creation.
 
 **Location:** `vscode-extension/`
 
+## Quick Start
+
+### Development (Recommended)
+
+Start all services with Aspire orchestration:
+
+```bash
+npm run dev
+```
+
+This starts:
+- **Aspire Dashboard**: http://localhost:4000 (integrated logging, metrics, health checks)
+- **Website**: http://localhost:4003
+- **Visualization**: http://localhost:4002
+- **MCP Server**: http://localhost:4005
+- **MCP Inspector**: http://localhost:4009 (debugging interface)
+- **Ollama**: http://localhost:11434 (local AI)
+
+The Aspire dashboard provides a unified view of all services with integrated observability.
+
+### Building Components
+
+```bash
+# Build all components
+npm run build
+
+# Build specific components
+npm run build:browser-extension
+npm run build:cli
+npm run build:web
+
+# Clean all build artifacts
+npm run clean
+```
+
+### Testing
+
+```bash
+# Run all tests
+npm test
+
+# Test specific components
+npm run test:cli
+npm run test:browser-extension
+npm run test:ai
+```
+
 ## Getting Started
 
 ### Browser Extension
@@ -100,61 +147,16 @@ For detailed instructions, see [cli/README.md](cli/README.md) or [cli/QUICKSTART
 
 ```bash
 cd ai-processing
-uv sync
-source .venv/bin/activate  # or .venv\Scripts\activate on Windows
+uv sync  # Install dependencies with uv
 
 # Use CLI tool
 python cli.py --help
 
-# Or start MCP server for VS Code integration
-# See ai-processing/prismweave_mcp/VS_CODE_INTEGRATION.md
+# Or run within Aspire (recommended)
+npm run dev  # Starts all services including AI processing
 ```
 
-### Aspire Orchestration + OpenTelemetry
-
-This repo includes a file-based Aspire AppHost that can orchestrate the Python API/MCP server plus the dev UIs, and routes logs/traces/metrics via OpenTelemetry to the Aspire dashboard.
-
-Files:
-
-- [apphost.cs](apphost.cs)
-- [apphost.run.json](apphost.run.json)
-
-Prereqs:
-
-- .NET SDK 10+
-- Aspire CLI (`aspire`)
-
-Run (from repo root):
-
-```bash
-npm run aspire:run
-# or: aspire run
-# or (no Aspire CLI): npm run aspire:run:dotnet
-```
-
-VS Code (recommended for dev):
-
-- Open the Run & Debug panel and start **"Aspire: Run AppHost (dotnet run)"**.
-- It will run `dotnet run apphost.cs` and auto-open the Aspire dashboard when it prints the dashboard URL.
-
-Note:
-
-- The default settings in `apphost.run.json` configure the dashboard to run over HTTP (to avoid dev-certs trust issues) and set `ASPIRE_ALLOW_UNSECURED_TRANSPORT=true`.
-
-Verify:
-
-- Open the dashboard URL printed by the CLI and confirm `ai-processing`, `visualization`, and `website` are healthy.
-- Hit the `ai-processing` `/health` endpoint and confirm traces appear in the dashboard.
-- Confirm `ai-processing` startup logs appear in the dashboard logs view.
-
-MCP URL:
-
-- In the dashboard, copy the `ai-processing` HTTP endpoint base URL and append `/sse`.
-  - Example: `http://127.0.0.1:4001/sse`
-
-Tip:
-
-- Set `PRISMWEAVE_OTEL_CONSOLE_PASSTHROUGH=0` to suppress duplicated stdout when Node console logs are also exported to OpenTelemetry.
+For VS Code MCP integration, see [ai-processing/prismweave_mcp/VS_CODE_INTEGRATION.md](ai-processing/prismweave_mcp/VS_CODE_INTEGRATION.md)
 
 ## Architecture
 
@@ -264,9 +266,17 @@ This ensures consistency across all capture methods while maintaining code reusa
 
 ## Development
 
+### Prerequisites
+
+- **Node.js** 16+ and npm 8+
+- **.NET SDK** 10+ (for Aspire)
+- **Aspire CLI** (`aspire`)
+- **Python** 3.10+ with uv (for AI processing)
+- **Ollama** (for local AI)
+
 ### Setup
 
-1. **Clone repository and install dependencies:**
+1. **Clone and install dependencies:**
 
 ```bash
 git clone https://github.com/davidhayesbc/PrismWeave.git
@@ -274,60 +284,81 @@ cd PrismWeave
 npm install  # Installs all workspace dependencies
 ```
 
-2. **Build all components:**
+2. **Start development environment:**
 
 ```bash
-npm run build:browser-extension
-npm run build:cli
-npm run build:web
+npm run dev  # Starts Aspire with all services
+```
+
+Open the **Aspire Dashboard** at http://localhost:4000 to:
+- View service health and logs
+- Monitor metrics and traces
+- Debug service interactions
+- Access direct links to each service
+
+### Component-Specific Development
+
+If you need to work on a single component in isolation:
+
+```bash
+# Browser extension
+cd browser-extension && npm run build
+
+# CLI tool
+cd cli && npm test
+
+# AI processing
+cd ai-processing && uv run pytest
+
+# Website
+cd website && npm run build
+
+# Visualization
+cd visualization && npm run dev
 ```
 
 ### Running Tests
 
 ```bash
-# CLI tests (120 tests, fast)
-npm run test:cli
+# All tests
+npm test
 
-# Browser extension tests (comprehensive, may take longer)
-npm run test:browser-extension
+# Component tests
+npm run test:cli              # CLI (120 tests)
+npm run test:browser-extension  # Extension tests
+npm run test:ai               # AI processing tests
 
-# AI processing tests
-cd ai-processing
-uv sync
-uv run pytest
+# TypeScript type checking
+npm run typecheck
 ```
 
-### Development Workflow
-
-**Working on a specific component:**
+### Code Quality
 
 ```bash
-# Browser extension with auto-rebuild
-cd browser-extension
-npm run dev
+# Format all code
+npm run format
 
-# Website with live server
-cd website
-npm run dev
-
-# Visualization with Vite dev server
-cd visualization
-npm run dev
-
-# CLI in watch mode
-cd cli
-npm run build -- --watch
+# Check formatting
+npm run format:check
 ```
 
-**TypeScript compilation:**
+### Production Deployment
 
 ```bash
-# Check all components
-npx tsc --build
+# Build for production
+npm run docker:prod:build
 
-# Check specific component
-cd cli && npx tsc --noEmit
+# Start production containers
+npm run docker:prod
+
+# View production logs
+npm run docker:prod:logs
+
+# Stop production containers
+npm run docker:prod:down
 ```
+
+Note: Production uses `docker-compose.prod.yml` (different from development Aspire setup).
 
 ## Documentation
 

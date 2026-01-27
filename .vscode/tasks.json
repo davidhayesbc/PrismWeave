@@ -2,6 +2,69 @@
   "version": "2.0.0",
   "tasks": [
     {
+      "label": "Aspire: Run All Services",
+      "type": "shell",
+      "command": "aspire",
+      "args": ["run"],
+      "isBackground": true,
+      "problemMatcher": [],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "dedicated"
+      }
+    },
+    {
+      "label": "Test: All Components",
+      "type": "shell",
+      "command": "npm",
+      "args": ["test"],
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      },
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Test: CLI",
+      "type": "shell",
+      "command": "npm",
+      "args": ["run", "test:cli"],
+      "group": "test",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Test: Browser Extension",
+      "type": "shell",
+      "command": "npm",
+      "args": ["run", "test:browser-extension"],
+      "group": "test",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
       "label": "AI Processing: Run Tests",
       "type": "shell",
       "command": ".venv/bin/python",
@@ -19,27 +82,24 @@
       "problemMatcher": []
     },
     {
-      "label": "AI Processing: Run Tests with Coverage",
+      "label": "Build: All Components",
       "type": "shell",
-      "command": ".venv/bin/python",
-      "args": ["-m", "pytest", "tests/", "--cov=src", "--cov-report=html", "--cov-report=term"],
-      "group": "test",
+      "command": "npm",
+      "args": ["run", "build:all"],
+      "group": "build",
       "presentation": {
         "echo": true,
         "reveal": "always",
         "focus": false,
         "panel": "shared"
-      },
-      "options": {
-        "cwd": "${workspaceFolder}/ai-processing"
       },
       "problemMatcher": []
     },
     {
-      "label": "AI Processing: Install Dependencies",
+      "label": "Build: Browser Extension",
       "type": "shell",
-      "command": "uv",
-      "args": ["sync"],
+      "command": "npm",
+      "args": ["run", "build:browser-extension"],
       "group": "build",
       "presentation": {
         "echo": true,
@@ -47,460 +107,35 @@
         "focus": false,
         "panel": "shared"
       },
-      "options": {
-        "cwd": "${workspaceFolder}/ai-processing"
-      }
+      "problemMatcher": []
     },
     {
-      "label": "vscode-extension (optional): compile",
+      "label": "Build: CLI",
       "type": "shell",
-      "command": "bash",
-      "args": [
-        "-lc",
-        "if [ -d \"${workspaceFolder}/vscode-extension\" ]; then cd \"${workspaceFolder}/vscode-extension\" && npm run compile; else echo \"vscode-extension not present; skipping compile\"; fi"
-      ],
+      "command": "npm",
+      "args": ["run", "build:cli"],
       "group": "build",
       "presentation": {
         "echo": true,
-        "reveal": "silent",
+        "reveal": "always",
         "focus": false,
         "panel": "shared"
       },
-      "options": {
-        "cwd": "${workspaceFolder}"
+      "problemMatcher": []
+    },
+    {
+      "label": "TypeScript: Check All",
+      "type": "shell",
+      "command": "npm",
+      "args": ["run", "typecheck"],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
       },
       "problemMatcher": "$tsc"
-    },
-    {
-      "label": "vscode-extension (optional): watch",
-      "type": "shell",
-      "command": "bash",
-      "args": [
-        "-lc",
-        "if [ -d \"${workspaceFolder}/vscode-extension\" ]; then cd \"${workspaceFolder}/vscode-extension\" && npm run watch; else echo \"vscode-extension not present; skipping watch\"; fi"
-      ],
-      "group": "build",
-      "presentation": {
-        "echo": true,
-        "reveal": "silent",
-        "focus": false,
-        "panel": "shared"
-      },
-      "options": {
-        "cwd": "${workspaceFolder}"
-      },
-      "problemMatcher": "$tsc-watch",
-      "isBackground": true
-    },
-    {
-      "label": "vscode-extension (optional): test",
-      "type": "shell",
-      "command": "bash",
-      "args": [
-        "-lc",
-        "if [ -d \"${workspaceFolder}/vscode-extension\" ]; then cd \"${workspaceFolder}/vscode-extension\" && npm run test; else echo \"vscode-extension not present; skipping tests\"; fi"
-      ],
-      "group": "test",
-      "presentation": {
-        "echo": true,
-        "reveal": "always",
-        "focus": false,
-        "panel": "shared"
-      },
-      "options": {
-        "cwd": "${workspaceFolder}"
-      },
-      "problemMatcher": []
-    },
-    {
-      "label": "vscode-extension (optional): install",
-      "type": "shell",
-      "command": "bash",
-      "args": [
-        "-lc",
-        "if [ -d \"${workspaceFolder}/vscode-extension\" ]; then cd \"${workspaceFolder}/vscode-extension\" && npm install; else echo \"vscode-extension not present; skipping install\"; fi"
-      ],
-      "group": "build",
-      "presentation": {
-        "echo": true,
-        "reveal": "always",
-        "focus": false,
-        "panel": "shared"
-      },
-      "options": {
-        "cwd": "${workspaceFolder}"
-      }
-    },
-    {
-      "label": "Browser Extension: npm: test",
-      "type": "shell",
-      "command": "npm",
-      "args": ["run", "test"],
-      "group": "test",
-      "presentation": {
-        "echo": true,
-        "reveal": "always",
-        "focus": false,
-        "panel": "shared"
-      },
-      "options": {
-        "cwd": "${workspaceFolder}/browser-extension"
-      },
-      "problemMatcher": []
-    },
-    {
-      "label": "Browser Extension: npm: test with coverage",
-      "type": "shell",
-      "command": "npm",
-      "args": ["run", "test:coverage"],
-      "group": "test",
-      "presentation": {
-        "echo": true,
-        "reveal": "always",
-        "focus": false,
-        "panel": "shared"
-      },
-      "options": {
-        "cwd": "${workspaceFolder}/browser-extension"
-      },
-      "problemMatcher": []
-    },
-    {
-      "label": "Browser Extension: npm: build",
-      "type": "shell",
-      "command": "npm",
-      "args": ["run", "build"],
-      "group": "build",
-      "presentation": {
-        "echo": true,
-        "reveal": "always",
-        "focus": false,
-        "panel": "shared"
-      },
-      "options": {
-        "cwd": "${workspaceFolder}/browser-extension"
-      },
-      "problemMatcher": []
-    },
-    {
-      "label": "Browser Extension: npm: build production",
-      "type": "shell",
-      "command": "npm",
-      "args": ["run", "build:prod"],
-      "group": "build",
-      "presentation": {
-        "echo": true,
-        "reveal": "always",
-        "focus": false,
-        "panel": "shared"
-      },
-      "options": {
-        "cwd": "${workspaceFolder}/browser-extension"
-      },
-      "problemMatcher": []
-    },
-    {
-      "label": "Run All Tests",
-      "dependsOrder": "parallel",
-      "dependsOn": ["AI Processing: Run Tests", "Browser Extension: npm: test"],
-      "group": "test",
-      "presentation": {
-        "echo": true,
-        "reveal": "always",
-        "focus": false,
-        "panel": "shared"
-      }
-    },
-    {
-      "label": "Build All Components",
-      "dependsOrder": "sequence",
-      "dependsOn": [
-        "Run All Tests",
-        "Browser Extension: npm: build",
-        "vscode-extension (optional): compile"
-      ],
-      "group": "build",
-      "presentation": {
-        "echo": true,
-        "reveal": "always",
-        "focus": false,
-        "panel": "shared"
-      }
-    },
-    {
-      "label": "MCP Server: Run",
-      "type": "shell",
-      "command": ".venv/bin/python",
-      "args": ["-m", "prismweave_mcp.server", "--transport", "sse"],
-      "options": {
-        "cwd": "${workspaceFolder}/ai-processing"
-      },
-      "presentation": {
-        "echo": true,
-        "reveal": "always",
-        "focus": true,
-        "panel": "dedicated"
-      },
-      "isBackground": true,
-      "problemMatcher": []
-    },
-    {
-      "label": "MCP Server: Run with Hot Reload",
-      "type": "shell",
-      "command": "./dev.sh",
-      "options": {
-        "cwd": "${workspaceFolder}/ai-processing"
-      },
-      "presentation": {
-        "echo": true,
-        "reveal": "always",
-        "focus": true,
-        "panel": "dedicated"
-      },
-      "isBackground": true,
-      "problemMatcher": []
-    },
-    {
-      "label": "MCP Server: Run with Debug Logging",
-      "type": "shell",
-      "command": ".venv/bin/python",
-      "args": ["-m", "prismweave_mcp.server", "--debug", "--transport", "sse"],
-      "options": {
-        "cwd": "${workspaceFolder}/ai-processing",
-        "env": {
-          "LOG_LEVEL": "DEBUG"
-        }
-      },
-      "presentation": {
-        "echo": true,
-        "reveal": "always",
-        "focus": true,
-        "panel": "dedicated"
-      },
-      "isBackground": true,
-      "problemMatcher": []
-    },
-    {
-      "label": "Docker Compose: Dev Rebuild Up",
-      "type": "shell",
-      "command": "docker-compose",
-      "args": [
-        "down",
-        "--remove-orphans",
-        "&&",
-        "docker-compose",
-        "up",
-        "-d",
-        "--build",
-        "&&",
-        "docker-compose",
-        "ps"
-      ],
-      "isBackground": false,
-      "problemMatcher": []
-    },
-    {
-      "label": "Docker Compose: Tail Logs",
-      "type": "shell",
-      "command": "docker-compose",
-      "args": ["logs", "--tail=40", "ai-processing", "website", "visualization"],
-      "isBackground": false,
-      "problemMatcher": []
-    },
-    {
-      "label": "Docker: Check MCP Health",
-      "type": "shell",
-      "command": "bash",
-      "args": ["-lc", "curl -fsS http://localhost:8000/health && echo"],
-      "isBackground": false,
-      "problemMatcher": []
-    },
-    {
-      "label": "Docker Compose: Logs AI",
-      "type": "shell",
-      "command": "docker-compose",
-      "args": ["logs", "--tail=80", "ai-processing"],
-      "isBackground": false,
-      "problemMatcher": []
-    },
-    {
-      "label": "Docker Compose: Restart AI Processing",
-      "type": "shell",
-      "command": "docker-compose",
-      "args": ["restart", "ai-processing"],
-      "isBackground": false,
-      "problemMatcher": []
-    },
-    {
-      "label": "Docker: Check MCP Health After Fix",
-      "type": "shell",
-      "command": "bash",
-      "args": ["-lc", "curl -fsS http://localhost:8000/health && echo"],
-      "isBackground": false,
-      "problemMatcher": []
-    },
-    {
-      "label": "Docker Compose: Status",
-      "type": "shell",
-      "command": "docker-compose",
-      "args": ["ps"],
-      "isBackground": false,
-      "problemMatcher": []
-    },
-    {
-      "label": "Docker: Check Website HTTP",
-      "type": "shell",
-      "command": "bash",
-      "args": ["-lc", "curl -I -s http://localhost:3002/ | head -n 5"],
-      "isBackground": false,
-      "problemMatcher": []
-    },
-    {
-      "label": "Docker: Check Visualization HTTP",
-      "type": "shell",
-      "command": "bash",
-      "args": ["-lc", "curl -I -s http://localhost:3001/ | head -n 5"],
-      "isBackground": false,
-      "problemMatcher": []
-    },
-    {
-      "label": "Docker: Check Viz HTTP 2",
-      "type": "shell",
-      "command": "bash",
-      "args": ["-lc", "curl -I -s http://localhost:3001/ | head -n 5 || true"],
-      "isBackground": false,
-      "problemMatcher": []
-    },
-    {
-      "label": "Docker: Curl Viz Root",
-      "type": "shell",
-      "command": "bash",
-      "args": ["-lc", "curl -sS -D - http://localhost:3001/ -o /dev/null | head -n 20"],
-      "isBackground": false,
-      "problemMatcher": []
-    },
-    {
-      "label": "Docker Compose: Logs Viz",
-      "type": "shell",
-      "command": "docker-compose",
-      "args": ["logs", "--tail=80", "visualization"],
-      "isBackground": false,
-      "problemMatcher": []
-    },
-    {
-      "label": "Docker Compose: PS",
-      "type": "shell",
-      "command": "docker-compose",
-      "args": ["ps"],
-      "isBackground": false,
-      "problemMatcher": []
-    },
-    {
-      "label": "Docker: Curl Viz From Inside",
-      "type": "shell",
-      "command": "bash",
-      "args": [
-        "-lc",
-        "docker exec prismweave-viz-dev sh -lc 'wget -qSO- http://127.0.0.1:3001/ -O /dev/null 2>&1 | head -n 15 || true'"
-      ],
-      "isBackground": false,
-      "problemMatcher": []
-    },
-    {
-      "label": "Docker: Viz GET / Inside (body)",
-      "type": "shell",
-      "command": "bash",
-      "args": [
-        "-lc",
-        "docker exec prismweave-viz-dev sh -lc 'wget -qO- http://127.0.0.1:3001/ | head -n 5 || true'"
-      ],
-      "isBackground": false,
-      "problemMatcher": []
-    },
-    {
-      "label": "Docker: Viz GET / Inside (wget)",
-      "type": "shell",
-      "command": "bash",
-      "args": [
-        "-lc",
-        "docker exec prismweave-viz-dev sh -lc 'wget -q -O - http://127.0.0.1:3001/ | head -n 10 || true'"
-      ],
-      "isBackground": false,
-      "problemMatcher": []
-    },
-    {
-      "label": "Docker: Viz Fetch Inside (node)",
-      "type": "shell",
-      "command": "bash",
-      "args": [
-        "-lc",
-        "docker exec prismweave-viz-dev node -e \"fetch('http://127.0.0.1:3001/').then(r=>{console.log('status',r.status); return r.text()}).then(t=>console.log('body',t.slice(0,80))).catch(e=>{console.error('err',e); process.exit(1);})\""
-      ],
-      "isBackground": false,
-      "problemMatcher": []
-    },
-    {
-      "label": "Docker: Viz Fetch Inside (node2)",
-      "type": "shell",
-      "command": "bash",
-      "args": [
-        "-lc",
-        "docker exec prismweave-viz-dev node -e 'fetch(\"http://127.0.0.1:3001/\").then(r=>{console.log(r.status); return r.text()}).then(t=>console.log(t.slice(0,120))).catch(e=>{console.error(e); process.exit(1);})'"
-      ],
-      "isBackground": false,
-      "problemMatcher": []
-    },
-    {
-      "label": "Docker: Viz Fetch Inside (node3)",
-      "type": "shell",
-      "command": "bash",
-      "args": [
-        "-lc",
-        "docker exec prismweave-viz-dev node -e \"fetch('http://127.0.0.1:3001/').then(r=>{console.log('status',r.status);return r.text()}).then(t=>console.log('body',t.slice(0,80))).catch(e=>{console.error('err',e);process.exit(1);})\""
-      ],
-      "isBackground": false,
-      "problemMatcher": []
-    },
-    {
-      "label": "Docker Compose: Rebuild+Restart Viz",
-      "type": "shell",
-      "command": "docker-compose",
-      "args": ["up", "-d", "--build", "visualization"],
-      "isBackground": false,
-      "problemMatcher": []
-    },
-    {
-      "label": "Docker: Curl Viz After Fix",
-      "type": "shell",
-      "command": "bash",
-      "args": ["-lc", "curl -sS -D - http://localhost:3001/ -o /dev/null | head -n 12"],
-      "isBackground": false,
-      "problemMatcher": []
-    },
-    {
-      "label": "Docker: Curl Viz API Articles",
-      "type": "shell",
-      "command": "bash",
-      "args": ["-lc", "curl -sS -i http://localhost:3001/api/articles | head -n 40"],
-      "isBackground": false,
-      "problemMatcher": []
-    },
-    {
-      "label": "Docker Compose: Logs Viz Tail",
-      "type": "shell",
-      "command": "docker-compose",
-      "args": ["logs", "--tail=120", "visualization"],
-      "isBackground": false,
-      "problemMatcher": []
-    },
-    {
-      "label": "Aspire: Run AppHost",
-      "type": "shell",
-      "command": "npm",
-      "args": ["run", "aspire:run"],
-      "isBackground": true,
-      "problemMatcher": [],
-      "group": "build"
     }
   ]
 }
