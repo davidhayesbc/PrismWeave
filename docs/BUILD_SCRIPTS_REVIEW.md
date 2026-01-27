@@ -8,6 +8,7 @@
 ### ✅ What You're Using (Keep)
 
 #### 1. **Aspire Orchestration** (`apphost.cs`)
+
 - **Status**: PRIMARY orchestration tool - well-configured
 - **Manages**:
   - Ollama (port 11434)
@@ -19,49 +20,56 @@
 - **Conclusion**: ✅ **KEEP** - This is excellent and should be your primary workflow
 
 #### 2. **npm Workspace Structure** (package.json)
+
 - **Status**: Just implemented, working well
 - **Benefits**: Centralized dependencies, consistent tooling
 - **Conclusion**: ✅ **KEEP** - Core to modern development workflow
 
 #### 3. **Component-Specific Scripts**
+
 ```bash
 npm run build:browser-extension  # Browser extension build
 npm run build:cli                # CLI TypeScript compilation
 npm run test:cli                 # CLI tests (120/120 passing)
 npm run test:browser-extension   # Browser extension tests
 ```
+
 - **Conclusion**: ✅ **KEEP** - These are simple and component-focused
 
 ### ⚠️ Redundant/Complex (Simplify or Remove)
 
 #### 1. **Docker Compose** (docker-compose.yml, docker-compose.prod.yml)
+
 - **Status**: Duplicates Aspire functionality
 - **Issues**:
   - Different port mappings than Aspire
   - Maintenance burden (two orchestration systems)
   - No integration with Aspire dashboard
 - **Use Case**: Only needed for containerized production deployments
-- **Recommendation**: 
+- **Recommendation**:
   - ⚠️ **SIMPLIFY**: Keep docker-compose.prod.yml for production deployments
   - ❌ **REMOVE**: docker-compose.yml (dev mode - use Aspire instead)
   - ❌ **REMOVE**: All `docker:dev:*` scripts from package.json
 
 #### 2. **build.js** (660 lines)
+
 - **Status**: Overly complex custom build orchestration
 - **Issues**:
   - Duplicates npm workspace functionality
   - Incremental copy logic could be simpler
   - Hard to maintain
 - **Recommendation**: ✅ **SIMPLIFY** to use workspace commands:
+
   ```javascript
   // Current: Complex custom logic
-  await this.buildBrowserExtension();  // ~100 lines
-  
+  await this.buildBrowserExtension(); // ~100 lines
+
   // Better: Delegate to workspace
   execSync('npm run build --workspace=browser-extension');
   ```
 
 #### 3. **serve-web.js** (400+ lines)
+
 - **Status**: Custom HTTP server with directory listing, watch mode, etc.
 - **Issues**:
   - Aspire's website component handles this better
@@ -72,11 +80,13 @@ npm run test:browser-extension   # Browser extension tests
   - Or keep minimal version (50 lines) if needed
 
 #### 4. **Excessive Package.json Scripts** (50+ scripts)
+
 - **Docker scripts**: 20+ docker-compose wrappers
 - **Build variants**: Multiple build:web variations
 - **Recommendation**: ❌ **REMOVE** 70% of scripts, keep essentials
 
 #### 5. **VS Code Tasks** (50+ tasks in tasks.json)
+
 - **Docker debug tasks**: 20+ manual curl/docker exec tasks
 - **Status**: Debugging artifacts that should be removed
 - **Recommendation**: ❌ **REMOVE** debugging tasks, keep core build/test tasks
@@ -91,7 +101,7 @@ npm run test:browser-extension   # Browser extension tests
     "//": "=== Development (Primary) ===",
     "dev": "aspire run",
     "dev:dashboard": "open http://localhost:4000",
-    
+
     "//": "=== Build ===",
     "build": "npm run build:all",
     "build:all": "npm run build:browser-extension && npm run build:cli && npm run build:web",
@@ -99,19 +109,19 @@ npm run test:browser-extension   # Browser extension tests
     "build:cli": "npm run build --workspace=cli",
     "build:web": "node scripts/build-web.js",
     "clean": "rm -rf dist/ && npm run clean --workspaces",
-    
+
     "//": "=== Testing ===",
     "test": "npm run test:all",
     "test:all": "npm test --workspaces --if-present",
     "test:cli": "npm test --workspace=cli",
     "test:browser-extension": "npm test --workspace=browser-extension",
     "test:ai": "cd ai-processing && .venv/bin/pytest tests/ -v",
-    
+
     "//": "=== Code Quality ===",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "typecheck": "tsc --build",
-    
+
     "//": "=== Production Deployment (Docker) ===",
     "docker:prod": "docker-compose -f docker-compose.prod.yml up -d",
     "docker:prod:build": "docker-compose -f docker-compose.prod.yml up --build -d",
@@ -120,7 +130,7 @@ npm run test:browser-extension   # Browser extension tests
 }
 ```
 
-**Removed**: 35+ scripts (docker:dev:*, serve:*, watch:*, docker:shell:*, etc.)
+**Removed**: 35+ scripts (docker:dev:_, serve:_, watch:_, docker:shell:_, etc.)
 
 ### VS Code tasks.json (Simplified)
 
@@ -209,7 +219,7 @@ class SimplifiedBuild {
 
   async build(target = 'all') {
     console.log(`🔨 Building: ${target}`);
-    
+
     try {
       switch (target) {
         case 'all':
@@ -245,13 +255,13 @@ class SimplifiedBuild {
 
   async buildWeb() {
     const dist = path.join(this.root, 'dist', 'web');
-    
+
     // Simple copy operations
     this.ensureDir(dist);
     this.copyDir('website/assets', path.join(dist, 'assets'));
     this.copyDir('dist/browser-extension', path.join(dist, 'extension'));
     this.copyDir('website/dist/bookmarklet', path.join(dist, 'bookmarklet'));
-    
+
     // Generate index.html
     this.createWebIndex(dist);
   }
@@ -264,7 +274,7 @@ class SimplifiedBuild {
 
   copyDir(src, dest) {
     if (!fs.existsSync(src)) return;
-    
+
     this.ensureDir(dest);
     fs.cpSync(src, dest, { recursive: true });
   }
@@ -284,13 +294,13 @@ class SimplifiedBuild {
   </nav>
 </body>
 </html>`;
-    
+
     fs.writeFileSync(path.join(dist, 'index.html'), html);
   }
 
   clean() {
     const targets = ['dist', 'cli/dist', 'ai-processing/__pycache__'];
-    targets.forEach(t => {
+    targets.forEach((t) => {
       const p = path.join(this.root, t);
       if (fs.existsSync(p)) {
         fs.rmSync(p, { recursive: true, force: true });
@@ -312,6 +322,7 @@ new SimplifiedBuild().build(target);
 ### Phase 1: Remove Docker Dev Scripts (Immediate)
 
 1. **Update package.json**:
+
    ```bash
    # Remove these scripts:
    - docker:dev
@@ -352,6 +363,7 @@ new SimplifiedBuild().build(target);
 ### Phase 3: Simplify serve-web.js (Optional)
 
 Options:
+
 1. **Remove entirely** - Use Aspire for development
 2. **Replace with**: `npx serve dist/web --port 8080`
 3. **Minimal version** - Just static file serving (50 lines)
@@ -433,17 +445,20 @@ npm run docker:prod:down
 ## Benefits of Simplification
 
 ### Developer Experience
+
 - ✅ **Single command development**: `npm run dev`
 - ✅ **Unified dashboard**: All services visible in Aspire
 - ✅ **Better debugging**: Aspire dashboard shows logs, metrics, traces
 - ✅ **Health checks**: Automatic service health monitoring
 
 ### Maintenance
+
 - ✅ **Less code**: ~1,000 lines of build scripts → ~200 lines
 - ✅ **No duplication**: One orchestration system (Aspire), not two (Aspire + Docker)
 - ✅ **Clear separation**: Aspire for dev, Docker Compose for production
 
 ### Reliability
+
 - ✅ **Fewer ports to manage**: Aspire handles port allocation
 - ✅ **Dependency management**: Aspire ensures services start in correct order
 - ✅ **Consistent environment**: Same setup for all developers
@@ -451,23 +466,27 @@ npm run docker:prod:down
 ## Summary
 
 ### Keep (Core Tools)
+
 - ✅ Aspire (primary orchestration)
 - ✅ npm workspaces (dependency management)
 - ✅ Component-specific build scripts
 - ✅ docker-compose.prod.yml (production deployments)
 
 ### Simplify
+
 - ⚠️ build.js (660 → 150 lines)
 - ⚠️ package.json scripts (50 → 15)
 - ⚠️ .vscode/tasks.json (50 → 8 tasks)
 
 ### Remove
+
 - ❌ docker-compose.yml (dev mode)
 - ❌ serve-web.js (optional)
 - ❌ 35+ docker dev scripts
 - ❌ 40+ VS Code debugging tasks
 
 ### Result
+
 - **Lines of code removed**: ~1,500
 - **Scripts removed**: ~45
 - **Tasks removed**: ~42

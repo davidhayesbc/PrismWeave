@@ -16,7 +16,6 @@
     "//": "=== Development (Aspire Primary) ===",
     "dev": "aspire run",
     "dev:dashboard": "echo 'Open Aspire Dashboard at http://localhost:4000'",
-    
     "//": "=== Build ===",
     "build": "npm run build:all",
     "build:all": "npm run build --workspaces --if-present",
@@ -24,19 +23,16 @@
     "build:cli": "npm run build --workspace=cli",
     "build:web": "node scripts/build-web.js",
     "clean": "rm -rf dist/ && npm run clean --workspaces --if-present",
-    
     "//": "=== Testing ===",
     "test": "npm run test:all",
     "test:all": "npm test --workspaces --if-present && npm run test:ai",
     "test:browser-extension": "npm test --workspace=browser-extension",
     "test:cli": "npm test --workspace=cli",
     "test:ai": "cd ai-processing && ( (command -v uv >/dev/null 2>&1 && uv run pytest tests/ -v) || ( [ -x .venv/bin/python ] && .venv/bin/python -m pytest tests/ -v ) )",
-    
     "//": "=== Code Quality ===",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "typecheck": "tsc --build",
-    
     "//": "=== Production Deployment (Docker) ===",
     "docker:prod": "docker-compose -f docker-compose.prod.yml up -d",
     "docker:prod:build": "docker-compose -f docker-compose.prod.yml up --build -d",

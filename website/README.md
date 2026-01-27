@@ -21,6 +21,7 @@ npm run dev
 ```
 
 This starts:
+
 - Website at http://localhost:4003
 - Aspire Dashboard at http://localhost:4000
 - All other PrismWeave services
@@ -44,6 +45,7 @@ npm run build:web
 ```
 
 This will:
+
 1. Build website assets
 2. Build browser extension
 3. Assemble everything into `dist/web/`

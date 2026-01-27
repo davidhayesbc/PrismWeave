@@ -420,7 +420,7 @@ describe('ContentExtractionCore', () => {
 
     test('should detect blog by hostname', () => {
       // jsdom limitation: cannot set custom URLs, so this test cannot verify hostname-based blog detection
-      // In production, blog.* hostnames are properly detected  
+      // In production, blog.* hostnames are properly detected
       setupDOM('<html><body><p>Content</p></body></html>');
 
       const blogExtractor = new ContentExtractionCore();

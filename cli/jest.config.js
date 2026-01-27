@@ -3,7 +3,7 @@
 
 export default {
   preset: 'ts-jest/presets/default-esm',
-  testEnvironment: 'node',  // Default to node
+  testEnvironment: 'node', // Default to node
   testEnvironmentOptions: {
     customExportConditions: ['node', 'node-addons'],
   },

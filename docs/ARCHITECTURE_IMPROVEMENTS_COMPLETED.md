@@ -12,20 +12,24 @@ This document summarizes the architectural improvements made to PrismWeave to mo
 ### 1. Workspace Consolidation ✅
 
 **Problem:**
+
 - Components used isolated `node_modules` with duplicated dependencies
 - No shared tooling configuration
 - Inconsistent versioning of common dependencies
 
 **Solution:**
+
 - Converted to npm workspaces with all TypeScript components included
 - Hoisted common dependencies to root (TypeScript 5.9.3, Jest 30.2.0, ESLint, Prettier)
 - Single `npm install` at root configures entire project
 
 **Files Modified:**
+
 - `/package.json` - Added `workspaces` array with 6 components
 - Component `package.json` files - Removed conflicting dependencies
 
 **Benefits:**
+
 - Reduced `node_modules` size by ~40%
 - Consistent tooling versions across components
 - Faster installation and better caching
@@ -33,27 +37,32 @@ This document summarizes the architectural improvements made to PrismWeave to mo
 ### 2. TypeScript Standardization ✅
 
 **Problem:**
+
 - Each component had different TypeScript configurations
 - No enforcement of strict type checking
 - Duplicate configuration between components
 
 **Solution:**
+
 - Created `/tsconfig.base.json` with strict configuration shared by all components
 - Created root `/tsconfig.json` with project references
 - Updated all component tsconfigs to extend base
 - Enabled: `strict`, `noUncheckedIndexedAccess`, `noImplicitOverride`
 
 **Files Created:**
+
 - `/tsconfig.base.json` - Shared strict TypeScript configuration
 - `/tsconfig.json` - Root project references configuration
 
 **Files Modified:**
+
 - `/cli/tsconfig.json` - Extends base, added `composite: true`, uses ES2022 modules
 - `/browser-extension/tsconfig.json` - Extends base, added `composite: true`
 - `/visualization/tsconfig.json` - Extends base, added `composite: true`
 - `/website/tsconfig.json` - Extends base, added `composite: true`
 
 **Benefits:**
+
 - Caught 5 real bugs in CLI source code (null/undefined safety issues)
 - Incremental compilation with project references
 - Better IDE performance and autocomplete
@@ -64,10 +73,11 @@ This document summarizes the architectural improvements made to PrismWeave to mo
 **Real Bugs Fixed:**
 
 1. **cli/src/index.ts:131-136** - Missing null check for `currentUrl`
+
    ```typescript
    // Before: Potential crash if url is undefined
    await captureUrl(urls[0]);
-   
+
    // After: Safe null checking
    if (!currentUrl) {
      console.error('No URL available to capture');
@@ -76,10 +86,11 @@ This document summarizes the architectural improvements made to PrismWeave to mo
    ```
 
 2. **cli/src/shared/file-manager.ts:223** - Unsafe date array access
+
    ```typescript
    // Before: dateParts[1] could be undefined
    const month = dateParts[1];
-   
+
    // After: Explicit undefined check
    const month = dateParts[1];
    if (!month || !dateParts[2]) {
@@ -88,10 +99,11 @@ This document summarizes the architectural improvements made to PrismWeave to mo
    ```
 
 3. **cli/src/shared/file-manager.ts:257** - Unsafe repository parsing
+
    ```typescript
-   // Before: ownerAndRepo[1] could be undefined  
+   // Before: ownerAndRepo[1] could be undefined
    const repo = ownerAndRepo[1];
-   
+
    // After: Explicit validation
    if (!owner || !repo) {
      throw new Error(`Invalid repository format: ${repoPath}`);
@@ -101,17 +113,20 @@ This document summarizes the architectural improvements made to PrismWeave to mo
 ### 4. Test Suite Completion ✅
 
 **CLI Tests:**
+
 - ✅ 120/120 tests passing (100% success rate)
 - ✅ 4 test suites all passing
 - ✅ Test execution time: ~2.5s
 
 **Test Suites:**
+
 1. `config.test.ts` - 23 tests passing
 2. `file-manager.test.ts` - 29 tests passing
 3. `markdown-converter.test.ts` - 37 tests passing
 4. `content-extraction.test.ts` - 31 tests passing
 
 **Jest Configuration:**
+
 - Fixed jsdom environment compatibility issues
 - Documented jsdom `window.location` limitations
 - All tests use appropriate mocking strategies
@@ -128,9 +143,11 @@ All components build successfully with new workspace structure:
 ### 6. Shared Package Infrastructure ✅
 
 **Created:**
+
 - `/packages/shared/` - Scaffolded structure for future shared utilities
 
 **Future Use:**
+
 - Shared TypeScript types across components
 - Common utility functions
 - Reusable UI components
@@ -138,11 +155,13 @@ All components build successfully with new workspace structure:
 ## Testing Results
 
 ### Before Improvements
+
 - CLI: Type errors blocking compilation
 - Array access bugs uncaught
 - Inconsistent test environments
 
 ### After Improvements
+
 ```
 CLI Test Results:
   Test Suites: 4 passed, 4 total
@@ -217,6 +236,7 @@ PrismWeave/
 ## Documentation Updates
 
 Updated files:
+
 - `/README.md` - Added "Workspace Architecture" section with build commands and benefits
 - `/README.md` - Updated "Development" section with modern workflow
 - Created `/docs/ARCHITECTURE_IMPROVEMENTS_COMPLETED.md` (this file)
@@ -226,6 +246,7 @@ Updated files:
 ### For Component Development:
 
 Before:
+
 ```bash
 cd browser-extension
 npm install
@@ -233,6 +254,7 @@ npm run build
 ```
 
 After (workspace approach):
+
 ```bash
 # One-time setup from root
 npm install
@@ -248,12 +270,14 @@ npm run build  # Uses hoisted dependencies
 ### For Adding New Dependencies:
 
 Before:
+
 ```bash
 cd component-name
 npm install some-package
 ```
 
 After (workspace approach):
+
 ```bash
 # For component-specific dependency
 npm install some-package --workspace=component-name
@@ -265,22 +289,24 @@ npm install some-package -D  # At root
 ### For TypeScript Configuration:
 
 Before:
+
 ```json
 {
   "compilerOptions": {
     "strict": true,
-    "target": "ES2020",
+    "target": "ES2020"
     // ... many duplicate settings
   }
 }
 ```
 
 After (extends base):
+
 ```json
 {
   "extends": "../tsconfig.base.json",
   "compilerOptions": {
-    "composite": true,
+    "composite": true
     // Only component-specific overrides
   }
 }

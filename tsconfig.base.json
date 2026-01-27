@@ -4,18 +4,18 @@
     /* Language and Environment */
     "target": "ES2020",
     "lib": ["ES2020"],
-    
+
     /* Modules */
     "module": "ES2020",
     "moduleResolution": "node",
     "resolveJsonModule": true,
-    
+
     /* Emit */
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
     "removeComments": false,
-    
+
     /* Type Checking - Strict */
     "strict": true,
     "noImplicitAny": true,
@@ -25,7 +25,7 @@
     "strictPropertyInitialization": true,
     "noImplicitThis": true,
     "alwaysStrict": true,
-    
+
     /* Type Checking - Linting */
     "noUnusedLocals": false,
     "noUnusedParameters": false,
@@ -33,12 +33,12 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedIndexedAccess": true,
     "noImplicitOverride": true,
-    
+
     /* Interop Constraints */
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "forceConsistentCasingInFileNames": true,
-    
+
     /* Completeness */
     "skipLibCheck": true
   }

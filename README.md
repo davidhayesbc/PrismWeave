@@ -78,6 +78,7 @@ npm run dev
 ```
 
 This starts:
+
 - **Aspire Dashboard**: http://localhost:4000 (integrated logging, metrics, health checks)
 - **Website**: http://localhost:4003
 - **Visualization**: http://localhost:4002
@@ -291,6 +292,7 @@ npm run dev  # Starts Aspire with all services
 ```
 
 Open the **Aspire Dashboard** at http://localhost:4000 to:
+
 - View service health and logs
 - Monitor metrics and traces
 - Debug service interactions

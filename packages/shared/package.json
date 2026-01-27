@@ -10,7 +10,11 @@
     "clean": "rm -rf dist",
     "dev": "tsc --watch"
   },
-  "keywords": ["prismweave", "shared", "utilities"],
+  "keywords": [
+    "prismweave",
+    "shared",
+    "utilities"
+  ],
   "author": "PrismWeave Team",
   "license": "MIT",
   "devDependencies": {
