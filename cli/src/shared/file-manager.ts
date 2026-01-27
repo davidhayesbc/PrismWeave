@@ -220,7 +220,11 @@ export class FileManager {
   }
 
   private formatDate(date: Date): string {
-    return date.toISOString().split('T')[0];
+    const datePart = date.toISOString().split('T')[0];
+    if (!datePart) {
+      throw new Error('Failed to format date');
+    }
+    return datePart;
   }
 
   private extractDomain(url: string): string {
@@ -254,7 +258,13 @@ export class FileManager {
       throw new Error('Invalid repository path format');
     }
 
-    return { owner: parts[0], repo: parts[1] };
+    const owner = parts[0];
+    const repo = parts[1];
+    if (!owner || !repo) {
+      throw new Error('Invalid repository path: missing owner or repo');
+    }
+
+    return { owner, repo };
   }
 
   private async getFileInfo(

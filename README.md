@@ -181,6 +181,59 @@ PrismWeaveDocs/
 └── .prismweave/       # Vector database & metadata
 ```
 
+## Workspace Architecture
+
+PrismWeave uses **npm workspaces** for efficient monorepo management with shared dependencies and consistent tooling across all TypeScript components.
+
+### TypeScript Configuration
+
+- **Centralized Base Config**: [`tsconfig.base.json`](tsconfig.base.json) provides strict TypeScript settings shared across all components
+- **Project References**: Enables incremental builds and better IDE performance
+- **Strict Type Checking**: `strict`, `noUncheckedIndexedAccess`, `noImplicitOverride` enabled project-wide
+
+### Build System
+
+**Root-level commands** (from repository root):
+
+```bash
+# Build individual components
+npm run build:browser-extension
+npm run build:cli
+npm run build:bookmarklet
+npm run build:dev-tools
+
+# Build web components (visualization + website)
+npm run build:web
+npm run build:web:fast
+
+# Test components
+npm run test:cli
+npm run test:browser-extension
+```
+
+**Component-level builds** (if working within a component):
+
+```bash
+cd cli && npm run build
+cd browser-extension && npm run build
+cd visualization && npm run build
+cd website && npm run build
+```
+
+### Benefits of Workspace Architecture
+
+1. **Shared Dependencies**: Common tools (TypeScript, Jest, ESLint) hoisted to root
+2. **Consistent Configuration**: Unified TypeScript and testing standards
+3. **Better Type Safety**: Strict checking catches bugs at compile-time
+4. **Incremental Builds**: TypeScript project references enable faster rebuilds
+5. **Simplified Installation**: Single `npm install` at root configures everything
+
+### Test Coverage
+
+- **CLI**: 120/120 tests passing (4 test suites)
+- **Browser Extension**: Comprehensive integration and unit tests
+- **AI Processing**: Pytest-based test suite
+
 ## Shared Code
 
 The CLI and browser extension share core functionality:
@@ -211,23 +264,69 @@ This ensures consistency across all capture methods while maintaining code reusa
 
 ## Development
 
-### Build All Components
+### Setup
+
+1. **Clone repository and install dependencies:**
 
 ```bash
-npm install  # Root dependencies
-npm run build  # Builds all components
+git clone https://github.com/davidhayesbc/PrismWeave.git
+cd PrismWeave
+npm install  # Installs all workspace dependencies
 ```
 
-### Run Tests
+2. **Build all components:**
 
 ```bash
-# Browser extension tests
-cd browser-extension
-npm test
+npm run build:browser-extension
+npm run build:cli
+npm run build:web
+```
+
+### Running Tests
+
+```bash
+# CLI tests (120 tests, fast)
+npm run test:cli
+
+# Browser extension tests (comprehensive, may take longer)
+npm run test:browser-extension
 
 # AI processing tests
 cd ai-processing
-pytest
+uv sync
+uv run pytest
+```
+
+### Development Workflow
+
+**Working on a specific component:**
+
+```bash
+# Browser extension with auto-rebuild
+cd browser-extension
+npm run dev
+
+# Website with live server
+cd website
+npm run dev
+
+# Visualization with Vite dev server
+cd visualization
+npm run dev
+
+# CLI in watch mode
+cd cli
+npm run build -- --watch
+```
+
+**TypeScript compilation:**
+
+```bash
+# Check all components
+npx tsc --build
+
+# Check specific component
+cd cli && npx tsc --noEmit
 ```
 
 ## Documentation

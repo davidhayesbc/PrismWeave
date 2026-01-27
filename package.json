@@ -6,7 +6,11 @@
   "type": "commonjs",
   "workspaces": [
     "browser-extension",
-    "browser-extension/dev-tools"
+    "browser-extension/dev-tools",
+    "cli",
+    "visualization",
+    "website",
+    "packages/shared"
   ],
   "scripts": {
     "build": "node build.js build",
@@ -59,7 +63,12 @@
     "@types/node": "^20.0.0",
     "esbuild": "^0.25.8",
     "png-to-ico": "^3.0.0",
-    "sharp": "^0.33.5"
+    "sharp": "^0.33.5",
+    "typescript": "^5.9.3",
+    "jest": "^30.2.0",
+    "prettier": "^3.6.2",
+    "@typescript-eslint/eslint-plugin": "^8.45.0",
+    "@typescript-eslint/parser": "^8.45.0"
   },
   "engines": {
     "node": ">=16.0.0",

@@ -1,0 +1,19 @@
+{
+  "name": "@prismweave/shared",
+  "version": "0.1.0",
+  "description": "Shared utilities and types for PrismWeave components",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist",
+    "dev": "tsc --watch"
+  },
+  "keywords": ["prismweave", "shared", "utilities"],
+  "author": "PrismWeave Team",
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}

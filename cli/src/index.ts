@@ -130,6 +130,10 @@ async function captureCommand(url: string | undefined, options: any) {
 
     for (let i = 0; i < urls.length; i++) {
       const currentUrl = urls[i];
+      if (!currentUrl) {
+        spinner.warn(chalk.yellow(`⚠️  Skipping empty URL at index ${i}`));
+        continue;
+      }
       const progress = chalk.gray(`[${i + 1}/${urls.length}]`);
       const displayUrl = truncateUrl(currentUrl);
 
