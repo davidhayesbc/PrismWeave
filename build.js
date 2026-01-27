@@ -169,14 +169,31 @@ class PrismWeaveBuildSystem {
     }
 
     // Run tests to validate the AI processing setup
+    const strictTests = ['1', 'true', 'yes'].includes(
+      String(process.env.PRISMWEAVE_STRICT_TESTS || '').toLowerCase(),
+    );
+
+    const venvPython = path.join(componentPath, '.venv', 'bin', 'python');
+    const hasVenv = fs.existsSync(venvPython);
+    const hasUv = this.hasUv();
+
+    const testCommand = hasUv
+      ? 'uv run pytest tests/ -v --tb=short'
+      : hasVenv
+        ? `.venv/bin/python -m pytest tests/ -v --tb=short`
+        : 'python -m pytest tests/ -v --tb=short';
+
     try {
-      execSync('python -m pytest tests/ -v --tb=short', {
+      execSync(testCommand, {
         cwd: componentPath,
         stdio: 'inherit',
         timeout: 30000, // 30 second timeout
       });
       console.log('✅ AI processing validated');
     } catch (error) {
+      if (strictTests) {
+        throw new Error('AI processing tests failed (strict mode enabled)');
+      }
       console.log('⚠️ AI processing tests failed, but continuing build...');
     }
   }
@@ -929,6 +946,15 @@ class PrismWeaveBuildSystem {
   ensureDirectory(dirPath) {
     if (!fs.existsSync(dirPath)) {
       fs.mkdirSync(dirPath, { recursive: true });
+    }
+  }
+
+  hasUv() {
+    try {
+      execSync('command -v uv >/dev/null 2>&1', { stdio: 'ignore' });
+      return true;
+    } catch (error) {
+      return false;
     }
   }
 

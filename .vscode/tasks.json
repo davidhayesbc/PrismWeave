@@ -66,12 +66,12 @@
 			}
 		},
 		{
-			"label": "vscode-extension: npm: compile",
+			"label": "vscode-extension (optional): compile",
 			"type": "shell",
-			"command": "npm",
+			"command": "bash",
 			"args": [
-				"run",
-				"compile"
+				"-lc",
+				"if [ -d \"${workspaceFolder}/vscode-extension\" ]; then cd \"${workspaceFolder}/vscode-extension\" && npm run compile; else echo \"vscode-extension not present; skipping compile\"; fi"
 			],
 			"group": "build",
 			"presentation": {
@@ -81,17 +81,17 @@
 				"panel": "shared"
 			},
 			"options": {
-				"cwd": "${workspaceFolder}/vscode-extension"
+				"cwd": "${workspaceFolder}"
 			},
 			"problemMatcher": "$tsc"
 		},
 		{
-			"label": "vscode-extension: npm: watch",
+			"label": "vscode-extension (optional): watch",
 			"type": "shell",
-			"command": "npm",
+			"command": "bash",
 			"args": [
-				"run",
-				"watch"
+				"-lc",
+				"if [ -d \"${workspaceFolder}/vscode-extension\" ]; then cd \"${workspaceFolder}/vscode-extension\" && npm run watch; else echo \"vscode-extension not present; skipping watch\"; fi"
 			],
 			"group": "build",
 			"presentation": {
@@ -101,18 +101,18 @@
 				"panel": "shared"
 			},
 			"options": {
-				"cwd": "${workspaceFolder}/vscode-extension"
+				"cwd": "${workspaceFolder}"
 			},
 			"problemMatcher": "$tsc-watch",
 			"isBackground": true
 		},
 		{
-			"label": "vscode-extension: npm: test",
+			"label": "vscode-extension (optional): test",
 			"type": "shell",
-			"command": "npm",
+			"command": "bash",
 			"args": [
-				"run",
-				"test"
+				"-lc",
+				"if [ -d \"${workspaceFolder}/vscode-extension\" ]; then cd \"${workspaceFolder}/vscode-extension\" && npm run test; else echo \"vscode-extension not present; skipping tests\"; fi"
 			],
 			"group": "test",
 			"presentation": {
@@ -122,16 +122,17 @@
 				"panel": "shared"
 			},
 			"options": {
-				"cwd": "${workspaceFolder}/vscode-extension"
+				"cwd": "${workspaceFolder}"
 			},
 			"problemMatcher": []
 		},
 		{
-			"label": "vscode-extension: npm: install",
+			"label": "vscode-extension (optional): install",
 			"type": "shell",
-			"command": "npm",
+			"command": "bash",
 			"args": [
-				"install"
+				"-lc",
+				"if [ -d \"${workspaceFolder}/vscode-extension\" ]; then cd \"${workspaceFolder}/vscode-extension\" && npm install; else echo \"vscode-extension not present; skipping install\"; fi"
 			],
 			"group": "build",
 			"presentation": {
@@ -141,7 +142,7 @@
 				"panel": "shared"
 			},
 			"options": {
-				"cwd": "${workspaceFolder}/vscode-extension"
+				"cwd": "${workspaceFolder}"
 			}
 		},
 		{
@@ -229,8 +230,7 @@
 			"dependsOrder": "parallel",
 			"dependsOn": [
 				"AI Processing: Run Tests",
-				"Browser Extension: npm: test",
-				"vscode-extension: npm: test"
+				"Browser Extension: npm: test"
 			],
 			"group": "test",
 			"presentation": {
@@ -246,7 +246,7 @@
 			"dependsOn": [
 				"Run All Tests",
 				"Browser Extension: npm: build",
-				"vscode-extension: npm: compile"
+				"vscode-extension (optional): compile"
 			],
 			"group": "build",
 			"presentation": {

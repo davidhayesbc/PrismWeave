@@ -238,8 +238,9 @@ pytest
 - **AI Processing**: [ai-processing/README.md](ai-processing/README.md)
 - **MCP Server**: [ai-processing/prismweave_mcp/README.md](ai-processing/prismweave_mcp/README.md)
 - **VS Code MCP Integration**: [ai-processing/prismweave_mcp/VS_CODE_INTEGRATION.md](ai-processing/prismweave_mcp/VS_CODE_INTEGRATION.md)
-- **Implementation Plan**: [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md)
-- **Requirements**: [docs/REQUIREMENTS.md](docs/REQUIREMENTS.md)
+- **Visualization Requirements**: [ai-processing/Requirements.md](ai-processing/Requirements.md)
+- **Document Organization Refactor**: [REFACTORING_COMPLETE.md](REFACTORING_COMPLETE.md)
+- **Solution Structure Index**: [docs/README.md](docs/README.md)
 
 ## Contributing
 
