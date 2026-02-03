@@ -15,6 +15,8 @@
     "format": "prettier --write \"src/**/*.{js,ts,json,html,css,md}\" \"*.{js,ts,json,html,css,md}\"",
     "format:check": "prettier --check \"src/**/*.{js,ts,json,html,css,md}\" \"*.{js,ts,json,html,css,md}\"",
     "package": "npm run build && node scripts/package.js",
+    "deploy": "bash scripts/deploy.sh",
+    "type-check": "tsc --noEmit",
     "dev": "node scripts/serve-dev.js",
     "dev:port": "node scripts/serve-dev.js --port",
     "dev:quiet": "node scripts/serve-dev.js --quiet"

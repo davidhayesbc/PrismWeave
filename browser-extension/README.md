@@ -21,6 +21,7 @@ support.
 - [Bookmarklet Alternative](#-bookmarklet-alternative)
 - [Architecture](#️-architecture)
 - [Development](#-development)
+- [Deployment](#-deployment)
 - [Configuration Reference](#-configuration-reference)
 - [API Integration](#-api-integration)
 - [Performance](#-performance)
@@ -1541,6 +1542,102 @@ jobs:
 - **ESLint**: No linting errors
 - **Build**: Successful production build
 - **Size**: Bundle size under 2MB
+
+---
+
+## 📦 Deployment
+
+### Quick Start
+
+To package and deploy the extension:
+
+```bash
+# Automated deployment (recommended)
+npm run deploy
+
+# Or manual process
+npm run build:prod
+npm run package
+```
+
+This creates a production-ready ZIP package for distribution.
+
+### 🤖 GitHub Actions CI/CD
+
+**Automated deployment via GitHub Actions** - The easiest way to build and
+release!
+
+Three deployment workflows available:
+
+1. **Tag-based deployment** - Push a tag (`extension-v1.0.0`) for automatic
+   build & release
+2. **Manual workflow** - Trigger from GitHub Actions tab with custom options
+3. **Auto-release** - Full version management and deployment automation
+
+**See: [GITHUB_ACTIONS_DEPLOYMENT.md](GITHUB_ACTIONS_DEPLOYMENT.md)** - Complete
+GitHub Actions guide
+
+**Quick example:**
+
+```bash
+# Create and push a tag to trigger automatic deployment
+git tag -a extension-v1.0.0 -m "Release v1.0.0"
+git push origin extension-v1.0.0
+
+# GitHub Actions automatically:
+# - Syncs version across package.json and manifest.json
+# - Runs full test suite
+# - Builds production package
+# - Creates GitHub Release with downloadable ZIP
+# - Deploys to website (optional)
+```
+
+### Deployment Options
+
+#### 1. **Website Distribution**
+
+Host the extension ZIP on your website for direct download by users.
+
+#### 2. **Microsoft Edge Add-ons**
+
+Submit to the Edge Add-ons gallery for public distribution.
+
+#### 3. **Chrome Web Store** (Optional)
+
+Submit to Chrome Web Store for broader reach.
+
+### Comprehensive Deployment Guide
+
+For complete deployment instructions including:
+
+- Building and packaging
+- Store submission requirements
+- Marketing materials preparation
+- Review process details
+- Post-deployment steps
+
+**See: [DEPLOYMENT.md](DEPLOYMENT.md)** - Complete deployment guide
+
+**See: [DEPLOYMENT_CHECKLIST.md](DEPLOYMENT_CHECKLIST.md)** - Quick reference
+checklist
+
+### Key Resources
+
+- **Privacy Policy**: Required for all store submissions  
+  Create at: `https://yoursite.com/privacy-policy`
+
+- **Screenshots**: Capture 1280x800 images showing:
+  - Extension popup and features
+  - Options/settings page
+  - Content capture process
+  - GitHub integration
+
+- **Store Links** (After Publication):
+  - Edge Add-ons:
+    `https://microsoftedge.microsoft.com/addons/detail/[extension-id]`
+  - Chrome Web Store: `https://chrome.google.com/webstore/detail/[extension-id]`
+
+---
 
 ## 📊 Performance
 

@@ -4,26 +4,26 @@ on:
   workflow_dispatch:
     inputs:
       major:
-        description: 'Major version number'
+        description: "Major version number"
         required: true
-        default: '1'
+        default: "1"
         type: string
       minor:
-        description: 'Minor version number'
+        description: "Minor version number"
         required: true
-        default: '0'
+        default: "0"
         type: string
       release_type:
-        description: 'Type of release'
+        description: "Type of release"
         required: true
-        default: 'patch'
+        default: "patch"
         type: choice
         options:
           - patch
           - minor
           - major
       draft:
-        description: 'Create as draft release'
+        description: "Create as draft release"
         required: false
         default: false
         type: boolean
@@ -51,7 +51,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: "20"
 
       - name: Configure Git
         run: |
@@ -118,7 +118,7 @@ jobs:
             exit 1
           fi
 
-      - name: Update package.json
+      - name: Update package.json and manifest.json
         run: |
           echo "📝 Updating package.json version to ${{ steps.version.outputs.new_version }}"
 
@@ -129,6 +129,30 @@ jobs:
           if [ -f "browser-extension/package.json" ]; then
             cd browser-extension
             npm version ${{ steps.version.outputs.new_version }} --no-git-tag-version
+            
+            # CRITICAL: Sync manifest.json version to match package.json
+            if [ -f "manifest.json" ]; then
+              echo "🔄 Syncing manifest.json version..."
+              node -e "
+                const fs = require('fs');
+                const manifest = JSON.parse(fs.readFileSync('manifest.json', 'utf8'));
+                manifest.version = '${{ steps.version.outputs.new_version }}';
+                fs.writeFileSync('manifest.json', JSON.stringify(manifest, null, 2) + '\n');
+              "
+              echo "✅ manifest.json synced to version ${{ steps.version.outputs.new_version }}"
+              
+              # Verify versions match
+              PKG_VERSION=$(node -p "require('./package.json').version")
+              MF_VERSION=$(node -p "require('./manifest.json').version")
+              
+              if [ "$PKG_VERSION" != "$MF_VERSION" ]; then
+                echo "❌ Version mismatch: package.json=$PKG_VERSION, manifest.json=$MF_VERSION"
+                exit 1
+              fi
+              
+              echo "✅ Verified: package.json and manifest.json both at version ${{ steps.version.outputs.new_version }}"
+            fi
+            
             cd ..
           fi
 
@@ -288,7 +312,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: ${{ steps.version.outputs.new_tag }}
-          name: 'PrismWeave ${{ steps.version.outputs.new_tag }}'
+          name: "PrismWeave ${{ steps.version.outputs.new_tag }}"
           body_path: release-notes.md
           draft: ${{ github.event.inputs.draft }}
           prerelease: false

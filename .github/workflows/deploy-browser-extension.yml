@@ -1,0 +1,418 @@
+name: Deploy Browser Extension
+
+# Dedicated workflow for browser extension deployment
+# Can be triggered manually or automatically on tag push
+on:
+    push:
+        tags:
+            - "extension-v*" # Tag format: extension-v1.0.0
+    workflow_dispatch:
+        inputs:
+            version:
+                description: "Version to deploy (e.g., 1.0.0)"
+                required: true
+                type: string
+            create_release:
+                description: "Create GitHub Release"
+                required: true
+                default: true
+                type: boolean
+            deploy_to_website:
+                description: "Deploy to website"
+                required: true
+                default: true
+                type: boolean
+
+permissions:
+    contents: write
+    pages: write
+    id-token: write
+
+env:
+    NODE_VERSION: "20"
+
+jobs:
+    deploy-extension:
+        runs-on: ubuntu-latest
+        name: Build and Deploy Browser Extension
+
+        outputs:
+            version: ${{ steps.version.outputs.version }}
+            package_path: ${{ steps.package.outputs.path }}
+            package_size: ${{ steps.package.outputs.size }}
+
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
+
+            - name: Setup Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: ${{ env.NODE_VERSION }}
+                  cache: "npm"
+
+            - name: Determine version
+              id: version
+              run: |
+                  if [[ "${GITHUB_REF}" == refs/tags/extension-v* ]]; then
+                    VERSION=${GITHUB_REF#refs/tags/extension-v}
+                    echo "📌 Using tag version: $VERSION"
+                  elif [[ "${{ github.event.inputs.version }}" != "" ]]; then
+                    VERSION=${{ github.event.inputs.version }}
+                    echo "📌 Using manual input version: $VERSION"
+                  else
+                    VERSION=$(node -p "require('./browser-extension/package.json').version")
+                    echo "📌 Using package.json version: $VERSION"
+                  fi
+
+                  echo "version=$VERSION" >> $GITHUB_OUTPUT
+                  echo "VERSION=$VERSION" >> $GITHUB_ENV
+
+            - name: Install root dependencies
+              run: npm install
+
+            - name: Install browser extension dependencies
+              working-directory: browser-extension
+              run: npm install
+
+            - name: Sync version across package.json and manifest.json
+              working-directory: browser-extension
+              run: |
+                  echo "🔄 Syncing version $VERSION across files..."
+
+                  # Update package.json
+                  npm version $VERSION --no-git-tag-version --allow-same-version
+
+                  # Update manifest.json to match
+                  node -e "
+                    const fs = require('fs');
+                    const manifest = JSON.parse(fs.readFileSync('manifest.json', 'utf8'));
+                    manifest.version = '$VERSION';
+                    fs.writeFileSync('manifest.json', JSON.stringify(manifest, null, 2) + '\n');
+                  "
+
+                  echo "✅ Version synced to $VERSION"
+
+                  # Verify versions match
+                  PKG_VERSION=$(node -p "require('./package.json').version")
+                  MF_VERSION=$(node -p "require('./manifest.json').version")
+
+                  if [ "$PKG_VERSION" != "$MF_VERSION" ]; then
+                    echo "❌ Version mismatch: package.json=$PKG_VERSION, manifest.json=$MF_VERSION"
+                    exit 1
+                  fi
+
+                  echo "✅ Verified: package.json and manifest.json both at version $VERSION"
+
+            - name: Run TypeScript type check
+              working-directory: browser-extension
+              run: |
+                  echo "🔍 Running TypeScript type check..."
+                  npx tsc --noEmit
+
+            - name: Run tests with coverage
+              working-directory: browser-extension
+              run: |
+                  echo "🧪 Running test suite..."
+                  npm run test:coverage
+
+            - name: Upload test coverage
+              uses: actions/upload-artifact@v4
+              if: always()
+              with:
+                  name: extension-coverage-${{ steps.version.outputs.version }}
+                  path: browser-extension/coverage/
+                  retention-days: 30
+
+            - name: Clean previous builds
+              working-directory: browser-extension
+              run: |
+                  echo "🧹 Cleaning previous builds..."
+                  npm run clean || echo "No clean script, skipping..."
+
+            - name: Build for production
+              working-directory: browser-extension
+              run: |
+                  echo "🔨 Building browser extension for production..."
+                  npm run build
+                  echo "✅ Production build complete"
+
+            - name: Verify build outputs
+              run: |
+                  echo "🔍 Verifying build outputs..."
+
+                  # Check that dist directory exists and has required files
+                  if [ ! -d "dist/browser-extension" ]; then
+                    echo "❌ dist/browser-extension directory not found"
+                    exit 1
+                  fi
+
+                  # Verify manifest.json exists in build output
+                  if [ ! -f "dist/browser-extension/manifest.json" ]; then
+                    echo "❌ manifest.json not found in build output"
+                    exit 1
+                  fi
+
+                  # Verify service worker exists
+                  if [ ! -f "dist/browser-extension/background/service-worker.js" ]; then
+                    echo "❌ service-worker.js not found in build output"
+                    exit 1
+                  fi
+
+                  echo "📋 Build contents:"
+                  ls -la dist/browser-extension/
+
+                  echo "✅ Build verification passed"
+
+            - name: Create ZIP package
+              id: package
+              run: |
+                  echo "📦 Creating deployment package..."
+
+                  # Create releases directory
+                  mkdir -p browser-extension/releases
+
+                  # Create versioned package name
+                  PACKAGE_NAME="prismweave-extension-v${VERSION}.zip"
+                  PACKAGE_PATH="browser-extension/releases/${PACKAGE_NAME}"
+
+                  # Remove old package if exists
+                  rm -f "$PACKAGE_PATH"
+
+                  # Navigate to dist directory and create zip
+                  cd dist/browser-extension
+                  zip -r "../../${PACKAGE_PATH}" ./*
+                  cd ../..
+
+                  # Get package size
+                  PACKAGE_SIZE=$(du -h "$PACKAGE_PATH" | cut -f1)
+
+                  echo "✅ Package created: $PACKAGE_PATH"
+                  echo "📊 Package size: $PACKAGE_SIZE"
+
+                  # Set outputs
+                  echo "path=$PACKAGE_PATH" >> $GITHUB_OUTPUT
+                  echo "size=$PACKAGE_SIZE" >> $GITHUB_OUTPUT
+                  echo "name=$PACKAGE_NAME" >> $GITHUB_OUTPUT
+
+            - name: Verify package contents
+              run: |
+                  echo "🔍 Verifying package contents..."
+                  PACKAGE_PATH="${{ steps.package.outputs.path }}"
+
+                  echo "Package contains:"
+                  unzip -l "$PACKAGE_PATH" | head -n 30
+
+                  # Verify essential files are in the package
+                  unzip -l "$PACKAGE_PATH" | grep -q "manifest.json" || (echo "❌ manifest.json missing" && exit 1)
+                  unzip -l "$PACKAGE_PATH" | grep -q "background/service-worker.js" || (echo "❌ service-worker.js missing" && exit 1)
+
+                  echo "✅ Package verification passed"
+
+            - name: Generate deployment summary
+              run: |
+                  echo "# 🚀 Browser Extension Deployment Summary" >> $GITHUB_STEP_SUMMARY
+                  echo "" >> $GITHUB_STEP_SUMMARY
+                  echo "## 📦 Package Details" >> $GITHUB_STEP_SUMMARY
+                  echo "- **Version:** ${{ steps.version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+                  echo "- **Package:** ${{ steps.package.outputs.name }}" >> $GITHUB_STEP_SUMMARY
+                  echo "- **Size:** ${{ steps.package.outputs.size }}" >> $GITHUB_STEP_SUMMARY
+                  echo "" >> $GITHUB_STEP_SUMMARY
+                  echo "## ✅ Build Steps Completed" >> $GITHUB_STEP_SUMMARY
+                  echo "- [x] Version synchronized" >> $GITHUB_STEP_SUMMARY
+                  echo "- [x] TypeScript type check passed" >> $GITHUB_STEP_SUMMARY
+                  echo "- [x] Tests passed with coverage" >> $GITHUB_STEP_SUMMARY
+                  echo "- [x] Production build completed" >> $GITHUB_STEP_SUMMARY
+                  echo "- [x] ZIP package created" >> $GITHUB_STEP_SUMMARY
+                  echo "- [x] Package contents verified" >> $GITHUB_STEP_SUMMARY
+
+            - name: Upload build artifact
+              uses: actions/upload-artifact@v4
+              with:
+                  name: browser-extension-v${{ steps.version.outputs.version }}
+                  path: |
+                      ${{ steps.package.outputs.path }}
+                      dist/browser-extension/
+                  retention-days: 90
+
+            - name: Create GitHub Release
+              if: github.event.inputs.create_release != 'false'
+              id: create_release
+              uses: softprops/action-gh-release@v1
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              with:
+                  tag_name: extension-v${{ steps.version.outputs.version }}
+                  name: "Browser Extension v${{ steps.version.outputs.version }}"
+                  body: |
+                      # PrismWeave Browser Extension v${{ steps.version.outputs.version }}
+
+                      **Released:** ${{ github.event.repository.updated_at }}
+                      **Build:** Automated GitHub Actions deployment
+
+                      ## 📥 Download
+
+                      Download `${{ steps.package.outputs.name }}` below to install the browser extension.
+
+                      ## 🚀 Installation Instructions
+
+                      ### Chrome/Edge Installation
+
+                      1. Download the ZIP file below
+                      2. Extract to a permanent folder location
+                      3. Open your browser:
+                         - **Chrome:** `chrome://extensions/`
+                         - **Edge:** `edge://extensions/`
+                      4. Enable **Developer mode** (toggle in top-right)
+                      5. Click **Load unpacked**
+                      6. Select the extracted folder
+                      7. Configure your GitHub token in the extension popup
+
+                      ## ⚙️ Configuration
+
+                      After installation:
+                      1. Click the extension icon in your toolbar
+                      2. Enter your GitHub Personal Access Token
+                      3. Set your target repository (e.g., `username/repo`)
+                      4. Configure optional settings (folder structure, auto-commit, etc.)
+
+                      ## 📋 Features in This Release
+
+                      - ✅ Clean markdown conversion from web pages
+                      - ✅ Direct GitHub repository integration
+                      - ✅ Smart content extraction algorithms
+                      - ✅ Customizable markdown conversion
+                      - ✅ Image handling and processing
+                      - ✅ Keyboard shortcuts (Alt+Shift+C)
+                      - ✅ Context menu integration
+                      - ✅ Automatic folder organization
+
+                      ## 📖 Documentation
+
+                      - [Installation Guide](../blob/main/browser-extension/DEPLOYMENT.md)
+                      - [Quick Deploy Guide](../blob/main/browser-extension/QUICK_DEPLOY.md)
+                      - [Deployment Checklist](../blob/main/browser-extension/DEPLOYMENT_CHECKLIST.md)
+                      - [Usage Guide](../blob/main/README.md)
+
+                      ## 🆘 Support
+
+                      - 🐛 **Issues:** [GitHub Issues](https://github.com/davidhayesbc/PrismWeave/issues)
+                      - 💬 **Discussions:** [GitHub Discussions](https://github.com/davidhayesbc/PrismWeave/discussions)
+
+                      ## 📊 Build Information
+
+                      - **Package Size:** ${{ steps.package.outputs.size }}
+                      - **Node Version:** ${{ env.NODE_VERSION }}
+                      - **Build Date:** ${{ github.event.repository.updated_at }}
+                      - **Commit:** ${{ github.sha }}
+
+                      ---
+
+                      *This release was automatically built and deployed via GitHub Actions*
+                  draft: false
+                  prerelease: false
+                  files: |
+                      ${{ steps.package.outputs.path }}
+
+            - name: Deployment success notification
+              if: success()
+              run: |
+                  echo "✅ Browser extension deployed successfully!"
+                  echo "📦 Package: ${{ steps.package.outputs.name }}"
+                  echo "📊 Size: ${{ steps.package.outputs.size }}"
+                  echo "🔗 Version: ${{ steps.version.outputs.version }}"
+
+    update-deployment-docs:
+        needs: deploy-extension
+        runs-on: ubuntu-latest
+        name: Update Deployment Documentation
+
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+              with:
+                  token: ${{ secrets.GITHUB_TOKEN }}
+
+            - name: Update version in documentation
+              run: |
+                  VERSION=${{ needs.deploy-extension.outputs.version }}
+
+                  echo "📝 Updating documentation with version $VERSION..."
+
+                  # Update README.md if it references the version
+                  if [ -f "browser-extension/README.md" ]; then
+                    sed -i "s/Version: [0-9.]\+/Version: $VERSION/g" browser-extension/README.md || echo "No version string to update in README"
+                  fi
+
+                  echo "✅ Documentation updated"
+
+            - name: Commit documentation updates
+              run: |
+                  git config user.name "github-actions[bot]"
+                  git config user.email "github-actions[bot]@users.noreply.github.com"
+
+                  git add browser-extension/README.md || true
+                  git diff --staged --quiet || git commit -m "docs: update version to ${{ needs.deploy-extension.outputs.version }} [skip ci]"
+                  git push || echo "No changes to push"
+
+    trigger-website-update:
+        needs: deploy-extension
+        if: github.event.inputs.deploy_to_website != 'false'
+        runs-on: ubuntu-latest
+        name: Trigger Website Update
+
+        steps:
+            - name: Trigger website deployment workflow
+              uses: actions/github-script@v7
+              with:
+                  github-token: ${{ secrets.GITHUB_TOKEN }}
+                  script: |
+                      await github.rest.actions.createWorkflowDispatch({
+                        owner: context.repo.owner,
+                        repo: context.repo.repo,
+                        workflow_id: 'deploy-website.yml',
+                        ref: 'main'
+                      });
+
+                      console.log('✅ Website deployment workflow triggered');
+
+    deployment-summary:
+        needs: [deploy-extension, update-deployment-docs]
+        if: always()
+        runs-on: ubuntu-latest
+        name: Deployment Summary
+
+        steps:
+            - name: Generate final summary
+              run: |
+                  echo "# 🎉 Browser Extension Deployment Complete" >> $GITHUB_STEP_SUMMARY
+                  echo "" >> $GITHUB_STEP_SUMMARY
+                  echo "## 📦 Deployed Version" >> $GITHUB_STEP_SUMMARY
+                  echo "**v${{ needs.deploy-extension.outputs.version }}**" >> $GITHUB_STEP_SUMMARY
+                  echo "" >> $GITHUB_STEP_SUMMARY
+                  echo "## 📋 Next Steps" >> $GITHUB_STEP_SUMMARY
+                  echo "" >> $GITHUB_STEP_SUMMARY
+                  echo "### For Website Distribution" >> $GITHUB_STEP_SUMMARY
+                  echo "- ✅ Package uploaded to GitHub Releases" >> $GITHUB_STEP_SUMMARY
+                  echo "- ✅ Ready for download from releases page" >> $GITHUB_STEP_SUMMARY
+                  echo "" >> $GITHUB_STEP_SUMMARY
+                  echo "### For Edge Add-ons Submission" >> $GITHUB_STEP_SUMMARY
+                  echo "1. Download package from releases: [${{ needs.deploy-extension.outputs.package_path }}]" >> $GITHUB_STEP_SUMMARY
+                  echo "2. Go to [Edge Partner Center](https://partner.microsoft.com/dashboard/microsoftedge)" >> $GITHUB_STEP_SUMMARY
+                  echo "3. Upload the ZIP package" >> $GITHUB_STEP_SUMMARY
+                  echo "4. Fill in store listing details" >> $GITHUB_STEP_SUMMARY
+                  echo "5. Submit for review" >> $GITHUB_STEP_SUMMARY
+                  echo "" >> $GITHUB_STEP_SUMMARY
+                  echo "### For Chrome Web Store Submission" >> $GITHUB_STEP_SUMMARY
+                  echo "1. Download package from releases" >> $GITHUB_STEP_SUMMARY
+                  echo "2. Go to [Chrome Web Store Developer Dashboard](https://chrome.google.com/webstore/devconsole)" >> $GITHUB_STEP_SUMMARY
+                  echo "3. Upload the ZIP package" >> $GITHUB_STEP_SUMMARY
+                  echo "4. Complete store listing" >> $GITHUB_STEP_SUMMARY
+                  echo "5. Submit for review" >> $GITHUB_STEP_SUMMARY
+                  echo "" >> $GITHUB_STEP_SUMMARY
+                  echo "## 📖 Documentation" >> $GITHUB_STEP_SUMMARY
+                  echo "- [Deployment Guide](../blob/main/browser-extension/DEPLOYMENT.md)" >> $GITHUB_STEP_SUMMARY
+                  echo "- [Quick Deploy](../blob/main/browser-extension/QUICK_DEPLOY.md)" >> $GITHUB_STEP_SUMMARY
+                  echo "- [Deployment Checklist](../blob/main/browser-extension/DEPLOYMENT_CHECKLIST.md)" >> $GITHUB_STEP_SUMMARY
