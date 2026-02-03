@@ -1,1 +1,162 @@
-@import url('../../shared-styles/shared-ui.css');
+/* PrismWeave Shared UI Components */
+/* Imports design tokens and provides reusable UI primitives */
+
+@import './design-tokens.css';
+
+/* Base styles */
+* {
+  box-sizing: border-box;
+}
+
+/* Button styles */
+.pw-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--pw-space-2);
+  padding: var(--pw-space-3) var(--pw-space-6);
+  border: none;
+  border-radius: var(--pw-radius);
+  font-family: var(--pw-font-family);
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.5;
+  cursor: pointer;
+  transition: all var(--pw-transition);
+  text-decoration: none;
+}
+
+.pw-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pw-btn-primary {
+  background: var(--pw-btn-primary-bg);
+  color: var(--pw-btn-primary-text);
+  box-shadow: var(--pw-shadow-sm);
+}
+
+.pw-btn-primary:hover:not(:disabled) {
+  box-shadow: var(--pw-shadow-md);
+  transform: translateY(-1px);
+}
+
+.pw-btn-success {
+  background: var(--pw-btn-success-bg);
+  color: var(--pw-btn-success-text);
+}
+
+.pw-btn-warning {
+  background: var(--pw-btn-warning-bg);
+  color: var(--pw-btn-warning-text);
+}
+
+.pw-btn-error {
+  background: var(--pw-btn-error-bg);
+  color: var(--pw-btn-error-text);
+}
+
+/* Card styles */
+.pw-card {
+  background: var(--pw-surface-bg);
+  border: 1px solid var(--pw-border-color);
+  border-radius: var(--pw-radius-lg);
+  padding: var(--pw-space-6);
+  box-shadow: var(--pw-shadow);
+  transition: all var(--pw-transition);
+}
+
+.pw-card:hover {
+  box-shadow: var(--pw-shadow-md);
+  transform: translateY(-2px);
+}
+
+/* Panel styles */
+.pw-panel {
+  background: var(--pw-panel-bg);
+  border: 1px solid var(--pw-border-color);
+  border-radius: var(--pw-radius-xl);
+  padding: var(--pw-space-8);
+  box-shadow: var(--pw-panel-shadow);
+}
+
+/* Utility classes */
+.pw-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 var(--pw-space-6);
+}
+
+.pw-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pw-space-4);
+}
+
+.pw-row {
+  display: flex;
+  flex-direction: row;
+  gap: var(--pw-space-4);
+  align-items: center;
+}
+
+.pw-divider {
+  height: 1px;
+  background: var(--pw-border-color);
+  margin: var(--pw-space-6) 0;
+}
+
+/* Text utilities */
+.pw-heading-1 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--pw-text-primary);
+  margin: 0;
+}
+
+.pw-heading-2 {
+  font-size: 2rem;
+  font-weight: 600;
+  color: var(--pw-text-primary);
+  margin: 0;
+}
+
+.pw-heading-3 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--pw-text-primary);
+  margin: 0;
+}
+
+.pw-text-body {
+  font-size: 1rem;
+  line-height: 1.6;
+  color: var(--pw-text-secondary);
+}
+
+.pw-text-small {
+  font-size: 0.875rem;
+  color: var(--pw-text-muted);
+}
+
+/* Code block styles */
+.pw-code {
+  background: var(--pw-code-bg);
+  color: var(--pw-code-text);
+  padding: var(--pw-space-1) var(--pw-space-2);
+  border-radius: var(--pw-radius-sm);
+  font-family: var(--pw-font-mono);
+  font-size: 0.875rem;
+}
+
+.pw-code-block {
+  background: var(--pw-code-bg);
+  color: var(--pw-code-text);
+  padding: var(--pw-space-4);
+  border-radius: var(--pw-radius);
+  font-family: var(--pw-font-mono);
+  font-size: 0.875rem;
+  line-height: 1.5;
+  overflow-x: auto;
+}
