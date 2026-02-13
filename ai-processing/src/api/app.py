@@ -80,35 +80,29 @@ async def lifespan(_: FastAPI):
 
 # Initialize FastAPI app with comprehensive OpenAPI documentation
 app = FastAPI(
-    title="PrismWeave Visualization API",
+    title="PrismWeave API",
     description="""
-    # PrismWeave Visualization API
+    # PrismWeave API
     
-    HTTP API for PrismWeave document visualization and management.
+    HTTP API for PrismWeave document processing, visualization, and management.
     
     ## Features
     
     - **Article Management**: CRUD operations for captured documents
     - **Visualization**: 2D graph visualization with semantic embeddings
-    - **Metadata**: Rich metadata extraction and indexing
-    - **Search**: Semantic search capabilities
+    - **Semantic Search**: Search documents via Ollama embeddings and ChromaDB
+    - **Document Processing**: Embed and index documents into the vector store
+    - **Taxonomy Pipeline**: Clustering, LLM proposals, normalization, and tag assignment
+    - **Rebuild Pipelines**: Full or partial rebuild of embeddings and taxonomy
+    - **Health & Monitoring**: Ollama status, ChromaDB health, environment info
     
-    ## Endpoints
+    ## Quick Links
     
-    - `/articles` - List all articles with metadata
-    - `/articles/{id}` - Get, update, or delete a specific article
-    - `/visualization/rebuild` - Rebuild the visualization index
-    - `/health` - Health check endpoint
-    
-    ## Data Flow
-    
-    1. Articles are captured via browser extension
-    2. Metadata is extracted and indexed
-    3. Embeddings are generated for semantic similarity
-    4. 2D coordinates are computed for visualization
-    5. Frontend displays interactive graph
+    - **Swagger UI**: `/docs`
+    - **ReDoc**: `/redoc`
+    - **OpenAPI JSON**: `/openapi.json`
     """,
-    version="0.1.0",
+    version="0.2.0",
     lifespan=lifespan,
     contact={
         "name": "PrismWeave Team",
@@ -126,6 +120,26 @@ app = FastAPI(
         {
             "name": "health",
             "description": "Health check and status monitoring",
+        },
+        {
+            "name": "search",
+            "description": "Semantic search over the document collection",
+        },
+        {
+            "name": "documents",
+            "description": "Document collection listing, counts, stats, and export",
+        },
+        {
+            "name": "processing",
+            "description": "Document processing and embedding generation",
+        },
+        {
+            "name": "taxonomy",
+            "description": "Clustering, LLM proposals, normalization, and tag assignment",
+        },
+        {
+            "name": "rebuild",
+            "description": "Full or partial rebuild of embeddings and taxonomy pipelines",
         },
         {
             "name": "articles",
@@ -146,6 +160,21 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Register API routers (CLI-equivalent endpoints)
+from src.api.routers.documents import router as documents_router
+from src.api.routers.health import router as health_router
+from src.api.routers.processing import router as processing_router
+from src.api.routers.rebuild import router as rebuild_router
+from src.api.routers.search import router as search_router
+from src.api.routers.taxonomy import router as taxonomy_router
+
+app.include_router(search_router)
+app.include_router(documents_router)
+app.include_router(processing_router)
+app.include_router(taxonomy_router)
+app.include_router(health_router)
+app.include_router(rebuild_router)
 
 
 def _path_status(path: Path) -> str:
@@ -417,19 +446,36 @@ async def root():
     and links to API documentation.
     """
     return {
-        "name": "PrismWeave Visualization API",
-        "version": "0.1.0",
-        "description": "HTTP API for PrismWeave document visualization and management",
+        "name": "PrismWeave API",
+        "version": "0.2.0",
+        "description": "HTTP API for PrismWeave document processing, visualization, and management",
         "documentation": "/docs",
         "redoc": "/redoc",
         "openapi_schema": "/openapi.json",
         "endpoints": {
             "health": "/health",
+            "health_detailed": "/health/detailed",
+            "health_ollama": "/health/ollama",
+            "search": "POST /search",
+            "documents_list": "/documents",
+            "documents_count": "/documents/count",
+            "documents_stats": "/documents/stats",
+            "documents_export": "POST /documents/export",
+            "processing_file": "POST /processing/file",
+            "processing_directory": "POST /processing/directory",
+            "taxonomy_cluster": "POST /taxonomy/cluster",
+            "taxonomy_propose": "POST /taxonomy/propose",
+            "taxonomy_normalize": "POST /taxonomy/normalize",
+            "taxonomy_embed_tags": "POST /taxonomy/embed-tags",
+            "taxonomy_assign": "POST /taxonomy/assign",
+            "taxonomy_tag_new": "POST /taxonomy/tag-new",
+            "rebuild_embeddings": "POST /rebuild/embeddings",
+            "rebuild_everything": "POST /rebuild/everything",
             "articles_list": "/articles",
             "article_detail": "/articles/{id}",
             "article_update": "PUT /articles/{id}",
             "article_delete": "DELETE /articles/{id}",
-            "visualization_rebuild": "/visualization/rebuild",
+            "visualization_rebuild": "POST /visualization/rebuild",
         },
     }
 
