@@ -124,7 +124,7 @@ jobs:
               with:
                   name: extension-coverage-${{ steps.version.outputs.version }}
                   path: browser-extension/coverage/
-                  retention-days: 30
+                  retention-days: 7
 
             - name: Clean previous builds
               working-directory: browser-extension
@@ -235,7 +235,7 @@ jobs:
                   path: |
                       ${{ steps.package.outputs.path }}
                       dist/browser-extension/
-                  retention-days: 90
+                  retention-days: 1
 
             - name: Create GitHub Release
               if: github.event.inputs.create_release != 'false'
